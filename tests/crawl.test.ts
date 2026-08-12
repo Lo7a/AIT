@@ -2,20 +2,24 @@ import { describe, it, expect, vi } from "vitest";
 import { crawlWebsite } from "../src/pipeline/crawler/crawl";
 
 const HOME = `<html><body>
-  <a href="/contact">צור קשר</a>
   <a href="/gallery">גלריה</a>
+  <a href="/contact">צור קשר</a>
   <form action="/lead"><input name="name"/><textarea name="msg"></textarea></form>
 </body></html>`;
 const CONTACT = `<html><body><a href="https://wa.me/972501234567">וואטסאפ</a></body></html>`;
 const GALLERY = `<html><body>תמונות</body></html>`;
 
-function htmlResponse(html: string) {
-  return { ok: true, status: 200, text: async () => html } as unknown as Response;
+function htmlResponse(html: string, url = "") {
+  return {
+    ok: true, status: 200, url,
+    headers: { get: (name: string) => (name.toLowerCase() === "content-type" ? "text/html; charset=utf-8" : null) },
+    text: async () => html,
+  } as unknown as Response;
 }
 
 describe("crawlWebsite", () => {
   it("crawls home + prioritized pages and merges signals with OR", async () => {
-    const fetchImpl = vi.fn(async (url: RequestInfo | URL) => {
+    const fetchImpl = vi.fn(async (url: RequestInfo | URL, _init?: RequestInit) => {
       const u = url.toString();
       if (u.includes("/contact")) return htmlResponse(CONTACT);
       if (u.includes("/gallery")) return htmlResponse(GALLERY);
@@ -23,11 +27,83 @@ describe("crawlWebsite", () => {
     });
     const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 3 });
     expect(signals.pagesCrawled).toBe(3);
-    expect(signals.hasContactForm).toBe(true);   // מעמוד הבית
-    expect(signals.hasWhatsappLink).toBe(true);  // מעמוד צור קשר
-    // עמוד "צור קשר" מקבל עדיפות על "גלריה" בתור
+    expect(signals.hasContactForm).toBe(true);
+    expect(signals.hasWhatsappLink).toBe(true);
+    // "צור קשר" מנצח את "גלריה" למרות שהוא מופיע אחריו ב-DOM — העדיפות בפעולה
     expect(signals.crawledUrls[1]).toContain("/contact");
     expect(signals.crawledUrls).toHaveLength(3);
+    const init = fetchImpl.mock.calls[0][1] as RequestInit;
+    expect((init.headers as Record<string, string>)["User-Agent"]).toContain("AIT-Scanner");
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("prioritizes percent-encoded Hebrew keyword pages", async () => {
+    const home = `<a href="/gallery">גלריה</a><a href="/%D7%A6%D7%95%D7%A8-%D7%A7%D7%A9%D7%A8">קשר</a>`;
+    const fetchImpl = vi.fn(async (url: RequestInfo | URL) => {
+      const u = url.toString();
+      if (u.includes("%D7%A6%D7%95%D7%A8")) return htmlResponse(CONTACT);
+      if (u.includes("/gallery")) return htmlResponse(GALLERY);
+      return htmlResponse(home);
+    });
+    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 2 });
+    expect(signals.pagesCrawled).toBe(2);
+    expect(signals.hasWhatsappLink).toBe(true); // העמוד המקודד בעברית נבחר ראשון
+  });
+
+  it("survives a homepage link containing a literal % (malformed URI)", async () => {
+    const home = `<a href="/sale-50%-off">מבצע</a><a href="/contact">צור קשר</a>`;
+    const fetchImpl = vi.fn(async (url: RequestInfo | URL) => {
+      const u = url.toString();
+      if (u.includes("/contact")) return htmlResponse(CONTACT);
+      if (u.includes("/sale")) return htmlResponse(GALLERY);
+      return htmlResponse(home);
+    });
+    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 3 });
+    expect(signals.hasWhatsappLink).toBe(true); // הסריקה לא קרסה ו"צור קשר" נסרק
+  });
+
+  it("follows the homepage's final URL after a redirect (origin change)", async () => {
+    const homeAbs = `<a href="https://www.example.co.il/contact">צור קשר</a>`;
+    const fetchImpl = vi.fn(async (url: RequestInfo | URL) => {
+      const u = url.toString();
+      if (u.includes("/contact")) return htmlResponse(CONTACT, "https://www.example.co.il/contact");
+      return htmlResponse(homeAbs, "https://www.example.co.il/");
+    });
+    const signals = await crawlWebsite("http://example.co.il", { fetchImpl, maxPages: 3 });
+    expect(signals.pagesCrawled).toBe(2);
+    expect(signals.hasWhatsappLink).toBe(true);
+  });
+
+  it("bounds total fetch attempts even when many pages fail", async () => {
+    const links = Array.from({ length: 40 }, (_, i) => `<a href="/p${i}">עמוד</a>`).join("");
+    const fetchImpl = vi.fn(async (url: RequestInfo | URL) => {
+      const u = url.toString();
+      if (u.includes("/p")) throw new Error("timeout");
+      return htmlResponse(`<html><body>${links}</body></html>`);
+    });
+    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 8 });
+    expect(signals.pagesCrawled).toBe(1);
+    expect(fetchImpl.mock.calls.length).toBeLessThanOrEqual(1 + 8 + 4);
+  });
+
+  it("skips non-HTML inner pages (content-type guard)", async () => {
+    const home = `<a href="/brochure">מחירון</a><a href="/contact">צור קשר</a>`;
+    const fetchImpl = vi.fn(async (url: RequestInfo | URL) => {
+      const u = url.toString();
+      if (u.includes("/brochure")) {
+        return {
+          ok: true, status: 200, url: "",
+          headers: { get: () => "application/pdf" },
+          text: async () => "%PDF fbq( gtag(",
+        } as unknown as Response;
+      }
+      if (u.includes("/contact")) return htmlResponse(CONTACT);
+      return htmlResponse(home);
+    });
+    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 4 });
+    expect(signals.hasFacebookPixel).toBe(false); // ה-PDF לא נסרק כ-HTML
+    expect(signals.hasWhatsappLink).toBe(true);
+    expect(signals.crawledUrls.some((u) => u.includes("brochure"))).toBe(false);
   });
 
   it("respects maxPages", async () => {
@@ -57,16 +133,12 @@ describe("crawlWebsite", () => {
     const fetchImpl = vi.fn(async () => {
       throw new Error("ENOTFOUND");
     });
-    await expect(
-      crawlWebsite("https://down.example", { fetchImpl }),
-    ).rejects.toThrow();
+    await expect(crawlWebsite("https://down.example", { fetchImpl })).rejects.toThrow();
   });
 
   it("throws a clear error on a non-OK homepage", async () => {
     const fetchImpl = vi.fn(async () =>
       ({ ok: false, status: 503, text: async () => "maintenance" } as unknown as Response));
-    await expect(
-      crawlWebsite("https://example.co.il", { fetchImpl }),
-    ).rejects.toThrow(/503/);
+    await expect(crawlWebsite("https://example.co.il", { fetchImpl })).rejects.toThrow(/503/);
   });
 });
