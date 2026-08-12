@@ -25,7 +25,7 @@ export async function completeJSON<T>(
   opts: LlmOptions = {},
 ): Promise<LlmJsonResult<T>> {
   const apiKey = opts.apiKey ?? process.env.GEMINI_API_KEY;
-  const model = opts.model ?? process.env.LLM_MODEL ?? "gemini-2.5-flash";
+  const model = opts.model ?? process.env.LLM_MODEL ?? "gemini-3.6-flash";
   const fetchImpl: FetchLike = opts.fetchImpl ?? defaultFetch;
   if (!apiKey) throw new Error("GEMINI_API_KEY is not set");
 
@@ -37,8 +37,9 @@ export async function completeJSON<T>(
     },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
-      // משימת חילוץ — חשיבה כבויה: מהירות, עלות, ומניעת מצב שבו החשיבה בולעת את תקציב הפלט
-      generationConfig: { responseMimeType: "application/json", thinkingConfig: { thinkingBudget: 0 } },
+      // משימת חילוץ — חשיבה מינימלית (thinkingLevel החליף את thinkingBudget בדור Gemini 3):
+      // מהירות, עלות, ומניעת מצב שבו החשיבה בולעת את תקציב הפלט
+      generationConfig: { responseMimeType: "application/json", thinkingConfig: { thinkingLevel: "LOW" } },
     }),
     signal: AbortSignal.timeout(60_000),
   });

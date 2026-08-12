@@ -32,7 +32,7 @@ describe("completeJSON", () => {
     const body = JSON.parse(calledInit.body as string);
     expect(body.contents[0].parts[0].text).toBe("say hello as json");
     expect(body.generationConfig.responseMimeType).toBe("application/json");
-    expect(body.generationConfig.thinkingConfig.thinkingBudget).toBe(0);
+    expect(body.generationConfig.thinkingConfig.thinkingLevel).toBe("LOW");
   });
 
   it("throws a clear error on an HTTP failure", async () => {
