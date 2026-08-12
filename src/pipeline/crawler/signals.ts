@@ -1,53 +1,81 @@
 import * as cheerio from "cheerio";
+import type { WebsiteSignals } from "../types";
 
-export interface PageSignals {
-  hasContactForm: boolean;
-  hasWhatsappLink: boolean;
-  hasPhoneLink: boolean;
-  hasEmailLink: boolean;
-  hasOnlineBooking: boolean;
-  hasChatWidget: boolean;
-  hasFacebookPixel: boolean;
-  hasGoogleAnalytics: boolean;
-  platform?: string;
+// סיגנלים של עמוד בודד; ה-crawler ממזג אותם לרמת האתר (WebsiteSignals)
+export interface PageSignals extends Omit<WebsiteSignals, "pagesCrawled" | "crawledUrls"> {
   internalLinks: string[];
 }
 
+// זיהוי לפי דומיינים/קבצים של ספקים — לא לפי מילים בטקסט חופשי, כדי למנוע התרעות שווא
+const WHATSAPP_RE = /wa\.me\/|(?:api|web)\.whatsapp\.com|whatsapp:\/\/send/;
+// TODO לפני שער אבן דרך 1: להוסיף פלטפורמות תורים ישראליות נפוצות
+const BOOKING_RE = /calendly|vcita|setmore|simplybook|booking-calendar|bookly|amelia|appointment/;
+const CHAT_RE = /tawk\.to|tidio(?:chat)?\.(?:co|com)|intercom(?:cdn)?\.(?:io|com)|crisp\.chat|zdassets|zopim|jivosite|smartsuppchat|xfbml\.customerchat/;
+const FB_PIXEL_RE = /fbq\(|fbevents\.js/;
+const GA_RE = /gtag\(|googletagmanager|google-analytics/;
+// טפסים שאינם יצירת קשר: חיפוש, ניוזלטר, התחברות, עגלה
+const NON_CONTACT_FORM_RE = /search|newsletter|subscribe|mc4wp|login|register|cart|coupon/;
+// קישורים לקבצים — לא עמודים, לא נכנסים לתור הסריקה
+const ASSET_EXT_RE = /\.(jpe?g|png|gif|webp|svg|avif|pdf|docx?|xlsx?|pptx?|zip|rar|mp4|mp3|csv)$/i;
+
 // פונקציה טהורה: HTML פנימה, סיגנלים החוצה. בלי רשת, בלי מצב.
+// baseUrl = כתובת העמוד הזה עצמו — משמשת לפתרון קישורים יחסיים ולבדיקת same-origin
 export function extractSignals(html: string, baseUrl: string): PageSignals {
   const $ = cheerio.load(html);
-  const raw = html.toLowerCase();
-  const origin = new URL(baseUrl).origin;
+  const lowerHtml = html.toLowerCase();
+  const base = new URL(baseUrl);
+  base.hash = "";
+  const baseKey = base.toString();
+  const origin = base.origin;
 
   const internalLinks: string[] = [];
   $("a[href]").each((_i, el) => {
     const href = $(el).attr("href");
-    if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) return;
+    if (!href || href.startsWith("#") || href.toLowerCase().startsWith("mailto:") || href.toLowerCase().startsWith("tel:")) return;
     try {
       const abs = new URL(href, baseUrl);
       abs.hash = "";
-      if (abs.origin === origin && abs.toString() !== baseUrl) {
-        internalLinks.push(abs.toString());
-      }
+      if (abs.origin !== origin) return;
+      if (abs.toString() === baseKey) return; // קישור של העמוד לעצמו
+      if (ASSET_EXT_RE.test(abs.pathname)) return;
+      internalLinks.push(abs.toString());
     } catch {
       // href לא תקין — מתעלמים
     }
   });
 
+  let hasContactForm = false;
+  $("form").each((_i, el) => {
+    const $f = $(el);
+    const attrs = [$f.attr("role"), $f.attr("class"), $f.attr("id"), $f.attr("action")]
+      .join(" ")
+      .toLowerCase();
+    if (NON_CONTACT_FORM_RE.test(attrs)) return;
+    // טופס יצירת קשר: יש textarea, או לפחות שני שדות אמיתיים (תיבת חיפוש = שדה אחד)
+    if ($f.find("textarea").length > 0) {
+      hasContactForm = true;
+      return;
+    }
+    const realInputs = $f.find(
+      "input:not([type=submit]):not([type=button]):not([type=hidden]):not([type=image])",
+    ).length;
+    if (realInputs >= 2) hasContactForm = true;
+  });
+
   let platform: string | undefined;
-  if (raw.includes("wp-content") || raw.includes("wp-includes")) platform = "wordpress";
-  else if (raw.includes("wixstatic.com") || raw.includes("wix.com")) platform = "wix";
-  else if (raw.includes("cdn.shopify.com")) platform = "shopify";
+  if (lowerHtml.includes("wp-content") || lowerHtml.includes("wp-includes")) platform = "wordpress";
+  else if (lowerHtml.includes("wixstatic.com") || lowerHtml.includes("wix.com")) platform = "wix";
+  else if (lowerHtml.includes("cdn.shopify.com")) platform = "shopify";
 
   return {
-    hasContactForm: $("form").length > 0,
-    hasWhatsappLink: /wa\.me\/|api\.whatsapp\.com/.test(raw),
-    hasPhoneLink: $('a[href^="tel:"]').length > 0,
-    hasEmailLink: $('a[href^="mailto:"]').length > 0,
-    hasOnlineBooking: /calendly|vcita|setmore|simplybook/.test(raw),
-    hasChatWidget: /tawk\.to|tidio|intercom|crisp\.chat/.test(raw),
-    hasFacebookPixel: /fbq\(|connect\.facebook\.net/.test(raw),
-    hasGoogleAnalytics: /gtag\(|googletagmanager|google-analytics/.test(raw),
+    hasContactForm,
+    hasWhatsappLink: WHATSAPP_RE.test(lowerHtml),
+    hasPhoneLink: $('a[href^="tel:" i]').length > 0,
+    hasEmailLink: $('a[href^="mailto:" i]').length > 0,
+    hasOnlineBooking: BOOKING_RE.test(lowerHtml),
+    hasChatWidget: CHAT_RE.test(lowerHtml),
+    hasFacebookPixel: FB_PIXEL_RE.test(lowerHtml),
+    hasGoogleAnalytics: GA_RE.test(lowerHtml),
     platform,
     internalLinks: [...new Set(internalLinks)],
   };
