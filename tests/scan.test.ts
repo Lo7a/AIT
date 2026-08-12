@@ -128,4 +128,18 @@ describe("runScan", () => {
     expect(findings.meta.placesCalls).toBe(2);
     expect(findings.meta.estCostUsd).toBeCloseTo(0.06);
   });
+
+  it("flags no_review_text when a rated business has no review texts", async () => {
+    const rated: PlaceDetails = { ...RICH_DETAILS, reviews: [] };
+    const deps = richDeps({
+      details: vi.fn().mockResolvedValue(rated),
+      analyzeReviews: vi.fn().mockResolvedValue({
+        insights: { totalAnalyzed: 0, positiveThemes: [], problemThemes: [] },
+        usage: { inputTokens: 0, outputTokens: 0 },
+      }),
+    });
+    const findings = await runScan("pid-1", deps);
+    expect(findings.partial).toContain("no_review_text");
+    expect(findings.partial).not.toContain("few_reviews"); // reviewCount=23 — העסק לא "דל ביקורות"
+  });
 });

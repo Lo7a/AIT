@@ -1,5 +1,5 @@
 import type {
-  PageSpeedResult, PlaceDetails, Review, ReviewInsights, ScanFindings, WebsiteSignals,
+  PageSpeedResult, PartialFlag, PlaceDetails, Review, ReviewInsights, ScanFindings, WebsiteSignals,
 } from "./types";
 import type { LlmUsage } from "./llm/client";
 import { getPlaceDetails } from "./google/places";
@@ -27,12 +27,11 @@ export const defaultDeps: ScanDeps = {
 };
 
 const FEW_REVIEWS_THRESHOLD = 5;
-// הערכה גסה לקריאת Places (חיפוש/פרטים) — נמדד מול החשבונית בשער.
-// LLM = $0 בשכבת החינם של הפיתוח; כשייבחר מודל ייצור (סעיף 9.3) — להוסיף כאן את עלות הטוקנים
-const EST_PLACES_DETAILS_USD = 0.03;
+// הערכה גסה לקריאת Places בודדת (חיפוש או פרטים) — נמדד מול החשבונית בשער. LLM = $0 בשכבת החינם; כשייבחר מודל ייצור (9.3) — להוסיף עלות טוקנים
+const EST_PLACES_CALL_USD = 0.03;
 
 function reasonOf(r: PromiseRejectedResult): string {
-  return r.reason instanceof Error ? r.reason.message : String(r.reason);
+  return (r.reason instanceof Error ? r.reason.message : String(r.reason)).slice(0, 200);
 }
 
 export async function runScan(
@@ -42,7 +41,7 @@ export async function runScan(
 ): Promise<ScanFindings> {
   const startedAt = new Date().toISOString();
   const t0 = Date.now();
-  const partial: string[] = [];
+  const partial: PartialFlag[] = [];
   const partialDetails: Record<string, string> = {};
   let llmUsage: LlmUsage = { inputTokens: 0, outputTokens: 0 };
 
@@ -93,6 +92,11 @@ export async function runScan(
     partialDetails.review_analysis_failed = reasonOf(reviewsResult);
   }
 
+  // עסק מדורג שאין לו טקסטים של ביקורות — הניתוח ריק גם כשספירת הביקורות גבוהה
+  if (reviewInsights && reviewInsights.totalAnalyzed === 0 && !partial.includes("few_reviews")) {
+    partial.push("no_review_text");
+  }
+
   return {
     business: {
       placeId: details.placeId,
@@ -113,7 +117,7 @@ export async function runScan(
       placesCalls,
       llmInputTokens: llmUsage.inputTokens,
       llmOutputTokens: llmUsage.outputTokens,
-      estCostUsd: placesCalls * EST_PLACES_DETAILS_USD,
+      estCostUsd: placesCalls * EST_PLACES_CALL_USD,
     },
   };
 }

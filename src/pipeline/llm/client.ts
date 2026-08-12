@@ -37,7 +37,8 @@ export async function completeJSON<T>(
     },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { responseMimeType: "application/json" },
+      // משימת חילוץ — חשיבה כבויה: מהירות, עלות, ומניעת מצב שבו החשיבה בולעת את תקציב הפלט
+      generationConfig: { responseMimeType: "application/json", thinkingConfig: { thinkingBudget: 0 } },
     }),
     signal: AbortSignal.timeout(60_000),
   });
@@ -47,7 +48,7 @@ export async function completeJSON<T>(
   }
   const body = (await res.json()) as {
     candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[];
-    usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
+    usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number };
     promptFeedback?: { blockReason?: string };
   };
   const text = body.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -67,7 +68,7 @@ export async function completeJSON<T>(
     data,
     usage: {
       inputTokens: body.usageMetadata?.promptTokenCount ?? 0,
-      outputTokens: body.usageMetadata?.candidatesTokenCount ?? 0,
+      outputTokens: (body.usageMetadata?.candidatesTokenCount ?? 0) + (body.usageMetadata?.thoughtsTokenCount ?? 0),
     },
   };
 }

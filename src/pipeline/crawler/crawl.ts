@@ -6,6 +6,7 @@ export interface CrawlOptions {
   fetchImpl?: FetchLike;
   maxPages?: number;
   timeoutMs?: number;
+  budgetMs?: number;
 }
 
 const DEFAULT_MAX_PAGES = 8;
@@ -64,6 +65,7 @@ export async function crawlWebsite(
   const fetchImpl = opts.fetchImpl ?? defaultFetch;
   const maxPages = opts.maxPages ?? DEFAULT_MAX_PAGES;
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const deadline = Date.now() + (opts.budgetMs ?? 40_000); // תקציב זמן כולל לסריקה — יעד ה-KPI הוא אבחון שלם מתחת ל-90 שניות
 
   // עמוד הבית חייב להצליח — בלעדיו אין סריקת אתר
   const homePage = await fetchPage(siteUrl, fetchImpl, timeoutMs);
@@ -83,7 +85,7 @@ export async function crawlWebsite(
 
   let attempts = 0;
   for (const url of queue) {
-    if (crawledUrls.length >= maxPages || attempts >= maxPages + EXTRA_ATTEMPTS) break;
+    if (crawledUrls.length >= maxPages || attempts >= maxPages + EXTRA_ATTEMPTS || Date.now() > deadline) break;
     if (visited.has(url)) continue;
     visited.add(url);
     attempts++;

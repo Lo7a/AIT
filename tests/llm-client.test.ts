@@ -32,6 +32,7 @@ describe("completeJSON", () => {
     const body = JSON.parse(calledInit.body as string);
     expect(body.contents[0].parts[0].text).toBe("say hello as json");
     expect(body.generationConfig.responseMimeType).toBe("application/json");
+    expect(body.generationConfig.thinkingConfig.thinkingBudget).toBe(0);
   });
 
   it("throws a clear error on an HTTP failure", async () => {
@@ -65,5 +66,17 @@ describe("completeJSON", () => {
     expect(err).toBeInstanceOf(Error);
     expect((err as Error).message).toMatch(/malformed JSON/);
     expect((err as Error).message).not.toContain("<html>");
+  });
+
+  it("counts thinking tokens in output usage", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true, status: 200, text: async () => "",
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: "{}" }] } }],
+        usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 20, thoughtsTokenCount: 300 },
+      }),
+    } as unknown as Response);
+    const result = await completeJSON("x", { apiKey: "k", fetchImpl });
+    expect(result.usage.outputTokens).toBe(320);
   });
 });

@@ -11,4 +11,8 @@ describe("slugify", () => {
     expect(slugify("???")).toBe("business");
     expect(slugify("")).toBe("business");
   });
+
+  it("strips bidi marks and control characters", () => {
+    expect(slugify("\u200Fמוסך הצפון\u200E")).toBe("מוסך-הצפון");
+  });
 });

@@ -64,6 +64,14 @@ export interface ScanMeta {
   estCostUsd: number;
 }
 
+export type PartialFlag =
+  | "no_website"
+  | "few_reviews"
+  | "no_review_text"
+  | "crawl_failed"
+  | "pagespeed_failed"
+  | "review_analysis_failed";
+
 export interface ScanFindings {
   business: {
     placeId: string;
@@ -76,7 +84,7 @@ export interface ScanFindings {
   websiteSignals?: WebsiteSignals;
   pageSpeed?: PageSpeedResult;
   reviewInsights?: ReviewInsights;
-  partial: string[]; // "no_website" | "few_reviews" | "crawl_failed" | "pagespeed_failed" | "review_analysis_failed"
+  partial: PartialFlag[]; // איחוד הדגלים האפשריים — ראו PartialFlag
   partialDetails?: Record<string, string>; // דגל → סיבת הכישלון (לעולם בלי טקסט ביקורות)
   meta: ScanMeta;
 }

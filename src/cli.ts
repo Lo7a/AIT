@@ -9,14 +9,21 @@ function parseArgs(argv: string[]) {
   const positional: string[] = [];
   let pick: number | undefined;
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === "--pick") pick = Number(argv[++i]);
-    else positional.push(argv[i]);
+    const a = argv[i];
+    if (a === "--pick") pick = Number(argv[++i]);
+    else if (a.startsWith("--pick=")) pick = Number(a.slice(7));
+    else positional.push(a);
   }
   return { query: positional.join(" ").trim(), pick };
 }
 
 async function main() {
+  const cliStart = Date.now();
   const { query, pick } = parseArgs(process.argv.slice(2));
+  if (pick !== undefined && !Number.isInteger(pick)) {
+    console.log("הערך של --pick חייב להיות מספר שלם");
+    process.exit(1);
+  }
   if (!query) {
     console.log('שימוש: npm run scan -- "שם העסק והעיר" [--pick N]');
     process.exit(1);
@@ -34,7 +41,8 @@ async function main() {
       const stats = c.rating != null ? ` (⭐ ${c.rating}, ${c.reviewCount ?? 0} ביקורות)` : "";
       console.log(`  ${i + 1}. ${c.name} — ${c.address}${stats}`);
     });
-    process.exit(0);
+    process.exitCode = 0;
+    return;
   }
 
   const chosen = candidates[(pick ?? 1) - 1];
@@ -53,7 +61,7 @@ async function main() {
 
   console.log("\n✅ הסריקה הושלמה");
   console.log(`   קובץ: ${file}`);
-  console.log(`   משך: ${(findings.meta.durationMs / 1000).toFixed(1)} שניות`);
+  console.log(`   משך: ${((Date.now() - cliStart) / 1000).toFixed(1)} שניות (מתוכן סריקה: ${(findings.meta.durationMs / 1000).toFixed(1)})`);
   console.log(`   חלקים חסרים: ${findings.partial.length > 0 ? findings.partial.join(", ") : "אין — סריקה מלאה"}`);
   if (findings.partialDetails) {
     for (const [flag, reason] of Object.entries(findings.partialDetails)) {

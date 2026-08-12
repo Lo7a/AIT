@@ -155,6 +155,16 @@ describe("crawlWebsite", () => {
     expect(signals.pagesCrawled).toBe(2);
   });
 
+  it("stops crawling when the time budget is exhausted", async () => {
+    const fetchImpl = vi.fn(async (url: RequestInfo | URL) => {
+      const u = url.toString();
+      if (u.includes("/contact")) return htmlResponse(CONTACT);
+      return htmlResponse(HOME);
+    });
+    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 3, budgetMs: -1 });
+    expect(signals.pagesCrawled).toBe(1); // רק עמוד הבית — התקציב נגמר
+  });
+
   it("merges platform found only on an inner page", async () => {
     const contactWp = `<link href="/wp-content/x.css"/><a href="https://wa.me/972501234567">וו</a>`;
     const fetchImpl = vi.fn(async (url: RequestInfo | URL) => {
