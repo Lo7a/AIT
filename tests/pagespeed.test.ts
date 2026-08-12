@@ -34,6 +34,7 @@ describe("runPageSpeed", () => {
     expect(calledUrl).toContain("category=PERFORMANCE");
     expect(calledUrl).toContain("category=SEO");
     expect(calledUrl).toContain(encodeURIComponent("https://example.co.il"));
+    expect(calledUrl).toContain("key=test-secret-key");
     const init = fetchImpl.mock.calls[0][1] as RequestInit;
     expect(init.signal).toBeInstanceOf(AbortSignal);
   });
@@ -67,5 +68,31 @@ describe("runPageSpeed", () => {
     const calledUrl = fetchImpl.mock.calls[0][0] as string;
     expect(calledUrl).not.toContain("key=");
     vi.unstubAllEnvs();
+  });
+
+  it("keeps score 0 as 0 and maps null scores to undefined", async () => {
+    const fetchImpl = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
+      psiResponse({
+        lighthouseResult: {
+          categories: { performance: { score: null }, seo: { score: 0 } },
+          audits: {},
+        },
+      }));
+    const result = await runPageSpeed("https://example.co.il", { apiKey: "k", fetchImpl });
+    expect(result.performanceScore).toBeUndefined();
+    expect(result.seoScore).toBe(0);
+  });
+
+  it("throws when PSI returns 200 with a lighthouse runtimeError", async () => {
+    const fetchImpl = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
+      psiResponse({
+        lighthouseResult: {
+          runtimeError: { code: "ERRORED_DOCUMENT_REQUEST", message: "could not load" },
+          categories: {},
+        },
+      }));
+    await expect(
+      runPageSpeed("https://example.co.il", { apiKey: "k", fetchImpl }),
+    ).rejects.toThrow(/ERRORED_DOCUMENT_REQUEST/);
   });
 });

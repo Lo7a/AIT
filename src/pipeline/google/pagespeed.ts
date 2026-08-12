@@ -6,7 +6,7 @@ export interface PageSpeedOptions {
   fetchImpl?: FetchLike;
 }
 
-const PSI_URL = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed";
+const PSI_URL = "https://pagespeedonline.googleapis.com/pagespeedonline/v5/runPagespeed";
 // PSI איטי במיוחד — מריץ Lighthouse אמיתי על האתר
 const TIMEOUT_MS = 60_000;
 
@@ -15,7 +15,7 @@ export async function runPageSpeed(
   opts: PageSpeedOptions = {},
 ): Promise<PageSpeedResult> {
   const apiKey = opts.apiKey ?? process.env.GOOGLE_API_KEY;
-  const fetchImpl = opts.fetchImpl ?? defaultFetch;
+  const fetchImpl: FetchLike = opts.fetchImpl ?? defaultFetch;
 
   const params = new URLSearchParams({ url, strategy: "mobile" });
   params.append("category", "PERFORMANCE");
@@ -29,10 +29,16 @@ export async function runPageSpeed(
   if (!res.ok) throw new Error(`PageSpeed HTTP ${res.status}: ${await readErrorBody(res)}`);
   const body = (await res.json()) as {
     lighthouseResult?: {
+      runtimeError?: { code?: string; message?: string };
       categories?: { performance?: { score?: number }; seo?: { score?: number } };
       audits?: { "largest-contentful-paint"?: { numericValue?: number } };
     };
   };
+  // PSI מחזיר 200 גם כשהוא נכשל לטעון את האתר — runtimeError הוא הכישלון האמיתי
+  const runtimeError = body.lighthouseResult?.runtimeError;
+  if (runtimeError) {
+    throw new Error(`PageSpeed runtime error: ${runtimeError.code ?? "unknown"}`);
+  }
   const categories = body.lighthouseResult?.categories;
   const lcp = body.lighthouseResult?.audits?.["largest-contentful-paint"]?.numericValue;
   return {
