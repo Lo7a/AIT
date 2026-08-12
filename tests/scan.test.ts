@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { runScan, type ScanDeps } from "../src/pipeline/scan";
-import type { PlaceDetails } from "../src/pipeline/types";
+import type { PlaceDetails, WebsiteSignals } from "../src/pipeline/types";
 
 const RICH_DETAILS: PlaceDetails = {
   placeId: "pid-1", name: "מוסך הצפון", phone: "04-1234567",
@@ -14,15 +14,17 @@ const RICH_DETAILS: PlaceDetails = {
   ],
 };
 
+const RICH_SIGNALS: WebsiteSignals = {
+  pagesCrawled: 3, crawledUrls: ["https://example.co.il"],
+  hasContactForm: true, hasWhatsappLink: false, hasPhoneLink: true,
+  hasEmailLink: false, hasOnlineBooking: false, hasChatWidget: false,
+  hasFacebookPixel: false, hasGoogleAnalytics: true, platform: "wordpress",
+};
+
 function richDeps(overrides: Partial<ScanDeps> = {}): ScanDeps {
   return {
     details: vi.fn().mockResolvedValue(RICH_DETAILS),
-    crawl: vi.fn().mockResolvedValue({
-      pagesCrawled: 3, crawledUrls: ["https://example.co.il"],
-      hasContactForm: true, hasWhatsappLink: false, hasPhoneLink: true,
-      hasEmailLink: false, hasOnlineBooking: false, hasChatWidget: false,
-      hasFacebookPixel: false, hasGoogleAnalytics: true, platform: "wordpress",
-    }),
+    crawl: vi.fn().mockResolvedValue(RICH_SIGNALS),
     pagespeed: vi.fn().mockResolvedValue({ performanceScore: 42, seoScore: 90, lcpMs: 4100 }),
     analyzeReviews: vi.fn().mockResolvedValue({
       insights: {
@@ -50,7 +52,7 @@ describe("runScan", () => {
     expect(findings.meta.placesCalls).toBe(1);
     expect(findings.meta.llmInputTokens).toBe(500);
     expect(findings.meta.llmOutputTokens).toBe(60);
-    expect(findings.meta.estCostUsd).toBeGreaterThan(0);
+    expect(findings.meta.estCostUsd).toBe(0.03);
     expect(typeof findings.meta.durationMs).toBe("number");
     expect(new Date(findings.meta.startedAt).getTime()).not.toBeNaN();
   });
@@ -69,13 +71,13 @@ describe("runScan", () => {
         order.push("crawl-start");
         await new Promise((r) => setTimeout(r, 20));
         order.push("crawl-end");
-        return richDeps().crawl!("x" as never) as never;
+        return RICH_SIGNALS;
       }),
       pagespeed: vi.fn(async () => {
         order.push("psi-start");
         return { performanceScore: 1, seoScore: 1, lcpMs: 1 };
       }),
-    } as Partial<ScanDeps>);
+    });
     await runScan("pid-1", deps);
     // PSI התחיל לפני שה-crawl הסתיים — כלומר רצו במקביל
     expect(order.indexOf("psi-start")).toBeLessThan(order.indexOf("crawl-end"));
@@ -93,8 +95,7 @@ describe("runScan", () => {
     expect(deps.pagespeed).not.toHaveBeenCalled();
     expect(findings.websiteSignals).toBeUndefined();
     expect(findings.pageSpeed).toBeUndefined();
-    expect(findings.partial).toContain("no_website");
-    expect(findings.partial).toContain("few_reviews");
+    expect(findings.partial).toEqual(["no_website", "few_reviews"]);
     expect(findings.reviewInsights).toBeDefined(); // מנתחים גם ביקורת אחת
   });
 
@@ -111,6 +112,8 @@ describe("runScan", () => {
     expect(findings.websiteSignals).toBeUndefined();
     expect(findings.reviewInsights).toBeUndefined();
     expect(findings.business.name).toBe("מוסך הצפון"); // האבחון עדיין מחזיר ממצאים
+    expect(findings.meta.llmInputTokens).toBe(0);
+    expect(findings.partialDetails?.crawl_failed).toContain("boom");
   });
 
   it("propagates a details failure (nothing to scan without the business)", async () => {
@@ -118,5 +121,11 @@ describe("runScan", () => {
       details: vi.fn().mockRejectedValue(new Error("Places details HTTP 403")),
     });
     await expect(runScan("pid-1", deps)).rejects.toThrow(/403/);
+  });
+
+  it("counts prior places calls in the cost meter", async () => {
+    const findings = await runScan("pid-1", richDeps(), { priorPlacesCalls: 1 });
+    expect(findings.meta.placesCalls).toBe(2);
+    expect(findings.meta.estCostUsd).toBeCloseTo(0.06);
   });
 });

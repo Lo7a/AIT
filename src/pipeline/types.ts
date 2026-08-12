@@ -77,5 +77,6 @@ export interface ScanFindings {
   pageSpeed?: PageSpeedResult;
   reviewInsights?: ReviewInsights;
   partial: string[]; // "no_website" | "few_reviews" | "crawl_failed" | "pagespeed_failed" | "review_analysis_failed"
+  partialDetails?: Record<string, string>; // דגל → סיבת הכישלון (לעולם בלי טקסט ביקורות)
   meta: ScanMeta;
 }
