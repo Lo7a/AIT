@@ -26,6 +26,9 @@ describe("completeJSON", () => {
     expect(result.usage.outputTokens).toBe(20);
     const calledUrl = fetchImpl.mock.calls[0][0] as string;
     expect(calledUrl).toContain("test-model:generateContent");
+    expect(calledUrl).not.toContain("test-key"); // המפתח לעולם לא ב-URL
+    const calledInit = fetchImpl.mock.calls[0][1] as RequestInit;
+    expect((calledInit.headers as Record<string, string>)["x-goog-api-key"]).toBe("test-key");
   });
 
   it("throws a clear error on an HTTP failure", async () => {

@@ -28,9 +28,12 @@ export async function completeJSON<T>(
   const fetchImpl = opts.fetchImpl ?? fetch;
   if (!apiKey) throw new Error("GEMINI_API_KEY is not set");
 
-  const res = await fetchImpl(`${BASE_URL}/${model}:generateContent?key=${apiKey}`, {
+  const res = await fetchImpl(`${BASE_URL}/${model}:generateContent`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": apiKey,
+    },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: { responseMimeType: "application/json" },
