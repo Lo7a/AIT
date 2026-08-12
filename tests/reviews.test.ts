@@ -70,4 +70,72 @@ describe("analyzeReviews", () => {
     expect(insights.positiveThemes).toEqual([{ theme: "תקין", count: 2 }]);
     expect(insights.problemThemes).toEqual([]);
   });
+
+  it("strips invented fields so review text and names never leak (ToS)", async () => {
+    const complete = vi.fn().mockResolvedValue({
+      data: {
+        positiveThemes: [{
+          theme: "שירות מהיר",
+          count: 1,
+          quote: "חיכיתי שבוע שיחזרו אליי בטלפון",
+          reviewerName: "דוד כהן",
+        }],
+        problemThemes: [],
+      },
+      usage: { inputTokens: 1, outputTokens: 1 },
+    });
+    const { insights } = await analyzeReviews(REVIEWS, { complete });
+    const serialized = JSON.stringify(insights);
+    expect(serialized).not.toContain("חיכיתי שבוע");
+    expect(serialized).not.toContain("דוד כהן");
+    expect(insights.positiveThemes).toEqual([{ theme: "שירות מהיר", count: 1 }]);
+  });
+
+  it("clamps or drops out-of-range counts", async () => {
+    const complete = vi.fn().mockResolvedValue({
+      data: {
+        positiveThemes: [
+          { theme: "א", count: 17 },
+          { theme: "ב", count: 2.5 },
+          { theme: "ג", count: -3 },
+          { theme: "ד", count: 0 },
+        ],
+        problemThemes: [],
+      },
+      usage: { inputTokens: 1, outputTokens: 1 },
+    });
+    const { insights } = await analyzeReviews(REVIEWS, { complete }); // totalAnalyzed = 3
+    expect(insights.positiveThemes).toEqual([
+      { theme: "א", count: 3 },
+      { theme: "ב", count: 3 },
+    ]);
+  });
+
+  it("propagates LLM errors so the orchestrator can flag review_analysis_failed", async () => {
+    const complete = vi.fn().mockRejectedValue(new Error("LLM HTTP 500"));
+    await expect(analyzeReviews(REVIEWS, { complete })).rejects.toThrow(/500/);
+  });
+
+  it("counts only real reviews in totalAnalyzed (mixed input)", async () => {
+    const complete = vi.fn().mockResolvedValue({
+      data: { positiveThemes: [], problemThemes: [] },
+      usage: { inputTokens: 1, outputTokens: 1 },
+    });
+    const { insights } = await analyzeReviews(
+      [{ rating: 5, text: "  " }, { rating: 4, text: "טוב" }],
+      { complete },
+    );
+    expect(insights.totalAnalyzed).toBe(1);
+  });
+
+  it("omits the rating tag for unrated reviews (rating 0 sentinel)", async () => {
+    const complete = vi.fn().mockResolvedValue({
+      data: { positiveThemes: [], problemThemes: [] },
+      usage: { inputTokens: 1, outputTokens: 1 },
+    });
+    await analyzeReviews([{ rating: 0, text: "בלי דירוג" }], { complete });
+    const prompt = complete.mock.calls[0][0] as string;
+    expect(prompt).toContain("1. בלי דירוג");
+    expect(prompt).not.toContain("[0/5]");
+  });
 });

@@ -48,6 +48,7 @@ export interface Theme {
   count: number;
 }
 
+// count של כל תמה תקף רק ביחס ל-totalAnalyzed (מה שנותח בפועל) — לעולם לא ביחס ל-reviewCount הכולל של העסק
 export interface ReviewInsights {
   totalAnalyzed: number;
   positiveThemes: Theme[];
