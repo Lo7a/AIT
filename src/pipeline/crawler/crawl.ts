@@ -51,7 +51,7 @@ async function fetchPage(
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
   const contentType = res.headers?.get?.("content-type") ?? "";
   // עמוד שאינו HTML (למשל PDF בלי סיומת) — לא סורקים; כשאין header (מוקים) מקבלים
-  if (contentType && !/text\/html|application\/xhtml/.test(contentType)) {
+  if (contentType && !/text\/html|application\/xhtml/i.test(contentType)) {
     throw new Error(`non-HTML content-type "${contentType}" for ${url}`);
   }
   return { html: await res.text(), finalUrl: res.url || url }; // res.url ריק במוקים של המבחנים
@@ -93,7 +93,8 @@ export async function crawlWebsite(
       const signals = extractSignals(page.html, page.finalUrl);
       for (const key of BOOL_KEYS) merged[key] = merged[key] || signals[key];
       merged.platform = merged.platform ?? signals.platform;
-      crawledUrls.push(url);
+      visited.add(page.finalUrl);
+      crawledUrls.push(page.finalUrl || url);
     } catch {
       // עמוד פנימי שנפל לא מפיל את הסריקה
     }

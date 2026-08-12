@@ -141,4 +141,29 @@ describe("crawlWebsite", () => {
       ({ ok: false, status: 503, text: async () => "maintenance" } as unknown as Response));
     await expect(crawlWebsite("https://example.co.il", { fetchImpl })).rejects.toThrow(/503/);
   });
+
+  it("accepts uppercase content-type header casing", async () => {
+    const fetchImpl = vi.fn(async (url: RequestInfo | URL) => {
+      const u = url.toString();
+      const res = u.includes("/contact") ? htmlResponse(CONTACT) : htmlResponse(HOME);
+      (res as unknown as { headers: { get: () => string } }).headers = {
+        get: () => "TEXT/HTML; charset=UTF-8",
+      };
+      return res;
+    });
+    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 2 });
+    expect(signals.pagesCrawled).toBe(2);
+  });
+
+  it("merges platform found only on an inner page", async () => {
+    const contactWp = `<link href="/wp-content/x.css"/><a href="https://wa.me/972501234567">וו</a>`;
+    const fetchImpl = vi.fn(async (url: RequestInfo | URL) => {
+      const u = url.toString();
+      if (u.includes("/contact")) return htmlResponse(contactWp);
+      if (u.includes("/gallery")) return htmlResponse(GALLERY);
+      return htmlResponse(HOME);
+    });
+    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 3 });
+    expect(signals.platform).toBe("wordpress");
+  });
 });
