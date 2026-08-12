@@ -1,5 +1,6 @@
 import type { BusinessCandidate, PlaceDetails, Review } from "../types";
-import type { FetchLike } from "../llm/client";
+import type { FetchLike } from "../http";
+import { defaultFetch, readErrorBody } from "../http";
 
 export interface PlacesOptions {
   apiKey?: string;
@@ -8,16 +9,13 @@ export interface PlacesOptions {
 
 const SEARCH_URL = "https://places.googleapis.com/v1/places:searchText";
 const DETAILS_URL = "https://places.googleapis.com/v1/places";
+const TIMEOUT_MS = 20_000;
 
 function resolveOpts(opts: PlacesOptions) {
   const apiKey = opts.apiKey ?? process.env.GOOGLE_API_KEY;
   if (!apiKey) throw new Error("GOOGLE_API_KEY is not set");
-  const fetchImpl: FetchLike = opts.fetchImpl ?? ((...args) => fetch(...args));
+  const fetchImpl: FetchLike = opts.fetchImpl ?? defaultFetch;
   return { apiKey, fetchImpl };
-}
-
-async function readError(res: Response): Promise<string> {
-  return (await res.text().catch(() => "")).slice(0, 500);
 }
 
 export async function searchBusiness(
@@ -34,9 +32,9 @@ export async function searchBusiness(
         "places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount",
     },
     body: JSON.stringify({ textQuery: query, languageCode: "he", regionCode: "IL" }),
-    signal: AbortSignal.timeout(20_000),
+    signal: AbortSignal.timeout(TIMEOUT_MS),
   });
-  if (!res.ok) throw new Error(`Places search HTTP ${res.status}: ${await readError(res)}`);
+  if (!res.ok) throw new Error(`Places search HTTP ${res.status}: ${await readErrorBody(res)}`);
   const body = (await res.json()) as {
     places?: {
       id: string;
@@ -66,10 +64,10 @@ export async function getPlaceDetails(
     `${DETAILS_URL}/${encodeURIComponent(placeId)}?languageCode=he`,
     {
       headers: { "X-Goog-Api-Key": apiKey, "X-Goog-FieldMask": fieldMask },
-      signal: AbortSignal.timeout(20_000),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
     },
   );
-  if (!res.ok) throw new Error(`Places details HTTP ${res.status}: ${await readError(res)}`);
+  if (!res.ok) throw new Error(`Places details HTTP ${res.status}: ${await readErrorBody(res)}`);
   const body = (await res.json()) as {
     id: string;
     displayName?: { text?: string };
@@ -86,8 +84,10 @@ export async function getPlaceDetails(
   };
   const reviews: Review[] = (body.reviews ?? [])
     .map((r) => ({
+      // 0 = ערך זקיף לביקורת ללא דירוג (ה-API כמעט תמיד מחזיר 1-5)
       rating: r.rating ?? 0,
-      text: r.text?.text ?? r.originalText?.text ?? "",
+      // מעדיפים את text (מתורגם ל-he) על originalText כדי שהניתוח יעבוד בעברית
+      text: (r.text?.text || r.originalText?.text || "").trim(),
       relativeTime: r.relativePublishTimeDescription,
     }))
     .filter((r) => r.text.length > 0);

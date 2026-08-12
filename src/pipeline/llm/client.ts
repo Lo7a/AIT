@@ -1,3 +1,6 @@
+import { readErrorBody, defaultFetch, type FetchLike } from "../http";
+export type { FetchLike } from "../http";
+
 export interface LlmUsage {
   inputTokens: number;
   outputTokens: number;
@@ -7,8 +10,6 @@ export interface LlmJsonResult<T> {
   data: T;
   usage: LlmUsage;
 }
-
-export type FetchLike = typeof fetch;
 
 export interface LlmOptions {
   apiKey?: string;
@@ -25,7 +26,7 @@ export async function completeJSON<T>(
 ): Promise<LlmJsonResult<T>> {
   const apiKey = opts.apiKey ?? process.env.GEMINI_API_KEY;
   const model = opts.model ?? process.env.LLM_MODEL ?? "gemini-2.5-flash";
-  const fetchImpl: FetchLike = opts.fetchImpl ?? ((...args) => fetch(...args));
+  const fetchImpl: FetchLike = opts.fetchImpl ?? defaultFetch;
   if (!apiKey) throw new Error("GEMINI_API_KEY is not set");
 
   const res = await fetchImpl(`${BASE_URL}/${encodeURIComponent(model)}:generateContent`, {
@@ -41,7 +42,7 @@ export async function completeJSON<T>(
     signal: AbortSignal.timeout(60_000),
   });
   if (!res.ok) {
-    const errText = (await res.text().catch(() => "")).slice(0, 500);
+    const errText = await readErrorBody(res);
     throw new Error(`LLM HTTP ${res.status}: ${errText}`);
   }
   const body = (await res.json()) as {
