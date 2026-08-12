@@ -25,10 +25,10 @@ export async function completeJSON<T>(
 ): Promise<LlmJsonResult<T>> {
   const apiKey = opts.apiKey ?? process.env.GEMINI_API_KEY;
   const model = opts.model ?? process.env.LLM_MODEL ?? "gemini-2.5-flash";
-  const fetchImpl = opts.fetchImpl ?? fetch;
+  const fetchImpl: FetchLike = opts.fetchImpl ?? ((...args) => fetch(...args));
   if (!apiKey) throw new Error("GEMINI_API_KEY is not set");
 
-  const res = await fetchImpl(`${BASE_URL}/${model}:generateContent`, {
+  const res = await fetchImpl(`${BASE_URL}/${encodeURIComponent(model)}:generateContent`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -38,18 +38,32 @@ export async function completeJSON<T>(
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: { responseMimeType: "application/json" },
     }),
+    signal: AbortSignal.timeout(60_000),
   });
   if (!res.ok) {
-    throw new Error(`LLM HTTP ${res.status}: ${await res.text()}`);
+    const errText = (await res.text().catch(() => "")).slice(0, 500);
+    throw new Error(`LLM HTTP ${res.status}: ${errText}`);
   }
   const body = (await res.json()) as {
-    candidates?: { content?: { parts?: { text?: string }[] } }[];
+    candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[];
     usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
+    promptFeedback?: { blockReason?: string };
   };
   const text = body.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error("LLM returned an empty response");
+  if (!text) {
+    const reason = body.candidates?.[0]?.finishReason ?? body.promptFeedback?.blockReason ?? "unknown";
+    throw new Error(`LLM returned an empty response (reason: ${reason})`);
+  }
+  let data: T;
+  try {
+    // הערה: T אינו מאומת בזמן ריצה — האחריות על ולידציה של המבנה היא על הקורא
+    data = JSON.parse(text) as T;
+  } catch {
+    // בכוונה בלי קטע מהטקסט — אסור שטקסט ביקורות גולמי ידלוף להודעות שגיאה
+    throw new Error(`LLM returned malformed JSON (${text.length} chars)`);
+  }
   return {
-    data: JSON.parse(text) as T,
+    data,
     usage: {
       inputTokens: body.usageMetadata?.promptTokenCount ?? 0,
       outputTokens: body.usageMetadata?.candidatesTokenCount ?? 0,

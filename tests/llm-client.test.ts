@@ -29,6 +29,9 @@ describe("completeJSON", () => {
     expect(calledUrl).not.toContain("test-key"); // המפתח לעולם לא ב-URL
     const calledInit = fetchImpl.mock.calls[0][1] as RequestInit;
     expect((calledInit.headers as Record<string, string>)["x-goog-api-key"]).toBe("test-key");
+    const body = JSON.parse(calledInit.body as string);
+    expect(body.contents[0].parts[0].text).toBe("say hello as json");
+    expect(body.generationConfig.responseMimeType).toBe("application/json");
   });
 
   it("throws a clear error on an HTTP failure", async () => {
@@ -38,5 +41,29 @@ describe("completeJSON", () => {
     await expect(
       completeJSON("x", { apiKey: "k", fetchImpl }),
     ).rejects.toThrow(/429/);
+  });
+
+  it("fails fast without an API key and never calls fetch", async () => {
+    vi.stubEnv("GEMINI_API_KEY", "");
+    const fetchImpl = vi.fn();
+    await expect(completeJSON("x", { fetchImpl })).rejects.toThrow(/GEMINI_API_KEY/);
+    expect(fetchImpl).not.toHaveBeenCalled();
+    vi.unstubAllEnvs();
+  });
+
+  it("reports the finish reason when the response has no text", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true, status: 200, text: async () => "",
+      json: async () => ({ candidates: [{ finishReason: "SAFETY" }] }),
+    } as unknown as Response);
+    await expect(completeJSON("x", { apiKey: "k", fetchImpl })).rejects.toThrow(/SAFETY/);
+  });
+
+  it("wraps malformed JSON in a clear error without echoing the text", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(geminiResponse("<html>not json"));
+    const err = await completeJSON("x", { apiKey: "k", fetchImpl }).catch((e: Error) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error).message).toMatch(/malformed JSON/);
+    expect((err as Error).message).not.toContain("<html>");
   });
 });
