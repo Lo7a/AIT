@@ -9,12 +9,12 @@ export interface PageSignals extends Omit<WebsiteSignals, "pagesCrawled" | "craw
 // זיהוי לפי דומיינים/קבצים של ספקים — לא לפי מילים בטקסט חופשי, כדי למנוע התרעות שווא
 const WHATSAPP_RE = /wa\.me\/|(?:api|web)\.whatsapp\.com|whatsapp:\/\/send/;
 // TODO לפני שער אבן דרך 1: להוסיף פלטפורמות תורים ישראליות נפוצות
-const BOOKING_RE = /calendly|vcita|setmore|simplybook|booking-calendar|bookly|amelia|appointment/;
+const BOOKING_RE = /calendly|vcita|setmore|simplybook|booking-calendar|bookly|amelia[-a-z]*booking|appointment-booking/;
 const CHAT_RE = /tawk\.to|tidio(?:chat)?\.(?:co|com)|intercom(?:cdn)?\.(?:io|com)|crisp\.chat|zdassets|zopim|jivosite|smartsuppchat|xfbml\.customerchat/;
 const FB_PIXEL_RE = /fbq\(|fbevents\.js/;
 const GA_RE = /gtag\(|googletagmanager|google-analytics/;
 // טפסים שאינם יצירת קשר: חיפוש, ניוזלטר, התחברות, עגלה
-const NON_CONTACT_FORM_RE = /search|newsletter|subscribe|mc4wp|login|register|cart|coupon/;
+const NON_CONTACT_FORM_RE = /(?:^|[^a-z])(search|newsletter|subscribe|mc4wp|login|register|cart|coupon)/;
 // קישורים לקבצים — לא עמודים, לא נכנסים לתור הסריקה
 const ASSET_EXT_RE = /\.(jpe?g|png|gif|webp|svg|avif|pdf|docx?|xlsx?|pptx?|zip|rar|mp4|mp3|csv)$/i;
 
@@ -56,10 +56,10 @@ export function extractSignals(html: string, baseUrl: string): PageSignals {
       hasContactForm = true;
       return;
     }
-    const realInputs = $f.find(
-      "input:not([type=submit]):not([type=button]):not([type=hidden]):not([type=image])",
+    const realFields = $f.find(
+      "input:not([type=submit]):not([type=button]):not([type=hidden]):not([type=image]), select",
     ).length;
-    if (realInputs >= 2) hasContactForm = true;
+    if (realFields >= 2) hasContactForm = true;
   });
 
   let platform: string | undefined;

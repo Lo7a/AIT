@@ -113,4 +113,21 @@ describe("extractSignals", () => {
     const s = extractSignals('<a href="http://">x</a><a href="/ok">ok</a>', BASE);
     expect(s.internalLinks).toEqual([`${BASE}/ok`]);
   });
+
+  it("does not fire booking on prose or names, only on real booking vendors", () => {
+    expect(extractSignals(`<p>התקשרו לקביעת תור: call to schedule an appointment</p>`, BASE).hasOnlineBooking).toBe(false);
+    expect(extractSignals(`<title>Amelia Beauty Salon</title>`, BASE).hasOnlineBooking).toBe(false);
+    expect(extractSignals(`<link href="/wp-content/plugins/ameliabooking/css/amelia-booking.css"/>`, BASE).hasOnlineBooking).toBe(true);
+    expect(extractSignals(`<script src="/plugins/bookly-responsive-appointment-booking-tool/x.js"></script>`, BASE).hasOnlineBooking).toBe(true);
+  });
+
+  it("does not reject a contact form whose path merely contains 'research'", () => {
+    const html = `<form action="/research/contact"><input name="name"/><textarea name="msg"></textarea></form>`;
+    expect(extractSignals(html, BASE).hasContactForm).toBe(true);
+  });
+
+  it("counts a select as a real field (service dropdown + phone)", () => {
+    const html = `<form action="/lead"><select name="service"><option>א</option></select><input name="phone"/></form>`;
+    expect(extractSignals(html, BASE).hasContactForm).toBe(true);
+  });
 });
