@@ -1067,7 +1067,7 @@ export const DIMENSIONS: DimensionDef[] = [
 - Create: `src/pipeline/model/business-model.ts`
 - Test: `tests/business-model.test.ts`
 
-- [ ] **Step 1: מבחן נכשל** — ליצור `tests/business-model.test.ts` (משתמש ב-fixtures `RICH` ו-`THIN` זהים לאלה של `tests/dimensions.test.ts` — להעתיק אותם לקובץ, לא לייבא בין קובצי מבחן):
+- [x] **Step 1: מבחן נכשל** — ליצור `tests/business-model.test.ts` (משתמש ב-fixtures `RICH` ו-`THIN` זהים לאלה של `tests/dimensions.test.ts` — להעתיק אותם לקובץ, לא לייבא בין קובצי מבחן):
 
 ```ts
 import { describe, it, expect } from "vitest";
@@ -1112,9 +1112,9 @@ describe("recommendNextStep", () => {
 });
 ```
 
-- [ ] **Step 2: לוודא כישלון** — `npx vitest run tests/business-model.test.ts` → FAIL.
+- [x] **Step 2: לוודא כישלון** — `npx vitest run tests/business-model.test.ts` → FAIL (המודול לא קיים).
 
-- [ ] **Step 3: מימוש** — ליצור `src/pipeline/model/business-model.ts`:
+- [x] **Step 3: מימוש** — ליצור `src/pipeline/model/business-model.ts`:
 
 ```ts
 import type { ScanFindings } from "../types";
@@ -1233,9 +1233,17 @@ export function recommendNextStep(m: BusinessModel): NextStepRecommendation {
 }
 ```
 
-- [ ] **Step 4: ירוק** — `npx vitest run tests/business-model.test.ts` → PASS.
+> **הערת as-built (חשבון קרדיטים נבדק לפני מימוש — נמצאו שלוש סתירות, לא שתיים):**
+>
+> **1) `scheduling` — הסתירה הראשונה, כפי שתועדה מראש בתוכנית.** הקוד המקורי בסניפט (`credit: s?.hasOnlineBooking ? 0.5 : 0`) מעניש RICH על `hasOnlineBooking: false` בכך שהוא לא נותן קרדיט בכלל, למרות שהעובדה "אין קביעת תור אונליין" היא ממצא ידוע לגמרי מהסריקה. תוקן ל-`credit: s ? 0.5 : 0` (קרדיט כל עוד יש אותות אתר בכלל, בלי תלות בערך).
+>
+> **2) `recommendNextStep` — הסתירה השנייה, כפי שתועדה מראש בתוכנית.** בדיקת `!m.fieldSources[section]` מדלגת על `lead_flow` כי יש לו כבר `fieldSources` (קרדיט 0.5 מהסריקה — טופס קיים, אבל מי מטפל בליד לא ידוע), ונוחתת בטעות על `service`. נוסף שדה `credits: Record<ModelSection, number>` ל-`BusinessModel` (קרדיט גולמי לכל סקציה — שימושי גם למד השלמות ב-UI בעתיד), ו-`recommendNextStep` משתמש ב-`m.credits[section] < 1` במקום בבדיקת `fieldSources` — קרדיט 0.5 עדיין "לא הושלם", רק אישור בראיון (קרדיט 1) סוגר סקציה.
+>
+> **3) סתירה שלישית שהתגלתה רק בחישוב מספרי בפועל — לא תועדה מראש בתוכנית ותוקנה בנפרד:** התוכנית טענה שתיקון `scheduling` בלבד "מביא את RICH ל-3.0 → 30%". חישוב מדויק (ראו `node -e` בדוח המשימה) מראה שזה שגוי: סכום הקרדיטים של RICH אחרי תיקון `scheduling` בלבד הוא `profile .5 + channels .5 + lead_flow .5 + scheduling .5 + tools .5 + pains 0 = 2.5` → **25%**, עדיין מתחת לרצפת 30% של המבחן `toBeGreaterThanOrEqual(30)`. הסיבה: RICH מגיע עם `problemThemes: []` (ביקורות נותחו ולא נמצאו בעיות חוזרות), אבל הקוד המקורי נותן קרדיט לסקציית `pains` רק כש-`problemThemes.length > 0` — אז "נבדק ולא נמצא כלום" מקבל 0 קרדיט, בניגוד לעיקרון שכבר הופעל על `scheduling` ("גם 'אין' הוא ממצא ידוע"). תוקן באותה רוח: `credit: f.reviewInsights ? 0.5 : 0` (קרדיט כשהביקורות נותחו בפועל, לא רק כשנמצאו בהן בעיות). זה מוסיף 0.5 נוסף ל-RICH בלבד — ל-THIN יש `reviewInsights` עם `problemThemes` לא ריק, כך שהוא כבר קיבל 0.5 תחת החוק הישן וממשיך לקבל אותו קרדיט תחת החוק החדש (ללא שינוי נטו). סכום סופי: **RICH = profile .5 + channels .5 + lead_flow .5 + scheduling .5 + tools .5 + pains .5 = 3.0 → 30%** (בדיוק על גבול הרצפה הכולל של המבחן), **THIN = profile .5 + channels .5 + pains .5 = 1.5 → 15%** (ללא שינוי, עדיין מתחת ל-30% ומתחת לסף ה-free_text של 20%). שני המבחנים עוברים ביושר, בלי הקלה על אף מבחן. המקור המחייב: `src/pipeline/model/business-model.ts`, `tests/business-model.test.ts`.
 
-- [ ] **Step 5: commit** — `git commit -am "feat: business model derivation, completeness meter and next-step recommendation"`
+- [x] **Step 4: ירוק** — `npx vitest run tests/business-model.test.ts` → PASS (5/5). `npx vitest run` (מלא) → 129/129 PASS. `npm run typecheck` נקי.
+
+- [x] **Step 5: commit** — `git commit -am "feat: business model derivation, completeness meter and next-step recommendation"`
 
 ---
 
