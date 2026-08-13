@@ -2063,7 +2063,7 @@ Expected: פעמיים `קטלוג: 10 פריטים` — בלי שגיאת כפ�
 - Create: `src/server/db.ts`, `src/server/diagnosis-repo.ts`
 - Test: `tests/diagnosis-repo.test.ts`
 
-- [ ] **Step 1: מבחן נכשל** — ליצור `tests/diagnosis-repo.test.ts`:
+- [x] **Step 1: מבחן נכשל** — ליצור `tests/diagnosis-repo.test.ts`:
 
 ```ts
 import { describe, it, expect, vi } from "vitest";
@@ -2149,9 +2149,9 @@ describe("createDiagnosisForBusiness", () => {
 });
 ```
 
-- [ ] **Step 2: לוודא כישלון** — `npx vitest run tests/diagnosis-repo.test.ts` → FAIL.
+- [x] **Step 2: לוודא כישלון** — `npx vitest run tests/diagnosis-repo.test.ts` → FAIL.
 
-- [ ] **Step 3: מימוש**
+- [x] **Step 3: מימוש**
 
 `src/server/db.ts`:
 
@@ -2276,9 +2276,11 @@ export async function saveScanResult(
 
 הערה למבצע: אם טיפוסי ה-Json של Prisma מתנגשים (`as object`), מותר `as Prisma.InputJsonValue` — לא `as any`.
 
-- [ ] **Step 4: ירוק** — `npx vitest run tests/diagnosis-repo.test.ts` → PASS. `npm run typecheck` נקי.
+> **הערת as-built:** בדיוק כפי שהוזהר למעלה — `model.data` (טיפוסו `Record<ModelSection, Record<string, unknown>>`) לא הוקצה ל-`Prisma.InputJsonValue` דרך `as object` (השדה הפנימי `Record<string, unknown>` לא סיפק את חתימת האינדקס של `InputJsonObject`). תוקן ב-`saveScanResult` עם `model.data as Prisma.InputJsonValue` בשני הענפים של ה-`upsert` (`update`/`create`), וייבוא `Prisma` נוסף כטיפוס (`import type { PrismaClient, Prisma } from "@prisma/client"`). `fieldSources` ו-`credits` לא נזקקו לקאסט — הוקצו נקי לעמודות ה-Json המקבילות. המקור המחייב: `src/server/diagnosis-repo.ts`.
 
-- [ ] **Step 5: commit** — `git commit -am "feat: thin persistence layer - business upsert, status transitions, scan+model save"`
+- [x] **Step 4: ירוק** — `npx vitest run tests/diagnosis-repo.test.ts` → PASS. `npm run typecheck` נקי.
+
+- [x] **Step 5: commit** — `git commit -am "feat: thin persistence layer - business upsert, status transitions, scan+model save"`
 
 ---
 
