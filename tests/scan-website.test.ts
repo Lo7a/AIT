@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { scanWebsiteOnly } from "../src/pipeline/scan-website";
+import { describe, it, expect, vi } from "vitest";
+import { scanWebsiteOnly, normalizeSiteUrl } from "../src/pipeline/scan-website";
 import type { WebsiteSignals, PageSpeedResult } from "../src/pipeline/types";
 
 const SIGNALS: WebsiteSignals = {
@@ -19,7 +19,8 @@ describe("scanWebsiteOnly", () => {
     expect(findings.business.placeId).toBe("");
     expect(findings.business.name).toBe("lavangroup.co.il");
     expect(findings.business.website).toBe("https://www.lavangroup.co.il/");
-    expect(findings.partial).toContain("no_gbp");
+    expect(findings.partial).toEqual(["no_gbp"]); // בלי דגלים נוספים — רק ה-no_gbp הבסיסי
+    expect(findings.partialDetails).toBeUndefined();
     expect(findings.websiteSignals).toEqual(SIGNALS);
     expect(findings.pageSpeed).toEqual(PSI);
     expect(findings.reviewInsights).toBeUndefined();
@@ -36,6 +37,15 @@ describe("scanWebsiteOnly", () => {
     expect(findings.partial).toContain("js_rendered");
   });
 
+  it("passes the normalized href — not the raw input — to crawl and pagespeed", async () => {
+    // רגרסיה שהופכת deps.crawl(url.href) ל-deps.crawl(siteUrl) הייתה משאירה את שאר המבחנים ירוקים
+    const crawl = vi.fn(async () => SIGNALS);
+    const pagespeed = vi.fn(async () => PSI);
+    await scanWebsiteOnly("lavangroup.co.il", { crawl, pagespeed });
+    expect(crawl).toHaveBeenCalledWith("https://lavangroup.co.il/");
+    expect(pagespeed).toHaveBeenCalledWith("https://lavangroup.co.il/");
+  });
+
   it("turns a crawl failure into a crawl_failed flag instead of throwing", async () => {
     const findings = await scanWebsiteOnly("https://x.co.il", {
       crawl: async () => { throw new Error("ECONNREFUSED"); },
@@ -44,5 +54,28 @@ describe("scanWebsiteOnly", () => {
     expect(findings.partial).toContain("crawl_failed");
     expect(findings.partialDetails?.crawl_failed).toContain("ECONNREFUSED");
     expect(findings.pageSpeed).toEqual(PSI);
+  });
+
+  it("records both crawl_failed and pagespeed_failed when both sub-steps reject, without throwing", async () => {
+    const findings = await scanWebsiteOnly("https://x.co.il", {
+      crawl: async () => { throw new Error("crawl down"); },
+      pagespeed: async () => { throw new Error("psi down"); },
+    });
+    expect(findings.partial).toEqual(["no_gbp", "crawl_failed", "pagespeed_failed"]);
+    expect(findings.websiteSignals).toBeUndefined();
+    expect(findings.pageSpeed).toBeUndefined();
+    expect(findings.partialDetails?.crawl_failed).toContain("crawl down");
+    expect(findings.partialDetails?.pagespeed_failed).toContain("psi down");
+  });
+});
+
+describe("normalizeSiteUrl", () => {
+  it("trims leading/trailing whitespace before normalizing", () => {
+    expect(normalizeSiteUrl(" https://x.co.il").href).toBe("https://x.co.il/");
+  });
+
+  it("rejects non-http(s) schemes with a clear error", () => {
+    expect(() => normalizeSiteUrl("ftp://x.co.il")).toThrow(/http/);
+    expect(() => normalizeSiteUrl("mailto:a@b.co")).toThrow(/http/);
   });
 });

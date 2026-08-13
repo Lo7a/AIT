@@ -407,6 +407,8 @@ export async function scanWebsiteOnly(
 
 - [x] **Step 5: commit** — `git commit -am "feat: website-only scan path (no_gbp) so businesses without a Google profile enter the funnel"`
 
+> **הערת as-built (אחרי סקירת איכות):** `normalizeUrl` שונה ל-`normalizeSiteUrl` ויוצא מהמודול (`export`) — משימה 12 חייבת להשתמש באותו נירמול בדיוק כשבונה את שורת ה-`Business` עבור מסלול `--url`, אחרת ריצות חוזרות על אותו אתר בכתיבים שונים (`lavangroup.co.il` מול `https://www.lavangroup.co.il/`) ייצרו שורות עסק כפולות ב-DB. הפונקציה גם התחזקה: `input.trim()` בתחילת העיבוד (רווח מוביל היה זורק קודם), ודחייה מפורשת של סכמות שאינן http/https (`ftp://`, `mailto:` וכו') כדי שלא ייסרק בטעות host שגוי או מחרוזת עם credentials מוטמעים. מבחני הקובץ הורחבו מ-3 ל-7: נירמול ה-href בפועל מועבר ל-deps (לא ה-קלט הגולמי), כישלון כפול של crawl+pagespeed יחד, רווח מוביל, ודחיית סכמה לא נתמכת. המקור המחייב: `src/pipeline/scan-website.ts`, `tests/scan-website.test.ts`.
+
 ---
 
 ### משימה 4: מכונת המצבים של האבחון
@@ -1012,6 +1014,8 @@ export const DIMENSIONS: DimensionDef[] = [
 ```
 
 **שים לב לבאג מכוון במבחן העצמי:** בשורת `gapText` של `lcp` כתוב "העמוd" — לתקן ל"העמוד" בזמן המימוש (בדיקת עירנות למבצע: טקסטים בעברית עוברים הגהה).
+
+> **הערת אזהרה מראש (מסקירת איכות של משימה 3, לפני מימוש משימה 6):** חוק `phone_available` למעלה מוגדר `known: () => true` — זה שגוי עבור עסק במסלול `scanWebsiteOnly` (`no_gbp`) שה-crawl שלו נכשל (`crawl_failed`) או מרונדר-JS (`js_rendered`): במקרים האלה `websiteSignals` חסר או לא אמין, ואין מקור אחר לטלפון כי `business.phone` תמיד ריק ב-`no_gbp` (אין Places). כלומר `earned` יוצא תמיד `false`, ועם `known: () => true` הממד טוען בטעות "אין טלפון בשום מקום" במקום "אין מידע". בזמן המימוש לשנות ל-`known: (f) => !noGbp(f) || crawlUsable(f)` (שני העוזרים כבר מוגדרים למעלה בקובץ). בנוסף: משימה 12 צריכה להתייחס לכישלון כפול `crawl_failed`+`pagespeed_failed` במסלול `--url` ככישלון סריקה — לחזור לסטטוס `created` כמו כל כישלון סריקה אחר — ולא לשמור אבחון `report_ready` שלמעשה ריק.
 
 - [ ] **Step 4: ירוק** — `npx vitest run tests/dimensions.test.ts` → PASS. `npm run typecheck` נקי.
 
@@ -2118,7 +2122,7 @@ import "dotenv/config";
 import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { runScan } from "./pipeline/scan";
-import { scanWebsiteOnly } from "./pipeline/scan-website";
+import { scanWebsiteOnly, normalizeSiteUrl } from "./pipeline/scan-website";
 import { scoreFindings } from "./pipeline/score/engine";
 import { DIMENSIONS } from "./pipeline/score/dimensions";
 import { deriveBusinessModel, recommendNextStep, type BusinessModel, type NextStepRecommendation } from "./pipeline/model/business-model";
@@ -2189,8 +2193,9 @@ async function main() {
   }
 
   // שלב 2: יצירת עסק+אבחון ב-DB (סטטוס created)
+  // normalizeSiteUrl (לא בנייה ידנית) — כדי שאותו אתר בכתיבים שונים (עם/בלי www, עם/בלי סלאש) יתמפה לאותה שורת Business ולא ייווצרו כפילויות
   const created = await createDiagnosisForBusiness(prisma, url
-    ? { name: new URL(/^https?:\/\//.test(url) ? url : `https://${url}`).hostname.replace(/^www\./, ""), placeId: "", website: url }
+    ? { name: normalizeSiteUrl(url).hostname.replace(/^www\./, ""), placeId: "", website: normalizeSiteUrl(url).href }
     : { name: findings!.name, placeId: findings!.placeId, city: undefined });
   console.log(`📋 אבחון ${created.diagnosisId} נוצר`);
 
