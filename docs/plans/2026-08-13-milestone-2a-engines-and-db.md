@@ -1250,7 +1250,23 @@ export function recommendNextStep(m: BusinessModel): NextStepRecommendation {
 > `THIN credits: {"profile":0.5,"channels":0.5,"lead_flow":0,"scheduling":0,"service":0,"billing":0,"retention":0,"tools":0,"pains":0.5,"manual_tasks":0}` → סכום 1.5 → **15%** (ללא שינוי מהסבב הראשון).
 > כל המבחנים עוברים ביושר, בלי הקלה על אף מבחן. המקור המחייב: `src/pipeline/model/business-model.ts`, `tests/business-model.test.ts`.
 
-- [x] **Step 4: ירוק** — `npx vitest run tests/business-model.test.ts` → PASS (7/7, אחרי שני סבבי סקירה). `npx vitest run` (מלא) → 131/131 PASS. `npm run typecheck` נקי.
+> **הערת as-built — סבב שלישי (סקירת איכות, שני קומיטים נפרדים):**
+>
+> **קומיט 1 — חוזה ההתמדה + תיקוני היגיינה:**
+> - **`credits` חייב לשרוד persist/rehydrate.** משימה 9 (`BusinessModelRow` ב-`prisma/schema.prisma`) עדיין תוכנית בלבד (טרם מומשה) — נוספה עמודה `credits Json` אחרי `fieldSources`. משימה 11 (`saveScanResult`) עודכנה כך שגם ה-`update` וגם ה-`create` בתוך ה-`upsert` כוללים `credits: model.credits`. משימה 12 (fixture `MODEL` ב-`tests/cli-format.test.ts`) עודכנה עם שדה `credits` מלא ומוקלד (בלי `as never`) כדי שהקוד לדוגמה ימשיך להיות תקין מבחינת טיפוסים כש-`BusinessModel` דורש את השדה.
+> - **ניסוח `free_text` לא הוגן כש"לא הצלחנו לקרוא את האתר" (לא רק "אין מידע ציבורי").** הטקסט הוחלף לניסוח שנכון בשני המקרים: `"כמעט ולא הצלחנו לאסוף מידע על העסק ממקורות ציבוריים — ספר לנו עליו במילים שלך וזה ימלא את התמונה"`.
+> - **הערת סף לא תואמת קוד:** ההשוואה היא `<=`, אז 20% בדיוק כן מפעיל `free_text` — התיעוד תוקן ל-`// עד 20% (כולל) — אין בסיס לשאלות ממוקדות, עדיף סיפור חופשי`.
+> - **יציבות JSONB — בלי ערכי `undefined` בתוך `data`:** `profile.domain` ו-`tools.platform` עברו מ-`{key: possiblyUndefined}` לפריסה מותנית (`...(x ? {key: x} : {})`) כך שהמפתח פשוט לא קיים כשאין ערך, במקום להסתמך על כך ש-`JSON.stringify`/Prisma מוחקים מפתחות עם `undefined`. גם `domainOf` תוקן ל-`hostname.replace(/^www\./, "") || undefined` להגנה מפני hostname שהופך למחרוזת ריקה.
+> - **סוגריים לקריאות** נוספו סביב שני הביטויים התלויים בסדר פעולות (`(crawlUsable || !!s?.hasOnlineBooking) ? 0.5 : 0` ב-`scheduling`, `(crawlUsable || toolsDetectedAny) ? 0.5 : 0` ב-`tools`) — ללא שינוי סמנטי (`||` כבר קושר חזק יותר מ-`?:`), רק כדי שלא יידרש לזכור את סדר הפעולות בקריאה.
+> - **הערת פטור ל-`lead_flow`** נוספה: בניגוד ל-`scheduling`/`tools`, העדר טופס יצירת קשר לא נספר כידע גם כשה-crawl אמין — "אין טופס" לא אומר הרבה על איך מטפלים בלידים בפועל (עשויים להגיע בטלפון/וואטסאפ), אז זו לא תשובה לשאלה שהסקציה אמורה למלא.
+> - **`completenessOf` חולצה לפונקציה מיוצאת** (`completenessOf(credits): number`) — תפר לאבן דרך 3: עדכון קרדיט בודד אחרי תשובת ראיון לא יצטרך לגזור מודל שלם מחדש כדי לחשב אחוז השלמות מעודכן.
+> - **שני מבחני נעילה נוספו** ב-`tests/business-model.test.ts`: אינווריאנט מבני על כל ה-fixtures בקובץ (RICH/THIN/NO_TEXT/JS_SITE — `credit>0 ⟺ fieldSources קיים ⟺ data לא ריק`, ו-`completenessPct === completenessOf(credits)`), ופין מדויק למפת הקרדיטים של RICH (כדי שרצפת ה-30% לא תישחק בשקט בעתיד). האינווריאנט הראשון עבר על כל ה-fixtures בלי חריגים — כולל `JS_SITE` (`tools` מקבל קרדיט 0.5 עם `data.tools = {detected: ["google_analytics"]}`, אובייקט לא-ריק גם כש-`platform` נעדר, כי המפתח `detected` תמיד קיים כש-`crawlUsable || toolsDetectedAny`).
+>
+> **קומיט 2 (נפרד) — `src/pipeline/evidence.ts`:** `noGbp`/`crawlUsable`/`reviewsAnalyzed` הועברו למקור אמת יחיד משותף בין `score/dimensions.ts` (משימה 6) ל-`model/business-model.ts` (משימה זו) — כפילות ההגדרות בין שני המודולים היא בדיוק איך נולד באג הקרדיט של `pains` שתועד למעלה (סעיף 3). ריפקטור טהור, בלי שינוי במבחנים.
+>
+> חשבון RICH/THIN לא זז מהסבב הקודם (30%/15%) — כל התיקונים בסבב הזה הם היגיינה/חוזה persistence/ריפקטור, לא שינוי לוגיקת קרדיט. המקור המחייב: `src/pipeline/model/business-model.ts`, `tests/business-model.test.ts`, `src/pipeline/evidence.ts`, `src/pipeline/score/dimensions.ts`, סעיפי משימות 9/11/12 בתוכנית זו.
+
+- [x] **Step 4: ירוק** — `npx vitest run tests/business-model.test.ts` → PASS (9/9, אחרי שלושה סבבי סקירה). `npx vitest run` (מלא) → 133/133 PASS. `npm run typecheck` נקי.
 
 - [x] **Step 5: commit** — `git commit -am "feat: business model derivation, completeness meter and next-step recommendation"`
 
@@ -1594,6 +1610,7 @@ model BusinessModelRow {
   diagnosis       Diagnosis @relation(fields: [diagnosisId], references: [id])
   data            Json
   fieldSources    Json      @map("field_sources")
+  credits         Json
   completenessPct Int       @map("completeness_pct")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
@@ -2076,9 +2093,13 @@ export async function saveScanResult(
   });
   await prisma.businessModelRow.upsert({
     where: { diagnosisId },
-    update: { data: model.data, fieldSources: model.fieldSources, completenessPct: model.completenessPct },
+    update: {
+      data: model.data, fieldSources: model.fieldSources, credits: model.credits,
+      completenessPct: model.completenessPct,
+    },
     create: {
-      diagnosisId, data: model.data, fieldSources: model.fieldSources, completenessPct: model.completenessPct,
+      diagnosisId, data: model.data, fieldSources: model.fieldSources, credits: model.credits,
+      completenessPct: model.completenessPct,
     },
   });
 }
@@ -2151,7 +2172,15 @@ const SCORE: ScoreReport = {
   topStrengths: [{ dimension: "visibility", ruleKey: "has_website", text: "לעסק יש אתר", points: 20 }],
 };
 
-const MODEL: BusinessModel = { data: {} as never, fieldSources: {}, completenessPct: 35 };
+const MODEL: BusinessModel = {
+  data: {} as never,
+  fieldSources: {},
+  credits: {
+    profile: 0.5, channels: 0, lead_flow: 0, scheduling: 0, service: 0,
+    billing: 0, retention: 0, tools: 0, pains: 0, manual_tasks: 0,
+  },
+  completenessPct: 35,
+};
 
 describe("formatDiagnosisSummary", () => {
   it("shows overall, per-dimension lines with data tags, gaps, strengths and completeness", () => {

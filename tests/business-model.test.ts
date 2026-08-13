@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { deriveBusinessModel, recommendNextStep, MODEL_SECTIONS } from "../src/pipeline/model/business-model";
+import {
+  deriveBusinessModel, recommendNextStep, completenessOf, MODEL_SECTIONS,
+} from "../src/pipeline/model/business-model";
 import type { ScanFindings } from "../src/pipeline/types";
 
 const META = { startedAt: "", durationMs: 0, placesCalls: 0, llmInputTokens: 0, llmOutputTokens: 0, estCostUsd: 0 };
@@ -26,6 +28,26 @@ const THIN: ScanFindings = {
   meta: META,
 };
 
+// ביקורות נותחו בפועל אך אף ביקורת לא הכילה טקסט (no_review_text) — "לא נבדק כלום", לא "נבדק ונמצא נקי"
+const NO_TEXT: ScanFindings = {
+  business: { placeId: "p5", name: "עסק", rating: 4.5, reviewCount: 40 },
+  reviewInsights: { totalAnalyzed: 0, positiveThemes: [], problemThemes: [] },
+  partial: ["no_website", "no_review_text"],
+  meta: META,
+};
+
+// אתר js_rendered בלי GBP — אותות שליליים לא אמינים, אבל גילוי חיובי (GA) עדיין נספר
+const JS_SITE: ScanFindings = {
+  business: { placeId: "", name: "x.co.il", website: "https://x.co.il/" },
+  websiteSignals: {
+    pagesCrawled: 1, crawledUrls: [], hasContactForm: false, hasWhatsappLink: false,
+    hasPhoneLink: false, hasEmailLink: false, hasOnlineBooking: false, hasChatWidget: false,
+    hasFacebookPixel: false, hasGoogleAnalytics: true, jsRendered: true,
+  },
+  partial: ["no_gbp", "js_rendered"],
+  meta: META,
+};
+
 describe("deriveBusinessModel", () => {
   it("covers every section key exactly once", () => {
     const m = deriveBusinessModel(RICH);
@@ -48,31 +70,35 @@ describe("deriveBusinessModel", () => {
   });
 
   it("gives pains zero credit when analysis ran but no review had text", () => {
-    const noText: ScanFindings = {
-      business: { placeId: "p5", name: "עסק", rating: 4.5, reviewCount: 40 },
-      reviewInsights: { totalAnalyzed: 0, positiveThemes: [], problemThemes: [] },
-      partial: ["no_website", "no_review_text"], meta: META,
-    };
-    const m = deriveBusinessModel(noText);
+    const m = deriveBusinessModel(NO_TEXT);
     expect(m.credits.pains).toBe(0);
     expect(m.data.pains).toEqual({});
   });
 
   it("does not assert scheduling/tools absences from a js_rendered crawl, but counts positive detections", () => {
-    const jsSite: ScanFindings = {
-      business: { placeId: "", name: "x.co.il", website: "https://x.co.il/" },
-      websiteSignals: {
-        pagesCrawled: 1, crawledUrls: [], hasContactForm: false, hasWhatsappLink: false,
-        hasPhoneLink: false, hasEmailLink: false, hasOnlineBooking: false, hasChatWidget: false,
-        hasFacebookPixel: false, hasGoogleAnalytics: true, jsRendered: true,
-      },
-      partial: ["no_gbp", "js_rendered"], meta: META,
-    };
-    const m = deriveBusinessModel(jsSite);
+    const m = deriveBusinessModel(JS_SITE);
     expect(m.data.scheduling).toEqual({});
     expect(m.credits.scheduling).toBe(0);
     expect(m.credits.tools).toBe(0.5); // GA זוהה — ראיה חיובית נספרת
     expect((m.data.tools as { detected: string[] }).detected).toEqual(["google_analytics"]);
+  });
+
+  it("holds the structural invariants on every fixture", () => {
+    for (const fixture of [RICH, THIN, NO_TEXT, JS_SITE]) {
+      const m = deriveBusinessModel(fixture);
+      for (const k of MODEL_SECTIONS) {
+        expect(m.credits[k] > 0, `${k}: credit⟺source`).toBe(m.fieldSources[k] !== undefined);
+        expect(m.credits[k] > 0, `${k}: credit⟺data`).toBe(Object.keys(m.data[k]).length > 0);
+      }
+      expect(m.completenessPct).toBe(completenessOf(m.credits));
+    }
+  });
+
+  it("pins RICH's exact credit map (the 30% floor has zero headroom)", () => {
+    expect(deriveBusinessModel(RICH).credits).toEqual({
+      profile: 0.5, channels: 0.5, lead_flow: 0.5, scheduling: 0.5, service: 0,
+      billing: 0, retention: 0, tools: 0.5, pains: 0.5, manual_tasks: 0,
+    });
   });
 });
 

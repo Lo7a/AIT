@@ -26,16 +26,26 @@ type Credit = 0 | 0.5 | 1;
 
 function domainOf(website?: string): string | undefined {
   try {
-    return website ? new URL(website).hostname.replace(/^www\./, "") : undefined;
+    // `|| undefined` — הגנה מפני hostname שהופך למחרוזת ריקה אחרי הסרת "www." (למשל host שהוא "www." בלבד)
+    return website ? new URL(website).hostname.replace(/^www\./, "") || undefined : undefined;
   } catch {
     return undefined;
   }
+}
+
+// נוסחת ההשלמות כפונקציה מיוצאת בפני עצמה — תפר עתידי: אבן דרך 3 תעדכן קרדיטים בודדים
+// (לדוגמה אחרי תשובת ראיון) בלי לגזור מודל שלם מחדש, ותקרא לזה ישירות על מפת הקרדיטים המעודכנת
+export function completenessOf(credits: Record<ModelSection, number>): number {
+  return Math.round(
+    (MODEL_SECTIONS.reduce((sum, k) => sum + credits[k], 0) / MODEL_SECTIONS.length) * 100,
+  );
 }
 
 export function deriveBusinessModel(f: ScanFindings): BusinessModel {
   const s = f.websiteSignals;
   const noGbp = f.partial.includes("no_gbp");
   const problemThemes = f.reviewInsights?.problemThemes.map((t) => t.theme) ?? [];
+  const domain = domainOf(f.business.website);
 
   // ביקורות "נותחו" רק אם יש דגימה בפועל (totalAnalyzed > 0) — לא מספיק ש-reviewInsights קיים:
   // analyze/reviews יכול להחזיר אובייקט מלא עם totalAnalyzed: 0 כש-scan.ts מדגיל no_review_text
@@ -57,7 +67,9 @@ export function deriveBusinessModel(f: ScanFindings): BusinessModel {
 
   const sections: Record<ModelSection, { data: Record<string, unknown>; credit: Credit }> = {
     profile: {
-      data: { name: f.business.name, domain: domainOf(f.business.website) },
+      // אין מפתח `domain` בכלל כשאין דומיין — לא `domain: undefined` (JSON.stringify מוחק את זה, אבל
+      // ה-object החי בזיכרון/במבחנים לא צריך להסתמך על ההתנהגות העקיפה הזאת; ראו הערת as-built)
+      data: { name: f.business.name, ...(domain ? { domain } : {}) },
       credit: 0.5, // שם ודומיין תמיד ידועים מהסריקה; תחום/גודל/ותק — מהראיון
     },
     channels: {
@@ -65,21 +77,26 @@ export function deriveBusinessModel(f: ScanFindings): BusinessModel {
       credit: noGbp ? 0 : 0.5,
     },
     lead_flow: {
+      // בניגוד ל-scheduling/tools למטה: העדר טופס יצירת קשר לא נספר כידע גם כשה-crawl אמין —
+      // "אין טופס" לא אומר הרבה על איך מטפלים בלידים בפועל (הם עשויים להגיע בטלפון/וואטסאפ),
+      // אז זו לא תשובה לשאלה שהסקציה הזו אמורה למלא
       data: s?.hasContactForm ? { hasContactForm: true } : {},
       credit: s?.hasContactForm ? 0.5 : 0, // יש טופס — אבל מי מטפל ותוך כמה זמן? רק הראיון יודע
     },
     scheduling: {
       // חיובי = הוכחה גם באתר js_rendered; שלילי רק כשהזחילה באמת קראה את האתר
       data: s?.hasOnlineBooking ? { hasOnlineBooking: true } : crawlUsable ? { hasOnlineBooking: false } : {},
-      credit: crawlUsable || s?.hasOnlineBooking ? 0.5 : 0,
+      credit: (crawlUsable || !!s?.hasOnlineBooking) ? 0.5 : 0,
     },
     service: { data: {}, credit: 0 },
     billing: { data: {}, credit: 0 },
     retention: { data: {}, credit: 0 },
     tools: {
-      // חיובי = כלי שזוהה בפועל, נספר גם ב-js_rendered; רשימת "לא זוהה כלום" רק כשהזחילה אמינה
-      data: crawlUsable || toolsDetectedAny ? { platform: s?.platform, detected: toolsDetected } : {},
-      credit: crawlUsable || toolsDetectedAny ? 0.5 : 0,
+      // חיובי = כלי שזוהה בפועל, נספר גם ב-js_rendered; פלטפורמה/רשימת "לא זוהה כלום" רק כשהזחילה אמינה
+      data: (crawlUsable || toolsDetectedAny)
+        ? { ...(s?.platform ? { platform: s.platform } : {}), detected: toolsDetected }
+        : {},
+      credit: (crawlUsable || toolsDetectedAny) ? 0.5 : 0,
     },
     pains: {
       data: reviewsAnalyzed ? { fromReviews: problemThemes } : {},
@@ -97,9 +114,7 @@ export function deriveBusinessModel(f: ScanFindings): BusinessModel {
   const credits = Object.fromEntries(
     MODEL_SECTIONS.map((k) => [k, sections[k].credit]),
   ) as BusinessModel["credits"];
-  const completenessPct = Math.round(
-    (MODEL_SECTIONS.reduce((sum, k) => sum + sections[k].credit, 0) / MODEL_SECTIONS.length) * 100,
-  );
+  const completenessPct = completenessOf(credits);
 
   return { data, fieldSources, credits, completenessPct };
 }
@@ -112,13 +127,14 @@ const INTERVIEW_PRIORITY: [ModelSection, string][] = [
   ["manual_tasks", "משימות ידניות חוזרות"],
 ];
 
-const FREE_TEXT_THRESHOLD = 20; // מתחת ל-20% שלמות — אין בסיס לשאלות ממוקדות, עדיף סיפור חופשי
+const FREE_TEXT_THRESHOLD = 20; // עד 20% (כולל) — אין בסיס לשאלות ממוקדות, עדיף סיפור חופשי
 
 export function recommendNextStep(m: BusinessModel): NextStepRecommendation {
   if (m.completenessPct <= FREE_TEXT_THRESHOLD) {
     return {
       action: "free_text",
-      reason: "אין כמעט מידע ציבורי על העסק — ספר לנו עליו במילים שלך וזה ימלא את התמונה",
+      // ניסוח שנכון גם כש"אין מידע ציבורי" וגם כשהיה מידע אבל לא הצלחנו לאסוף אותו (crawl/PSI נכשלו)
+      reason: "כמעט ולא הצלחנו לאסוף מידע על העסק ממקורות ציבוריים — ספר לנו עליו במילים שלך וזה ימלא את התמונה",
     };
   }
   // קרדיט 0.5 (מהסריקה בלבד) עדיין נחשב "לא הושלם" — רק אישור בראיון (קרדיט 1) סוגר סקציה.
