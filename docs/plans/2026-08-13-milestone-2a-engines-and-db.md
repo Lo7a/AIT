@@ -1280,21 +1280,36 @@ export function recommendNextStep(m: BusinessModel): NextStepRecommendation {
 >
 > **אזהרות מסקירת משימה 5 (לתקן בזמן המימוש):** (א) בפרומפט, סריאליזציית הממדים חייבת לכלול גם את `key` (לא רק label/score/dataStatus) — אחרת ל-LLM אין דרך לחבר בין `topGaps.dimension` (מפתח אנגלי) לתווית העברית. (ב) `allowedNumbers` בגרסת הסניפט עושה `JSON.stringify(score)` על כל הדוח — זה מכניס ל-whitelist את כל ה-points (5,10,15,20,25,30,40) וה-weights של כל החוקים, ומחליש מאוד את שומר ההזיות ("40% מהלקוחות" יעבור כי לחוק כלשהו יש points: 40). לצמצם את המקור: findings + הציונים המוצגים בלבד (overall + score של כל ממד), לא הדוח המלא.
 
+> **הערת as-built:** שלוש האזהרות יושמו במלואן. אומת ריצית: עם RICH, `allowedNumbers` המצומצם (findings + overall/dimension scores בלבד: 73,65,100,70,50,4.9,80,46,92,12700 וכו') **לא** כולל 40 או 35 — כפי שגרסת ה-`JSON.stringify(score)` המלאה כן הייתה כוללת (points/weights של החוקים). `buildPrompt` כולל `key` בסריאליזציית הממדים ומטפל ב-`topGaps` ריק בהוראה נפרדת ("לא נמצאו פערים מובילים..."); `fallbackNarrative` מחזיר "לא מצאנו פערים מהותיים בסריקה הציבורית — בסיס דיגיטלי חזק" כש-`topGaps.length === 0`, לא טקסט ריק. מבחני הקובץ הורחבו מ-7 (בסניפט המקורי) ל-9: נוסף מבחן לצמצום ה-whitelist (`40`/`35` נדחים) ומבחן נפרד ל-`fallbackNarrative` על רשימת פערים ריקה; מבחן הפרומפט מוודא גם `"key":"accessibility"`. המקור המחייב: `src/pipeline/report/narrative.ts`, `tests/narrative.test.ts`.
+
 **Files:**
 - Create: `src/pipeline/report/narrative.ts`
 - Test: `tests/narrative.test.ts`
 
-- [ ] **Step 1: מבחן נכשל** — ליצור `tests/narrative.test.ts`:
+- [x] **Step 1: מבחן נכשל** — ליצור `tests/narrative.test.ts`:
 
 ```ts
 import { describe, it, expect, vi } from "vitest";
-import { generateNarrative, extractNumbers } from "../src/pipeline/report/narrative";
+import { generateNarrative, extractNumbers, fallbackNarrative } from "../src/pipeline/report/narrative";
 import { scoreFindings } from "../src/pipeline/score/engine";
 import { DIMENSIONS } from "../src/pipeline/score/dimensions";
 import type { ScanFindings } from "../src/pipeline/types";
 
-// fixture RICH — זהה לזה של tests/dimensions.test.ts (מועתק, לא מיובא)
-// ... RICH כאן ...
+const META = { startedAt: "", durationMs: 0, placesCalls: 0, llmInputTokens: 0, llmOutputTokens: 0, estCostUsd: 0 };
+
+// עסק עשיר עם אתר מלא — בסגנון אופטיקה בק (זהה לזה של tests/dimensions.test.ts, מועתק לא מיובא)
+const RICH: ScanFindings = {
+  business: { placeId: "p1", name: "אופטיקה", phone: "04-000", website: "https://x.co.il", rating: 4.9, reviewCount: 80 },
+  websiteSignals: {
+    pagesCrawled: 8, crawledUrls: [], hasContactForm: true, hasWhatsappLink: true,
+    hasPhoneLink: true, hasEmailLink: true, hasOnlineBooking: false, hasChatWidget: false,
+    hasFacebookPixel: false, hasGoogleAnalytics: true, platform: "wordpress", jsRendered: false,
+  },
+  pageSpeed: { performanceScore: 46, seoScore: 92, lcpMs: 12700 },
+  reviewInsights: { totalAnalyzed: 5, positiveThemes: [{ theme: "שירות מקצועי", count: 4 }], problemThemes: [] },
+  partial: [],
+  meta: META,
+};
 
 const score = () => scoreFindings(DIMENSIONS, RICH);
 
@@ -1326,6 +1341,14 @@ describe("generateNarrative", () => {
     expect(result.narrative.summary).toBe(GOOD.summary);
   });
 
+  it("rejects rule points as an alibi for invented numbers (narrow whitelist)", async () => {
+    // 40 הוא points של חוק — אסור שהוא יכשיר "40% מהלקוחות"; 25/30/35 הם points/weights
+    const bad = { ...GOOD, summary: "העסק מפסיד 40% מהלקוחות ועוד 35 אחוז" };
+    const complete = vi.fn().mockResolvedValue({ data: bad, usage: { inputTokens: 1, outputTokens: 1 } });
+    const result = await generateNarrative(RICH, score(), { complete: complete as never });
+    expect(result.usedFallback).toBe(true);
+  });
+
   it("falls back to a deterministic template after two violations", async () => {
     const bad = { ...GOOD, summary: "חיסכון של 5000 שקל בחודש" };
     const complete = vi.fn().mockResolvedValue({ data: bad, usage: { inputTokens: 1, outputTokens: 1 } });
@@ -1343,16 +1366,26 @@ describe("generateNarrative", () => {
   it("sanitizer drops fields the model invented", async () => {
     const withExtra = { ...GOOD, invented: "x", gapExplanations: [{ ...GOOD.gapExplanations[0], quote: "ציטוט אסור" }] };
     const result = await generateNarrative(RICH, score(), { complete: llmReply(withExtra) as never });
-    expect((result.narrative as Record<string, unknown>).invented).toBeUndefined();
-    expect((result.narrative.gapExplanations[0] as Record<string, unknown>).quote).toBeUndefined();
+    expect((result.narrative as unknown as Record<string, unknown>).invented).toBeUndefined();
+    expect((result.narrative.gapExplanations[0] as unknown as Record<string, unknown>).quote).toBeUndefined();
   });
 
-  it("prompt forbids inventing numbers and quoting reviews", async () => {
+  it("prompt forbids inventing numbers/quotes and includes dimension keys for joining", async () => {
     const complete = vi.fn().mockResolvedValue({ data: GOOD, usage: { inputTokens: 1, outputTokens: 1 } });
     await generateNarrative(RICH, score(), { complete: complete as never });
     const prompt = complete.mock.calls[0][0] as string;
     expect(prompt).toContain("אל תמציא");
     expect(prompt).toContain("אל תצטט");
+    expect(prompt).toContain('"key":"accessibility"'); // סריאליזציית הממדים כוללת key לצליבה עם topGaps
+  });
+});
+
+describe("fallbackNarrative", () => {
+  it("handles an empty gap list as a positive, not a blank", () => {
+    const healthy = { ...score(), topGaps: [] };
+    const n = fallbackNarrative(RICH, healthy);
+    expect(n.summary).toContain("לא מצאנו פערים מהותיים");
+    expect(n.gapExplanations).toEqual([]);
   });
 });
 
@@ -1363,9 +1396,11 @@ describe("extractNumbers", () => {
 });
 ```
 
-- [ ] **Step 2: לוודא כישלון** — `npx vitest run tests/narrative.test.ts` → FAIL.
+(הערה: `as unknown as Record<string, unknown>` — לא `as Record<string, unknown>` ישיר — כי `ReportNarrative`/`GapExplanation` הם טיפוסים סגורים בלי index signature; TS strict דורש מעבר דרך `unknown` תחילה. מבחן ה-`fallbackNarrative` וה-`healthy` object נבנים ידנית עם `topGaps: []`; `score()` בפועל על RICH כבר מכיל `topGaps` לא-ריק, כך שהמבחן הזה בודק במפורש את מקרה הקצה ולא רק משכפל את התוצאה האמיתית.)
 
-- [ ] **Step 3: מימוש** — ליצור `src/pipeline/report/narrative.ts`:
+- [x] **Step 2: לוודא כישלון** — `npx vitest run tests/narrative.test.ts` → FAIL (המודול לא קיים).
+
+- [x] **Step 3: מימוש** — ליצור `src/pipeline/report/narrative.ts`:
 
 ```ts
 import type { ScanFindings } from "../types";
@@ -1393,14 +1428,19 @@ export function extractNumbers(s: string): string[] {
   return s.match(/\d+(?:[.,]\d+)?/g) ?? [];
 }
 
-// המספרים המותרים: כל מה שמופיע בנתונים עצמם (בשתי צורות הפירוק — נקודה ופסיק)
+// המספרים המותרים: הממצאים עצמם + הציונים המוצגים בלבד.
+// בכוונה לא כל ה-ScoreReport — הוא מכיל points/weights של חוקים שהיו מכשירים מספרים מומצאים (אזהרת סקירה 5)
 function allowedNumbers(f: ScanFindings, score: ScoreReport): Set<string> {
-  const source = JSON.stringify(f) + JSON.stringify(score);
+  const displayedScores = [
+    score.overall,
+    ...score.dimensions.map((d) => d.score),
+  ].filter((n): n is number => n != null);
+  const source = JSON.stringify(f) + " " + displayedScores.join(" ");
   const allowed = new Set<string>();
   for (const n of extractNumbers(source)) {
     allowed.add(n);
     allowed.add(n.replace(".", ","));
-    // גם חלקי מספר עשרוני מותרים: "12.7" מתיר גם "12" ו-"7"
+    // גם חלקי מספר עשרוני מותרים: "12.7" מתיר גם "12" וגם "7"
     for (const part of n.split(/[.,]/)) allowed.add(part);
   }
   return allowed;
@@ -1434,6 +1474,9 @@ function buildPrompt(f: ScanFindings, score: ScoreReport, stern: boolean): strin
   const sternLine = stern
     ? "\nאזהרה: בתשובה הקודמת הופיע מספר שלא קיים בנתונים. אסור בתכלית להזכיר אף מספר שלא מופיע בנתונים למטה.\n"
     : "";
+  const gapsInstruction = score.topGaps.length > 0
+    ? "כתוב הסבר לכל אחד מהפערים המובילים (topGaps) בלבד."
+    : "לא נמצאו פערים מובילים — החזר gapExplanations ריק והתמקד במה שעובד טוב.";
   return `אתה יועץ עסקי שכותב נרטיב קצר לדוח אבחון דיגיטלי של עסק ישראלי.
 כללים מחייבים:
 - אל תמציא מספרים, אחוזים או סכומים. מותר להשתמש אך ורק במספרים שמופיעים בנתונים.
@@ -1445,11 +1488,11 @@ ${sternLine}
  "summary": "פסקה קצרה (2-3 משפטים) על התמונה הכוללת",
  "gapExplanations": [{"ruleKey": "מפתח הפער כפי שמופיע בנתונים", "explanation": "הסבר של משפט-שניים למה הפער הזה עולה לעסק כסף"}]}
 
-כתוב הסבר לכל אחד מהפערים המובילים (topGaps) בלבד.
+${gapsInstruction}
 
 <<<DATA>>>
 עסק: ${JSON.stringify({ name: f.business.name, rating: f.business.rating, reviewCount: f.business.reviewCount })}
-ציונים: ${JSON.stringify(score.dimensions.map((d) => ({ label: d.label, score: d.score, dataStatus: d.dataStatus })))}
+ציונים: ${JSON.stringify(score.dimensions.map((d) => ({ key: d.key, label: d.label, score: d.score, dataStatus: d.dataStatus })))}
 ציון כולל: ${score.overall}
 פערים מובילים: ${JSON.stringify(score.topGaps)}
 חוזקות: ${JSON.stringify(score.topStrengths)}
@@ -1465,7 +1508,7 @@ export function fallbackNarrative(f: ScanFindings, score: ScoreReport): ReportNa
     headline: overallLine,
     summary: score.topGaps.length > 0
       ? `הפערים המרכזיים שמצאנו: ${score.topGaps.map((g) => g.text).join(" · ")}`
-      : "לא זוהו פערים מהותיים בסריקה הציבורית.",
+      : "לא מצאנו פערים מהותיים בסריקה הציבורית — בסיס דיגיטלי חזק.",
     gapExplanations: score.topGaps.map((g) => ({ ruleKey: g.ruleKey, explanation: g.text })),
   };
 }
@@ -1498,9 +1541,9 @@ export async function generateNarrative(
 }
 ```
 
-- [ ] **Step 4: ירוק** — `npx vitest run tests/narrative.test.ts` → PASS. `npm run typecheck` נקי.
+- [x] **Step 4: ירוק** — `npx vitest run tests/narrative.test.ts` → PASS (9/9). `npx vitest run` (מלא) → 142/142. `npm run typecheck` נקי.
 
-- [ ] **Step 5: commit** — `git commit -am "feat: LLM report narrative with number-whitelist guard and deterministic fallback"`
+- [x] **Step 5: commit** — `git commit -am "feat: LLM report narrative with number-whitelist guard and deterministic fallback"`
 
 ---
 
