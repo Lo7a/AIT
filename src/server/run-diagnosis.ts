@@ -45,26 +45,46 @@ export class DiagnoseFailed extends Error {}
 
 type Emit = (e: DiagnoseEvent) => void;
 
+const CONTINUES_WITHOUT_DETAIL = "לא הצליח — ממשיכים בלי המקור הזה";
+
+// step: עוטף dep יחיד בזוג אירועי step/step_done. failDetail מותאם למשמעות האמיתית של הכישלון —
+// עבור dep לא-פטאלי (crawl/pagespeed/reviews/narrative) "ממשיכים בלי המקור הזה" נכון; עבור dep פטאלי
+// (details/save) זה שקרי — הקורא מעביר טקסט מדויק. detailOf (עיצוב הטקסט להצלחה) רץ אחרי ה-try/catch
+// בכוונה: אם detailOf עצמו זורק (באג בפורמט), זה לא אמור להיראות כמו כישלון של ה-dep שכן הצליח.
 async function step<T>(
   emit: Emit, key: DiagnoseStepKey, label: string,
   fn: () => Promise<T>, detailOf: (r: T) => string,
+  failDetail: string = CONTINUES_WITHOUT_DETAIL,
 ): Promise<T> {
   emit({ type: "step", key, label });
+  let result: T;
   try {
-    const result = await fn();
-    emit({ type: "step_done", key, ok: true, detail: detailOf(result) });
-    return result;
+    result = await fn();
   } catch (err) {
-    // dep שנפל הופך בצנרת לדגל partial (חוץ מ-details שהוא פטאלי — runScan יפיל את הכול)
-    emit({ type: "step_done", key, ok: false, detail: "לא הצליח — ממשיכים בלי המקור הזה" });
+    emit({ type: "step_done", key, ok: false, detail: failDetail });
     throw err;
   }
+  emit({ type: "step_done", key, ok: true, detail: detailOf(result) });
+  return result;
 }
 
 function wrapScanDeps(base: ScanDeps, emit: Emit): ScanDeps {
   return {
-    details: (placeId) => step(emit, "details", "מאתרים את פרטי העסק בגוגל", () => base.details(placeId),
-      (d) => d.reviewCount != null ? `נמצאו ${d.reviewCount} ביקורות ודירוג ${d.rating ?? "ללא"}` : "פרטי העסק התקבלו"),
+    details: async (placeId) => {
+      const details = await step(emit, "details", "מאתרים את פרטי העסק בגוגל", () => base.details(placeId),
+        (d) => d.reviewCount != null ? `נמצאו ${d.reviewCount} ביקורות ודירוג ${d.rating ?? "ללא"}` : "פרטי העסק התקבלו",
+        "איתור העסק נכשל");
+      // לעסק אין אתר — runScan לא יקרא בכלל ל-crawl/pagespeed (ראו scan.ts). בלי האירועים האלה מסך
+      // הסריקה החיה היה נתקע על "קוראים את האתר…" בלי סוף; פולטים skipped מפורש כדי שהפלח העיקרי
+      // של המוצר (עסקים בלי אתר) יראה הסבר קצר ולא רשימה תלויה
+      if (!details.website) {
+        emit({ type: "step", key: "crawl", label: "קוראים את האתר" });
+        emit({ type: "step_done", key: "crawl", ok: false, detail: "לעסק אין אתר" });
+        emit({ type: "step", key: "pagespeed", label: "בודקים מהירות טעינה במובייל" });
+        emit({ type: "step_done", key: "pagespeed", ok: false, detail: "לעסק אין אתר" });
+      }
+      return details;
+    },
     crawl: (u) => step(emit, "crawl", "קוראים את האתר", () => base.crawl(u),
       (s) => `נסרקו ${s.pagesCrawled} עמודים`),
     pagespeed: (u) => step(emit, "pagespeed", "בודקים מהירות טעינה במובייל", () => base.pagespeed(u),
@@ -88,29 +108,37 @@ export async function runDiagnosis(
   target: DiagnoseTarget,
   opts: RunDiagnosisOptions = {},
 ): Promise<DiagnoseOutcome> {
-  const emit: Emit = opts.onEvent ?? (() => {});
+  const raw = opts.onEvent ?? (() => {});
+  // חוזה: onEvent לעולם לא מפיל את האורקסטרציה. emit נקרא מתוך ה-deps, שכישלונם נבלע
+  // ב-Promise.allSettled — צרכן שזורק (למשל: enqueue לזרם אחרי שהלקוח התנתק) היה הופך לדגל
+  // partial שקרי (crawl_failed עם "הצרכן נפל" כטקסט!) שנשמר בפועל ל-DB, ובמסלול URL — לכישלון כפול
+  // מדומה ש-DiagnoseFailed הורס אבחון שבפועל הצליח
+  const emit: Emit = (e) => {
+    try { raw(e); } catch (err) { console.error("⚠️ onEvent נכשל (מתעלמים):", err instanceof Error ? err.message : err); }
+  };
 
   // נרמול URL לפני כל כתיבה ל-DB — כתובת פסולה נכשלת מוקדם ונקי
   const siteUrl = target.kind === "url" ? normalizeSiteUrl(target.url) : undefined;
 
   // שלב 1: יצירת עסק + אבחון (created). מסלול URL: שם = מפתח הדומיין, website = origin יציב (משימה 3)
-  const businessName = siteUrl ? websiteKeyOf(siteUrl.href) : (target as { name: string }).name;
-  const created = await createDiagnosisForBusiness(prisma, siteUrl
-    ? { name: businessName, website: siteUrl.origin }
-    : { name: businessName, placeId: (target as { placeId: string }).placeId, city: (target as { city?: string }).city });
+  // הענפים נבדקים ישירות על target.kind (לא על siteUrl הנגזר) כדי שה-union יצטמצם בלי אף cast —
+  // הוספת סוג שלישי ל-DiagnoseTarget תיכשל בקומפילציה כאן, לא תפיק undefined בשקט
+  const businessName = target.kind === "url" ? websiteKeyOf(siteUrl!.href) : target.name;
+  const created = await createDiagnosisForBusiness(prisma, target.kind === "url"
+    ? { name: businessName, website: siteUrl!.origin }
+    : { name: businessName, placeId: target.placeId, city: target.city });
   emit({ type: "created", diagnosisId: created.diagnosisId, businessName });
 
   // שלב 2: סריקה תחת scanning; כל כישלון מחזיר ל-created עם השגיאה המקורית
   await transitionDiagnosis(prisma, created.diagnosisId, "scanning");
   let findings: ScanFindings;
   try {
-    findings = siteUrl
-      ? await scanWebsiteOnly(siteUrl.href, wrapWebsiteDeps(opts.websiteDeps ?? defaultWebsiteOnlyDeps, emit))
-      : await runScan((target as { placeId: string }).placeId,
-          wrapScanDeps(opts.scanDeps ?? defaultDeps, emit), { priorPlacesCalls: 1 });
+    findings = target.kind === "url"
+      ? await scanWebsiteOnly(siteUrl!.href, wrapWebsiteDeps(opts.websiteDeps ?? defaultWebsiteOnlyDeps, emit))
+      : await runScan(target.placeId, wrapScanDeps(opts.scanDeps ?? defaultDeps, emit), { priorPlacesCalls: 1 });
 
     // מסלול URL: כישלון כפול (גם crawl וגם PSI) = אין שום ממצא — נבדק לפני scanned
-    if (siteUrl && findings.partial.includes("crawl_failed") && findings.partial.includes("pagespeed_failed")) {
+    if (target.kind === "url" && findings.partial.includes("crawl_failed") && findings.partial.includes("pagespeed_failed")) {
       throw new DiagnoseFailed("שני המקורות נכשלו — אין ממצאים לאבחון");
     }
   } catch (err) {
@@ -118,7 +146,7 @@ export async function runDiagnosis(
       await transitionDiagnosis(prisma, created.diagnosisId, "created");
     } catch (revertErr) {
       // ההחזרה נכשלה (race) — לא בולעים, אבל השגיאה שממשיכה היא שגיאת הסריקה המקורית
-      console.error("נכשל גם ניסיון החזרת הסטטוס ל-created:", revertErr instanceof Error ? revertErr.message : revertErr);
+      console.error("⚠️ נכשל גם ניסיון החזרת הסטטוס ל-created:", revertErr instanceof Error ? revertErr.message : revertErr);
     }
     throw err;
   }
@@ -141,18 +169,18 @@ export async function runDiagnosis(
   await step(emit, "save", "שומרים את האבחון", async () => {
     await saveScanResult(prisma, created.diagnosisId, toScanRow(findings, score, narrative), model);
     await transitionDiagnosis(prisma, created.diagnosisId, "report_ready");
-  }, () => "האבחון נשמר");
+  }, () => "האבחון נשמר", "השמירה נכשלה");
 
   // שלב 5: backfill האתר שהתגלה — קוסמטי, אחרי report_ready, כשל לא מפיל אבחון ששולם.
   // רק במסלול Places (ב-url האתר נשמר כבר ביצירה).
-  if (!siteUrl && findings.business.website) {
+  if (target.kind === "places" && findings.business.website) {
     try {
       await prisma.business.update({
         where: { id: created.businessId },
         data: { website: findings.business.website },
       });
     } catch (err) {
-      console.error("עדכון האתר בשורת העסק נכשל (לא קריטי):", err instanceof Error ? err.message : err);
+      console.error("⚠️ עדכון האתר בשורת העסק נכשל (לא קריטי):", err instanceof Error ? err.message : err);
     }
   }
 

@@ -1,15 +1,26 @@
+// פייק Prisma מינימלי לבדיקות אופליין של runDiagnosis/diagnosis-repo — לא ה-client האמיתי, אז השדות
+// שעוברים דרכו (where/update/create/data) הם any בכוונה; הטיפוס האמיתי נבדק בקצוות (diagnosis-repo.ts
+// עצמו מוקלד מול PrismaClient אמיתי) לא כאן.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export interface FakeBizRow {
   id: string; name: string; placeId: string | null; websiteKey: string | null;
   website: string | null; city: string | null;
 }
 
-export function makeFakeDb() {
+export interface FakeDbOptions {
+  // מעברי סטטוס ("from→to") שצריכים להיכשל (updateMany מחזיר count:0) כאילו הפסידו במרוץ —
+  // משמש לבדיקת "גם ה-revert נכשל" (transitionDiagnosis זורק, לא רק לא-מצליח בשקט)
+  failTransitions?: Set<string>;
+}
+
+export function makeFakeDb(opts: FakeDbOptions = {}) {
   const businesses: FakeBizRow[] = [];
   const diagnoses: { id: string; businessId: string; status: string }[] = [];
   const scans: any[] = [];
   const models: any[] = [];
-  const transitions: string[] = []; // "from→to" לפי סדר — לב האסרטים על מכונת המצבים
+  // "from→to" לפי סדר — לב האסרטים על מכונת המצבים. נרשמים רק מעברים שהצליחו בפועל (count:1);
+  // מעבר שנכשל (race מדומה דרך failTransitions, או סטטוס לא תואם) לא משאיר עקבות כאן
+  const transitions: string[] = [];
   let nextId = 1;
   const genId = (p: string) => `${p}-${nextId++}`;
 
@@ -46,9 +57,11 @@ export function makeFakeDb() {
         return { status: d.status };
       },
       updateMany: async ({ where, data }: any) => {
+        const key = `${where.status}→${data.status}`;
+        if (opts.failTransitions?.has(key)) return { count: 0 };
         const d = diagnoses.find((x) => x.id === where.id && x.status === where.status);
         if (!d) return { count: 0 };
-        transitions.push(`${where.status}→${data.status}`);
+        transitions.push(key);
         d.status = data.status;
         return { count: 1 };
       },
@@ -57,6 +70,11 @@ export function makeFakeDb() {
     businessModelRow: {
       upsert: async ({ where, create }: any) => { models.push({ where, create }); return { id: genId("bm") }; },
     },
+    // אזהרה: הפרומיסים במערך שמועבר כאן נבנים eager (הקריאות ל-.create/.upsert כבר רצות לפני
+    // שה-$transaction הזה בכלל נקרא — כך גם ה-Prisma האמיתי בונה אותן), אבל בניגוד ל-PrismaPromise
+    // האמיתי (lazy — לא שולח SQL עד שמתחילים לחכות עליו בתוך טרנזקציה) הפייק כאן פשוט מחכה למה
+    // שכבר רץ. במילים אחרות: אטומיות (all-or-nothing) אינה נצפית דרך הפייק הזה — אם רוצים לבדוק
+    // "כישלון חלקי לא משאיר שורה יתומה" צריך מוק ייעודי, לא makeFakeDb.
     $transaction: async (arr: Promise<unknown>[]) => Promise.all(arr),
   };
 

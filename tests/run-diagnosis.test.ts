@@ -121,3 +121,68 @@ describe("runDiagnosis — מסלול URL", () => {
     expect(diagnoses).toHaveLength(0);
   });
 });
+
+describe("runDiagnosis — עמידות בפני onEvent שזורק", () => {
+  it("onEvent שזורק על כל קריאה לא משבש נתונים — מגיע ל-report_ready בלי דגלי כישלון שקריים", async () => {
+    const { db, transitions, scans } = makeFakeDb();
+    const throwingOnEvent = () => { throw new Error("Controller is already closed"); };
+    const outcome = await runDiagnosis(db, { kind: "places", placeId: "p1", name: "עסק בדיקה" }, {
+      onEvent: throwingOnEvent, scanDeps: happyScanDeps, narrativeOptions: { complete: fakeComplete },
+    });
+
+    expect(transitions).toEqual(["created→scanning", "scanning→scanned", "scanned→report_ready"]);
+    expect(scans).toHaveLength(1);
+    // צרכן שנופל לא הופך dep שהצליח לדגל partial שקרי
+    expect(outcome.findings.partial).not.toContain("crawl_failed");
+    expect(outcome.findings.partial).not.toContain("pagespeed_failed");
+  });
+
+  it("done נפלט אחרי ה-backfill — website כבר מעודכן ברגע שאירוע done נשלח", async () => {
+    const { db, businesses } = makeFakeDb();
+    let websiteAtDone: string | null | undefined;
+    const onEvent = (e: DiagnoseEvent) => {
+      if (e.type === "done") websiteAtDone = businesses[0]?.website;
+    };
+    await runDiagnosis(db, { kind: "places", placeId: "p1", name: "עסק בדיקה" }, {
+      onEvent, scanDeps: happyScanDeps, narrativeOptions: { complete: fakeComplete },
+    });
+    expect(websiteAtDone).toBe("https://x.co.il");
+  });
+});
+
+describe("runDiagnosis — כישלון גם ב-revert", () => {
+  it("updateMany נכשל גם על scanning→created — השגיאה המקורית (לא שגיאת ה-revert) ממשיכה להיזרק", async () => {
+    const { db, transitions } = makeFakeDb({ failTransitions: new Set(["scanning→created"]) });
+    const deps: ScanDeps = { ...happyScanDeps, details: async () => { throw new Error("Places נפל"); } };
+    await expect(runDiagnosis(db, { kind: "places", placeId: "p1", name: "עסק" }, {
+      scanDeps: deps, narrativeOptions: { complete: fakeComplete },
+    })).rejects.toThrow("Places נפל");
+    // ה-revert עצמו נכשל (updateMany מדומה count:0) — לא נרשם כמעבר מוצלח
+    expect(transitions).toEqual(["created→scanning"]);
+  });
+});
+
+describe("runDiagnosis — עסק בלי אתר", () => {
+  it("crawl/pagespeed מסומנים skipped עם הסבר 'לעסק אין אתר', בלי דגלי כישלון", async () => {
+    const { db } = makeFakeDb();
+    const { events, onEvent } = collect();
+    const deps: ScanDeps = {
+      ...happyScanDeps,
+      details: async () => ({
+        placeId: "p1", name: "עסק בלי אתר", website: undefined, rating: 4.2, reviewCount: 12,
+        reviews: [{ rating: 5, text: "מעולה" }],
+      }),
+    };
+    const outcome = await runDiagnosis(db, { kind: "places", placeId: "p1", name: "עסק בלי אתר" }, {
+      onEvent, scanDeps: deps, narrativeOptions: { complete: fakeComplete },
+    });
+
+    const crawlDone = events.find((e) => e.type === "step_done" && e.key === "crawl");
+    const pagespeedDone = events.find((e) => e.type === "step_done" && e.key === "pagespeed");
+    expect(crawlDone).toMatchObject({ ok: false, detail: "לעסק אין אתר" });
+    expect(pagespeedDone).toMatchObject({ ok: false, detail: "לעסק אין אתר" });
+    // "אין אתר" הוא ידוע-מראש, לא כישלון dep בפועל — לא דגלי crawl_failed/pagespeed_failed
+    expect(outcome.findings.partial).not.toContain("crawl_failed");
+    expect(outcome.findings.partial).not.toContain("pagespeed_failed");
+  });
+});
