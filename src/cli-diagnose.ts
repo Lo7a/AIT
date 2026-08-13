@@ -135,7 +135,7 @@ async function main() {
   if (scan.partial.length > 0) console.log(`   דגלים: ${scan.partial.join(", ")}`);
 }
 
-// מריצים רק כשהקובץ הוא נקודת הכניסה — לא כשמייבאים ממנו במבחנים
+// מריצים רק כשהקובץ הוא נקודת הכניסה (הרצה ישירה) — לא כשמייבאים אותו
 if (process.argv[1]?.endsWith("cli-diagnose.ts")) {
   main()
     .catch((err) => { console.error("❌ האבחון נכשל:", err instanceof Error ? err.message : err); process.exit(1); })

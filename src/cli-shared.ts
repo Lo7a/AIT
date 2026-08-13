@@ -53,7 +53,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
   }
   // אותה בעיה בדיוק ל---pick חסר ערך — נופל היה לתוך ה-query בשקט
   if (sawPick && (pickRaw === undefined || pickRaw === "")) {
-    return { query: "", error: '--pick דורש מספר: npm run diagnose -- "שם עסק" --pick 2' };
+    // ניסוח ניטרלי-לפקודה — הפרסר משותף ל-scan ול-diagnose, אסור לנקוב בפקודה הלא-נכונה
+    return { query: "", error: "--pick דורש מספר שלם חיובי (למשל: --pick 2)" };
   }
 
   let pick: number | undefined;

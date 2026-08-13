@@ -5,12 +5,16 @@ import type { DiagnosisStatus } from "../../server/status";
 
 // שכבת תצוגה משותפת ל-CLI ולמסכים (שער 2א, דרישה 4) — טהורה, נבדקת אופליין
 
-export const DATA_TAG: Record<string, string> = { partial: " (מידע חלקי)", none: " (אין מידע)" };
-
 export const DATA_STATUS_LABEL: Record<DataStatus, string> = {
   full: "מידע מלא",
   partial: "מידע חלקי",
   none: "אין מידע",
+};
+
+// תגי הסוגריים של ה-CLI נגזרים מהתוויות — עריכת תווית אחת לא תפצל בשקט בין ה-CLI ל-UI
+export const DATA_TAG: Record<string, string> = {
+  partial: ` (${DATA_STATUS_LABEL.partial})`,
+  none: ` (${DATA_STATUS_LABEL.none})`,
 };
 
 export const DIAGNOSIS_STATUS_LABEL: Record<DiagnosisStatus, string> = {
