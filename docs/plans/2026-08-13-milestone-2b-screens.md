@@ -644,7 +644,9 @@ git commit -m "feat(2b-3): atomic website-only business identity - unique normal
 
 ---
 
-### משימה 4: חילוץ שכבת התצוגה מה-CLI + איחוד parseArgs (דרישה 4)
+### משימה 4: חילוץ שכבת התצוגה מה-CLI + איחוד parseArgs (דרישה 4) ✅
+
+> **As-built (7754e50 + bcac89a):** בוצע כמתוכנן — ההעברה הוכחה ברמת בייטים (diff ריק מול הקוד שנמחק). מסקירת האיכות: DATA_TAG נגזר עכשיו מ-DATA_STATUS_LABEL (עריכת תווית לא תפצל CLI/UI); הודעת --pick חסר-ערך נוסחה ניטרלית-לפקודה (הפרסר משותף ל-scan/diagnose); הוכרע שהקצה הטיפוסי-בלבד pipeline→server (DiagnosisStatus) מקובל ל-MVP — server/status.ts הוא עלה בלי תלויות, והתקדים לתיקון (מודול עלה + re-export) קיים אם יופיע אי-פעם import ערכי.
 
 `formatDiagnosisSummary` ו-`DATA_TAG` יושבים היום בקובץ שמייבא prisma/fs ומריץ main — ה-UI לא יכול לייבא ממנו. מחלצים למודול תצוגה טהור `src/pipeline/report/presenter.ts`, ומוסיפים בו את מילוני התצוגה שהמסכים יצטרכו (תוויות סטטוס, תוויות דגלים, טון ציון). את `parseArgs` מאחדים ב-`cli-shared.ts` — שני ה-CLI משתמשים באותו פרסר.
 
