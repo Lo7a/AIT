@@ -75,6 +75,9 @@ export type PartialFlag =
   | "js_rendered"
   | "no_gbp";
 
+// הסבר דגל js_rendered — משותף ל-runScan ול-scanWebsiteOnly (משימה 3)
+export const JS_RENDERED_DETAIL = "האתר מרונדר ב-JavaScript — אותות ה-HTML חלקיים";
+
 export interface ScanFindings {
   business: {
     placeId: string;
@@ -88,6 +91,6 @@ export interface ScanFindings {
   pageSpeed?: PageSpeedResult;
   reviewInsights?: ReviewInsights;
   partial: PartialFlag[]; // איחוד הדגלים האפשריים — ראו PartialFlag
-  partialDetails?: Record<string, string>; // דגל → סיבת הכישלון (לעולם בלי טקסט ביקורות)
+  partialDetails?: Partial<Record<PartialFlag, string>>; // דגל → סיבת הכישלון (לעולם בלי טקסט ביקורות)
   meta: ScanMeta;
 }

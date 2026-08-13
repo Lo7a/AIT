@@ -218,9 +218,12 @@ export type PartialFlag =
 
 `src/pipeline/crawler/crawl.ts` — מעל `crawlWebsite` להוסיף:
 
+> **הערת as-built (אחרי סקירה):** הרגקס המקורי כאן פוספס את המקרה האמיתי שהניע את המשימה. `https://www.lavangroup.co.il/` הוא Next.js **App Router**, שלא פולט `__NEXT_DATA__` ולא `id="__next"` — אלה סמנים של Pages Router בלבד. App Router פולט `self.__next_f.push(...)` (hydration) ונתיבי `/_next/static/`. הרגקס הורחב לכלול את שניהם; הגרסה המחייבת בפועל:
+
 ```ts
-// סמני אפליקציית JS — מעוגנים בתבניות ספציפיות של React/Next/Vue/Angular, לא בכל <script>
-const JS_APP_ROOT_RE = /__NEXT_DATA__|id="__next"|id="root"|data-reactroot|ng-version=|id="app"/;
+// סמני אפליקציית JS — תבניות ספציפיות של Next/React/Vue/Angular, לא כל <script>
+const JS_APP_ROOT_RE =
+  /__NEXT_DATA__|self\.__next_f|\/_next\/static\/|data-reactroot|ng-version=|\bid=["']?(?:__next|__nuxt|root|app)\b/;
 ```
 
 ובתוך `crawlWebsite`, אחרי חישוב `home`:
@@ -240,6 +243,8 @@ const JS_APP_ROOT_RE = /__NEXT_DATA__|id="__next"|id="root"|data-reactroot|ng-ve
       partialDetails.js_rendered = "האתר מרונדר ב-JavaScript — אותות ה-HTML חלקיים";
     }
 ```
+
+> **הערת as-built (אחרי סקירה):** בפועל הבדיקה מקוננת בתוך ענף ה-`fulfilled` של `crawlResult`, מיד אחרי ההצבה ל-`websiteSignals` (בלי `?.` חוזר), והמחרוזת העברית עברה לקבוע משותף `JS_RENDERED_DETAIL` ב-`types.ts` כדי שמשימה 3 לא תשכפל אותה. המקור המחייב: `src/pipeline/scan.ts`.
 
 - [x] **Step 4: ירוק** — `npx vitest run` → כל הקבצים PASS. `npm run typecheck` נקי.
 
@@ -313,7 +318,10 @@ describe("scanWebsiteOnly", () => {
 - [ ] **Step 3: מימוש** — ליצור `src/pipeline/scan-website.ts`:
 
 ```ts
-import type { PageSpeedResult, PartialFlag, ScanFindings, WebsiteSignals } from "./types";
+import {
+  JS_RENDERED_DETAIL,
+  type PageSpeedResult, type PartialFlag, type ScanFindings, type WebsiteSignals,
+} from "./types";
 import { crawlWebsite } from "./crawler/crawl";
 import { runPageSpeed } from "./google/pagespeed";
 
@@ -359,7 +367,7 @@ export async function scanWebsiteOnly(
     websiteSignals = crawlResult.value;
     if (websiteSignals.jsRendered) {
       partial.push("js_rendered");
-      partialDetails.js_rendered = "האתר מרונדר ב-JavaScript — אותות ה-HTML חלקיים";
+      partialDetails.js_rendered = JS_RENDERED_DETAIL;
     }
   } else {
     partial.push("crawl_failed");

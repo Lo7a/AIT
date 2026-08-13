@@ -1,5 +1,7 @@
-import type {
-  PageSpeedResult, PartialFlag, PlaceDetails, Review, ReviewInsights, ScanFindings, WebsiteSignals,
+import {
+  JS_RENDERED_DETAIL,
+  type PageSpeedResult, type PartialFlag, type PlaceDetails, type Review, type ReviewInsights,
+  type ScanFindings, type WebsiteSignals,
 } from "./types";
 import type { LlmUsage } from "./llm/client";
 import { getPlaceDetails } from "./google/places";
@@ -42,7 +44,7 @@ export async function runScan(
   const startedAt = new Date().toISOString();
   const t0 = Date.now();
   const partial: PartialFlag[] = [];
-  const partialDetails: Record<string, string> = {};
+  const partialDetails: Partial<Record<PartialFlag, string>> = {};
   let llmUsage: LlmUsage = { inputTokens: 0, outputTokens: 0 };
 
   // בלי פרטי העסק אין מה לסרוק — כישלון כאן עוצר את האבחון
@@ -69,14 +71,15 @@ export async function runScan(
   if (!details.website) {
     partial.push("no_website");
   } else {
-    if (crawlResult.status === "fulfilled" && crawlResult.value) websiteSignals = crawlResult.value;
-    else if (crawlResult.status === "rejected") {
+    if (crawlResult.status === "fulfilled" && crawlResult.value) {
+      websiteSignals = crawlResult.value;
+      if (websiteSignals.jsRendered) {
+        partial.push("js_rendered");
+        partialDetails.js_rendered = JS_RENDERED_DETAIL;
+      }
+    } else if (crawlResult.status === "rejected") {
       partial.push("crawl_failed");
       partialDetails.crawl_failed = reasonOf(crawlResult);
-    }
-    if (websiteSignals?.jsRendered) {
-      partial.push("js_rendered");
-      partialDetails.js_rendered = "האתר מרונדר ב-JavaScript — אותות ה-HTML חלקיים";
     }
     if (psiResult.status === "fulfilled" && psiResult.value) pageSpeed = psiResult.value;
     else if (psiResult.status === "rejected") {

@@ -11,6 +11,10 @@ const GALLERY = `<html><body>תמונות</body></html>`;
 const NEXT_HTML = `<html><head><script src="/_next/static/chunks/main.js"></script></head>
 <body><div id="__next"></div></body></html>`;
 const BROCHURE_HTML = `<html><body><h1>ברוכים הבאים</h1><p>טלפון: 03-1234567</p></body></html>`;
+// צורת ה-HTML האמיתית של Next.js App Router — בלי __NEXT_DATA__ ובלי id="__next" (אלה Pages Router)
+const APP_ROUTER_HTML = `<html><head><script src="/_next/static/chunks/webpack-abc123.js" async></script></head>
+<body><div class="min-h-screen bg-gray-50"><div class="animate-pulse"></div></div>
+<script>self.__next_f=self.__next_f||[];self.__next_f.push([0])</script></body></html>`;
 
 function htmlResponse(html: string, url = "") {
   return {
@@ -190,6 +194,19 @@ describe("crawlWebsite", () => {
   it("does NOT flag a plain single-page brochure site", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(htmlResponse(BROCHURE_HTML));
     const signals = await crawlWebsite("https://simple.co.il", { fetchImpl });
+    expect(signals.jsRendered).toBe(false);
+  });
+
+  it("flags jsRendered on a Next.js App Router skeleton (the real Lavan Group shape)", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(htmlResponse(APP_ROUTER_HTML));
+    const signals = await crawlWebsite("https://approuter.co.il", { fetchImpl });
+    expect(signals.jsRendered).toBe(true);
+  });
+
+  it("does NOT flag a JS-marker page that still has internal links", async () => {
+    const withLinks = `<html><body><div id="__next"></div><a href="/about">אודות</a><a href="/contact">צור קשר</a></body></html>`;
+    const fetchImpl = vi.fn().mockResolvedValue(htmlResponse(withLinks));
+    const signals = await crawlWebsite("https://hybrid.co.il", { fetchImpl });
     expect(signals.jsRendered).toBe(false);
   });
 });

@@ -25,8 +25,11 @@ const BOOL_KEYS = [
   "hasOnlineBooking", "hasChatWidget", "hasFacebookPixel", "hasGoogleAnalytics",
 ] as const;
 
-// סמני אפליקציית JS — מעוגנים בתבניות ספציפיות של React/Next/Vue/Angular, לא בכל <script>
-const JS_APP_ROOT_RE = /__NEXT_DATA__|id="__next"|id="root"|data-reactroot|ng-version=|id="app"/;
+// סמני אפליקציית JS — תבניות ספציפיות של Next/React/Vue/Angular, לא כל <script>.
+// __NEXT_DATA__ ו-id="__next" הם Pages Router; App Router (הדף האמיתי שהניע את המשימה) לא פולט אותם —
+// הסמנים שלו הם self.__next_f (hydration) ו-/_next/static/ — לכן שניהם נכללים כאן.
+const JS_APP_ROOT_RE =
+  /__NEXT_DATA__|self\.__next_f|\/_next\/static\/|data-reactroot|ng-version=|\bid=["']?(?:__next|__nuxt|root|app)\b/;
 
 function priorityOf(url: string): number {
   let lower: string;

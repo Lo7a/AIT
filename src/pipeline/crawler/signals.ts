@@ -2,7 +2,8 @@ import * as cheerio from "cheerio";
 import type { WebsiteSignals } from "../types";
 
 // סיגנלים של עמוד בודד; ה-crawler ממזג אותם לרמת האתר (WebsiteSignals)
-export interface PageSignals extends Omit<WebsiteSignals, "pagesCrawled" | "crawledUrls"> {
+// jsRendered מוחרג — הוא נגזר ברמת האתר (crawl.ts) מהעמוד הראשי, extractSignals לא קובע אותו
+export interface PageSignals extends Omit<WebsiteSignals, "pagesCrawled" | "crawledUrls" | "jsRendered"> {
   internalLinks: string[];
 }
 
