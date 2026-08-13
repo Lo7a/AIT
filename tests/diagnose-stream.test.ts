@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { makeDiagnoseHandler, parseDiagnoseBody } from "../src/server/api/diagnose-stream";
 import type { DiagnoseEvent } from "../src/server/diagnose-events";
+import { DiagnoseFailed } from "../src/server/run-diagnosis";
 import type { DiagnoseTarget } from "../src/server/run-diagnosis";
 
 function req(body: unknown): Request {
@@ -41,6 +42,29 @@ describe("parseDiagnoseBody", () => {
     expect(parseDiagnoseBody(null)).toHaveProperty("error");
     expect(parseDiagnoseBody("str")).toHaveProperty("error");
   });
+
+  it("city לא-מחרוזת (ולא null) — שגיאה, בלי המרה שקטה", () => {
+    expect(parseDiagnoseBody({ city: 5, placeId: "p", name: "x" })).toHaveProperty("error");
+  });
+
+  it("name של רווחים בלבד — שגיאה אחרי trim", () => {
+    expect(parseDiagnoseBody({ placeId: "p1", name: "   " })).toHaveProperty("error");
+  });
+
+  it("SSRF guard: מארחים פנימיים/מקומיים נדחים בעברית", () => {
+    for (const bad of [
+      "http://localhost:3000",
+      "http://169.254.169.254/x",
+      "http://192.168.1.1",
+      "http://[::1]:8080",
+    ]) {
+      expect(parseDiagnoseBody({ url: bad })).toMatchObject({ error: expect.stringContaining("פנימית") });
+    }
+  });
+
+  it("SSRF guard: כתובת ציבורית תקינה לא נחסמת", () => {
+    expect(parseDiagnoseBody({ url: "https://x.co.il" })).toEqual({ kind: "url", url: "https://x.co.il/" });
+  });
 });
 
 describe("makeDiagnoseHandler", () => {
@@ -61,12 +85,30 @@ describe("makeDiagnoseHandler", () => {
     expect(events[2]).toEqual({ type: "done", diagnosisId: "d1" });
   });
 
-  it("runner שנכשל — אירוע error בזרם (לא 500), עם ההודעה", async () => {
+  it("runner שנכשל עם שגיאה לא-מוכרת — אירוע error בזרם (לא 500), הודעה גנרית ולא פרטי השגיאה", async () => {
     const handler = makeDiagnoseHandler(async () => { throw new Error("הסריקה קרסה"); });
     const res = await handler(req({ placeId: "p1", name: "עסק" }));
     expect(res.status).toBe(200);
     const events = await eventsOf(res);
-    expect(events[events.length - 1]).toEqual({ type: "error", message: "הסריקה קרסה" });
+    expect(events[events.length - 1]).toEqual({ type: "error", message: "האבחון נכשל — נסו שוב בעוד רגע" });
+  });
+
+  it("runner שנכשל עם DiagnoseFailed — ההודעה העברית המוכרת עוברת כמות שהיא", async () => {
+    const handler = makeDiagnoseHandler(async () => {
+      throw new DiagnoseFailed("שני המקורות נכשלו — אין ממצאים לאבחון");
+    });
+    const res = await handler(req({ placeId: "p1", name: "עסק" }));
+    expect(res.status).toBe(200);
+    const events = await eventsOf(res);
+    expect(events[events.length - 1]).toEqual({ type: "error", message: "שני המקורות נכשלו — אין ממצאים לאבחון" });
+  });
+
+  it("runner שזורק סינכרונית (בלי להגיע ל-await ראשון) — עדיין 200 וזרם עם error בסוף", async () => {
+    const handler = makeDiagnoseHandler(() => { throw new Error("קורס לפני שמוחזר Promise"); });
+    const res = await handler(req({ placeId: "p1", name: "עסק" }));
+    expect(res.status).toBe(200);
+    const events = await eventsOf(res);
+    expect(events[events.length - 1]).toEqual({ type: "error", message: "האבחון נכשל — נסו שוב בעוד רגע" });
   });
 
   it("runner שנכשל אחרי אירועים — האירועים שקדמו נשמרים בזרם", async () => {
