@@ -96,4 +96,57 @@ describe("real dimensions", () => {
     const phone = access.rules.find((r) => r.key === "phone_available")!;
     expect(phone.known).toBe(false);
   });
+
+  it("no known rule ever renders empty/undefined text on realistic fixtures", () => {
+    const gbpCrawlFailed: ScanFindings = {
+      business: { placeId: "p9", name: "עסק", website: "https://dead.co.il", rating: 4.5, reviewCount: 30 },
+      partial: ["crawl_failed", "pagespeed_failed"],
+      meta: META,
+    };
+    for (const fixture of [RICH, THIN, NO_GBP, gbpCrawlFailed]) {
+      for (const d of scoreFindings(DIMENSIONS, fixture).dimensions) {
+        for (const r of d.rules.filter((r) => r.known)) {
+          expect(r.text.length, `${d.key}/${r.key}`).toBeGreaterThan(0);
+          expect(r.text, `${d.key}/${r.key}`).not.toMatch(/undefined|NaN|null/);
+        }
+      }
+    }
+  });
+
+  it("product thresholds sit exactly on the inclusive boundary", () => {
+    const at = (over: Partial<ScanFindings["business"]>, ps?: ScanFindings["pageSpeed"]): ScanFindings => ({
+      business: { placeId: "p1", name: "עסק", website: "https://x.co.il", ...over },
+      websiteSignals: RICH.websiteSignals, pageSpeed: ps ?? RICH.pageSpeed,
+      reviewInsights: RICH.reviewInsights, partial: [], meta: META,
+    });
+    const ruleOf = (f: ScanFindings, dim: string, key: string) =>
+      scoreFindings(DIMENSIONS, f).dimensions.find((d) => d.key === dim)!.rules.find((r) => r.key === key)!;
+    expect(ruleOf(at({ rating: 4.2 }), "reputation", "rating_good").earned).toBe(true);
+    expect(ruleOf(at({ rating: 4.1 }), "reputation", "rating_good").earned).toBe(false);
+    expect(ruleOf(at({ reviewCount: 5 }), "reputation", "has_reviews").earned).toBe(true);
+    expect(ruleOf(at({ reviewCount: 25 }), "reputation", "review_volume").earned).toBe(true);
+    expect(ruleOf(at({}, { performanceScore: 70, seoScore: 90, lcpMs: 4000 }), "visibility", "perf").earned).toBe(true);
+    expect(ruleOf(at({}, { performanceScore: 69, seoScore: 89, lcpMs: 4001 }), "visibility", "perf").earned).toBe(false);
+  });
+
+  it("phone_available is unknown on the GBP path when crawl failed and GBP has no phone", () => {
+    const f: ScanFindings = {
+      business: { placeId: "p8", name: "עסק", website: "https://x.co.il" },
+      partial: ["crawl_failed"], meta: META,
+    };
+    const access = scoreFindings(DIMENSIONS, f).dimensions.find((d) => d.key === "accessibility")!;
+    expect(access.rules.find((r) => r.key === "phone_available")!.known).toBe(false);
+  });
+
+  it("dead domain: has_website is a gap, not praise", () => {
+    const f: ScanFindings = {
+      business: { placeId: "p7", name: "עסק", website: "https://dead.co.il", rating: 4.5, reviewCount: 30 },
+      partial: ["crawl_failed", "pagespeed_failed"], meta: META,
+    };
+    const vis = scoreFindings(DIMENSIONS, f).dimensions.find((d) => d.key === "visibility")!;
+    const rule = vis.rules.find((r) => r.key === "has_website")!;
+    expect(rule.known).toBe(true);
+    expect(rule.earned).toBe(false);
+    expect(rule.text).toContain("לא הצלחנו לטעון");
+  });
 });

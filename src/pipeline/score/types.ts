@@ -9,8 +9,8 @@ export interface RuleDef {
   points: number;
   known: (f: ScanFindings) => boolean;   // האם יש בכלל מידע לבדוק את החוק
   earned: (f: ScanFindings) => boolean;  // נבדק רק כאשר known
-  gapText: (f: ScanFindings) => string;  // עברית — הפער, ננוסח לבעל העסק; נקרא רק כאשר known=true (כמו earned)
-  okText: (f: ScanFindings) => string;   // עברית — מה תקין (אמינות = גם לפרגן); נקרא רק כאשר known=true (כמו earned)
+  gapText: (f: ScanFindings) => string;  // עברית — הפער, ננוסח לבעל העסק; נקרא רק כאשר known && !earned
+  okText: (f: ScanFindings) => string;   // עברית — מה תקין (אמינות = גם לפרגן); נקרא רק כאשר earned (וזה תמיד מגיע יחד עם known)
 }
 
 export interface DimensionDef {

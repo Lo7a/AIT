@@ -835,6 +835,10 @@ import type { DimensionDef } from "./types";
 const noGbp = (f: ScanFindings) => f.partial.includes("no_gbp");
 const crawlUsable = (f: ScanFindings) => !!f.websiteSignals && !f.partial.includes("js_rendered");
 const reviewsAnalyzed = (f: ScanFindings) => !!f.reviewInsights && f.reviewInsights.totalAnalyzed > 0;
+const phoneFound = (f: ScanFindings) => !!f.business.phone || !!f.websiteSignals?.hasPhoneLink;
+// "חוזרת" = עולה יותר מפעם אחת במדגם שנבדק, לא כל תמה שצוינה
+const recurringProblems = (f: ScanFindings) =>
+  (f.reviewInsights?.problemThemes ?? []).filter((t) => t.count >= 2);
 
 const sec = (ms?: number) => ((ms ?? 0) / 1000).toFixed(1);
 
@@ -850,29 +854,35 @@ export const DIMENSIONS: DimensionDef[] = [
       },
       {
         key: "has_website", points: 20,
-        known: () => true, earned: (f) => !f.partial.includes("no_website"),
-        gapText: () => "לעסק אין אתר — אין בית דיגיטלי להפנות אליו לקוחות",
+        known: () => true,
+        // אתר רשום שה-crawl וה-PageSpeed שניהם נכשלו בו הוא ככל הנראה לא זמין גם ללקוח —
+        // לא ראוי "לפרגן" עליו כאילו הוא תקין
+        earned: (f) => !f.partial.includes("no_website")
+          && !(f.partial.includes("crawl_failed") && f.partial.includes("pagespeed_failed")),
+        gapText: (f) => f.partial.includes("no_website")
+          ? "לעסק אין אתר — אין בית דיגיטלי להפנות אליו לקוחות"
+          : "האתר רשום בגוגל אך לא הצלחנו לטעון אותו — ייתכן שהוא לא זמין גם ללקוחות",
         okText: () => "לעסק יש אתר",
       },
       {
         key: "perf", points: 20,
         known: (f) => f.pageSpeed?.performanceScore != null,
         earned: (f) => (f.pageSpeed?.performanceScore ?? 0) >= 70,
-        gapText: (f) => `ציון ביצועי מובייל ${f.pageSpeed?.performanceScore}/100 — אתר איטי מבריח לקוחות`,
+        gapText: (f) => `ציון ביצועי מובייל ${f.pageSpeed?.performanceScore}/100 — מתחת ליעד של 70`,
         okText: (f) => `ביצועי מובייל טובים (${f.pageSpeed?.performanceScore}/100)`,
       },
       {
         key: "lcp", points: 15,
         known: (f) => f.pageSpeed?.lcpMs != null,
         earned: (f) => (f.pageSpeed?.lcpMs ?? Infinity) <= 4000,
-        gapText: (f) => `העמוd הראשי נטען ${sec(f.pageSpeed?.lcpMs)} שניות — הרבה מעל היעד של 4`,
+        gapText: (f) => `העמוד הראשי נטען ${sec(f.pageSpeed?.lcpMs)} שניות — מעל היעד של 4 שניות`,
         okText: (f) => `זמן טעינה תקין (${sec(f.pageSpeed?.lcpMs)} שניות)`,
       },
       {
         key: "seo", points: 10,
         known: (f) => f.pageSpeed?.seoScore != null,
         earned: (f) => (f.pageSpeed?.seoScore ?? 0) >= 90,
-        gapText: (f) => `ציון SEO ${f.pageSpeed?.seoScore}/100 — יש בעיות בסיסיות באינדוקס`,
+        gapText: (f) => `ציון SEO ${f.pageSpeed?.seoScore}/100 — יש כשלים בסיסיים באופטימיזציה למנועי חיפוש`,
         okText: (f) => `בסיס SEO תקין (${f.pageSpeed?.seoScore}/100)`,
       },
       {
@@ -884,7 +894,7 @@ export const DIMENSIONS: DimensionDef[] = [
       {
         key: "gbp_rating", points: 10,
         known: (f) => !noGbp(f), earned: (f) => f.business.rating != null,
-        gapText: () => "אין דירוג בגוגל — סימן לפרופיל רדום",
+        gapText: () => "עדיין אין דירוג בגוגל — הפרופיל חדש או לא פעיל",
         okText: (f) => `דירוג ${f.business.rating} בגוגל`,
       },
     ],
@@ -895,7 +905,12 @@ export const DIMENSIONS: DimensionDef[] = [
       {
         key: "has_reviews", points: 20,
         known: (f) => !noGbp(f), earned: (f) => (f.business.reviewCount ?? 0) >= 5,
-        gapText: (f) => `רק ${f.business.reviewCount ?? 0} ביקורות בגוגל — מעט מדי בשביל לבנות אמון`,
+        gapText: (f) => {
+          const n = f.business.reviewCount ?? 0;
+          if (n === 0) return "אין ביקורות בגוגל — לקוח חדש לא רואה שום הוכחה חברתית";
+          if (n === 1) return "רק ביקורת אחת בגוגל — מעט מדי בשביל לבנות אמון";
+          return `רק ${n} ביקורות בגוגל — מעט מדי בשביל לבנות אמון`;
+        },
         okText: (f) => `${f.business.reviewCount} ביקורות בגוגל`,
       },
       {
@@ -913,16 +928,16 @@ export const DIMENSIONS: DimensionDef[] = [
       {
         key: "no_problem_themes", points: 25,
         known: reviewsAnalyzed,
-        earned: (f) => (f.reviewInsights?.problemThemes.length ?? 0) === 0,
-        gapText: (f) => `הביקורות חוזרות על בעיות: ${f.reviewInsights?.problemThemes.slice(0, 2).map((t) => t.theme).join("; ")}`,
-        okText: () => "לא עולות בעיות חוזרות מהביקורות",
+        earned: (f) => recurringProblems(f).length === 0,
+        gapText: (f) => `במדגם הביקורות שנבדק חוזרות בעיות: ${recurringProblems(f).slice(0, 2).map((t) => t.theme.slice(0, 80)).join("; ")}`,
+        okText: () => "במדגם הביקורות שנבדק לא עולות בעיות חוזרות",
       },
       {
         key: "positive_themes", points: 15,
         known: reviewsAnalyzed,
         earned: (f) => (f.reviewInsights?.positiveThemes.length ?? 0) > 0,
         gapText: () => "לא זוהו חוזקות עקביות בביקורות",
-        okText: (f) => `לקוחות מפרגנים: ${f.reviewInsights?.positiveThemes[0]?.theme}`,
+        okText: (f) => `לקוחות מפרגנים: ${f.reviewInsights?.positiveThemes[0]?.theme.slice(0, 80)}`,
       },
     ],
   },
@@ -931,32 +946,40 @@ export const DIMENSIONS: DimensionDef[] = [
     rules: [
       {
         key: "phone_available", points: 15,
-        known: () => true,
-        earned: (f) => !!f.business.phone || !!f.websiteSignals?.hasPhoneLink,
-        gapText: () => "אין מספר טלפון נגיש — לא בגוגל ולא באתר",
+        // חיובי (נמצא טלפון) תמיד ידוע — זו עובדה שנמצאה, לא מסקנה מהיעדר מידע.
+        // שלילי ("אין טלפון") ידוע רק כששני המקורות האפשריים נבדקו בפועל: GBP קיים,
+        // וה-crawl עבד (או שאין בכלל אתר לבדוק).
+        known: (f) => phoneFound(f) || (!noGbp(f) && (crawlUsable(f) || f.partial.includes("no_website"))),
+        earned: phoneFound,
+        gapText: () => "לא מצאנו מספר טלפון נגיש ללקוח",
         okText: () => "טלפון נגיש ללקוחות",
       },
       {
         key: "whatsapp", points: 25,
-        known: crawlUsable, earned: (f) => !!f.websiteSignals?.hasWhatsappLink,
+        // גילוי חיובי תקף גם באתר js_rendered — קישור שנמצא הוא נמצא. רק "לא נמצא" דורש crawl אמין.
+        known: (f) => crawlUsable(f) || !!f.websiteSignals?.hasWhatsappLink,
+        earned: (f) => !!f.websiteSignals?.hasWhatsappLink,
         gapText: () => "אין קישור וואטסאפ באתר — הערוץ שלקוחות ישראלים מצפים לו",
         okText: () => "וואטסאפ זמין באתר",
       },
       {
         key: "contact_form", points: 15,
-        known: crawlUsable, earned: (f) => !!f.websiteSignals?.hasContactForm,
+        known: (f) => crawlUsable(f) || !!f.websiteSignals?.hasContactForm,
+        earned: (f) => !!f.websiteSignals?.hasContactForm,
         gapText: () => "אין טופס יצירת קשר באתר — לידים הולכים לאיבוד",
         okText: () => "יש טופס יצירת קשר",
       },
       {
         key: "online_booking", points: 30,
-        known: crawlUsable, earned: (f) => !!f.websiteSignals?.hasOnlineBooking,
+        known: (f) => crawlUsable(f) || !!f.websiteSignals?.hasOnlineBooking,
+        earned: (f) => !!f.websiteSignals?.hasOnlineBooking,
         gapText: () => "אין קביעת תור/הזמנה אונליין — כל תיאום דורש טלפון בשעות הפעילות",
         okText: () => "יש קביעת תור אונליין",
       },
       {
         key: "email_link", points: 15,
-        known: crawlUsable, earned: (f) => !!f.websiteSignals?.hasEmailLink,
+        known: (f) => crawlUsable(f) || !!f.websiteSignals?.hasEmailLink,
+        earned: (f) => !!f.websiteSignals?.hasEmailLink,
         gapText: () => "אין כתובת אימייל נגישה באתר",
         okText: () => "אימייל נגיש באתר",
       },
@@ -966,33 +989,30 @@ export const DIMENSIONS: DimensionDef[] = [
     key: "infrastructure", label: "תשתית דיגיטלית", weight: 0.15,
     rules: [
       {
-        key: "analytics", points: 30,
-        known: crawlUsable, earned: (f) => !!f.websiteSignals?.hasGoogleAnalytics,
+        key: "analytics", points: 35,
+        known: (f) => crawlUsable(f) || !!f.websiteSignals?.hasGoogleAnalytics,
+        earned: (f) => !!f.websiteSignals?.hasGoogleAnalytics,
         gapText: () => "אין Google Analytics — העסק עיוור לתנועה באתר שלו",
         okText: () => "יש מדידת תנועה (Analytics)",
       },
       {
-        key: "fb_pixel", points: 25,
-        known: crawlUsable, earned: (f) => !!f.websiteSignals?.hasFacebookPixel,
+        key: "fb_pixel", points: 30,
+        known: (f) => crawlUsable(f) || !!f.websiteSignals?.hasFacebookPixel,
+        earned: (f) => !!f.websiteSignals?.hasFacebookPixel,
         gapText: () => "אין פיקסל פייסבוק — אי אפשר לעשות רימרקטינג למבקרים",
         okText: () => "פיקסל פייסבוק מותקן",
       },
       {
         key: "chat_widget", points: 20,
-        known: crawlUsable, earned: (f) => !!f.websiteSignals?.hasChatWidget,
+        known: (f) => crawlUsable(f) || !!f.websiteSignals?.hasChatWidget,
+        earned: (f) => !!f.websiteSignals?.hasChatWidget,
         gapText: () => "אין צ'אט באתר — פניות מחוץ לשעות הפעילות אובדות",
         okText: () => "יש צ'אט באתר",
       },
       {
-        key: "platform_known", points: 10,
-        known: (f) => !!f.websiteSignals, earned: (f) => f.websiteSignals?.platform != null,
-        gapText: () => "פלטפורמת האתר לא זוהתה",
-        okText: (f) => `האתר בנוי על ${f.websiteSignals?.platform}`,
-      },
-      {
         key: "multi_page", points: 15,
         known: crawlUsable, earned: (f) => (f.websiteSignals?.pagesCrawled ?? 0) >= 4,
-        gapText: () => "האתר רזה מאוד — עמודים בודדים בלבד",
+        gapText: () => "בסריקה נמצאו עמודים בודדים בלבד — אתר רזה מקשה על לקוחות למצוא מידע",
         okText: (f) => `אתר עם ${f.websiteSignals?.pagesCrawled} עמודים ומעלה`,
       },
     ],
@@ -1021,9 +1041,17 @@ export const DIMENSIONS: DimensionDef[] = [
 ];
 ```
 
-**שים לב לבאג מכוון במבחן העצמי:** בשורת `gapText` של `lcp` כתוב "העמוd" — לתקן ל"העמוד" בזמן המימוש (בדיקת עירנות למבצע: טקסטים בעברית עוברים הגהה).
+> **עדכון as-built (מסקירת תוכן לאחר מימוש ראשוני של משימה 6):** הסקירה מצאה שגיאה קריטית ומספר תיקונים חשובים, יושמו כולם בקוד לעיל ובקומיט:
+> - **`phone_available` עדיין "שיקר" בנתיב GBP:** `known: () => true` המקורי הוליד "אין מספר טלפון נגיש — לא בגוגל ולא באתר" עבור עסק עם GBP שה-crawl שלו נכשל — אף מקור לא נבדק בפועל. תוקן לכלל א-סימטרי: תוצאה **חיובית** (טלפון נמצא) תמיד ידועה; תוצאה **שלילית** ידועה רק אם שני המקורות נבדקו בפועל (`known: (f) => phoneFound(f) || (!noGbp(f) && (crawlUsable(f) || f.partial.includes("no_website")))`).
+> - **גילוי חיובי תקף גם ב-`js_rendered`:** שבעת חוקי הנוכחות (whatsapp, contact_form, online_booking, email_link, analytics, fb_pixel, chat_widget) עודכנו כך ש-`known` הוא `crawlUsable(f) || <הדגל החיובי הרלוונטי>` — js_rendered הופך שליליים לא אמינים, לא חיוביים; GA שזוהה באתר js_rendered הוא ממצא אמיתי ומוצג כחוזקה.
+> - **`platform_known` הוסר לגמרי מהניקוד:** הוא תיאר את יכולת הזיהוי של הסורק (3 פלטפורמות ידועות), לא את העסק, והופיע כ-topGap #1 גם באתרים תקינים לגמרי. הנקודות חולקו מחדש בממד התשתית: analytics 35, fb_pixel 30, chat_widget 20, multi_page 15 (סה"כ 100). `websiteSignals.platform` עדיין זמין כמטא-דאטה למשימה 7.
+> - **`has_website` לא מפרגן על דומיין מת:** כש-`crawl_failed` וגם `pagespeed_failed` יחד (אתר רשום ב-GBP אך לא נטען בשום כלי) — `earned: false` עם טקסט ייעודי, לא "לעסק יש אתר" מזויף.
+> - **טקסטים בהיקף המדגם:** `no_problem_themes`/`positive_themes` מנוסחים "במדגם הביקורות שנבדק" (לא טענה גורפת), "חוזרת" = `count >= 2` (לא כל תמה שהוזכרה פעם אחת), ואינטרפולציה של טקסט חופשי (theme) קטומה ל-80 תווים כהגנה.
+> - **תיקוני ניסוח נוספים:** `perf`/`lcp`/`seo` לא כוללים ניסוחים שסותרים את עצמם או מונחים לא מדויקים ("אינדוקס" הוחלף ב"אופטימיזציה למנועי חיפוש"); `gbp_rating` לא מכנה עסק חדש "רדום"; `has_reviews` עם התאמת מספר בעברית (0/1/רבים); `multi_page` מנוסח כמדידת היקף ה-crawl שלנו, לא פסק דין מוחלט על האתר.
 
-> **הערת אזהרה מראש (מסקירת איכות של משימה 3, לפני מימוש משימה 6):** חוק `phone_available` למעלה מוגדר `known: () => true` — זה שגוי עבור עסק במסלול `scanWebsiteOnly` (`no_gbp`) שה-crawl שלו נכשל (`crawl_failed`) או מרונדר-JS (`js_rendered`): במקרים האלה `websiteSignals` חסר או לא אמין, ואין מקור אחר לטלפון כי `business.phone` תמיד ריק ב-`no_gbp` (אין Places). כלומר `earned` יוצא תמיד `false`, ועם `known: () => true` הממד טוען בטעות "אין טלפון בשום מקום" במקום "אין מידע". בזמן המימוש לשנות ל-`known: (f) => !noGbp(f) || crawlUsable(f)` (שני העוזרים כבר מוגדרים למעלה בקובץ). בנוסף: משימה 12 צריכה להתייחס לכישלון כפול `crawl_failed`+`pagespeed_failed` במסלול `--url` ככישלון סריקה — לחזור לסטטוס `created` כמו כל כישלון סריקה אחר — ולא לשמור אבחון `report_ready` שלמעשה ריק.
+**הערות נוספות (לא קוד):**
+- אות "האם עונים לביקורות" מהאפיון (6) לא מומש ב-MVP הזה — Places field mask הנוכחי לא מביא את השדה הזה מגוגל; דילוג מכוון, לא פספוס.
+- **הערה למשימה 12:** מסלול `--url` תמיד מניח `no_gbp` (העסק אומת כלא קיים ב-Places) — ה-CLI צריך להדפיס תזכורת שהמסלול הזה מיועד לעסקים שאומתו כנעדרים מ-Places; זרימת המסך באבן דרך 2ב תחפש קודם ב-Places לפני שתציע את הנתיב הזה.
 
 - [x] **Step 4: ירוק** — `npx vitest run tests/dimensions.test.ts` → PASS. `npm run typecheck` נקי.
 
