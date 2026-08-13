@@ -647,6 +647,8 @@ describe("score engine", () => {
 
 - [x] **Step 4: מימוש** — ליצור `src/pipeline/score/engine.ts`:
 
+> **הערת as-built (אחרי סקירת איכות):** דירוג `topGaps`/`topStrengths` הוחלף מ"נקודות גולמיות" ל"השפעה משוקללת" (`points × dimension.weight`). הסיבה: עם המספרים האמיתיים של משימה 6, ממד ה-infrastructure (משקל 0.15) מחזיק את החוקים עתירי-הנקודות ביותר (analytics 30, fb_pixel 25) — דירוג לפי נקודות גולמיות היה מציב "אין פיקסל פייסבוק" מעל פערים בעלי השפעה אמיתית גבוהה יותר על הציון הכולל, כמו whatsapp בממד ה-accessibility (משקל 0.25: 25×0.25=6.25 מול 25×0.15=3.75). זהו הפלט הראשי של המוצר (מסך 3, "3 הפערים המובילים") ומשימה 8 (LLM) מסבירה רק אותם — טעות דירוג כאן מטעה ישירות את בעל העסק. בנוסף, ניתוח מוטציות (mutation testing) הראה ש-5 מתוך 7 מוטציות שורדות את המבחנים המקוריים; נוספו 4 מבחני-נעילה (`tests/score-engine.test.ts`): שקלול+נרמול הציון הכולל, דירוג לפי השפעה משוקללת ולא נקודות גולמיות, אי-הצגת חוקים לא-ידועים כפערים, וגבול 75% המדויק ל-`dataStatus: "full"`.
+
 ```ts
 import type { ScanFindings } from "../types";
 import type {
@@ -688,19 +690,22 @@ export function scoreFindings(defs: DimensionDef[], f: ScanFindings): ScoreRepor
   const dimensions = defs.map((d) => scoreDimension(d, f));
 
   // ציון כולל משוקלל רק על ממדים שיש להם מידע — המשקולות מנורמלות מחדש
-  const scored = dimensions.filter((d) => d.score !== null);
+  const scored = dimensions.filter((d): d is DimensionScore & { score: number } => d.score !== null);
   const weightSum = scored.reduce((s, d) => s + d.weight, 0);
   const overall = weightSum === 0
     ? null
-    : Math.round(scored.reduce((s, d) => s + (d.score as number) * d.weight, 0) / weightSum);
+    : Math.round(scored.reduce((s, d) => s + d.score * d.weight, 0) / weightSum);
 
+  // דירוג לפי השפעה אמיתית על הציון הכולל: נקודות × משקל הממד — לא נקודות גולמיות
   const highlights = (pick: (r: RuleResult) => boolean): Highlight[] =>
     dimensions
       .flatMap((d) => d.rules.filter(pick).map((r) => ({
-        dimension: d.key, ruleKey: r.key, text: r.text, points: r.points,
+        h: { dimension: d.key, ruleKey: r.key, text: r.text, points: r.points },
+        impact: r.points * d.weight,
       })))
-      .sort((a, b) => b.points - a.points)
-      .slice(0, TOP_COUNT);
+      .sort((a, b) => b.impact - a.impact)
+      .slice(0, TOP_COUNT)
+      .map((x) => x.h);
 
   return {
     overall,

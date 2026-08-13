@@ -38,19 +38,22 @@ export function scoreFindings(defs: DimensionDef[], f: ScanFindings): ScoreRepor
   const dimensions = defs.map((d) => scoreDimension(d, f));
 
   // ציון כולל משוקלל רק על ממדים שיש להם מידע — המשקולות מנורמלות מחדש
-  const scored = dimensions.filter((d) => d.score !== null);
+  const scored = dimensions.filter((d): d is DimensionScore & { score: number } => d.score !== null);
   const weightSum = scored.reduce((s, d) => s + d.weight, 0);
   const overall = weightSum === 0
     ? null
-    : Math.round(scored.reduce((s, d) => s + (d.score as number) * d.weight, 0) / weightSum);
+    : Math.round(scored.reduce((s, d) => s + d.score * d.weight, 0) / weightSum);
 
+  // דירוג לפי השפעה אמיתית על הציון הכולל: נקודות × משקל הממד — לא נקודות גולמיות
   const highlights = (pick: (r: RuleResult) => boolean): Highlight[] =>
     dimensions
       .flatMap((d) => d.rules.filter(pick).map((r) => ({
-        dimension: d.key, ruleKey: r.key, text: r.text, points: r.points,
+        h: { dimension: d.key, ruleKey: r.key, text: r.text, points: r.points },
+        impact: r.points * d.weight,
       })))
-      .sort((a, b) => b.points - a.points)
-      .slice(0, TOP_COUNT);
+      .sort((a, b) => b.impact - a.impact)
+      .slice(0, TOP_COUNT)
+      .map((x) => x.h);
 
   return {
     overall,

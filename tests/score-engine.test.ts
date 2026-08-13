@@ -62,4 +62,33 @@ describe("score engine", () => {
     const report = scoreFindings([dim([rule("a", 100, false, false)])], f());
     expect(report.overall).toBeNull();
   });
+
+  it("weights the overall score and renormalizes over missing dimensions", () => {
+    // 0.5×100 + 0.3×0, מנורמל על 0.8 → 62.5 → 63; ממוצע לא-משוקלל (50) חייב להיכשל
+    const d1 = dim([rule("a", 100, true, true)], 0.5);
+    const d2 = { ...dim([rule("b", 100, true, false)], 0.3), key: "reputation" as const };
+    const d3 = { ...dim([rule("c", 100, false, false)], 0.2), key: "process" as const };
+    const report = scoreFindings([d1, d2, d3], f());
+    expect(report.overall).toBe(63);
+  });
+
+  it("ranks topGaps by points × dimension weight, not raw points", () => {
+    // חוק 30 נק' בממד 0.15 (השפעה 4.5) מול חוק 25 נק' בממד 0.25 (השפעה 6.25)
+    const infra = { ...dim([rule("analytics", 30, true, false)], 0.15), key: "infrastructure" as const };
+    const access = { ...dim([rule("whatsapp", 25, true, false)], 0.25), key: "accessibility" as const };
+    const report = scoreFindings([infra, access], f());
+    expect(report.topGaps.map((g) => g.ruleKey)).toEqual(["whatsapp", "analytics"]);
+  });
+
+  it("never surfaces unknown rules as gaps and gives them empty text", () => {
+    const d = dim([rule("unknown_big", 90, false, false), rule("known_small", 10, true, false)]);
+    const report = scoreFindings([d], f());
+    expect(report.topGaps.map((g) => g.ruleKey)).toEqual(["known_small"]);
+    expect(report.dimensions[0].rules.find((r) => r.key === "unknown_big")?.text).toBe("");
+  });
+
+  it("marks full data exactly at the 75% known-points boundary", () => {
+    const d = dim([rule("k", 75, true, true), rule("u", 25, false, false)]);
+    expect(scoreFindings([d], f()).dimensions[0].dataStatus).toBe("full");
+  });
 });
