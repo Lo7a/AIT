@@ -417,7 +417,7 @@ export async function scanWebsiteOnly(
 - Create: `src/server/status.ts`
 - Test: `tests/status.test.ts`
 
-- [ ] **Step 1: מבחן נכשל** — ליצור `tests/status.test.ts`:
+- [x] **Step 1: מבחן נכשל** — ליצור `tests/status.test.ts`:
 
 ```ts
 import { describe, it, expect } from "vitest";
@@ -468,9 +468,9 @@ describe("diagnosis state machine", () => {
 });
 ```
 
-- [ ] **Step 2: לוודא כישלון** — `npx vitest run tests/status.test.ts` → FAIL.
+- [x] **Step 2: לוודא כישלון** — `npx vitest run tests/status.test.ts` → FAIL.
 
-- [ ] **Step 3: מימוש** — ליצור `src/server/status.ts`:
+- [x] **Step 3: מימוש** — ליצור `src/server/status.ts`:
 
 ```ts
 // מכונת המצבים של אבחון (אפיון 9.4): כל מצב תקף בפני עצמו, הראיון לא חוסם
@@ -499,9 +499,9 @@ export function assertTransition(from: DiagnosisStatus, to: DiagnosisStatus): vo
 }
 ```
 
-- [ ] **Step 4: ירוק** — `npx vitest run tests/status.test.ts` → PASS.
+- [x] **Step 4: ירוק** — `npx vitest run tests/status.test.ts` → PASS.
 
-- [ ] **Step 5: commit** — `git commit -am "feat: diagnosis state machine (created→scanning→scanned→report_ready→interviewing→roadmap_ready)"`
+- [x] **Step 5: commit** — `git commit -am "feat: diagnosis state machine (created→scanning→scanned→report_ready→interviewing→roadmap_ready)"`
 
 ---
 
