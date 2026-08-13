@@ -1,21 +1,24 @@
 import "dotenv/config";
 import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { runScan } from "./pipeline/scan";
-import { scanWebsiteOnly, normalizeSiteUrl } from "./pipeline/scan-website";
-import { scoreFindings } from "./pipeline/score/engine";
-import { DIMENSIONS } from "./pipeline/score/dimensions";
-import { deriveBusinessModel, recommendNextStep } from "./pipeline/model/business-model";
-import { generateNarrative } from "./pipeline/report/narrative";
+import { normalizeSiteUrl } from "./pipeline/scan-website";
 import { formatDiagnosisSummary } from "./pipeline/report/presenter";
-import type { BusinessCandidate, ScanFindings } from "./pipeline/types";
+import type { BusinessCandidate } from "./pipeline/types";
 import { slugify } from "./pipeline/slug";
 import { pickCandidate, parseArgs } from "./cli-shared";
 import { prisma } from "./server/db";
-import {
-  createDiagnosisForBusiness, transitionDiagnosis, saveScanResult, toScanRow,
-} from "./server/diagnosis-repo";
-import { websiteKeyOf } from "./server/website-key";
+import { runDiagnosis, DiagnoseFailed, type DiagnoseTarget } from "./server/run-diagnosis";
+import type { DiagnoseEvent } from "./server/diagnose-events";
+
+function printEvent(e: DiagnoseEvent): void {
+  switch (e.type) {
+    case "created": console.log(`📋 אבחון ${e.diagnosisId} נוצר`); break;
+    case "step": console.log(`⏳ ${e.label}…`); break;
+    case "step_done": console.log(`   ${e.ok ? "✓" : "✗"} ${e.detail ?? ""}`); break;
+    // done/error מטופלים בזרימה הראשית
+    case "done": case "error": break;
+  }
+}
 
 async function main() {
   const parsed = parseArgs(process.argv.slice(2));
@@ -60,66 +63,23 @@ async function main() {
     candidate = picked.chosen;
   }
 
-  // שלב 2: יצירת עסק+אבחון ב-DB (סטטוס created)
-  // websiteKey (משימה 2ב-3) מאחד כתיבים שונים של אותו אתר לאותה שורת Business דרך upsert אטומי.
-  // website נשמר כ-origin (host בלבד) — לא href — כדי שהעמודה לא תשתנה בין path/query שונים באותו דומיין;
-  // הסריקה עצמה (למטה) עדיין משתמשת ב-siteUrl.href המלא.
-  const created = await createDiagnosisForBusiness(prisma, siteUrl
-    ? { name: websiteKeyOf(siteUrl.href), placeId: "", website: siteUrl.origin }
-    : { name: candidate!.name, placeId: candidate!.placeId, city: undefined });
-  console.log(`📋 אבחון ${created.diagnosisId} נוצר`);
+  // שלבים 2-5: האורקסטרציה המלאה (יצירה→סריקה→ציונים/מודל/נרטיב→שמירה→backfill) חיה ב-runDiagnosis,
+  // כדי שה-CLI ומסך הסריקה החיה (2ב הבאות) יריצו בדיוק אותו קוד. printEvent הוא רק שכבת התצוגה.
+  const targetInput: DiagnoseTarget = siteUrl
+    ? { kind: "url", url: siteUrl.href }
+    : { kind: "places", placeId: candidate!.placeId, name: candidate!.name };
 
-  // שלב 3: סריקה תחת סטטוס scanning; כישלון מחזיר ל-created
-  await transitionDiagnosis(prisma, created.diagnosisId, "scanning");
-  let scan: ScanFindings;
+  let outcome;
   try {
-    scan = siteUrl
-      ? await scanWebsiteOnly(siteUrl.href)
-      : await runScan(candidate!.placeId, undefined, { priorPlacesCalls: 1 });
+    outcome = await runDiagnosis(prisma, targetInput, { onEvent: printEvent });
   } catch (err) {
-    try {
-      await transitionDiagnosis(prisma, created.diagnosisId, "created");
-    } catch (revertErr) {
-      // אם גם ההחזרה ל-created נכשלה (למשל race על הסטטוס) — לא בולעים את זה בשקט, אבל השגיאה
-      // שממשיכה להיזרק היא שגיאת הסריקה המקורית (err), לא שגיאת ה-revert — היא הסיבה שהמשתמש צריך לראות
-      console.error("⚠️ נכשל גם ניסיון החזרת הסטטוס ל-created:", revertErr instanceof Error ? revertErr.message : revertErr);
+    if (err instanceof DiagnoseFailed) {
+      console.log(`❌ ${err.message}`);
+      process.exit(1);
     }
     throw err;
   }
-
-  // מסלול --url: כישלון כפול (גם crawl וגם PageSpeed) = אין שום ממצא לאבחן עליו —
-  // חזרה ל-created בלי לשמור שורת scan ובלי להתקדם ל-report_ready
-  if (siteUrl && scan.partial.includes("crawl_failed") && scan.partial.includes("pagespeed_failed")) {
-    await transitionDiagnosis(prisma, created.diagnosisId, "created");
-    console.log("❌ שני המקורות נכשלו — אין ממצאים לאבחון");
-    process.exit(1);
-  }
-
-  await transitionDiagnosis(prisma, created.diagnosisId, "scanned");
-
-  // שלב 4: ציונים, מודל עסק, נרטיב (נרטיב שנכשל לא מפיל אבחון — יש fallback בפנים)
-  const score = scoreFindings(DIMENSIONS, scan);
-  const model = deriveBusinessModel(scan);
-  const nextStep = recommendNextStep(model);
-  const narrative = await generateNarrative(scan, score);
-
-  // שלב 5: שמירה ומעבר ל-report_ready
-  await saveScanResult(prisma, created.diagnosisId, toScanRow(scan, score, narrative), model);
-  await transitionDiagnosis(prisma, created.diagnosisId, "report_ready");
-
-  // שלב 5.5: השלמת שורת ה-Business עם האתר שהתגלה — כתיבה קוסמטית אחרי שהאבחון כבר נשמר;
-  // כשל כאן לא מפיל אבחון ששולם. רק במסלול Places (ב---url האתר נשמר כבר ביצירה).
-  // city לא מתעדכן — ל-ScanFindings אין כתובת היום (ראו הערת as-built בתוכנית).
-  if (!siteUrl && scan.business.website) {
-    try {
-      await prisma.business.update({
-        where: { id: created.businessId },
-        data: { website: scan.business.website },
-      });
-    } catch (err) {
-      console.error("⚠️ עדכון האתר בשורת העסק נכשל (לא קריטי):", err instanceof Error ? err.message : err);
-    }
-  }
+  const { findings: scan, score, model, nextStep, narrative } = outcome;
 
   // שלב 6: פלט
   mkdirSync("output", { recursive: true });
