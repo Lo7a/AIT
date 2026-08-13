@@ -4,6 +4,11 @@ import {
 } from "./types";
 import { crawlWebsite } from "./crawler/crawl";
 import { runPageSpeed } from "./google/pagespeed";
+import { normalizeSiteUrl } from "./site-url";
+
+// נשמר לתאימות לאחור — כל היבואנים הקיימים (כולל מבחנים) ממשיכים לעבוד בלי שינוי.
+// המימוש עצמו עבר ל-site-url.ts, מודול-עלה בלי תלות ב-crawler/cheerio (ראו website-key.ts)
+export { normalizeSiteUrl } from "./site-url";
 
 export interface WebsiteOnlyDeps {
   crawl: (siteUrl: string) => Promise<WebsiteSignals>;
@@ -14,16 +19,6 @@ export const defaultWebsiteOnlyDeps: WebsiteOnlyDeps = {
   crawl: (siteUrl) => crawlWebsite(siteUrl),
   pagespeed: (siteUrl) => runPageSpeed(siteUrl),
 };
-
-// מנרמל כתובת אתר לקנוני: מוסיף https, דוחה סכמות שאינן http/https. משותף לסריקה, ל-CLI (משימה 12) ול-UI (2ב)
-export function normalizeSiteUrl(input: string): URL {
-  const trimmed = input.trim();
-  if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed) && !/^https?:/i.test(trimmed)) {
-    throw new Error(`כתובת לא נתמכת (רק http/https): ${trimmed.slice(0, 80)}`);
-  }
-  const withProto = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-  return new URL(withProto); // URL לא-תקין זורק כאן — כישלון מוקדם וברור עדיף על סריקה של זבל
-}
 
 function reasonOf(r: PromiseRejectedResult): string {
   return (r.reason instanceof Error ? r.reason.message : String(r.reason)).slice(0, 200);

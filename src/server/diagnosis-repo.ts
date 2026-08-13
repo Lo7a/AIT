@@ -78,7 +78,8 @@ export async function createDiagnosisForBusiness(
     const key = websiteKeyOf(input.website);
     const business = await prisma.business.upsert({
       where: { websiteKey: key },
-      update: { name: input.name, website: input.website, city: input.city },
+      // name לא ב-update בכוונה: השם שייך ליצירה בלבד — סריקה חוזרת לא תשנה בשקט את השם שכל הדוחות הקודמים מציגים
+      update: { website: input.website, city: input.city },
       create: { name: input.name, websiteKey: key, website: input.website, city: input.city },
     });
     businessId = business.id;

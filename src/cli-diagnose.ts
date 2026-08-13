@@ -17,6 +17,7 @@ import { prisma } from "./server/db";
 import {
   createDiagnosisForBusiness, transitionDiagnosis, saveScanResult, toScanRow,
 } from "./server/diagnosis-repo";
+import { websiteKeyOf } from "./server/website-key";
 
 const DATA_TAG: Record<string, string> = { partial: " (מידע חלקי)", none: " (אין מידע)" };
 
@@ -159,10 +160,11 @@ async function main() {
   }
 
   // שלב 2: יצירת עסק+אבחון ב-DB (סטטוס created)
-  // normalizeSiteUrl (לא בנייה ידנית) — מנרמל סכמה, רישיות וסלאש כך שאותו אתר בכתיבים שונים יתמפה לאותה שורת Business.
-  // הערה: וריאנט עם/בלי www נשאר שתי כתובות שונות (מקובל ל-MVP פנימי); אם יפריע — להסיר www במפתח החיפוש במשימה 11.
+  // websiteKey (משימה 2ב-3) מאחד כתיבים שונים של אותו אתר לאותה שורת Business דרך upsert אטומי.
+  // website נשמר כ-origin (host בלבד) — לא href — כדי שהעמודה לא תשתנה בין path/query שונים באותו דומיין;
+  // הסריקה עצמה (למטה) עדיין משתמשת ב-siteUrl.href המלא.
   const created = await createDiagnosisForBusiness(prisma, siteUrl
-    ? { name: siteUrl.hostname.replace(/^www\./, ""), placeId: "", website: siteUrl.href }
+    ? { name: websiteKeyOf(siteUrl.href), placeId: "", website: siteUrl.origin }
     : { name: candidate!.name, placeId: candidate!.placeId, city: undefined });
   console.log(`📋 אבחון ${created.diagnosisId} נוצר`);
 

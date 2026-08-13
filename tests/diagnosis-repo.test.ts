@@ -130,24 +130,22 @@ describe("createDiagnosisForBusiness", () => {
     expect(result).toEqual({ businessId: "b1", diagnosisId: "d9" });
   });
 
-  it("falls back to website upsert when placeId is empty (no-GBP path)", async () => {
-    const prisma = fakePrisma("created");
-    await createDiagnosisForBusiness(prisma as never, { name: "lavan", placeId: "", website: "https://lavan.co.il/" });
-    expect(prisma.business.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { websiteKey: "lavan.co.il" } }),
-    );
-  });
-
-  it("מסלול website: upsert אטומי על websiteKey מנורמל — כתיבים שונים מתלכדים לשורה אחת", async () => {
-    const upsert = vi.fn().mockResolvedValue({ id: "b1" });
-    const db = {
-      business: { upsert },
-      diagnosis: { create: vi.fn().mockResolvedValue({ id: "d1" }) },
-    } as never;
-    await createDiagnosisForBusiness(db, { name: "lavangroup.co.il", website: "https://www.LavanGroup.co.il/" });
-    expect(upsert).toHaveBeenCalledTimes(1);
-    const upsertCall = upsert.mock.calls[0][0] as { where: unknown };
-    expect(upsertCall.where).toEqual({ websiteKey: "lavangroup.co.il" });
+  it("מסלול website (no-GBP): upsert אטומי על websiteKey מנורמל — כתיבים שונים מתלכדים לאותו מפתח; name הוא create-only", async () => {
+    for (const website of ["https://www.LavanGroup.co.il/", "lavangroup.co.il", "https://lavangroup.co.il/about"]) {
+      const prisma = fakePrisma("created");
+      await createDiagnosisForBusiness(prisma as never, { name: "lavan", placeId: "", website });
+      const upsertCall = prisma.business.upsert.mock.calls[0][0] as {
+        where: { websiteKey: string };
+        create: { websiteKey: string };
+        update: Record<string, unknown>;
+      };
+      expect(upsertCall.where).toEqual({ websiteKey: "lavangroup.co.il" });
+      // Prisma הופך ל-INSERT..ON CONFLICT אטומי רק כש-create.<שדה ייחודי> תואם ל-where — אם רפקטור ישבור
+      // את ההתאמה, הבדיקה הישנה (where בלבד) הייתה נשארת ירוקה בזמן שהאטומיות נפתחת מחדש
+      expect(upsertCall.create.websiteKey).toEqual(upsertCall.where.websiteKey);
+      // name לא ב-update: סריקה חוזרת של אותו אתר לא צריכה לשנות בשקט את השם שדוחות קודמים כבר מציגים
+      expect(upsertCall.update).not.toHaveProperty("name");
+    }
   });
 
   it("rejects when neither placeId nor website is given (would otherwise upsert with an empty key)", async () => {

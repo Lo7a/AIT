@@ -1,4 +1,4 @@
-import { normalizeSiteUrl } from "../pipeline/scan-website";
+import { normalizeSiteUrl } from "../pipeline/site-url";
 
 // מפתח הזהות של עסק אתר-בלבד (שער 2א, דרישה 3): host מנורמל — lowercase, בלי www.
 // ה-path נזרק בכוונה: ב-MVP עסק = דומיין (שני עמודים באותו דומיין הם אותו עסק);
