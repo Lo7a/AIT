@@ -2193,9 +2193,11 @@ async function main() {
   }
 
   // שלב 2: יצירת עסק+אבחון ב-DB (סטטוס created)
-  // normalizeSiteUrl (לא בנייה ידנית) — כדי שאותו אתר בכתיבים שונים (עם/בלי www, עם/בלי סלאש) יתמפה לאותה שורת Business ולא ייווצרו כפילויות
-  const created = await createDiagnosisForBusiness(prisma, url
-    ? { name: normalizeSiteUrl(url).hostname.replace(/^www\./, ""), placeId: "", website: normalizeSiteUrl(url).href }
+  // normalizeSiteUrl (לא בנייה ידנית) — מנרמל סכמה, רישיות וסלאש כך שאותו אתר בכתיבים שונים יתמפה לאותה שורת Business.
+  // הערה: וריאנט עם/בלי www נשאר שתי כתובות שונות (מקובל ל-MVP פנימי); אם יפריע — להסיר www במפתח החיפוש במשימה 11.
+  const siteUrl = url ? normalizeSiteUrl(url) : undefined;
+  const created = await createDiagnosisForBusiness(prisma, siteUrl
+    ? { name: siteUrl.hostname.replace(/^www\./, ""), placeId: "", website: siteUrl.href }
     : { name: findings!.name, placeId: findings!.placeId, city: undefined });
   console.log(`📋 אבחון ${created.diagnosisId} נוצר`);
 
