@@ -52,6 +52,8 @@ docs/milestone-2a-gate.md             ← חדש: שער יציאה
 
 - [x] **Step 1: מבחנים נכשלים**
 
+> **הערת as-built (אחרי סקירה):** הקוד שנשלח בפועל חזק מהסניפט כאן — המוקים טיפוסיים (`vi.fn<FetchLike>()`), מבחן ה-retry מוודא גם אותה כתובת וגם AbortSignal טרי, ונוסף מבחן רביעי ל-`TypeError("fetch failed")` (אין retry). המקור המחייב: `tests/pagespeed.test.ts`.
+
 להוסיף ל-`tests/pagespeed.test.ts` (לשמור על המבנה הקיים של הקובץ; `psiOk()` — אם כבר קיים helper דומה בקובץ, להשתמש בו):
 
 ```ts
