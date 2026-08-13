@@ -35,13 +35,15 @@ export interface ReportBusinessView {
   city: string | null;
 }
 
+export interface ModelView extends BusinessModel { updatedAt: Date }
+
 export interface ReportView {
   id: string;
   status: DiagnosisStatus;
   createdAt: Date;
   business: ReportBusinessView;
   scan: ReportScanView | null; // הסריקה האחרונה; null כשהאבחון עוד לא נסרק
-  model: (BusinessModel & { updatedAt: Date }) | null;
+  model: ModelView | null;
   nextStep: NextStepRecommendation | null; // מחושב בקריאה מהמודל — לא נשמר ב-DB
 }
 
@@ -54,8 +56,8 @@ export interface DiagnosisListItem {
 }
 
 function toFindings(json: unknown): ScanFindings {
-  if (json == null || typeof json !== "object"
-    || !Object.hasOwn(json as Record<string, unknown>, "business") || !Object.hasOwn(json as Record<string, unknown>, "meta")) {
+  const obj = json as Record<string, unknown> | null;
+  if (obj == null || typeof obj !== "object" || !Object.hasOwn(obj, "business") || !Object.hasOwn(obj, "meta")) {
     throw new Error("שורת scan פגומה: findings בלי business/meta");
   }
   return json as ScanFindings;
@@ -63,9 +65,12 @@ function toFindings(json: unknown): ScanFindings {
 
 function toNarrativeView(json: unknown): NarrativeView | null {
   if (json == null || typeof json !== "object") return null;
-  if (Object.hasOwn(json as Record<string, unknown>, "narrative")) {
+  const obj = json as Record<string, unknown>;
+  if (Object.hasOwn(obj, "narrative")) {
     // צורה חדשה (משימה 1): NarrativeResult מלא
-    const r = json as { narrative: ReportNarrative; usedFallback?: boolean; usage?: LlmUsage };
+    const nested = obj.narrative;
+    if (nested == null || typeof nested !== "object") return null; // עטיפה פגומה — בלי נרטיב מקונן תקין, מתדרדר ל"אין נרטיב" ולא זריקה
+    const r = obj as { narrative: ReportNarrative; usedFallback?: boolean; usage?: LlmUsage };
     return { narrative: r.narrative, usedFallback: r.usedFallback ?? null, usage: r.usage ?? null };
   }
   // צורה ישנה: ReportNarrative ישיר — בלי פרובננס (ראו הערת האינווריאנט ב-diagnosis-repo.ts)
@@ -93,7 +98,7 @@ type ModelRowDb = {
   data: unknown; fieldSources: unknown; credits: unknown; completenessPct: number; updatedAt: Date;
 };
 
-function toModelView(m: ModelRowDb): BusinessModel & { updatedAt: Date } {
+function toModelView(m: ModelRowDb): ModelView {
   return {
     data: m.data as Record<ModelSection, Record<string, unknown>>,
     fieldSources: m.fieldSources as Partial<Record<ModelSection, FieldSource[]>>,
@@ -133,7 +138,11 @@ export async function listRecentDiagnoses(prisma: PrismaClient, limit = 10): Pro
   const rows = await prisma.diagnosis.findMany({
     orderBy: { createdAt: "desc" },
     take: limit,
-    include: { business: true, scans: { orderBy: { createdAt: "desc" }, take: 1 } },
+    // select צר — הרשימה צריכה רק שם עסק וציון כולל, לא לגרור findings/narrative רב-KB לכל שורה
+    include: {
+      business: { select: { name: true } },
+      scans: { orderBy: { createdAt: "desc" }, take: 1, select: { scores: true } },
+    },
   });
   return rows.map((d) => ({
     id: d.id,
