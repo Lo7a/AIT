@@ -14,7 +14,8 @@ const TRANSITIONS: Record<DiagnosisStatus, readonly DiagnosisStatus[]> = {
 };
 
 export function canTransition(from: DiagnosisStatus, to: DiagnosisStatus): boolean {
-  return TRANSITIONS[from]?.includes(to) ?? false;
+  // Object.hasOwn — כדי שמפתחות שירשו מהפרוטוטייפ ("toString", "__proto__") יחזירו false ולא יזרקו
+  return Object.hasOwn(TRANSITIONS, from) && TRANSITIONS[from].includes(to);
 }
 
 export function assertTransition(from: DiagnosisStatus, to: DiagnosisStatus): void {

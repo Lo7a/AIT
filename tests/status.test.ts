@@ -32,6 +32,18 @@ describe("diagnosis state machine", () => {
       .toThrow(/created.*roadmap_ready/);
   });
 
+  it.each(["__proto__", "toString", "constructor", "hasOwnProperty"])(
+    "returns false (not a crash) for prototype-chain garbage %s from the DB",
+    (junk) => {
+      expect(canTransition(junk as DiagnosisStatus, "scanning")).toBe(false);
+    },
+  );
+
+  it("assertTransition throws the Hebrew domain error even on prototype-chain garbage", () => {
+    expect(() => assertTransition("toString" as DiagnosisStatus, "scanning"))
+      .toThrow(/מעבר סטטוס לא חוקי/);
+  });
+
   it("every status is reachable from created (no dead states)", () => {
     const reached = new Set<DiagnosisStatus>(["created"]);
     let grew = true;

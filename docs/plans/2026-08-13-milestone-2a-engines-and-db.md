@@ -489,7 +489,8 @@ const TRANSITIONS: Record<DiagnosisStatus, readonly DiagnosisStatus[]> = {
 };
 
 export function canTransition(from: DiagnosisStatus, to: DiagnosisStatus): boolean {
-  return TRANSITIONS[from]?.includes(to) ?? false;
+  // Object.hasOwn — כדי שמפתחות שירשו מהפרוטוטייפ ("toString", "__proto__") יחזירו false ולא יזרקו
+  return Object.hasOwn(TRANSITIONS, from) && TRANSITIONS[from].includes(to);
 }
 
 export function assertTransition(from: DiagnosisStatus, to: DiagnosisStatus): void {
@@ -502,6 +503,8 @@ export function assertTransition(from: DiagnosisStatus, to: DiagnosisStatus): vo
 - [x] **Step 4: ירוק** — `npx vitest run tests/status.test.ts` → PASS.
 
 - [x] **Step 5: commit** — `git commit -am "feat: diagnosis state machine (created→scanning→scanned→report_ready→interviewing→roadmap_ready)"`
+
+> **הערת as-built (אחרי סקירת ספק):** הגרסה הראשונה של `canTransition` (`TRANSITIONS[from]?.includes(to) ?? false`) לא הייתה total כפי שתועד — `TRANSITIONS` הוא object literal שיורש מ-`Object.prototype`, אז `from` ששווה לשם מפתח מהפרוטוטייפ (`"__proto__"`, `"toString"`, `"constructor"`, `"hasOwnProperty"` וכו', ה-cast כ-`DiagnosisStatus` בדיוק כמו שעמודת סטטוס לא-מוקלדת ב-DB עלולה למסור) פותר לערך truthy שאינו מערך, ו-`.includes` זורק `TypeError` — `assertTransition` היה חושף שגיאת TypeScript באנגלית שלא נוקבת בשם אף אחד מהסטטוסים, במקום שגיאת הדומיין בעברית. תוקן עם `Object.hasOwn(TRANSITIONS, from)` לפני הגישה, עם 5 מבחני רגרסיה נוספים (מ-15 ל-20 בקובץ). המקור המחייב: `src/server/status.ts`, `tests/status.test.ts`. תצפית עיצובית של הסוקר לעתיד: שימוש חוזר ב-`created` כ"בור קליטה" גם לכישלון סריקה וגם למצב ההתחלתי אומר ש"הסריקה נכשלה" ו"מעולם לא נסרק" לא ניתנים להבחנה ברמת הסטטוס — מקובל ל-MVP; אם ה-UI יצטרך אי-פעם להציג "הסריקה נכשלה" במפורש, יש להוסיף סטטוס ייעודי.
 
 ---
 
