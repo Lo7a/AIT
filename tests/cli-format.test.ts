@@ -48,7 +48,25 @@ describe("formatDiagnosisSummary", () => {
       action: "interview", reason: "השלם כמה שאלות על טיפול בלידים",
     });
     expect(text).not.toContain("פערים מובילים");
+    expect(text).toContain("לא נמצאו פערים מהותיים"); // התו החיובי חייב להישאר, לא רק היעדר הכותרת
     expect(text).toContain("לעסק יש אתר"); // עדיין מציג חוזקות
     expect(text.length).toBeGreaterThan(0);
+  });
+
+  it("does NOT print the positive 'no gaps' line when overall is null (no data at all, not a clean bill of health)", () => {
+    const noDataScore: ScoreReport = {
+      overall: null,
+      dimensions: [
+        { key: "visibility", label: "נראות דיגיטלית", weight: 0.2, score: null, dataStatus: "none", rules: [] },
+      ],
+      topGaps: [],
+      topStrengths: [],
+    };
+    const text = formatDiagnosisSummary(noDataScore, MODEL, {
+      action: "free_text", reason: "ספר לנו על העסק במילים שלך",
+    });
+    expect(text).toContain("אין מספיק מידע");
+    expect(text).not.toContain("לא נמצאו פערים מהותיים");
+    expect(text).not.toContain("בסיס דיגיטלי חזק");
   });
 });

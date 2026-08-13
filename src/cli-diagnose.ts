@@ -34,8 +34,10 @@ export function formatDiagnosisSummary(
   if (score.topGaps.length > 0) {
     lines.push("פערים מובילים:");
     for (const g of score.topGaps) lines.push(`  ✗ ${g.text}`);
-  } else {
-    // עסק בריא בלי פערים מובילים — שורה חיובית במקום סקציה ריקה (סקירת משימה 6: topGaps יכול להיות [])
+  } else if (score.overall != null) {
+    // עסק בריא בלי פערים מובילים — שורה חיובית במקום סקציה ריקה. מותנה ב-overall != null: אם אין
+    // בכלל מידע לאף ממד (topGaps ריק כי אין חוקים ידועים, לא כי הכול תקין) "בסיס דיגיטלי חזק" הוא הטעיה
+    // שסותרת את שורת "אין מספיק מידע" שכבר הודפסה למעלה
     lines.push("לא נמצאו פערים מהותיים בסריקה — בסיס דיגיטלי חזק.");
   }
   if (score.topStrengths.length > 0) {
@@ -46,23 +48,80 @@ export function formatDiagnosisSummary(
   return lines.join("\n");
 }
 
-function parseArgs(argv: string[]): { query: string; pick?: number; url?: string } {
+export interface ParsedArgs {
+  query: string;
+  pick?: number;
+  url?: string;
+  error?: string; // הודעת שגיאה בעברית — main() בודק ויוצא לפני כל קריאת API כשהיא מוגדרת
+}
+
+// מנתח argv ל-query/pick/url; כל דגל עם ערך חסר/לא-תקין נדחה כאן — לפני שנוגעים בשום API חי (Places/PSI)
+export function parseArgs(argv: string[]): ParsedArgs {
   const args = [...argv];
-  let pick: number | undefined;
+  let pickRaw: string | undefined;
+  let sawPick = false;
   let url: string | undefined;
+  let sawUrl = false;
+
   for (let i = args.length - 1; i >= 0; i--) {
-    const eq = args[i].match(/^--pick=(\d+)$/);
-    if (eq) { pick = Number(eq[1]); args.splice(i, 1); continue; }
-    if (args[i] === "--pick" && args[i + 1]) { pick = Number(args[i + 1]); args.splice(i, 2); continue; }
-    const urlEq = args[i].match(/^--url=(.+)$/);
-    if (urlEq) { url = urlEq[1]; args.splice(i, 1); continue; }
-    if (args[i] === "--url" && args[i + 1]) { url = args[i + 1]; args.splice(i, 2); continue; }
+    const a = args[i];
+    if (a === "--pick") {
+      sawPick = true;
+      pickRaw = args[i + 1];
+      args.splice(i, pickRaw !== undefined ? 2 : 1);
+      continue;
+    }
+    const pickEq = a.match(/^--pick=(.*)$/);
+    if (pickEq) {
+      sawPick = true;
+      pickRaw = pickEq[1];
+      args.splice(i, 1);
+      continue;
+    }
+    if (a === "--url") {
+      sawUrl = true;
+      url = args[i + 1];
+      args.splice(i, url !== undefined ? 2 : 1);
+      continue;
+    }
+    const urlEq = a.match(/^--url=(.*)$/);
+    if (urlEq) {
+      sawUrl = true;
+      url = urlEq[1];
+      args.splice(i, 1);
+      continue;
+    }
   }
+
+  // --url בלי ערך (או עם ערך ריק) היה משאיר את "--url" עצמו כחלק מה-query — וגורר חיפוש Places
+  // חי על המחרוזת "--url". נדחה כאן, לפני כל קריאת API.
+  if (sawUrl && !url) {
+    return { query: "", error: "--url דורש כתובת: npm run diagnose -- --url https://example.co.il" };
+  }
+  // אותה בעיה בדיוק ל---pick חסר ערך — נופל היה לתוך ה-query בשקט
+  if (sawPick && (pickRaw === undefined || pickRaw === "")) {
+    return { query: "", error: '--pick דורש מספר: npm run diagnose -- "שם עסק" --pick 2' };
+  }
+
+  let pick: number | undefined;
+  if (sawPick) {
+    const n = Number(pickRaw);
+    if (!Number.isInteger(n) || n <= 0) {
+      return { query: "", error: `הערך של --pick חייב להיות מספר שלם חיובי (התקבל: "${pickRaw}")` };
+    }
+    pick = n;
+  }
+
   return { query: args.join(" ").trim(), pick, url };
 }
 
 async function main() {
-  const { query, pick, url } = parseArgs(process.argv.slice(2));
+  const parsed = parseArgs(process.argv.slice(2));
+  if (parsed.error) {
+    console.log(`❌ ${parsed.error}`);
+    process.exit(1);
+  }
+  const { query, pick, url } = parsed;
   if (!query && !url) {
     console.log('שימוש: npm run diagnose -- "שם עסק עיר" [--pick N] | npm run diagnose -- --url https://…');
     process.exit(1);
@@ -81,12 +140,20 @@ async function main() {
     console.log(`🌐 אבחון אתר-בלבד: ${siteUrl.href}`);
     // תזכורת חד-שורתית — מסלול זה מיועד לעסקים שאומתו כלא-קיימים בגוגל מפות, לא תחליף לחיפוש כשיש ספק
     console.log("   (מסלול זה מיועד לעסקים שאומתו כלא-קיימים בגוגל מפות — no_gbp)");
+    // --url תמיד גובר על שם עסק/--pick שהתקבלו יחד איתו (אותה התנהגות כמו קודם) — עכשיו גם גלוי למשתמש
+    if (query || pick != null) {
+      console.log("   ⚠️  התקבלו גם שם עסק ו/או --pick לצד --url — הם מתעלמים; מסלול --url תמיד גובר");
+    }
   }
 
   let candidate: BusinessCandidate | undefined;
   if (!url) {
     const picked = await pickCandidate(query, pick);
-    if (!picked.chosen) { console.log(picked.printed); process.exit(1); }
+    if (!picked.chosen) {
+      console.log(picked.printed);
+      // מיושר עם src/cli.ts: "כמה מועמדים, אין --pick" הוא לא שגיאה (יציאה 0), רק דורש קלט נוסף
+      process.exit(picked.ambiguous ? 0 : 1);
+    }
     console.log(`🏢 מאבחן את: ${picked.chosen.name} — ${picked.chosen.address}`);
     candidate = picked.chosen;
   }
@@ -107,7 +174,13 @@ async function main() {
       ? await scanWebsiteOnly(siteUrl.href)
       : await runScan(candidate!.placeId, undefined, { priorPlacesCalls: 1 });
   } catch (err) {
-    await transitionDiagnosis(prisma, created.diagnosisId, "created");
+    try {
+      await transitionDiagnosis(prisma, created.diagnosisId, "created");
+    } catch (revertErr) {
+      // אם גם ההחזרה ל-created נכשלה (למשל race על הסטטוס) — לא בולעים את זה בשקט, אבל השגיאה
+      // שממשיכה להיזרק היא שגיאת הסריקה המקורית (err), לא שגיאת ה-revert — היא הסיבה שהמשתמש צריך לראות
+      console.error("⚠️ נכשל גם ניסיון החזרת הסטטוס ל-created:", revertErr instanceof Error ? revertErr.message : revertErr);
+    }
     throw err;
   }
 
@@ -120,6 +193,15 @@ async function main() {
   }
 
   await transitionDiagnosis(prisma, created.diagnosisId, "scanned");
+
+  // שלב 3.5: השלמת שורת ה-Business עם האתר שהתגלה בסריקה — רק במסלול חיפוש עסק (Places); ב---url
+  // האתר כבר נשמר בשלב היצירה. city לא מתעדכן כאן — ל-ScanFindings אין כתובת/עיר היום (ראו הערת as-built בתוכנית).
+  if (!siteUrl && scan.business.website) {
+    await prisma.business.update({
+      where: { id: created.businessId },
+      data: { website: scan.business.website },
+    });
+  }
 
   // שלב 4: ציונים, מודל עסק, נרטיב (נרטיב שנכשל לא מפיל אבחון — יש fallback בפנים)
   const score = scoreFindings(DIMENSIONS, scan);
@@ -145,7 +227,7 @@ async function main() {
   if (scan.partial.length > 0) console.log(`   דגלים: ${scan.partial.join(", ")}`);
 }
 
-// מריצים רק כשהקובץ הוא נקודת הכניסה — לא כשמייבאים את formatDiagnosisSummary במבחנים
+// מריצים רק כשהקובץ הוא נקודת הכניסה — לא כשמייבאים את formatDiagnosisSummary/parseArgs במבחנים
 if (process.argv[1]?.endsWith("cli-diagnose.ts")) {
   main()
     .catch((err) => { console.error("❌ האבחון נכשל:", err instanceof Error ? err.message : err); process.exit(1); })
