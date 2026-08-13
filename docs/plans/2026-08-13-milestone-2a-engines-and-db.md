@@ -730,7 +730,7 @@ export function scoreFindings(defs: DimensionDef[], f: ScanFindings): ScoreRepor
 - Create: `src/pipeline/score/dimensions.ts`
 - Test: `tests/dimensions.test.ts`
 
-- [ ] **Step 1: מבחן נכשל** — ליצור `tests/dimensions.test.ts`:
+- [x] **Step 1: מבחן נכשל** — ליצור `tests/dimensions.test.ts`:
 
 ```ts
 import { describe, it, expect } from "vitest";
@@ -823,9 +823,9 @@ describe("real dimensions", () => {
 });
 ```
 
-- [ ] **Step 2: לוודא כישלון** — `npx vitest run tests/dimensions.test.ts` → FAIL.
+- [x] **Step 2: לוודא כישלון** — `npx vitest run tests/dimensions.test.ts` → FAIL.
 
-- [ ] **Step 3: מימוש** — ליצור `src/pipeline/score/dimensions.ts`:
+- [x] **Step 3: מימוש** — ליצור `src/pipeline/score/dimensions.ts`:
 
 ```ts
 import type { ScanFindings } from "../types";
@@ -1025,9 +1025,9 @@ export const DIMENSIONS: DimensionDef[] = [
 
 > **הערת אזהרה מראש (מסקירת איכות של משימה 3, לפני מימוש משימה 6):** חוק `phone_available` למעלה מוגדר `known: () => true` — זה שגוי עבור עסק במסלול `scanWebsiteOnly` (`no_gbp`) שה-crawl שלו נכשל (`crawl_failed`) או מרונדר-JS (`js_rendered`): במקרים האלה `websiteSignals` חסר או לא אמין, ואין מקור אחר לטלפון כי `business.phone` תמיד ריק ב-`no_gbp` (אין Places). כלומר `earned` יוצא תמיד `false`, ועם `known: () => true` הממד טוען בטעות "אין טלפון בשום מקום" במקום "אין מידע". בזמן המימוש לשנות ל-`known: (f) => !noGbp(f) || crawlUsable(f)` (שני העוזרים כבר מוגדרים למעלה בקובץ). בנוסף: משימה 12 צריכה להתייחס לכישלון כפול `crawl_failed`+`pagespeed_failed` במסלול `--url` ככישלון סריקה — לחזור לסטטוס `created` כמו כל כישלון סריקה אחר — ולא לשמור אבחון `report_ready` שלמעשה ריק.
 
-- [ ] **Step 4: ירוק** — `npx vitest run tests/dimensions.test.ts` → PASS. `npm run typecheck` נקי.
+- [x] **Step 4: ירוק** — `npx vitest run tests/dimensions.test.ts` → PASS. `npm run typecheck` נקי.
 
-- [ ] **Step 5: commit** — `git commit -am "feat: five scoring dimensions with Hebrew evidence texts (process deferred to interview)"`
+- [x] **Step 5: commit** — `git commit -am "feat: five scoring dimensions with Hebrew evidence texts (process deferred to interview)"`
 
 ---
 
