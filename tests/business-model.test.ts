@@ -46,6 +46,34 @@ describe("deriveBusinessModel", () => {
     expect(m.data.pains).toEqual({ fromReviews: ["מחירים גבוהים"] });
     expect(m.data.service).toEqual({}); // אין מידע — אובייקט ריק, לא null
   });
+
+  it("gives pains zero credit when analysis ran but no review had text", () => {
+    const noText: ScanFindings = {
+      business: { placeId: "p5", name: "עסק", rating: 4.5, reviewCount: 40 },
+      reviewInsights: { totalAnalyzed: 0, positiveThemes: [], problemThemes: [] },
+      partial: ["no_website", "no_review_text"], meta: META,
+    };
+    const m = deriveBusinessModel(noText);
+    expect(m.credits.pains).toBe(0);
+    expect(m.data.pains).toEqual({});
+  });
+
+  it("does not assert scheduling/tools absences from a js_rendered crawl, but counts positive detections", () => {
+    const jsSite: ScanFindings = {
+      business: { placeId: "", name: "x.co.il", website: "https://x.co.il/" },
+      websiteSignals: {
+        pagesCrawled: 1, crawledUrls: [], hasContactForm: false, hasWhatsappLink: false,
+        hasPhoneLink: false, hasEmailLink: false, hasOnlineBooking: false, hasChatWidget: false,
+        hasFacebookPixel: false, hasGoogleAnalytics: true, jsRendered: true,
+      },
+      partial: ["no_gbp", "js_rendered"], meta: META,
+    };
+    const m = deriveBusinessModel(jsSite);
+    expect(m.data.scheduling).toEqual({});
+    expect(m.credits.scheduling).toBe(0);
+    expect(m.credits.tools).toBe(0.5); // GA זוהה — ראיה חיובית נספרת
+    expect((m.data.tools as { detected: string[] }).detected).toEqual(["google_analytics"]);
+  });
 });
 
 describe("recommendNextStep", () => {

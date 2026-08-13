@@ -37,6 +37,24 @@ export function deriveBusinessModel(f: ScanFindings): BusinessModel {
   const noGbp = f.partial.includes("no_gbp");
   const problemThemes = f.reviewInsights?.problemThemes.map((t) => t.theme) ?? [];
 
+  // ביקורות "נותחו" רק אם יש דגימה בפועל (totalAnalyzed > 0) — לא מספיק ש-reviewInsights קיים:
+  // analyze/reviews יכול להחזיר אובייקט מלא עם totalAnalyzed: 0 כש-scan.ts מדגיל no_review_text
+  // (אין טקסט לאף ביקורת). "לא נבדק כלום" חייב להיראות שונה מ"נבדק ונמצא נקי" (אותו predicate
+  // כמו reviewsAnalyzed ב-score/dimensions.ts). ראו הערת as-built בתוכנית.
+  const reviewsAnalyzed = !!f.reviewInsights && f.reviewInsights.totalAnalyzed > 0;
+
+  // יש אותות אתר וניתן לסמוך על "לא נמצא": js_rendered הופך רק היעדרים לא-מהימנים, לא נוכחויות —
+  // אותה אסימטריה שנקבעה במשימה 6 (score/dimensions.ts crawlUsable): גילוי חיובי הוא ראיה תמיד,
+  // "לא נמצא" דורש שהזחילה קראה HTML אמיתי. ראו הערת as-built בתוכנית.
+  const crawlUsable = !!s && !f.partial.includes("js_rendered");
+
+  const toolsDetected = [
+    ...(s?.hasGoogleAnalytics ? ["google_analytics"] : []),
+    ...(s?.hasFacebookPixel ? ["facebook_pixel"] : []),
+    ...(s?.hasChatWidget ? ["chat_widget"] : []),
+  ];
+  const toolsDetectedAny = toolsDetected.length > 0;
+
   const sections: Record<ModelSection, { data: Record<string, unknown>; credit: Credit }> = {
     profile: {
       data: { name: f.business.name, domain: domainOf(f.business.website) },
@@ -51,33 +69,21 @@ export function deriveBusinessModel(f: ScanFindings): BusinessModel {
       credit: s?.hasContactForm ? 0.5 : 0, // יש טופס — אבל מי מטפל ותוך כמה זמן? רק הראיון יודע
     },
     scheduling: {
-      data: s ? { hasOnlineBooking: s.hasOnlineBooking } : {},
-      // יודעים אם יש קביעת תור אונליין ברגע שיש אותות אתר בכלל — גם "אין" הוא ממצא אמיתי
-      // (תוקן מ-`s?.hasOnlineBooking ? 0.5 : 0`, ראו הערת as-built בתוכנית)
-      credit: s ? 0.5 : 0,
+      // חיובי = הוכחה גם באתר js_rendered; שלילי רק כשהזחילה באמת קראה את האתר
+      data: s?.hasOnlineBooking ? { hasOnlineBooking: true } : crawlUsable ? { hasOnlineBooking: false } : {},
+      credit: crawlUsable || s?.hasOnlineBooking ? 0.5 : 0,
     },
     service: { data: {}, credit: 0 },
     billing: { data: {}, credit: 0 },
     retention: { data: {}, credit: 0 },
     tools: {
-      data: s
-        ? {
-            platform: s.platform,
-            detected: [
-              ...(s.hasGoogleAnalytics ? ["google_analytics"] : []),
-              ...(s.hasFacebookPixel ? ["facebook_pixel"] : []),
-              ...(s.hasChatWidget ? ["chat_widget"] : []),
-            ],
-          }
-        : {},
-      credit: s ? 0.5 : 0,
+      // חיובי = כלי שזוהה בפועל, נספר גם ב-js_rendered; רשימת "לא זוהה כלום" רק כשהזחילה אמינה
+      data: crawlUsable || toolsDetectedAny ? { platform: s?.platform, detected: toolsDetected } : {},
+      credit: crawlUsable || toolsDetectedAny ? 0.5 : 0,
     },
     pains: {
-      data: f.reviewInsights ? { fromReviews: problemThemes } : {},
-      // קרדיט ברגע שהביקורות נותחו בפועל — "נבדק ולא נמצאו בעיות חוזרות" הוא ממצא תקף
-      // בדיוק כמו "נמצאו בעיות" (תוקן מ-`problemThemes.length > 0 ? 0.5 : 0`,
-      // ראו הערת as-built בתוכנית — אחרת עסק "עשיר" עם ביקורות נקיות מקבל 0 קרדיט על סקציה שכן נבדקה)
-      credit: f.reviewInsights ? 0.5 : 0,
+      data: reviewsAnalyzed ? { fromReviews: problemThemes } : {},
+      credit: reviewsAnalyzed ? 0.5 : 0,
     },
     manual_tasks: { data: {}, credit: 0 },
   };
