@@ -1,0 +1,153 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Supabase מגיע עם הרחבות מותקנות מראש ב-public (pg_stat_statements, pgcrypto, supabase_vault, uuid-ossp);
+// ניהול הרחבות דרך Prisma (postgresqlExtensions) גורם ל-drift הרסני, לכן ההרחבה vector נוצרת ידנית בתוך המיגרציה (idempotent)
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Business {
+  id        String      @id @default(uuid()) @db.Uuid
+  name      String
+  placeId   String?     @unique @map("place_id")
+  website   String?
+  city      String?
+  createdAt DateTime    @default(now()) @map("created_at")
+  diagnoses Diagnosis[]
+
+  @@map("businesses")
+}
+
+model Diagnosis {
+  id                String             @id @default(uuid()) @db.Uuid
+  businessId        String             @map("business_id") @db.Uuid
+  business          Business           @relation(fields: [businessId], references: [id])
+  // חייב להישאר זהה ל-DIAGNOSIS_STATUSES[0] ב-src/server/status.ts
+  status            String             @default("created")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  scans             Scan[]
+  interviewMessages InterviewMessage[]
+  businessModel     BusinessModelRow?
+  roadmaps          Roadmap[]
+
+  @@index([businessId, status])
+  @@map("diagnoses")
+}
+
+model Scan {
+  id          String    @id @default(uuid()) @db.Uuid
+  diagnosisId String    @map("diagnosis_id") @db.Uuid
+  diagnosis   Diagnosis @relation(fields: [diagnosisId], references: [id])
+  findings    Json
+  scores      Json?
+  narrative   Json?
+  llmCost     Decimal?  @map("llm_cost") @db.Decimal(10, 4)
+  apiCost     Decimal?  @map("api_cost") @db.Decimal(10, 4)
+  durationMs  Int       @map("duration_ms")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([diagnosisId])
+  @@map("scans")
+}
+
+model InterviewMessage {
+  id          String    @id @default(uuid()) @db.Uuid
+  diagnosisId String    @map("diagnosis_id") @db.Uuid
+  diagnosis   Diagnosis @relation(fields: [diagnosisId], references: [id])
+  role        String
+  content     String
+  questionKey String?   @map("question_key")
+  isFreeText  Boolean   @default(false) @map("is_free_text")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([diagnosisId, createdAt])
+  @@map("interview_messages")
+}
+
+model BusinessModelRow {
+  id              String    @id @default(uuid()) @db.Uuid
+  diagnosisId     String    @unique @map("diagnosis_id") @db.Uuid
+  diagnosis       Diagnosis @relation(fields: [diagnosisId], references: [id])
+  data            Json
+  fieldSources    Json      @map("field_sources")
+  credits         Json
+  completenessPct Int       @map("completeness_pct")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("business_models")
+}
+
+model Roadmap {
+  id          String        @id @default(uuid()) @db.Uuid
+  diagnosisId String        @map("diagnosis_id") @db.Uuid
+  diagnosis   Diagnosis     @relation(fields: [diagnosisId], references: [id])
+  createdAt   DateTime      @default(now()) @map("created_at")
+  items       RoadmapItem[]
+
+  @@index([diagnosisId])
+  @@map("roadmaps")
+}
+
+model RoadmapItem {
+  id         String             @id @default(uuid()) @db.Uuid
+  roadmapId  String             @map("roadmap_id") @db.Uuid
+  roadmap    Roadmap            @relation(fields: [roadmapId], references: [id])
+  catalogId  String             @map("catalog_id") @db.Uuid
+  catalog    OpportunityCatalog @relation(fields: [catalogId], references: [id])
+  score      Int
+  confidence String
+  phase      String
+  status     String             @default("proposed")
+  briefs     Brief[]
+
+  @@index([roadmapId, phase, score(sort: Desc)])
+  @@index([catalogId])
+  @@map("roadmap_items")
+}
+
+model Brief {
+  id            String      @id @default(uuid()) @db.Uuid
+  roadmapItemId String      @map("roadmap_item_id") @db.Uuid
+  roadmapItem   RoadmapItem @relation(fields: [roadmapItemId], references: [id])
+  content       String
+  sentAt        DateTime?   @map("sent_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  @@index([roadmapItemId])
+  @@map("briefs")
+}
+
+model OpportunityCatalog {
+  id          String                       @id @default(uuid()) @db.Uuid
+  name        String                       @unique
+  problem     String
+  solution    String
+  conditions  Json
+  costRange   String                       @map("cost_range")
+  savingRange String                       @map("saving_range")
+  complexity  String
+  installTime String                       @map("install_time")
+  embedding   Unsupported("vector(768)")?
+  items       RoadmapItem[]
+  benchmarks  Benchmark[]
+
+  @@map("opportunity_catalog")
+}
+
+model Benchmark {
+  id         String             @id @default(uuid()) @db.Uuid
+  catalogId  String             @map("catalog_id") @db.Uuid
+  catalog    OpportunityCatalog @relation(fields: [catalogId], references: [id])
+  metric     String
+  range      String
+  source     String
+  verifiedAt DateTime           @map("verified_at")
+
+  @@index([catalogId])
+  @@map("benchmarks")
+}

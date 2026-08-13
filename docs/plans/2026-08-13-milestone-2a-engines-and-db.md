@@ -1660,7 +1660,7 @@ export async function generateNarrative(
 - Create: `prisma/schema.prisma`, `prisma/migrations/…` (נוצר על ידי הכלי)
 - Modify: `package.json`, `.env`, `.env.example`
 
-- [ ] **Step 1: פעולת משתמש — יצירת פרויקט Supabase (5 דקות, להב עושה):**
+- [x] **Step 1: פעולת משתמש — יצירת פרויקט Supabase (5 דקות, להב עושה):**
   1. supabase.com → Sign in → **New project**
   2. שם: `ait` · Region: **Frankfurt (eu-central-1)** · Database Password: לשמור במקום בטוח
   3. אחרי שהפרויקט עולה: **Connect** (כפתור למעלה) → לשונית **ORMs** → להעתיק את שני המשתנים המוצגים ל-`.env`:
@@ -1675,13 +1675,13 @@ DATABASE_URL=
 DIRECT_URL=
 ```
 
-- [ ] **Step 2: התקנת Prisma**
+- [x] **Step 2: התקנת Prisma**
 
 ```bash
 npm i -D prisma && npm i @prisma/client
 ```
 
-- [ ] **Step 3: כתיבת הסכמה** — ליצור `prisma/schema.prisma` (בהתאמה מלאה לאפיון 9.5; תוספות מתועדות: `problem/solution/install_time` בקטלוג — נדרשים לכרטיסי מסך 5; `narrative` ב-scans — הדוח נשמר עם הסריקה):
+- [x] **Step 3: כתיבת הסכמה** — ליצור `prisma/schema.prisma` (בהתאמה מלאה לאפיון 9.5; תוספות מתועדות: `problem/solution/install_time` בקטלוג — נדרשים לכרטיסי מסך 5; `narrative` ב-scans — הדוח נשמר עם הסריקה):
 
 ```prisma
 generator client {
@@ -1838,25 +1838,36 @@ model Benchmark {
 }
 ```
 
-- [ ] **Step 4: ולידציה ומיגרציה**
+> **הערת as-built (אחרי חסימה בשלב המיגרציה):** הרצה ראשונה של `npx prisma migrate dev --name init` (עם `previewFeatures = ["postgresqlExtensions"]` ו-`extensions = [vector]` כפי שמתועד למעלה) נחסמה ב-drift: פרויקט Supabase חדש מגיע עם ארבע הרחבות מותקנות מראש בסכמת `public` (`pg_stat_statements`, `pgcrypto`, `supabase_vault`, `uuid-ossp`). כש-`postgresqlExtensions` פעיל, Prisma תופס בעלות על כל רשימת ההרחבות ב-`public`, משווה מול סכמה ריקה, רואה את ארבע ההרחבות הקיימות כ"סטייה", ומציע כפתרון יחיד `prisma migrate reset` — מחיקת כל הסכמה. זו בדיוק תרחיש "מבקש למחוק" שנאסר על סוכן אוטומטי לבצע בלי אישור — הריצה נעצרה לפני כל DDL (לא נוצרה תיקיית מיגרציה, ה-DB לא נגע).
+>
+> **ההחלטה:** להפסיק לנהל הרחבות דרך Prisma לגמרי. מהסכמה הוסרו `previewFeatures = ["postgresqlExtensions"]` (מ-`generator client`) ו-`extensions = [vector]` (מ-`datasource db`), עם הערת עברית מעל ה-datasource שמסבירה למה. `Unsupported("vector(768)")?` בעמודת `embedding` נשאר בדיוק כפי שמתועד למעלה — הוא לא תלוי בדגל ה-preview. במקום זאת, ההרחבה `vector` נוצרת ידנית כשורת SQL ראשונה במיגרציית ה-init עצמה:
+>
+> ```sql
+> CREATE EXTENSION IF NOT EXISTS vector SCHEMA public;
+> ```
+>
+> `IF NOT EXISTS` הופך את זה לאידמפוטנטי — replay של המיגרציה על DB נקי (כמו ה-shadow database שפריזמה מריצה בכל `migrate dev`) יוצר את ההרחבה מאפס לפני ה-`CREATE TABLE` של `opportunity_catalog`, כך שהטיפוס `vector(768)` זמין כשצריך.
+>
+> תהליך תיקון: `npx prisma migrate dev --name init --create-only` (יוצר את `migration.sql` בלי להחיל — ובלי תלונת drift, כי הרחבות כבר לא "עסק" של Prisma) → הוספת שורת ה-`CREATE EXTENSION` בראש הקובץ (**לפני** החלה — עריכת מיגרציה שכבר הוחלה שוברת checksums) → `npx prisma migrate dev` (מחיל, מריץ `prisma generate`). שני הריצות היו נקיות ללא drift נוסף. מקור מחייב: `prisma/schema.prisma`, `prisma/migrations/20260813144212_init/migration.sql`.
+
+- [x] **Step 4: ולידציה ומיגרציה**
 
 ```bash
 npx prisma validate
-npx prisma migrate dev --name init
+npx prisma migrate dev --name init --create-only   # כפי שתועד למעלה — לא --name init ישירות
 ```
 
-Expected: המיגרציה נוצרת ומוחלת, כולל `CREATE EXTENSION IF NOT EXISTS "vector"`. אימות: `npx prisma migrate status` → "Database schema is up to date!".
-אם `vector` נכשל: ב-Supabase Dashboard → Database → Extensions → להפעיל `vector`, ואז `npx prisma migrate dev` שוב.
+בפועל: `npx prisma validate` נקי; `npx prisma migrate dev --name init --create-only` יצר את המיגרציה בלי drift; הוספת `CREATE EXTENSION IF NOT EXISTS vector SCHEMA public;` בראש `migration.sql`; `npx prisma migrate dev` החיל אותה. `npx prisma migrate status` → "Database schema is up to date!".
 
-- [ ] **Step 5: סקריפט generate** — ב-`package.json` להוסיף ל-scripts:
+- [x] **Step 5: סקריפט generate** — ב-`package.json` להוסיף ל-scripts:
 
 ```json
     "postinstall": "prisma generate"
 ```
 
-- [ ] **Step 6: לוודא שהחבילה הקיימת ירוקה** — `npm run typecheck && npm test` → נקי (הסכמה לא נוגעת בקוד).
+- [x] **Step 6: לוודא שהחבילה הקיימת ירוקה** — `npm run typecheck && npm test` → נקי (הסכמה לא נוגעת בקוד). בפועל: `npx vitest run` → 149/149 PASS (14 קבצים); `npm run typecheck` → נקי.
 
-- [ ] **Step 7: commit** — `git add -A && git commit -m "feat: full Prisma schema per spec 9.5 (all milestone tables, pgvector ready) on Supabase Frankfurt"`
+- [x] **Step 7: commit** — `git add -A && git commit -m "feat: full Prisma schema per spec 9.5 (all milestone tables, pgvector ready) on Supabase Frankfurt"`
   (לוודא ש-`.env` לא בקומיט — הוא ב-gitignore.)
 
 ---
