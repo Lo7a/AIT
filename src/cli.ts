@@ -3,27 +3,20 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { runScan } from "./pipeline/scan";
 import { slugify } from "./pipeline/slug";
-import { pickCandidate } from "./cli-shared";
-
-function parseArgs(argv: string[]) {
-  const positional: string[] = [];
-  let pick: number | undefined;
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a === "--pick") pick = Number(argv[++i]);
-    else if (a.startsWith("--pick=")) pick = Number(a.slice(7));
-    else positional.push(a);
-  }
-  return { query: positional.join(" ").trim(), pick };
-}
+import { pickCandidate, parseArgs } from "./cli-shared";
 
 async function main() {
   const cliStart = Date.now();
-  const { query, pick } = parseArgs(process.argv.slice(2));
-  if (pick !== undefined && !Number.isInteger(pick)) {
-    console.log("הערך של --pick חייב להיות מספר שלם");
+  const parsed = parseArgs(process.argv.slice(2));
+  if (parsed.error) {
+    console.log(`❌ ${parsed.error}`);
     process.exit(1);
   }
+  if (parsed.url) {
+    console.log("--url נתמך רק ב-diagnose: npm run diagnose -- --url https://…");
+    process.exit(1);
+  }
+  const { query, pick } = parsed;
   if (!query) {
     console.log('שימוש: npm run scan -- "שם העסק והעיר" [--pick N]');
     process.exit(1);

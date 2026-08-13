@@ -5,116 +5,17 @@ import { runScan } from "./pipeline/scan";
 import { scanWebsiteOnly, normalizeSiteUrl } from "./pipeline/scan-website";
 import { scoreFindings } from "./pipeline/score/engine";
 import { DIMENSIONS } from "./pipeline/score/dimensions";
-import {
-  deriveBusinessModel, recommendNextStep, type BusinessModel, type NextStepRecommendation,
-} from "./pipeline/model/business-model";
+import { deriveBusinessModel, recommendNextStep } from "./pipeline/model/business-model";
 import { generateNarrative } from "./pipeline/report/narrative";
-import type { ScoreReport } from "./pipeline/score/types";
+import { formatDiagnosisSummary } from "./pipeline/report/presenter";
 import type { BusinessCandidate, ScanFindings } from "./pipeline/types";
 import { slugify } from "./pipeline/slug";
-import { pickCandidate } from "./cli-shared";
+import { pickCandidate, parseArgs } from "./cli-shared";
 import { prisma } from "./server/db";
 import {
   createDiagnosisForBusiness, transitionDiagnosis, saveScanResult, toScanRow,
 } from "./server/diagnosis-repo";
 import { websiteKeyOf } from "./server/website-key";
-
-const DATA_TAG: Record<string, string> = { partial: " (מידע חלקי)", none: " (אין מידע)" };
-
-export function formatDiagnosisSummary(
-  score: ScoreReport,
-  model: BusinessModel,
-  nextStep: NextStepRecommendation,
-): string {
-  const lines: string[] = [];
-  lines.push(score.overall == null ? "ציון כולל: אין מספיק מידע" : `ציון כולל: ${score.overall}/100`);
-  for (const d of score.dimensions) {
-    const tag = DATA_TAG[d.dataStatus] ?? "";
-    lines.push(`  ${d.label}: ${d.score ?? "—"}${tag}`);
-  }
-  if (score.topGaps.length > 0) {
-    lines.push("פערים מובילים:");
-    for (const g of score.topGaps) lines.push(`  ✗ ${g.text}`);
-  } else if (score.overall != null) {
-    // עסק בריא בלי פערים מובילים — שורה חיובית במקום סקציה ריקה. מותנה ב-overall != null: אם אין
-    // בכלל מידע לאף ממד (topGaps ריק כי אין חוקים ידועים, לא כי הכול תקין) "בסיס דיגיטלי חזק" הוא הטעיה
-    // שסותרת את שורת "אין מספיק מידע" שכבר הודפסה למעלה
-    lines.push("לא נמצאו פערים מהותיים בסריקה — בסיס דיגיטלי חזק.");
-  }
-  if (score.topStrengths.length > 0) {
-    lines.push("מה עובד טוב:");
-    for (const s of score.topStrengths) lines.push(`  ✓ ${s.text}`);
-  }
-  lines.push(`שלמות האבחון: ${model.completenessPct}% · הצעד הבא: ${nextStep.reason}`);
-  return lines.join("\n");
-}
-
-export interface ParsedArgs {
-  query: string;
-  pick?: number;
-  url?: string;
-  error?: string; // הודעת שגיאה בעברית — main() בודק ויוצא לפני כל קריאת API כשהיא מוגדרת
-}
-
-// מנתח argv ל-query/pick/url; כל דגל עם ערך חסר/לא-תקין נדחה כאן — לפני שנוגעים בשום API חי (Places/PSI)
-export function parseArgs(argv: string[]): ParsedArgs {
-  const args = [...argv];
-  let pickRaw: string | undefined;
-  let sawPick = false;
-  let url: string | undefined;
-  let sawUrl = false;
-
-  for (let i = args.length - 1; i >= 0; i--) {
-    const a = args[i];
-    if (a === "--pick") {
-      sawPick = true;
-      pickRaw = args[i + 1];
-      args.splice(i, pickRaw !== undefined ? 2 : 1);
-      continue;
-    }
-    const pickEq = a.match(/^--pick=(.*)$/);
-    if (pickEq) {
-      sawPick = true;
-      pickRaw = pickEq[1];
-      args.splice(i, 1);
-      continue;
-    }
-    if (a === "--url") {
-      sawUrl = true;
-      url = args[i + 1];
-      args.splice(i, url !== undefined ? 2 : 1);
-      continue;
-    }
-    const urlEq = a.match(/^--url=(.*)$/);
-    if (urlEq) {
-      sawUrl = true;
-      url = urlEq[1];
-      args.splice(i, 1);
-      continue;
-    }
-  }
-
-  // --url בלי ערך (או עם ערך ריק) היה משאיר את "--url" עצמו כחלק מה-query — וגורר חיפוש Places
-  // חי על המחרוזת "--url". נדחה כאן, לפני כל קריאת API.
-  if (sawUrl && !url) {
-    return { query: "", error: "--url דורש כתובת: npm run diagnose -- --url https://example.co.il" };
-  }
-  // אותה בעיה בדיוק ל---pick חסר ערך — נופל היה לתוך ה-query בשקט
-  if (sawPick && (pickRaw === undefined || pickRaw === "")) {
-    return { query: "", error: '--pick דורש מספר: npm run diagnose -- "שם עסק" --pick 2' };
-  }
-
-  let pick: number | undefined;
-  if (sawPick) {
-    const n = Number(pickRaw);
-    if (!Number.isInteger(n) || n <= 0) {
-      return { query: "", error: `הערך של --pick חייב להיות מספר שלם חיובי (התקבל: "${pickRaw}")` };
-    }
-    pick = n;
-  }
-
-  return { query: args.join(" ").trim(), pick, url };
-}
 
 async function main() {
   const parsed = parseArgs(process.argv.slice(2));
@@ -234,7 +135,7 @@ async function main() {
   if (scan.partial.length > 0) console.log(`   דגלים: ${scan.partial.join(", ")}`);
 }
 
-// מריצים רק כשהקובץ הוא נקודת הכניסה — לא כשמייבאים את formatDiagnosisSummary/parseArgs במבחנים
+// מריצים רק כשהקובץ הוא נקודת הכניסה — לא כשמייבאים ממנו במבחנים
 if (process.argv[1]?.endsWith("cli-diagnose.ts")) {
   main()
     .catch((err) => { console.error("❌ האבחון נכשל:", err instanceof Error ? err.message : err); process.exit(1); })

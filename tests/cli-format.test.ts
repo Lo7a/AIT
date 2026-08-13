@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { formatDiagnosisSummary } from "../src/cli-diagnose";
+import { formatDiagnosisSummary } from "../src/pipeline/report/presenter";
+import { DATA_STATUS_LABEL, DIAGNOSIS_STATUS_LABEL, PARTIAL_FLAG_LABEL, scoreTone } from "../src/pipeline/report/presenter";
 import type { ScoreReport } from "../src/pipeline/score/types";
 import type { BusinessModel } from "../src/pipeline/model/business-model";
 
@@ -68,5 +69,32 @@ describe("formatDiagnosisSummary", () => {
     expect(text).toContain("אין מספיק מידע");
     expect(text).not.toContain("לא נמצאו פערים מהותיים");
     expect(text).not.toContain("בסיס דיגיטלי חזק");
+  });
+});
+
+describe("מילוני תצוגה", () => {
+  it("תווית לכל סטטוס אבחון", () => {
+    for (const s of ["created", "scanning", "scanned", "report_ready", "interviewing", "roadmap_ready"] as const) {
+      expect(DIAGNOSIS_STATUS_LABEL[s]).toBeTruthy();
+    }
+  });
+
+  it("תווית לכל דגל partial", () => {
+    for (const f of ["no_website", "few_reviews", "no_review_text", "crawl_failed", "pagespeed_failed", "review_analysis_failed", "js_rendered", "no_gbp"] as const) {
+      expect(PARTIAL_FLAG_LABEL[f]).toBeTruthy();
+    }
+  });
+
+  it("scoreTone: סף 75 ירוק, 50 בינוני, מתחת אדום, null לא ידוע", () => {
+    expect(scoreTone(75)).toBe("good");
+    expect(scoreTone(74)).toBe("mid");
+    expect(scoreTone(50)).toBe("mid");
+    expect(scoreTone(49)).toBe("low");
+    expect(scoreTone(null)).toBe("unknown");
+  });
+
+  it("DATA_STATUS_LABEL תואם לתגי ה-CLI הקיימים", () => {
+    expect(DATA_STATUS_LABEL.partial).toBe("מידע חלקי");
+    expect(DATA_STATUS_LABEL.none).toBe("אין מידע");
   });
 });
