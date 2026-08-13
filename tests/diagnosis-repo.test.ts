@@ -1,8 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
 import {
-  toScanRow, transitionDiagnosis, createDiagnosisForBusiness, saveScanResult,
+  toScanRow, llmCostUsd, transitionDiagnosis, createDiagnosisForBusiness, saveScanResult,
 } from "../src/server/diagnosis-repo";
 import type { ScanFindings } from "../src/pipeline/types";
+import type { NarrativeResult } from "../src/pipeline/report/narrative";
 import { MODEL_SECTIONS, type BusinessModel } from "../src/pipeline/model/business-model";
 
 const FINDINGS: ScanFindings = {
@@ -11,14 +12,19 @@ const FINDINGS: ScanFindings = {
   meta: { startedAt: "2026-08-13T00:00:00Z", durationMs: 20000, placesCalls: 2, llmInputTokens: 100, llmOutputTokens: 50, estCostUsd: 0.06 },
 };
 
+const NARRATIVE_RESULT: NarrativeResult = {
+  narrative: { headline: "כותרת", summary: "סיכום", gapExplanations: [] },
+  usage: { inputTokens: 900, outputTokens: 500 },
+  usedFallback: false,
+};
+
 describe("toScanRow", () => {
   it("maps findings/scores/narrative to the scans columns", () => {
-    const row = toScanRow(FINDINGS, { overall: 70 } as never, { headline: "h" } as never);
+    const row = toScanRow(FINDINGS, { overall: 70 } as never, NARRATIVE_RESULT);
     expect(row.findings).toEqual(FINDINGS);
     expect(row.scores).toEqual({ overall: 70 });
-    expect(row.narrative).toEqual({ headline: "h" });
+    expect(row.narrative).toEqual(NARRATIVE_RESULT);
     expect(row.apiCost).toBe(0.06);
-    expect(row.llmCost).toBe(0); // שכבת חינם בפיתוח — עלות ה-LLM אפס עד בחירת מודל ייצור
     expect(row.durationMs).toBe(20000);
   });
 
@@ -26,6 +32,38 @@ describe("toScanRow", () => {
     const row = toScanRow(FINDINGS, null, null);
     expect(row.scores).toBeNull();
     expect(row.narrative).toBeNull();
+  });
+});
+
+describe("toScanRow — פרובננס נרטיב", () => {
+  it("שומר את NarrativeResult המלא כולל usedFallback ו-usage", () => {
+    const row = toScanRow(FINDINGS, { overall: 70 } as never, NARRATIVE_RESULT);
+    expect(row.narrative).toEqual(NARRATIVE_RESULT);
+    expect(row.narrative?.usedFallback).toBe(false);
+    expect(row.narrative?.usage.outputTokens).toBe(500);
+  });
+
+  it("narrative null נשאר null (סריקה בלי נרטיב)", () => {
+    expect(toScanRow(FINDINGS, { overall: 70 } as never, null).narrative).toBeNull();
+  });
+});
+
+describe("llmCostUsd", () => {
+  it("שכבת החינם של Gemini — עלות 0", () => {
+    expect(llmCostUsd({ inputTokens: 150_000, outputTokens: 15_000 })).toBe(0);
+  });
+
+  it("מחשב לפי מחיר למיליון טוקנים כשמזריקים תמחור", () => {
+    // 100K in ב-$1/M + 10K out ב-$5/M = 0.1 + 0.05 = 0.15
+    expect(llmCostUsd(
+      { inputTokens: 100_000, outputTokens: 10_000 },
+      { usdPerMInput: 1, usdPerMOutput: 5 },
+    )).toBeCloseTo(0.15, 10);
+  });
+
+  it("toScanRow מחשב עלות על סכום טוקני הסריקה והנרטיב (0 בשכבת החינם)", () => {
+    const row = toScanRow(FINDINGS, { overall: 70 } as never, NARRATIVE_RESULT);
+    expect(row.llmCost).toBe(0);
   });
 });
 
@@ -101,7 +139,7 @@ describe("saveScanResult", () => {
       businessModelRow: { upsert: vi.fn().mockResolvedValue({ id: "bm1" }) },
       $transaction: vi.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
     };
-    const row = toScanRow(FINDINGS, { overall: 70 } as never, { headline: "h" } as never);
+    const row = toScanRow(FINDINGS, { overall: 70 } as never, NARRATIVE_RESULT);
     const model: BusinessModel = {
       data: Object.fromEntries(MODEL_SECTIONS.map((k) => [k, {}])) as BusinessModel["data"],
       fieldSources: {},

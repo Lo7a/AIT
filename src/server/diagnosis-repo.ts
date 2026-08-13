@@ -1,14 +1,23 @@
 import type { PrismaClient, Prisma } from "@prisma/client";
 import type { ScanFindings } from "../pipeline/types";
 import type { ScoreReport } from "../pipeline/score/types";
-import type { ReportNarrative } from "../pipeline/report/narrative";
+import type { NarrativeResult } from "../pipeline/report/narrative";
+import type { LlmUsage } from "../pipeline/llm/client";
 import type { BusinessModel } from "../pipeline/model/business-model";
 import { assertTransition, type DiagnosisStatus } from "./status";
+
+// תמחור LLM: שכבת החינם של Gemini = 0. כשייבחר מודל ייצור (אפיון 9.3) מעדכנים את שני
+// הקבועים כאן — llm_cost יתחיל להיצבר אמת בלי לגעת בשום קוד אחר. עלות-לאבחון היא KPI (אפיון 9.6)
+export const LLM_PRICING = { usdPerMInput: 0, usdPerMOutput: 0 };
+
+export function llmCostUsd(usage: LlmUsage, pricing = LLM_PRICING): number {
+  return (usage.inputTokens * pricing.usdPerMInput + usage.outputTokens * pricing.usdPerMOutput) / 1_000_000;
+}
 
 export interface ScanRow {
   findings: ScanFindings;
   scores: ScoreReport | null;
-  narrative: ReportNarrative | null;
+  narrative: NarrativeResult | null; // כולל usage + usedFallback — פרובננס הנרטיב (שער 2א, דרישה 5)
   llmCost: number;
   apiCost: number;
   durationMs: number;
@@ -18,13 +27,17 @@ export interface ScanRow {
 export function toScanRow(
   findings: ScanFindings,
   scores: ScoreReport | null,
-  narrative: ReportNarrative | null,
+  narrative: NarrativeResult | null,
 ): ScanRow {
+  const usage: LlmUsage = {
+    inputTokens: findings.meta.llmInputTokens + (narrative?.usage.inputTokens ?? 0),
+    outputTokens: findings.meta.llmOutputTokens + (narrative?.usage.outputTokens ?? 0),
+  };
   return {
     findings,
     scores,
     narrative,
-    llmCost: 0, // שכבת החינם של Gemini; יתעדכן כשייבחר מודל ייצור (אפיון 9.3)
+    llmCost: llmCostUsd(usage),
     apiCost: findings.meta.estCostUsd,
     durationMs: findings.meta.durationMs,
   };

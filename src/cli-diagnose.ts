@@ -201,7 +201,7 @@ async function main() {
   const narrative = await generateNarrative(scan, score);
 
   // שלב 5: שמירה ומעבר ל-report_ready
-  await saveScanResult(prisma, created.diagnosisId, toScanRow(scan, score, narrative.narrative), model);
+  await saveScanResult(prisma, created.diagnosisId, toScanRow(scan, score, narrative), model);
   await transitionDiagnosis(prisma, created.diagnosisId, "report_ready");
 
   // שלב 5.5: השלמת שורת ה-Business עם האתר שהתגלה — כתיבה קוסמטית אחרי שהאבחון כבר נשמר;
