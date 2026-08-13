@@ -6,18 +6,22 @@ import type { LlmUsage } from "../pipeline/llm/client";
 import type { BusinessModel } from "../pipeline/model/business-model";
 import { assertTransition, type DiagnosisStatus } from "./status";
 
+export interface LlmPricing { usdPerMInput: number; usdPerMOutput: number }
+
 // תמחור LLM: שכבת החינם של Gemini = 0. כשייבחר מודל ייצור (אפיון 9.3) מעדכנים את שני
 // הקבועים כאן — llm_cost יתחיל להיצבר אמת בלי לגעת בשום קוד אחר. עלות-לאבחון היא KPI (אפיון 9.6)
-export const LLM_PRICING = { usdPerMInput: 0, usdPerMOutput: 0 };
+export const LLM_PRICING: Readonly<LlmPricing> = { usdPerMInput: 0, usdPerMOutput: 0 };
 
-export function llmCostUsd(usage: LlmUsage, pricing = LLM_PRICING): number {
+export function llmCostUsd(usage: LlmUsage, pricing: LlmPricing = LLM_PRICING): number {
   return (usage.inputTokens * pricing.usdPerMInput + usage.outputTokens * pricing.usdPerMOutput) / 1_000_000;
 }
 
 export interface ScanRow {
   findings: ScanFindings;
   scores: ScoreReport | null;
-  narrative: NarrativeResult | null; // כולל usage + usedFallback — פרובננס הנרטיב (שער 2א, דרישה 5)
+  // narrative כולל usage + usedFallback — פרובננס הנרטיב (שער 2א, דרישה 5). הערה לצד קריאה עתידי:
+  // עמודת ה-DB דו-צורתית — שורות ישנות מכילות ReportNarrative גולמי בלי עטיפה, שורות חדשות מכילות NarrativeResult; מבדילים ביניהן לפי קיום מפתח narrative מקונן ב-JSON
+  narrative: NarrativeResult | null;
   llmCost: number;
   apiCost: number;
   durationMs: number;
@@ -30,7 +34,7 @@ export function toScanRow(
   narrative: NarrativeResult | null,
   // pricing ניתן להזרקה כדי שסכום הטוקנים (סריקה+נרטיב) יהיה ניתן לבדיקה במבחנים (mutation-killer);
   // קריאות ייצור אף פעם לא מעבירות ארגומנט זה ומקבלות את התמחור האמיתי (LLM_PRICING)
-  pricing = LLM_PRICING,
+  pricing: LlmPricing = LLM_PRICING,
 ): ScanRow {
   const usage: LlmUsage = {
     inputTokens: findings.meta.llmInputTokens + (narrative?.usage.inputTokens ?? 0),

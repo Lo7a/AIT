@@ -25,6 +25,7 @@ describe("toScanRow", () => {
     expect(row.scores).toEqual({ overall: 70 });
     expect(row.narrative).toEqual(NARRATIVE_RESULT);
     expect(row.apiCost).toBe(0.06);
+    expect(row.llmCost).toBe(0); // שכבת חינם בפיתוח — עלות ה-LLM אפס עד בחירת מודל ייצור
     expect(row.durationMs).toBe(20000);
   });
 
@@ -38,13 +39,33 @@ describe("toScanRow", () => {
 describe("toScanRow — פרובננס נרטיב", () => {
   it("שומר את NarrativeResult המלא כולל usedFallback ו-usage", () => {
     const row = toScanRow(FINDINGS, { overall: 70 } as never, NARRATIVE_RESULT);
-    expect(row.narrative).toEqual(NARRATIVE_RESULT);
     expect(row.narrative?.usedFallback).toBe(false);
     expect(row.narrative?.usage.outputTokens).toBe(500);
   });
 
   it("narrative null נשאר null (סריקה בלי נרטיב)", () => {
     expect(toScanRow(FINDINGS, { overall: 70 } as never, null).narrative).toBeNull();
+  });
+});
+
+describe("toScanRow — עלות", () => {
+  it("מחשב עלות על סכום טוקני הסריקה והנרטיב (0 בשכבת החינם)", () => {
+    const row = toScanRow(FINDINGS, { overall: 70 } as never, NARRATIVE_RESULT);
+    expect(row.llmCost).toBe(0);
+  });
+
+  it("מזריק תמחור ומוכיח שהעלות נספרת על סכום טוקני סריקה+נרטיב (לא רק סריקה או רק נרטיב)", () => {
+    // in: meta.llmInputTokens (100) + NARRATIVE_RESULT.usage.inputTokens (900) = 1000, ב-$1/M = 0.001
+    // out: meta.llmOutputTokens (50) + NARRATIVE_RESULT.usage.outputTokens (500) = 550, ב-$5/M = 0.00275
+    // סה"כ = 0.00375
+    const row = toScanRow(FINDINGS, { overall: 70 } as never, NARRATIVE_RESULT, { usdPerMInput: 1, usdPerMOutput: 5 });
+    expect(row.llmCost).toBeCloseTo(0.00375, 10);
+  });
+
+  it("narrative null — עדיין מחייב את טוקני הסריקה", () => {
+    // meta.llmInputTokens (100) ב-$1/M = 0.0001 + meta.llmOutputTokens (50) ב-$5/M = 0.00025 → סה"כ 0.00035
+    const row = toScanRow(FINDINGS, null, null, { usdPerMInput: 1, usdPerMOutput: 5 });
+    expect(row.llmCost).toBeCloseTo(0.00035, 10);
   });
 });
 
@@ -59,19 +80,6 @@ describe("llmCostUsd", () => {
       { inputTokens: 100_000, outputTokens: 10_000 },
       { usdPerMInput: 1, usdPerMOutput: 5 },
     )).toBeCloseTo(0.15, 10);
-  });
-
-  it("toScanRow מחשב עלות על סכום טוקני הסריקה והנרטיב (0 בשכבת החינם)", () => {
-    const row = toScanRow(FINDINGS, { overall: 70 } as never, NARRATIVE_RESULT);
-    expect(row.llmCost).toBe(0);
-  });
-
-  it("toScanRow מזריק תמחור ומוכיח שהעלות נספרת על סכום טוקני סריקה+נרטיב (לא רק סריקה או רק נרטיב)", () => {
-    // in: meta.llmInputTokens (100) + NARRATIVE_RESULT.usage.inputTokens (900) = 1000, ב-$1/M = 0.001
-    // out: meta.llmOutputTokens (50) + NARRATIVE_RESULT.usage.outputTokens (500) = 550, ב-$5/M = 0.00275
-    // סה"כ = 0.00375
-    const row = toScanRow(FINDINGS, { overall: 70 } as never, NARRATIVE_RESULT, { usdPerMInput: 1, usdPerMOutput: 5 });
-    expect(row.llmCost).toBeCloseTo(0.00375, 10);
   });
 });
 
