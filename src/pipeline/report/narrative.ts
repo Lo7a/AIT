@@ -14,7 +14,9 @@ export interface NarrativeResult {
   usedFallback: boolean;
 }
 
-type CompleteFn = <T>(prompt: string) => Promise<{ data: T; usage: LlmUsage }>;
+// לא גנרי בכוונה — generateNarrative תמיד קורא ל-complete בלי לפרמט T (הטיפוס האמיתי מגיע מ-sanitize),
+// אז הגנריות לא הוסיפה בטיחות, רק חייבה כל מוק בבדיקות לעבור דרך `as never` (14 מקומות, סקירת קוד)
+export type CompleteFn = (prompt: string) => Promise<{ data: unknown; usage: LlmUsage }>;
 export interface NarrativeOptions { complete?: CompleteFn; }
 
 const MAX_TEXT_CHARS = 400;
@@ -24,10 +26,12 @@ export function extractNumbers(s: string): string[] {
 }
 
 // עוזר: מוסיף למאגר המותרים את כל הצורות המקבילות של מספר —
-// נקודה/פסיק עשרוני ושני חלקיו (כך ש-"12.7" מתיר גם "12" וגם "7")
+// נקודה/פסיק עשרוני, ניקוי פסיקי אלפים ("1,500"→"1500", כך שגם אם הנתון המקורי כתוב עם פסיק
+// אלפים המודל שמצטט אותו בלי פסיק לא יידחה), ושני חלקי המספר בנפרד (כך ש-"12.7" מתיר גם "12" וגם "7")
 function addNumberVariants(n: string, allowed: Set<string>): void {
   allowed.add(n);
   allowed.add(n.replace(".", ","));
+  allowed.add(n.replace(/,/g, ""));
   for (const part of n.split(/[.,]/)) allowed.add(part);
 }
 
@@ -112,6 +116,9 @@ function buildPrompt(f: ScanFindings, score: ScoreReport, stern: boolean): strin
     const { dimension, ruleKey, text } = h;
     return { dimension, ruleKey, text };
   };
+  // אזהרה לעריכה עתידית: כל שורת נתונים חדשה שתתווסף לבלוק <<<DATA>>>...<<<END>>> למטה וכוללת מספר —
+  // חייבת להיות מכוסה גם ב-allowedNumbers למעלה, אחרת השומר ידחה מספר שהפרומפט עצמו הציג למודל,
+  // והדוח ייפול בשקט לתבנית (usedFallback: true) בלי שום שגיאה גלויה.
   return `אתה יועץ עסקי שכותב נרטיב קצר לדוח אבחון דיגיטלי של עסק ישראלי.
 כללים מחייבים:
 - אל תמציא מספרים, אחוזים או סכומים. מותר להשתמש אך ורק במספרים שמופיעים בנתונים.
@@ -153,14 +160,14 @@ export async function generateNarrative(
   score: ScoreReport,
   opts: NarrativeOptions = {},
 ): Promise<NarrativeResult> {
-  const complete = opts.complete ?? (completeJSON as CompleteFn);
+  const complete = opts.complete ?? completeJSON;
   const allowed = allowedNumbers(f, score);
   const validRuleKeys = new Set(score.topGaps.map((g) => g.ruleKey));
   let usage: LlmUsage = { inputTokens: 0, outputTokens: 0 };
 
   for (const stern of [false, true]) {
     try {
-      const result = await complete<unknown>(buildPrompt(f, score, stern));
+      const result = await complete(buildPrompt(f, score, stern));
       usage = {
         inputTokens: usage.inputTokens + result.usage.inputTokens,
         outputTokens: usage.outputTokens + result.usage.outputTokens,
