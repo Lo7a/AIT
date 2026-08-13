@@ -4,6 +4,22 @@ import {
 } from "../src/server/status";
 
 describe("diagnosis state machine", () => {
+  it("allows exactly these 9 edges and no others (frozen enumeration)", () => {
+    const edges = DIAGNOSIS_STATUSES.flatMap((from) =>
+      DIAGNOSIS_STATUSES.filter((to) => canTransition(from, to)).map((to) => `${from}→${to}`));
+    expect(edges.sort()).toEqual([
+      "created→scanning",
+      "scanning→scanned",
+      "scanning→created",
+      "scanned→report_ready",
+      "report_ready→interviewing",
+      "report_ready→roadmap_ready",
+      "interviewing→roadmap_ready",
+      "interviewing→report_ready",
+      "roadmap_ready→interviewing",
+    ].sort());
+  });
+
   it.each([
     ["created", "scanning"],
     ["scanning", "scanned"],
