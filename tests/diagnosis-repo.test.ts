@@ -65,6 +65,14 @@ describe("llmCostUsd", () => {
     const row = toScanRow(FINDINGS, { overall: 70 } as never, NARRATIVE_RESULT);
     expect(row.llmCost).toBe(0);
   });
+
+  it("toScanRow מזריק תמחור ומוכיח שהעלות נספרת על סכום טוקני סריקה+נרטיב (לא רק סריקה או רק נרטיב)", () => {
+    // in: meta.llmInputTokens (100) + NARRATIVE_RESULT.usage.inputTokens (900) = 1000, ב-$1/M = 0.001
+    // out: meta.llmOutputTokens (50) + NARRATIVE_RESULT.usage.outputTokens (500) = 550, ב-$5/M = 0.00275
+    // סה"כ = 0.00375
+    const row = toScanRow(FINDINGS, { overall: 70 } as never, NARRATIVE_RESULT, { usdPerMInput: 1, usdPerMOutput: 5 });
+    expect(row.llmCost).toBeCloseTo(0.00375, 10);
+  });
 });
 
 // updateManyCount: כמה שורות updateMany "מצא ועדכן" — ברירת מחדל 1 (הצליח); 0 מדמה הפסד במרוץ

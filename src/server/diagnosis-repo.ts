@@ -28,6 +28,9 @@ export function toScanRow(
   findings: ScanFindings,
   scores: ScoreReport | null,
   narrative: NarrativeResult | null,
+  // pricing ניתן להזרקה כדי שסכום הטוקנים (סריקה+נרטיב) יהיה ניתן לבדיקה במבחנים (mutation-killer);
+  // קריאות ייצור אף פעם לא מעבירות ארגומנט זה ומקבלות את התמחור האמיתי (LLM_PRICING)
+  pricing = LLM_PRICING,
 ): ScanRow {
   const usage: LlmUsage = {
     inputTokens: findings.meta.llmInputTokens + (narrative?.usage.inputTokens ?? 0),
@@ -37,7 +40,7 @@ export function toScanRow(
     findings,
     scores,
     narrative,
-    llmCost: llmCostUsd(usage),
+    llmCost: llmCostUsd(usage, pricing),
     apiCost: findings.meta.estCostUsd,
     durationMs: findings.meta.durationMs,
   };
