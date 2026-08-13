@@ -10,7 +10,7 @@ const PSI_URL = "https://pagespeedonline.googleapis.com/pagespeedonline/v5/runPa
 // PSI איטי במיוחד — מריץ Lighthouse אמיתי על האתר
 const TIMEOUT_MS = 60_000;
 
-export async function runPageSpeed(
+async function attemptPageSpeed(
   url: string,
   opts: PageSpeedOptions = {},
 ): Promise<PageSpeedResult> {
@@ -47,4 +47,21 @@ export async function runPageSpeed(
     seoScore: categories?.seo?.score != null ? Math.round(categories.seo.score * 100) : undefined,
     lcpMs: lcp != null ? Math.round(lcp) : undefined,
   };
+}
+
+function isTimeoutError(err: unknown): boolean {
+  return err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError");
+}
+
+export async function runPageSpeed(
+  url: string,
+  opts: PageSpeedOptions = {},
+): Promise<PageSpeedResult> {
+  try {
+    return await attemptPageSpeed(url, opts);
+  } catch (err) {
+    // PSI מריץ Lighthouse אמיתי — ריצה ראשונה על אתר "קר" נופלת לעיתים בטיים-אאוט ומצליחה מיד אחריה
+    if (isTimeoutError(err)) return attemptPageSpeed(url, opts);
+    throw err;
+  }
 }

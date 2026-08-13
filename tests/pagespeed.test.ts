@@ -9,6 +9,12 @@ function psiResponse(body: unknown) {
   } as unknown as Response;
 }
 
+function timeoutError() {
+  const err = new Error("The operation was aborted due to timeout");
+  err.name = "TimeoutError";
+  return err;
+}
+
 describe("runPageSpeed", () => {
   it("extracts performance, seo and LCP and builds the right request", async () => {
     const fetchImpl = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
@@ -94,5 +100,35 @@ describe("runPageSpeed", () => {
     await expect(
       runPageSpeed("https://example.co.il", { apiKey: "k", fetchImpl }),
     ).rejects.toThrow(/ERRORED_DOCUMENT_REQUEST/);
+  });
+});
+
+describe("PSI retry on timeout", () => {
+  it("retries once after a timeout and succeeds", async () => {
+    const fetchImpl = vi.fn()
+      .mockRejectedValueOnce(timeoutError())
+      .mockResolvedValueOnce(psiResponse({
+        lighthouseResult: {
+          categories: { performance: { score: 0.4 }, seo: { score: 1 } },
+          audits: { "largest-contentful-paint": { numericValue: 8000 } },
+        },
+      }));
+    const result = await runPageSpeed("https://x.co.il", { apiKey: "k", fetchImpl });
+    expect(result.performanceScore).toBe(40);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("throws after two consecutive timeouts", async () => {
+    const fetchImpl = vi.fn().mockRejectedValue(timeoutError());
+    await expect(runPageSpeed("https://x.co.il", { apiKey: "k", fetchImpl })).rejects.toThrow(/timeout/i);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("does NOT retry on a non-timeout failure", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: false, status: 500, text: async () => "boom", json: async () => ({}),
+    } as unknown as Response);
+    await expect(runPageSpeed("https://x.co.il", { apiKey: "k", fetchImpl })).rejects.toThrow(/500/);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 });
