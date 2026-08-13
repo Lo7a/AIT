@@ -1215,6 +1215,8 @@ export function recommendNextStep(m: BusinessModel): NextStepRecommendation {
 
 ה-LLM כותב הסברים, לא מספרים (אפיון 6). כל ספרה בנרטיב חייבת להופיע בנתונים; הפרה → ניסיון שני עם אזהרה; הפרה שנייה → נרטיב תבנית דטרמיניסטי.
 
+> **אזהרות מסקירת משימה 5 (לתקן בזמן המימוש):** (א) בפרומפט, סריאליזציית הממדים חייבת לכלול גם את `key` (לא רק label/score/dataStatus) — אחרת ל-LLM אין דרך לחבר בין `topGaps.dimension` (מפתח אנגלי) לתווית העברית. (ב) `allowedNumbers` בגרסת הסניפט עושה `JSON.stringify(score)` על כל הדוח — זה מכניס ל-whitelist את כל ה-points (5,10,15,20,25,30,40) וה-weights של כל החוקים, ומחליש מאוד את שומר ההזיות ("40% מהלקוחות" יעבור כי לחוק כלשהו יש points: 40). לצמצם את המקור: findings + הציונים המוצגים בלבד (overall + score של כל ממד), לא הדוח המלא.
+
 **Files:**
 - Create: `src/pipeline/report/narrative.ts`
 - Test: `tests/narrative.test.ts`
