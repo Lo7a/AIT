@@ -50,7 +50,7 @@ docs/milestone-2a-gate.md             ← חדש: שער יציאה
 - Modify: `src/pipeline/google/pagespeed.ts`
 - Test: `tests/pagespeed.test.ts` (קיים — מוסיפים מבחנים)
 
-- [ ] **Step 1: מבחנים נכשלים**
+- [x] **Step 1: מבחנים נכשלים**
 
 להוסיף ל-`tests/pagespeed.test.ts` (לשמור על המבנה הקיים של הקובץ; `psiOk()` — אם כבר קיים helper דומה בקובץ, להשתמש בו):
 
@@ -99,12 +99,27 @@ describe("PSI retry on timeout", () => {
 });
 ```
 
-- [ ] **Step 2: לוודא כישלון** — `npx vitest run tests/pagespeed.test.ts` → שלושת החדשים FAIL (הראשון כי אין retry).
+- [x] **Step 2: לוודא כישלון** — `npx vitest run tests/pagespeed.test.ts` → שלושת החדשים FAIL (הראשון כי אין retry).
 
-- [ ] **Step 3: מימוש** — ב-`src/pipeline/google/pagespeed.ts` לשנות את שם הפונקציה הקיימת `runPageSpeed` ל-`attemptPageSpeed` (לא מיוצאת), ולהוסיף עוטף:
+- [x] **Step 3: מימוש** — ב-`src/pipeline/google/pagespeed.ts` לשנות את שם הפונקציה הקיימת `runPageSpeed` ל-`attemptPageSpeed` (לא מיוצאת), ולהוסיף עוטף:
+
+בעקבות code review: חלון הניסיון החוזר קוצר ל-30 שניות (במקום עוד 60) כדי שסך שני הניסיונות (60+30=90s) לא יחרוג מתקציב "סריקה מלאה" של 90 שניות.
 
 ```ts
+const TIMEOUT_MS = 60_000;
+// חלון הניסיון החוזר קצר יותר מהראשון: 60s + 30s = 90s, בדיוק תקציב "סריקה מלאה" מהספק
+const RETRY_TIMEOUT_MS = 30_000;
+
+async function attemptPageSpeed(
+  url: string,
+  opts: PageSpeedOptions = {},
+  timeoutMs: number = TIMEOUT_MS,
+): Promise<PageSpeedResult> {
+  // ... כמו קודם, רק עם AbortSignal.timeout(timeoutMs) במקום קבוע
+}
+
 function isTimeoutError(err: unknown): boolean {
+  // AbortError נוסף כי בגרסאות ישנות של undici ביטול נדחה עם השם הזה ולא "TimeoutError"
   return err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError");
 }
 
@@ -113,18 +128,21 @@ export async function runPageSpeed(
   opts: PageSpeedOptions = {},
 ): Promise<PageSpeedResult> {
   try {
-    return await attemptPageSpeed(url, opts);
+    return await attemptPageSpeed(url, opts, TIMEOUT_MS);
   } catch (err) {
     // PSI מריץ Lighthouse אמיתי — ריצה ראשונה על אתר "קר" נופלת לעיתים בטיים-אאוט ומצליחה מיד אחריה
-    if (isTimeoutError(err)) return attemptPageSpeed(url, opts);
+    if (isTimeoutError(err)) {
+      console.warn("PageSpeed: טיים-אאוט בניסיון הראשון — מנסה שוב עם חלון קצר יותר");
+      return attemptPageSpeed(url, opts, RETRY_TIMEOUT_MS);
+    }
     throw err;
   }
 }
 ```
 
-- [ ] **Step 4: ירוק** — `npx vitest run tests/pagespeed.test.ts` → PASS (כולל המבחנים הישנים).
+- [x] **Step 4: ירוק** — `npx vitest run tests/pagespeed.test.ts` → PASS (כולל המבחנים הישנים).
 
-- [ ] **Step 5: commit** — `git add -A && git commit -m "fix: retry PageSpeed once on timeout (cold-site Lighthouse runs)"`
+- [x] **Step 5: commit** — `git add -A && git commit -m "fix: retry PageSpeed once on timeout (cold-site Lighthouse runs)"`
 
 ---
 

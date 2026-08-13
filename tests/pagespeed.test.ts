@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { runPageSpeed } from "../src/pipeline/google/pagespeed";
+import type { FetchLike } from "../src/pipeline/http";
 
 function psiResponse(body: unknown) {
   return {
@@ -105,7 +106,7 @@ describe("runPageSpeed", () => {
 
 describe("PSI retry on timeout", () => {
   it("retries once after a timeout and succeeds", async () => {
-    const fetchImpl = vi.fn()
+    const fetchImpl = vi.fn<FetchLike>()
       .mockRejectedValueOnce(timeoutError())
       .mockResolvedValueOnce(psiResponse({
         lighthouseResult: {
@@ -116,19 +117,28 @@ describe("PSI retry on timeout", () => {
     const result = await runPageSpeed("https://x.co.il", { apiKey: "k", fetchImpl });
     expect(result.performanceScore).toBe(40);
     expect(fetchImpl).toHaveBeenCalledTimes(2);
+    const [c1, c2] = fetchImpl.mock.calls;
+    expect(c2[0]).toBe(c1[0]); // אותה כתובת בדיוק
+    expect((c2[1] as RequestInit).signal).not.toBe((c1[1] as RequestInit).signal); // חלון טיים-אאוט טרי
   });
 
   it("throws after two consecutive timeouts", async () => {
-    const fetchImpl = vi.fn().mockRejectedValue(timeoutError());
+    const fetchImpl = vi.fn<FetchLike>().mockRejectedValue(timeoutError());
     await expect(runPageSpeed("https://x.co.il", { apiKey: "k", fetchImpl })).rejects.toThrow(/timeout/i);
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
   it("does NOT retry on a non-timeout failure", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue({
+    const fetchImpl = vi.fn<FetchLike>().mockResolvedValue({
       ok: false, status: 500, text: async () => "boom", json: async () => ({}),
     } as unknown as Response);
     await expect(runPageSpeed("https://x.co.il", { apiKey: "k", fetchImpl })).rejects.toThrow(/500/);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("does NOT retry on a refused-connection error (TypeError, not a timeout)", async () => {
+    const fetchImpl = vi.fn<FetchLike>().mockRejectedValue(new TypeError("fetch failed"));
+    await expect(runPageSpeed("https://x.co.il", { apiKey: "k", fetchImpl })).rejects.toThrow();
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 });
