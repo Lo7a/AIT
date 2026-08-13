@@ -844,7 +844,9 @@ git commit -m "refactor(2b-4): extract pure presenter module + unify parseArgs a
 
 ---
 
-### משימה 5: חילוץ runDiagnosis מה-CLI + אירועי התקדמות
+### משימה 5: חילוץ runDiagnosis מה-CLI + אירועי התקדמות ✅
+
+> **As-built (56243ae + 776b5d0):** בוצע כמתוכנן (עם התאמות משימה 3: name=websiteKeyOf, website=origin), הצנרת לא נגעה, ה-CLI נשאר זהה בייט-בייט בפלט. עשן חי: אופטיקה בק 73/100 עם שורות התקדמות זורמות. סקירת האיכות תפסה באג קריטי-לעתיד לפני שפגש צרכן: emit לא-מוגן הפך זריקת onEvent (ניתוק דפדפן) לדגלי partial שקריים שנשמרים או ל-DiagnoseFailed שהורס אבחון מוצלח — נוסף guard בחוזה מתועד ("onEvent לעולם לא מפיל את האורקסטרציה"), detailOf הוצא מה-try, failDetail מדויק למפתחות פטאליים, אירועי "לעסק אין אתר" ל-crawl/pagespeed כשאין אתר (מסך 2 יסביר את הרשימה הקצרה), ו-4 בדיקות חדשות: צרכן-זורק, כשל-revert משמר שגיאה מקורית, done-אחרי-backfill (נצפה מתוך onEvent), ואירועי דילוג. 206 בדיקות. הערה למשימה 8: לצמצם את טיפוס DiagnoseRunner ל-Promise<{diagnosisId: string}>.
 
 לב 2ב. האורקסטרציה (יצירה→scanning→סריקה→scanned→ציונים/מודל/נרטיב→שמירה→report_ready→backfill) עוברת מ-`cli-diagnose.ts` ל-`src/server/run-diagnosis.ts`, עם אירועי התקדמות למסך הסריקה החיה. את האירועים הפר-מקור משיגים **בלי לגעת בצנרת**: עוטפים את ה-deps המוזרקים של runScan/scanWebsiteOnly — כל dep פולט step/step_done סביב הקריאה. ה-CLI הופך לצרכן דק של אותם אירועים.
 
