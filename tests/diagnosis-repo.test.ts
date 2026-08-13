@@ -92,9 +92,7 @@ function fakePrisma(currentStatus: string, updateManyCount = 1) {
       create: vi.fn().mockResolvedValue({ id: "d9" }),
     },
     business: {
-      findFirst: vi.fn().mockResolvedValue(null),
       upsert: vi.fn().mockResolvedValue({ id: "b1" }),
-      create: vi.fn().mockResolvedValue({ id: "b1" }),
     },
   };
 }
@@ -132,19 +130,32 @@ describe("createDiagnosisForBusiness", () => {
     expect(result).toEqual({ businessId: "b1", diagnosisId: "d9" });
   });
 
-  it("falls back to website lookup when placeId is empty (no-GBP path)", async () => {
+  it("falls back to website upsert when placeId is empty (no-GBP path)", async () => {
     const prisma = fakePrisma("created");
     await createDiagnosisForBusiness(prisma as never, { name: "lavan", placeId: "", website: "https://lavan.co.il/" });
-    expect(prisma.business.findFirst).toHaveBeenCalledWith({ where: { website: "https://lavan.co.il/" } });
-    expect(prisma.business.upsert).not.toHaveBeenCalled();
+    expect(prisma.business.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { websiteKey: "lavan.co.il" } }),
+    );
   });
 
-  it("rejects when neither placeId nor website is given (would otherwise findFirst with an empty where)", async () => {
+  it("מסלול website: upsert אטומי על websiteKey מנורמל — כתיבים שונים מתלכדים לשורה אחת", async () => {
+    const upsert = vi.fn().mockResolvedValue({ id: "b1" });
+    const db = {
+      business: { upsert },
+      diagnosis: { create: vi.fn().mockResolvedValue({ id: "d1" }) },
+    } as never;
+    await createDiagnosisForBusiness(db, { name: "lavangroup.co.il", website: "https://www.LavanGroup.co.il/" });
+    expect(upsert).toHaveBeenCalledTimes(1);
+    const upsertCall = upsert.mock.calls[0][0] as { where: unknown };
+    expect(upsertCall.where).toEqual({ websiteKey: "lavangroup.co.il" });
+  });
+
+  it("rejects when neither placeId nor website is given (would otherwise upsert with an empty key)", async () => {
     const prisma = fakePrisma("created");
     await expect(
       createDiagnosisForBusiness(prisma as never, { name: "לא ידוע" }),
     ).rejects.toThrow(/placeId או website/);
-    expect(prisma.business.findFirst).not.toHaveBeenCalled();
+    expect(prisma.business.upsert).not.toHaveBeenCalled();
   });
 });
 

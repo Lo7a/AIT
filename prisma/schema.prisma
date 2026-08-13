@@ -11,13 +11,15 @@ datasource db {
 }
 
 model Business {
-  id        String      @id @default(uuid()) @db.Uuid
-  name      String
-  placeId   String?     @unique @map("place_id")
-  website   String?
-  city      String?
-  createdAt DateTime    @default(now()) @map("created_at")
-  diagnoses Diagnosis[]
+  id         String      @id @default(uuid()) @db.Uuid
+  name       String
+  placeId    String?     @unique @map("place_id")
+  // זהות עסק אתר-בלבד: host מנורמל (websiteKeyOf) — upsert אטומי במקום findFirst+create
+  websiteKey String?     @unique @map("website_key")
+  website    String?
+  city       String?
+  createdAt  DateTime    @default(now()) @map("created_at")
+  diagnoses  Diagnosis[]
 
   @@map("businesses")
 }

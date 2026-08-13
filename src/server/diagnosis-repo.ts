@@ -5,6 +5,7 @@ import type { NarrativeResult } from "../pipeline/report/narrative";
 import type { LlmUsage } from "../pipeline/llm/client";
 import type { BusinessModel } from "../pipeline/model/business-model";
 import { assertTransition, type DiagnosisStatus } from "./status";
+import { websiteKeyOf } from "./website-key";
 
 export interface LlmPricing { usdPerMInput: number; usdPerMOutput: number }
 
@@ -70,12 +71,17 @@ export async function createDiagnosisForBusiness(
     });
     businessId = business.id;
   } else if (input.website) {
-    // מסלול אתר-בלבד (no_gbp): אין placeId — מזהים לפי האתר
-    const existing = await prisma.business.findFirst({ where: { website: input.website } });
-    businessId = existing?.id
-      ?? (await prisma.business.create({
-        data: { name: input.name, website: input.website, city: input.city },
-      })).id;
+    // מסלול אתר-בלבד (no_gbp): upsert אטומי על מפתח מנורמל — כתיבים שונים של אותו אתר
+    // מתלכדים לשורה אחת, ושתי ריצות מקבילות לא יוצרות כפיל (שער 2א, דרישה 3).
+    // הערה: מסלול placeId לעולם לא קובע websiteKey — איחוד עסק שנסרק פעם דרך --url ופעם
+    // דרך Places הוא בעיית מייל סטון 3+.
+    const key = websiteKeyOf(input.website);
+    const business = await prisma.business.upsert({
+      where: { websiteKey: key },
+      update: { name: input.name, website: input.website, city: input.city },
+      create: { name: input.name, websiteKey: key, website: input.website, city: input.city },
+    });
+    businessId = business.id;
   } else {
     // בלי אף מזהה — where ריק היה מחזיר עסק שרירותי ומצמיד לו אבחון של מישהו אחר
     throw new Error("createDiagnosisForBusiness: נדרש placeId או website");
