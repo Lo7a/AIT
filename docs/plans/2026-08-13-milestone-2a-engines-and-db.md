@@ -260,7 +260,7 @@ const JS_APP_ROOT_RE =
 - Create: `src/pipeline/scan-website.ts`
 - Test: `tests/scan-website.test.ts`
 
-- [ ] **Step 1: מבחן נכשל** — ליצור `tests/scan-website.test.ts`:
+- [x] **Step 1: מבחן נכשל** — ליצור `tests/scan-website.test.ts`:
 
 ```ts
 import { describe, it, expect } from "vitest";
@@ -313,9 +313,9 @@ describe("scanWebsiteOnly", () => {
 });
 ```
 
-- [ ] **Step 2: לוודא כישלון** — `npx vitest run tests/scan-website.test.ts` → FAIL (מודול לא קיים).
+- [x] **Step 2: לוודא כישלון** — `npx vitest run tests/scan-website.test.ts` → FAIL (מודול לא קיים).
 
-- [ ] **Step 3: מימוש** — ליצור `src/pipeline/scan-website.ts`:
+- [x] **Step 3: מימוש** — ליצור `src/pipeline/scan-website.ts`:
 
 ```ts
 import {
@@ -403,9 +403,9 @@ export async function scanWebsiteOnly(
 }
 ```
 
-- [ ] **Step 4: ירוק** — `npx vitest run tests/scan-website.test.ts` → PASS.
+- [x] **Step 4: ירוק** — `npx vitest run tests/scan-website.test.ts` → PASS.
 
-- [ ] **Step 5: commit** — `git commit -am "feat: website-only scan path (no_gbp) so businesses without a Google profile enter the funnel"`
+- [x] **Step 5: commit** — `git commit -am "feat: website-only scan path (no_gbp) so businesses without a Google profile enter the funnel"`
 
 ---
 
