@@ -76,7 +76,9 @@ export function deriveBusinessModel(f: ScanFindings): BusinessModel {
       credit: 0.5, // שם ודומיין תמיד ידועים מהסריקה; תחום/גודל/ותק — מהראיון
     },
     channels: {
-      data: noGbp ? {} : { google: true, reviewCount: f.business.reviewCount },
+      data: noGbp
+        ? {}
+        : { google: true, ...(f.business.reviewCount != null ? { reviewCount: f.business.reviewCount } : {}) },
       credit: noGbp ? 0 : 0.5,
     },
     lead_flow: {

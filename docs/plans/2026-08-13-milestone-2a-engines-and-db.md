@@ -2176,8 +2176,8 @@ const MODEL: BusinessModel = {
   data: {} as never,
   fieldSources: {},
   credits: {
-    profile: 0.5, channels: 0, lead_flow: 0, scheduling: 0, service: 0,
-    billing: 0, retention: 0, tools: 0, pains: 0, manual_tasks: 0,
+    profile: 0.5, channels: 0.5, lead_flow: 0.5, scheduling: 0.5, service: 0.5,
+    billing: 0, retention: 0, tools: 0.5, pains: 0.5, manual_tasks: 0,
   },
   completenessPct: 35,
 };

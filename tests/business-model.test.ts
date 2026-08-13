@@ -89,6 +89,8 @@ describe("deriveBusinessModel", () => {
       for (const k of MODEL_SECTIONS) {
         expect(m.credits[k] > 0, `${k}: credit⟺source`).toBe(m.fieldSources[k] !== undefined);
         expect(m.credits[k] > 0, `${k}: credit⟺data`).toBe(Object.keys(m.data[k]).length > 0);
+        // ערכי undefined בתוך data לא שורדים JSONB — המפתח חייב להיות מושמט, לא undefined
+        expect(Object.values(m.data[k]).includes(undefined), `${k}: no undefined values`).toBe(false);
       }
       expect(m.completenessPct).toBe(completenessOf(m.credits));
     }
