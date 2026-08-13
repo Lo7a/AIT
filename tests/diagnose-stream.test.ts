@@ -1,0 +1,94 @@
+import { describe, expect, it } from "vitest";
+import { makeDiagnoseHandler, parseDiagnoseBody } from "../src/server/api/diagnose-stream";
+import type { DiagnoseEvent } from "../src/server/diagnose-events";
+import type { DiagnoseTarget } from "../src/server/run-diagnosis";
+
+function req(body: unknown): Request {
+  return new Request("http://test/api/diagnose", { method: "POST", body: JSON.stringify(body) });
+}
+
+async function eventsOf(res: Response): Promise<DiagnoseEvent[]> {
+  const text = await res.text();
+  return text.split("\n").filter(Boolean).map((l) => JSON.parse(l) as DiagnoseEvent);
+}
+
+describe("parseDiagnoseBody", () => {
+  it("מסלול Places: placeId + name", () => {
+    expect(parseDiagnoseBody({ placeId: "p1", name: "עסק" }))
+      .toEqual({ kind: "places", placeId: "p1", name: "עסק", city: undefined });
+  });
+
+  it("מסלול URL: מנרמל ומחזיר href", () => {
+    expect(parseDiagnoseBody({ url: "www.x.co.il" })).toEqual({ kind: "url", url: "https://www.x.co.il/" });
+  });
+
+  it("url פסול — שגיאה עברית, לא זריקה", () => {
+    expect(parseDiagnoseBody({ url: "mailto:x@y.il" })).toMatchObject({ error: expect.stringContaining("כתובת") });
+  });
+
+  it("גם וגם / לא כלום — שגיאה", () => {
+    expect(parseDiagnoseBody({})).toHaveProperty("error");
+    expect(parseDiagnoseBody({ placeId: "p", name: "x", url: "https://x.co.il" })).toHaveProperty("error");
+  });
+
+  it("placeId בלי name — שגיאה", () => {
+    expect(parseDiagnoseBody({ placeId: "p1" })).toHaveProperty("error");
+  });
+
+  it("שדות לא-מחרוזת — שגיאה, לא זריקה", () => {
+    expect(parseDiagnoseBody({ placeId: 5, name: "x" })).toHaveProperty("error");
+    expect(parseDiagnoseBody({ url: 42 })).toHaveProperty("error");
+    expect(parseDiagnoseBody(null)).toHaveProperty("error");
+    expect(parseDiagnoseBody("str")).toHaveProperty("error");
+  });
+});
+
+describe("makeDiagnoseHandler", () => {
+  // ה-runner (runDiagnosis) הוא האחראי הבלעדי לאירוע done — הוא פולט אותו אחרי ה-backfill.
+  // ה-handler רק מזרים וסוגר; לכן ה-fake כאן פולט done בעצמו, וה-handler לא מוסיף אחד משלו
+  it("מזרים את האירועים כפי שנפלטו ומסיים בסגירת הזרם", async () => {
+    const handler = makeDiagnoseHandler(async (_t, onEvent) => {
+      onEvent({ type: "created", diagnosisId: "d1", businessName: "עסק" });
+      onEvent({ type: "step", key: "details", label: "מאתרים" });
+      onEvent({ type: "done", diagnosisId: "d1" });
+      return { diagnosisId: "d1" };
+    });
+    const res = await handler(req({ placeId: "p1", name: "עסק" }));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("application/x-ndjson");
+    const events = await eventsOf(res);
+    expect(events.map((e) => e.type)).toEqual(["created", "step", "done"]);
+    expect(events[2]).toEqual({ type: "done", diagnosisId: "d1" });
+  });
+
+  it("runner שנכשל — אירוע error בזרם (לא 500), עם ההודעה", async () => {
+    const handler = makeDiagnoseHandler(async () => { throw new Error("הסריקה קרסה"); });
+    const res = await handler(req({ placeId: "p1", name: "עסק" }));
+    expect(res.status).toBe(200);
+    const events = await eventsOf(res);
+    expect(events[events.length - 1]).toEqual({ type: "error", message: "הסריקה קרסה" });
+  });
+
+  it("runner שנכשל אחרי אירועים — האירועים שקדמו נשמרים בזרם", async () => {
+    const handler = makeDiagnoseHandler(async (_t, onEvent) => {
+      onEvent({ type: "created", diagnosisId: "d1", businessName: "עסק" });
+      throw new Error("נפל באמצע");
+    });
+    const events = await eventsOf(await handler(req({ placeId: "p1", name: "עסק" })));
+    expect(events.map((e) => e.type)).toEqual(["created", "error"]);
+  });
+
+  it("גוף פסול — 400 JSON רגיל, בלי להריץ אבחון", async () => {
+    let ran = false;
+    const handler = makeDiagnoseHandler(async () => { ran = true; return { diagnosisId: "x" }; });
+    const res = await handler(req({}));
+    expect(res.status).toBe(400);
+    expect(ran).toBe(false);
+  });
+
+  it("גוף לא-JSON — 400, לא זריקה", async () => {
+    const handler = makeDiagnoseHandler(async () => ({ diagnosisId: "x" }));
+    const res = await handler(new Request("http://test/api/diagnose", { method: "POST", body: "לא json" }));
+    expect(res.status).toBe(400);
+  });
+});
