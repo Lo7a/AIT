@@ -1280,7 +1280,9 @@ export function recommendNextStep(m: BusinessModel): NextStepRecommendation {
 >
 > **אזהרות מסקירת משימה 5 (לתקן בזמן המימוש):** (א) בפרומפט, סריאליזציית הממדים חייבת לכלול גם את `key` (לא רק label/score/dataStatus) — אחרת ל-LLM אין דרך לחבר בין `topGaps.dimension` (מפתח אנגלי) לתווית העברית. (ב) `allowedNumbers` בגרסת הסניפט עושה `JSON.stringify(score)` על כל הדוח — זה מכניס ל-whitelist את כל ה-points (5,10,15,20,25,30,40) וה-weights של כל החוקים, ומחליש מאוד את שומר ההזיות ("40% מהלקוחות" יעבור כי לחוק כלשהו יש points: 40). לצמצם את המקור: findings + הציונים המוצגים בלבד (overall + score של כל ממד), לא הדוח המלא.
 
-> **הערת as-built:** שלוש האזהרות יושמו במלואן. אומת ריצית: עם RICH, `allowedNumbers` המצומצם (findings + overall/dimension scores בלבד: 73,65,100,70,50,4.9,80,46,92,12700 וכו') **לא** כולל 40 או 35 — כפי שגרסת ה-`JSON.stringify(score)` המלאה כן הייתה כוללת (points/weights של החוקים). `buildPrompt` כולל `key` בסריאליזציית הממדים ומטפל ב-`topGaps` ריק בהוראה נפרדת ("לא נמצאו פערים מובילים..."); `fallbackNarrative` מחזיר "לא מצאנו פערים מהותיים בסריקה הציבורית — בסיס דיגיטלי חזק" כש-`topGaps.length === 0`, לא טקסט ריק. מבחני הקובץ הורחבו מ-7 (בסניפט המקורי) ל-9: נוסף מבחן לצמצום ה-whitelist (`40`/`35` נדחים) ומבחן נפרד ל-`fallbackNarrative` על רשימת פערים ריקה; מבחן הפרומפט מוודא גם `"key":"accessibility"`. המקור המחייב: `src/pipeline/report/narrative.ts`, `tests/narrative.test.ts`.
+> **הערת as-built (סבב סקירה ראשון):** שלוש האזהרות יושמו במלואן. אומת ריצית: עם RICH, `allowedNumbers` המצומצם (findings + overall/dimension scores בלבד: 73,65,100,70,50,4.9,80,46,92,12700 וכו') **לא** כולל 40 או 35 — כפי שגרסת ה-`JSON.stringify(score)` המלאה כן הייתה כוללת (points/weights של החוקים). `buildPrompt` כולל `key` בסריאליזציית הממדים ומטפל ב-`topGaps` ריק בהוראה נפרדת ("לא נמצאו פערים מובילים..."); `fallbackNarrative` מחזיר "לא מצאנו פערים מהותיים בסריקה הציבורית — בסיס דיגיטלי חזק" כש-`topGaps.length === 0`, לא טקסט ריק. מבחני הקובץ הורחבו מ-7 (בסניפט המקורי) ל-9: נוסף מבחן לצמצום ה-whitelist (`40`/`35` נדחים) ומבחן נפרד ל-`fallbackNarrative` על רשימת פערים ריקה; מבחן הפרומפט מוודא גם `"key":"accessibility"`.
+>
+> **הערת as-built (סבב סקירה שני — עיצוב השומר):** סקירה נוספת מצאה שהשומר, למרות שהוא תואם את האזהרות שתוקנו קודם, עדיין לא נכון בעיצובו: הוא בדק "האם המספר מופיע במקורות מסוימים" במקום העיקרון המאחד הנכון — **המאגר המותר חייב להיות על-קבוצה של המספרים שהפרומפט עצמו מציג/מבקש מהמודל להסביר, בניכוי מנגנונים פנימיים**. שישה תיקונים יצאו מהעיקרון הזה: **(1)** הורחב המאגר לכלול את המספרים בטקסטים של `topGaps`/`topStrengths` עצמם (החוקים הדטרמיניסטיים שהמודל מתבקש להסביר — "מתחת לרף האמון של 4.2", "מתחת ליעד של 70" הם נתונים לגיטימיים, לא הזיה), זרעו מפורש ל-`"100"` (קנה המידה — "X מתוך 100" הוא ניסוח קנוני), וזרעו לצורת התצוגה של LCP בשניות (`(lcpMs/1000).toFixed(1)`) גם כשהחוק הזה לא בין ה-top3. **(2)** `JSON.stringify(f)` הכשיר טלמטריה פנימית (durationMs, טוקנים, עלות, timestamps ב-`meta`) — כ-15 מספרים שרירותיים שיכולים "לכבס" הזיה; תוקן ל-`{ ...f, meta: undefined }`. **(3)** סריאליזציית `topGaps`/`topStrengths` בפרומפט כללה `points` (20/25/30/35) — בדיוק המספרים שהשומר עצמו אוסר, מוצגים למודל שנאמר לו "השתמש רק במספרים בנתונים"; הוסרו (`{dimension, ruleKey, text}` בלבד). **(4)** נרטיב ריק (המודל החזיר `{}`/`null`/מחרוזת/אובייקט זר) עבר בעבר כהצלחה עם `headline`/`summary` ריקים — עכשיו `!narrative.headline || !narrative.summary` נבדק בדיוק כמו הפרה, וממשיך לניסיון השני ואז לתבנית. **(5)** התאמת המספרים הפכה סלחנית לפסיקי אלפים ("4,300"→"4300") ולהחלפת נקודה/פסיק עשרוניים — כל וריאציה שתואמת למאגר מספיקה, לא רק התאמה מדויקת. **(6)** `sanitize` מקבל כעת `validRuleKeys` (מ-`score.topGaps`) ומסנן `gapExplanations` שה-`ruleKey` שלהם לא קיים באמת — `ruleKey` מומצא ("rule_999") היה שורד בעבר ושובר בשקט את הצליבה בהמשך (מסך 3 ב-2ב). מבחני הקובץ הורחבו מ-9 ל-16: אומת ריצית על RICH ועל פיקסצ'ר "מתקשה" (rating 3.8, perf 31, lcp 6200) ש-`topGaps` בפועל הוא `[online_booking, rating_good, fb_pixel]` (impact משוקלל 7.5/5/4.5) — perf (impact 4) לא נכנס ל-top3, ולכן "70" בטקסט המוחזר מאומת דרך ציון הממד `accessibility` (70) ולא דרך `topGaps`, מה שמוכיח שהעל-קבוצה עובדת גם על מקרי קצה לא מכוונים. המקור המחייב: `src/pipeline/report/narrative.ts`, `tests/narrative.test.ts`.
 
 **Files:**
 - Create: `src/pipeline/report/narrative.ts`
@@ -1378,6 +1380,65 @@ describe("generateNarrative", () => {
     expect(prompt).toContain("אל תצטט");
     expect(prompt).toContain('"key":"accessibility"'); // סריאליזציית הממדים כוללת key לצליבה עם topGaps
   });
+
+  it("accepts the system's own gap texts echoed back (rating 3.8, perf 31, lcp 6200)", async () => {
+    const struggling: ScanFindings = {
+      ...RICH,
+      business: { ...RICH.business, rating: 3.8 },
+      pageSpeed: { performanceScore: 31, seoScore: 92, lcpMs: 6200 },
+    };
+    const s = scoreFindings(DIMENSIONS, struggling);
+    const echo = {
+      headline: "יש עבודה",
+      summary: "דירוג 3.8 — מתחת לרף האמון של 4.2, וציון ביצועים 31/100 מתחת ליעד של 70",
+      gapExplanations: s.topGaps.map((g) => ({ ruleKey: g.ruleKey, explanation: g.text })),
+    };
+    const result = await generateNarrative(struggling, s, { complete: llmReply(echo) as never });
+    expect(result.usedFallback).toBe(false);
+  });
+
+  it("accepts the canonical 'X מתוך 100' phrasing", async () => {
+    const s = score();
+    const canonical = { ...GOOD, summary: `ציון ${s.overall} מתוך 100 — יש בסיס טוב` };
+    const result = await generateNarrative(RICH, s, { complete: llmReply(canonical) as never });
+    expect(result.usedFallback).toBe(false);
+  });
+
+  it("treats empty/garbage LLM output as failure, not blank success", async () => {
+    for (const garbage of [{}, null, "not an object", { foo: "bar" }]) {
+      const result = await generateNarrative(RICH, score(), { complete: llmReply(garbage) as never });
+      expect(result.usedFallback, JSON.stringify(garbage)).toBe(true);
+    }
+  });
+
+  it("does not whitelist scan telemetry numbers", async () => {
+    const withMeta: ScanFindings = {
+      ...RICH,
+      meta: { startedAt: "2026-08-13T14:05:22Z", durationMs: 48211, placesCalls: 2, llmInputTokens: 12043, llmOutputTokens: 1997, estCostUsd: 0.0231 },
+    };
+    const bad = { ...GOOD, summary: "העסק מפסיד 48211 שקל" };
+    const result = await generateNarrative(withMeta, scoreFindings(DIMENSIONS, withMeta), { complete: llmReply(bad) as never });
+    expect(result.usedFallback).toBe(true);
+  });
+
+  it("tolerates thousands separators for real data numbers", async () => {
+    const withThousands = { ...GOOD, summary: "העמוד נטען אחרי 12,700 מילישניות — לאט מדי" };
+    const result = await generateNarrative(RICH, score(), { complete: llmReply(withThousands) as never });
+    expect(result.usedFallback).toBe(false); // 12700 קיים בנתונים
+  });
+
+  it("prompt serializes gaps without points", async () => {
+    const complete = vi.fn().mockResolvedValue({ data: GOOD, usage: { inputTokens: 1, outputTokens: 1 } });
+    await generateNarrative(RICH, score(), { complete: complete as never });
+    const prompt = complete.mock.calls[0][0] as string;
+    expect(prompt).not.toMatch(/"points":/);
+  });
+
+  it("drops explanations for rule keys that are not in topGaps", async () => {
+    const withFake = { ...GOOD, gapExplanations: [...GOOD.gapExplanations, { ruleKey: "rule_999", explanation: "הסבר מומצא" }] };
+    const result = await generateNarrative(RICH, score(), { complete: llmReply(withFake) as never });
+    expect(result.narrative.gapExplanations.map((g) => g.ruleKey)).not.toContain("rule_999");
+  });
 });
 
 describe("fallbackNarrative", () => {
@@ -1428,31 +1489,66 @@ export function extractNumbers(s: string): string[] {
   return s.match(/\d+(?:[.,]\d+)?/g) ?? [];
 }
 
-// המספרים המותרים: הממצאים עצמם + הציונים המוצגים בלבד.
-// בכוונה לא כל ה-ScoreReport — הוא מכיל points/weights של חוקים שהיו מכשירים מספרים מומצאים (אזהרת סקירה 5)
+// עוזר: מוסיף למאגר המותרים את כל הצורות המקבילות של מספר —
+// נקודה/פסיק עשרוני ושני חלקיו (כך ש-"12.7" מתיר גם "12" וגם "7")
+function addNumberVariants(n: string, allowed: Set<string>): void {
+  allowed.add(n);
+  allowed.add(n.replace(".", ","));
+  for (const part of n.split(/[.,]/)) allowed.add(part);
+}
+
+// המספרים המותרים: על-קבוצה של כל מה שהפרומפט עצמו מציג/מבקש מהמודל להסביר, פחות מנגנונים פנימיים.
+// כולל: הממצאים (בלי meta — טלמטריה פנימית כמו durationMs/עלות, לא נתון עסקי, ראו סקירה), הציונים המוצגים,
+// טקסטי topGaps/topStrengths (המודל מתבקש להסביר בדיוק אותם — המספרים בהם לגיטימיים),
+// קנה המידה הקבוע "100" (ניסוח קנוני "ציון X מתוך 100"), וזמן טעינת ה-LCP בשניות (תצוגת real data נפוצה).
+// בכוונה לא כל ה-ScoreReport — הוא מכיל points/weights של חוקים שהיו מכשירים מספרים מומצאים (אזהרת סקירה קודמת)
 function allowedNumbers(f: ScanFindings, score: ScoreReport): Set<string> {
   const displayedScores = [
     score.overall,
     ...score.dimensions.map((d) => d.score),
   ].filter((n): n is number => n != null);
-  const source = JSON.stringify(f) + " " + displayedScores.join(" ");
+
+  const findingsWithoutMeta = { ...f, meta: undefined }; // meta מכיל טלמטריה פנימית — לא נתון עסקי שמותר לצטט
+  const highlightTexts = [...score.topGaps, ...score.topStrengths].map((h) => h.text).join(" ");
+
+  const source = [
+    JSON.stringify(findingsWithoutMeta),
+    displayedScores.join(" "),
+    highlightTexts,
+  ].join(" ");
+
   const allowed = new Set<string>();
-  for (const n of extractNumbers(source)) {
-    allowed.add(n);
-    allowed.add(n.replace(".", ","));
-    // גם חלקי מספר עשרוני מותרים: "12.7" מתיר גם "12" וגם "7"
-    for (const part of n.split(/[.,]/)) allowed.add(part);
+  for (const n of extractNumbers(source)) addNumberVariants(n, allowed);
+
+  allowed.add("100"); // קנה המידה — "ציון X מתוך 100" הוא ניסוח קנוני, לא מספר מומצא
+
+  if (f.pageSpeed?.lcpMs != null) {
+    // צורת התצוגה של LCP בשניות (ראו sec() ב-dimensions.ts) — real data גם כשהחוק הזה לא בין topGaps/topStrengths
+    const lcpSeconds = (f.pageSpeed.lcpMs / 1000).toFixed(1);
+    for (const n of extractNumbers(lcpSeconds)) addNumberVariants(n, allowed);
   }
+
   return allowed;
+}
+
+// התאמה סלחנית: אלפים ("4,300"→"4300") ופסיק/נקודה עשרוניים — כל וריאציה שמתאימה למאגר המותרים מספיקה
+function isAllowed(token: string, allowed: Set<string>): boolean {
+  return (
+    allowed.has(token) ||
+    allowed.has(token.replace(/,/g, "")) ||
+    allowed.has(token.replace(",", ".")) ||
+    allowed.has(token.replace(".", ","))
+  );
 }
 
 function violations(n: ReportNarrative, allowed: Set<string>): string[] {
   const texts = [n.headline, n.summary, ...n.gapExplanations.map((g) => g.explanation)];
-  return texts.flatMap(extractNumbers).filter((num) => !allowed.has(num));
+  return texts.flatMap(extractNumbers).filter((num) => !isAllowed(num, allowed));
 }
 
-// בנייה מחדש של האובייקט — שדות שהומצאו על ידי המודל לא שורדים (אותו עיקרון כמו בניתוח הביקורות)
-function sanitize(raw: unknown): ReportNarrative {
+// בנייה מחדש של האובייקט — שדות שהומצאו על ידי המודל לא שורדים (העיקרון של analyze/reviews).
+// validRuleKeys: מפתחות חוק אמיתיים מ-topGaps בלבד — ruleKey מומצא (הזיה) נזרק בשקט ולא מגיע לפלט/לצליבה בהמשך
+function sanitize(raw: unknown, validRuleKeys: Set<string>): ReportNarrative {
   const r = (raw ?? {}) as Record<string, unknown>;
   const gaps = Array.isArray(r.gapExplanations) ? r.gapExplanations : [];
   return {
@@ -1466,7 +1562,7 @@ function sanitize(raw: unknown): ReportNarrative {
           explanation: String(e.explanation ?? "").trim().slice(0, MAX_TEXT_CHARS),
         };
       })
-      .filter((g) => g.ruleKey && g.explanation),
+      .filter((g) => g.ruleKey && g.explanation && validRuleKeys.has(g.ruleKey)),
   };
 }
 
@@ -1477,6 +1573,11 @@ function buildPrompt(f: ScanFindings, score: ScoreReport, stern: boolean): strin
   const gapsInstruction = score.topGaps.length > 0
     ? "כתוב הסבר לכל אחד מהפערים המובילים (topGaps) בלבד."
     : "לא נמצאו פערים מובילים — החזר gapExplanations ריק והתמקד במה שעובד טוב.";
+  // בלי points — הם שייכים למנגנון הפנימי של הציון, לא לנתון שמותר למודל לצטט (אזהרת סקירה)
+  const stripPoints = (h: { dimension: string; ruleKey: string; text: string }) => {
+    const { dimension, ruleKey, text } = h;
+    return { dimension, ruleKey, text };
+  };
   return `אתה יועץ עסקי שכותב נרטיב קצר לדוח אבחון דיגיטלי של עסק ישראלי.
 כללים מחייבים:
 - אל תמציא מספרים, אחוזים או סכומים. מותר להשתמש אך ורק במספרים שמופיעים בנתונים.
@@ -1494,8 +1595,8 @@ ${gapsInstruction}
 עסק: ${JSON.stringify({ name: f.business.name, rating: f.business.rating, reviewCount: f.business.reviewCount })}
 ציונים: ${JSON.stringify(score.dimensions.map((d) => ({ key: d.key, label: d.label, score: d.score, dataStatus: d.dataStatus })))}
 ציון כולל: ${score.overall}
-פערים מובילים: ${JSON.stringify(score.topGaps)}
-חוזקות: ${JSON.stringify(score.topStrengths)}
+פערים מובילים: ${JSON.stringify(score.topGaps.map(stripPoints))}
+חוזקות: ${JSON.stringify(score.topStrengths.map(stripPoints))}
 דגלים: ${JSON.stringify(f.partial)}
 <<<END>>>`;
 }
@@ -1520,6 +1621,7 @@ export async function generateNarrative(
 ): Promise<NarrativeResult> {
   const complete = opts.complete ?? (completeJSON as CompleteFn);
   const allowed = allowedNumbers(f, score);
+  const validRuleKeys = new Set(score.topGaps.map((g) => g.ruleKey));
   let usage: LlmUsage = { inputTokens: 0, outputTokens: 0 };
 
   for (const stern of [false, true]) {
@@ -1529,8 +1631,11 @@ export async function generateNarrative(
         inputTokens: usage.inputTokens + result.usage.inputTokens,
         outputTokens: usage.outputTokens + result.usage.outputTokens,
       };
-      const narrative = sanitize(result.data);
-      if (violations(narrative, allowed).length === 0) {
+      const narrative = sanitize(result.data, validRuleKeys);
+      // נרטיב ריק (המודל החזיר {}/null/זבל שלא נכנס לשדות) הוא כישלון לכל דבר —
+      // לא הצלחה עם headline/summary ריקים שיזלגו לדוח
+      const isEmpty = !narrative.headline || !narrative.summary;
+      if (!isEmpty && violations(narrative, allowed).length === 0) {
         return { narrative, usage, usedFallback: false };
       }
     } catch {
@@ -1541,7 +1646,7 @@ export async function generateNarrative(
 }
 ```
 
-- [x] **Step 4: ירוק** — `npx vitest run tests/narrative.test.ts` → PASS (9/9). `npx vitest run` (מלא) → 142/142. `npm run typecheck` נקי.
+- [x] **Step 4: ירוק** — `npx vitest run tests/narrative.test.ts` → PASS (16/16). `npx vitest run` (מלא) → 149/149. `npm run typecheck` נקי.
 
 - [x] **Step 5: commit** — `git commit -am "feat: LLM report narrative with number-whitelist guard and deterministic fallback"`
 

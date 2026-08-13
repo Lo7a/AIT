@@ -87,6 +87,65 @@ describe("generateNarrative", () => {
     expect(prompt).toContain("אל תצטט");
     expect(prompt).toContain('"key":"accessibility"'); // סריאליזציית הממדים כוללת key לצליבה עם topGaps
   });
+
+  it("accepts the system's own gap texts echoed back (rating 3.8, perf 31, lcp 6200)", async () => {
+    const struggling: ScanFindings = {
+      ...RICH,
+      business: { ...RICH.business, rating: 3.8 },
+      pageSpeed: { performanceScore: 31, seoScore: 92, lcpMs: 6200 },
+    };
+    const s = scoreFindings(DIMENSIONS, struggling);
+    const echo = {
+      headline: "יש עבודה",
+      summary: "דירוג 3.8 — מתחת לרף האמון של 4.2, וציון ביצועים 31/100 מתחת ליעד של 70",
+      gapExplanations: s.topGaps.map((g) => ({ ruleKey: g.ruleKey, explanation: g.text })),
+    };
+    const result = await generateNarrative(struggling, s, { complete: llmReply(echo) as never });
+    expect(result.usedFallback).toBe(false);
+  });
+
+  it("accepts the canonical 'X מתוך 100' phrasing", async () => {
+    const s = score();
+    const canonical = { ...GOOD, summary: `ציון ${s.overall} מתוך 100 — יש בסיס טוב` };
+    const result = await generateNarrative(RICH, s, { complete: llmReply(canonical) as never });
+    expect(result.usedFallback).toBe(false);
+  });
+
+  it("treats empty/garbage LLM output as failure, not blank success", async () => {
+    for (const garbage of [{}, null, "not an object", { foo: "bar" }]) {
+      const result = await generateNarrative(RICH, score(), { complete: llmReply(garbage) as never });
+      expect(result.usedFallback, JSON.stringify(garbage)).toBe(true);
+    }
+  });
+
+  it("does not whitelist scan telemetry numbers", async () => {
+    const withMeta: ScanFindings = {
+      ...RICH,
+      meta: { startedAt: "2026-08-13T14:05:22Z", durationMs: 48211, placesCalls: 2, llmInputTokens: 12043, llmOutputTokens: 1997, estCostUsd: 0.0231 },
+    };
+    const bad = { ...GOOD, summary: "העסק מפסיד 48211 שקל" };
+    const result = await generateNarrative(withMeta, scoreFindings(DIMENSIONS, withMeta), { complete: llmReply(bad) as never });
+    expect(result.usedFallback).toBe(true);
+  });
+
+  it("tolerates thousands separators for real data numbers", async () => {
+    const withThousands = { ...GOOD, summary: "העמוד נטען אחרי 12,700 מילישניות — לאט מדי" };
+    const result = await generateNarrative(RICH, score(), { complete: llmReply(withThousands) as never });
+    expect(result.usedFallback).toBe(false); // 12700 קיים בנתונים
+  });
+
+  it("prompt serializes gaps without points", async () => {
+    const complete = vi.fn().mockResolvedValue({ data: GOOD, usage: { inputTokens: 1, outputTokens: 1 } });
+    await generateNarrative(RICH, score(), { complete: complete as never });
+    const prompt = complete.mock.calls[0][0] as string;
+    expect(prompt).not.toMatch(/"points":/);
+  });
+
+  it("drops explanations for rule keys that are not in topGaps", async () => {
+    const withFake = { ...GOOD, gapExplanations: [...GOOD.gapExplanations, { ruleKey: "rule_999", explanation: "הסבר מומצא" }] };
+    const result = await generateNarrative(RICH, score(), { complete: llmReply(withFake) as never });
+    expect(result.narrative.gapExplanations.map((g) => g.ruleKey)).not.toContain("rule_999");
+  });
 });
 
 describe("fallbackNarrative", () => {
