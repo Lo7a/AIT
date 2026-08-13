@@ -1,6 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
-import { toScanRow, transitionDiagnosis, createDiagnosisForBusiness } from "../src/server/diagnosis-repo";
+import {
+  toScanRow, transitionDiagnosis, createDiagnosisForBusiness, saveScanResult,
+} from "../src/server/diagnosis-repo";
 import type { ScanFindings } from "../src/pipeline/types";
+import { MODEL_SECTIONS, type BusinessModel } from "../src/pipeline/model/business-model";
 
 const FINDINGS: ScanFindings = {
   business: { placeId: "p1", name: "עסק", website: "https://x.co.il" },
@@ -26,11 +29,13 @@ describe("toScanRow", () => {
   });
 });
 
-function fakePrisma(currentStatus: string) {
+// updateManyCount: כמה שורות updateMany "מצא ועדכן" — ברירת מחדל 1 (הצליח); 0 מדמה הפסד במרוץ
+function fakePrisma(currentStatus: string, updateManyCount = 1) {
   return {
     diagnosis: {
       findUniqueOrThrow: vi.fn().mockResolvedValue({ id: "d1", status: currentStatus }),
-      update: vi.fn().mockResolvedValue({}),
+      updateMany: vi.fn().mockResolvedValue({ count: updateManyCount }),
+      create: vi.fn().mockResolvedValue({ id: "d9" }),
     },
     business: {
       findFirst: vi.fn().mockResolvedValue(null),
@@ -44,38 +49,84 @@ describe("transitionDiagnosis", () => {
   it("updates when the transition is legal", async () => {
     const prisma = fakePrisma("created");
     await transitionDiagnosis(prisma as never, "d1", "scanning");
-    expect(prisma.diagnosis.update).toHaveBeenCalledWith({
-      where: { id: "d1" }, data: { status: "scanning" },
+    expect(prisma.diagnosis.updateMany).toHaveBeenCalledWith({
+      where: { id: "d1", status: "created" }, data: { status: "scanning" },
     });
   });
 
   it("throws and does NOT update on an illegal transition", async () => {
     const prisma = fakePrisma("created");
     await expect(transitionDiagnosis(prisma as never, "d1", "roadmap_ready")).rejects.toThrow(/לא חוקי/);
-    expect(prisma.diagnosis.update).not.toHaveBeenCalled();
+    expect(prisma.diagnosis.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects when the status changed concurrently (updateMany count 0 = lost the race)", async () => {
+    const prisma = fakePrisma("created", 0);
+    await expect(transitionDiagnosis(prisma as never, "d1", "scanning")).rejects.toThrow(/במקביל/);
   });
 });
 
 describe("createDiagnosisForBusiness", () => {
   it("upserts by placeId when present", async () => {
     const prisma = fakePrisma("created");
-    (prisma as Record<string, unknown>).diagnosis = {
-      ...prisma.diagnosis, create: vi.fn().mockResolvedValue({ id: "d9" }),
-    };
     const result = await createDiagnosisForBusiness(prisma as never, {
       name: "עסק", placeId: "p1", website: "https://x.co.il",
     });
-    expect(prisma.business.upsert).toHaveBeenCalled();
+    expect(prisma.business.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { placeId: "p1" } }),
+    );
     expect(result).toEqual({ businessId: "b1", diagnosisId: "d9" });
   });
 
   it("falls back to website lookup when placeId is empty (no-GBP path)", async () => {
     const prisma = fakePrisma("created");
-    (prisma as Record<string, unknown>).diagnosis = {
-      ...prisma.diagnosis, create: vi.fn().mockResolvedValue({ id: "d9" }),
-    };
     await createDiagnosisForBusiness(prisma as never, { name: "lavan", placeId: "", website: "https://lavan.co.il/" });
     expect(prisma.business.findFirst).toHaveBeenCalledWith({ where: { website: "https://lavan.co.il/" } });
     expect(prisma.business.upsert).not.toHaveBeenCalled();
+  });
+
+  it("rejects when neither placeId nor website is given (would otherwise findFirst with an empty where)", async () => {
+    const prisma = fakePrisma("created");
+    await expect(
+      createDiagnosisForBusiness(prisma as never, { name: "לא ידוע" }),
+    ).rejects.toThrow(/placeId או website/);
+    expect(prisma.business.findFirst).not.toHaveBeenCalled();
+  });
+});
+
+describe("saveScanResult", () => {
+  it("writes the scan and the business model atomically, with credits in both upsert branches", async () => {
+    const prisma = {
+      scan: { create: vi.fn().mockResolvedValue({ id: "s1" }) },
+      businessModelRow: { upsert: vi.fn().mockResolvedValue({ id: "bm1" }) },
+      $transaction: vi.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
+    };
+    const row = toScanRow(FINDINGS, { overall: 70 } as never, { headline: "h" } as never);
+    const model: BusinessModel = {
+      data: Object.fromEntries(MODEL_SECTIONS.map((k) => [k, {}])) as BusinessModel["data"],
+      fieldSources: {},
+      credits: Object.fromEntries(MODEL_SECTIONS.map((k) => [k, 0.5])) as BusinessModel["credits"],
+      completenessPct: 50,
+    };
+
+    await saveScanResult(prisma as never, "d1", row, model);
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.scan.create).toHaveBeenCalledWith({
+      data: {
+        diagnosisId: "d1",
+        findings: row.findings,
+        scores: row.scores,
+        narrative: row.narrative,
+        llmCost: row.llmCost,
+        apiCost: row.apiCost,
+        durationMs: row.durationMs,
+      },
+    });
+    const upsertCall = prisma.businessModelRow.upsert.mock.calls[0][0] as {
+      update: { credits: unknown }; create: { credits: unknown };
+    };
+    expect(upsertCall.update.credits).toEqual(model.credits);
+    expect(upsertCall.create.credits).toEqual(model.credits);
   });
 });

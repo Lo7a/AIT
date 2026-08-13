@@ -49,13 +49,16 @@ export async function createDiagnosisForBusiness(
       create: { name: input.name, placeId: input.placeId, website: input.website, city: input.city },
     });
     businessId = business.id;
-  } else {
+  } else if (input.website) {
     // מסלול אתר-בלבד (no_gbp): אין placeId — מזהים לפי האתר
     const existing = await prisma.business.findFirst({ where: { website: input.website } });
     businessId = existing?.id
       ?? (await prisma.business.create({
         data: { name: input.name, website: input.website, city: input.city },
       })).id;
+  } else {
+    // בלי אף מזהה — where ריק היה מחזיר עסק שרירותי ומצמיד לו אבחון של מישהו אחר
+    throw new Error("createDiagnosisForBusiness: נדרש placeId או website");
   }
   const diagnosis = await prisma.diagnosis.create({ data: { businessId } });
   return { businessId, diagnosisId: diagnosis.id };
@@ -70,7 +73,14 @@ export async function transitionDiagnosis(
     where: { id: diagnosisId }, select: { status: true },
   });
   assertTransition(current.status as DiagnosisStatus, to);
-  await prisma.diagnosis.update({ where: { id: diagnosisId }, data: { status: to } });
+  // עדכון מותנה בסטטוס שנקרא — שתי ריצות מקבילות לא יעברו שתיהן; count 0 = הפסדנו במרוץ
+  const result = await prisma.diagnosis.updateMany({
+    where: { id: diagnosisId, status: current.status },
+    data: { status: to },
+  });
+  if (result.count === 0) {
+    throw new Error(`מעבר סטטוס נכשל — הסטטוס השתנה במקביל (${current.status} → ${to})`);
+  }
 }
 
 export async function saveScanResult(
@@ -79,26 +89,30 @@ export async function saveScanResult(
   row: ScanRow,
   model: BusinessModel,
 ): Promise<void> {
-  await prisma.scan.create({
-    data: {
-      diagnosisId,
-      findings: row.findings as object,
-      scores: (row.scores ?? undefined) as object | undefined,
-      narrative: (row.narrative ?? undefined) as object | undefined,
-      llmCost: row.llmCost,
-      apiCost: row.apiCost,
-      durationMs: row.durationMs,
-    },
-  });
-  await prisma.businessModelRow.upsert({
-    where: { diagnosisId },
-    update: {
-      data: model.data as Prisma.InputJsonValue, fieldSources: model.fieldSources, credits: model.credits,
-      completenessPct: model.completenessPct,
-    },
-    create: {
-      diagnosisId, data: model.data as Prisma.InputJsonValue, fieldSources: model.fieldSources, credits: model.credits,
-      completenessPct: model.completenessPct,
-    },
-  });
+  // $transaction (מערך) — שני הכתובים (scan + business_model) חייבים להצליח יחד או לא בכלל;
+  // הפרומיסים בונים את שאילתות ה-SQL באופן eager אבל Prisma שולח אותן רק בתוך ה-transaction, בסדר שנשמר
+  await prisma.$transaction([
+    prisma.scan.create({
+      data: {
+        diagnosisId,
+        findings: row.findings as object,
+        scores: (row.scores ?? undefined) as object | undefined,
+        narrative: (row.narrative ?? undefined) as object | undefined,
+        llmCost: row.llmCost,
+        apiCost: row.apiCost,
+        durationMs: row.durationMs,
+      },
+    }),
+    prisma.businessModelRow.upsert({
+      where: { diagnosisId },
+      update: {
+        data: model.data as Prisma.InputJsonValue, fieldSources: model.fieldSources, credits: model.credits,
+        completenessPct: model.completenessPct,
+      },
+      create: {
+        diagnosisId, data: model.data as Prisma.InputJsonValue, fieldSources: model.fieldSources, credits: model.credits,
+        completenessPct: model.completenessPct,
+      },
+    }),
+  ]);
 }
