@@ -6,7 +6,7 @@
 
 **Architecture:** פונקציות טהורות עם הזרקת תלויות (fetch ו-LLM ניתנים להחלפה במבחנים). צנרת: resolve (Places search) ← fetch (details | crawl | PageSpeed במקביל) ← analyze (ביקורות ב-LLM) ← findings JSON. הקוד נכתב כספרייה (`src/pipeline/`) שתיובא כמו-שהיא לאפליקציית Next.js באבן דרך 2. אין שמירת טקסט ביקורות גולמי בשום פלט (תנאי Google).
 
-**Tech Stack:** TypeScript + Node 20+, tsx (הרצה), vitest (בדיקות), cheerio (פירסור HTML), dotenv. ‏LLM: ‏Gemini Flash דרך REST (שכבת חינם, ניתן להחלפה בקונפיג). ‏APIs: ‏Google Places (New), ‏PageSpeed Insights.
+**Tech Stack:** TypeScript + Node 20+, tsx (הרצה), vitest (בדיקות), cheerio (פירסור HTML), dotenv. LLM: Gemini Flash דרך REST (שכבת חינם, ניתן להחלפה בקונפיג). APIs: Google Places (New), PageSpeed Insights.
 
 **מוסכמות לכל המשימות:**
 - כל הפקודות רצות מ-`C:\Users\lahav\Desktop\AIT`.
@@ -208,7 +208,7 @@ git commit -m "feat: core pipeline types (findings, signals, insights, meta)"
 
 ---
 
-### משימה 2: לקוח LLM ‏(Gemini REST, ניתן להחלפה)
+### משימה 2: לקוח LLM (Gemini REST, ניתן להחלפה)
 
 **Files:**
 - Create: `src/pipeline/llm/client.ts`
@@ -326,7 +326,7 @@ export async function completeJSON<T>(
 - [ ] **צעד 4: הרץ וודא הצלחה**
 
 Run: `npx vitest run tests/llm-client.test.ts`
-Expected: PASS ‏(2 מבחנים).
+Expected: PASS (2 מבחנים).
 
 - [ ] **צעד 5: קומיט**
 
@@ -519,7 +519,7 @@ export async function getPlaceDetails(
 - [ ] **צעד 4: הרץ וודא הצלחה**
 
 Run: `npx vitest run tests/places.test.ts`
-Expected: PASS ‏(3 מבחנים).
+Expected: PASS (3 מבחנים).
 
 - [ ] **צעד 5: קומיט**
 
@@ -530,7 +530,7 @@ git commit -m "feat: Places API (New) search + details with Hebrew reviews"
 
 ---
 
-### משימה 4: חילוץ סיגנלים מ-HTML ‏(פונקציה טהורה)
+### משימה 4: חילוץ סיגנלים מ-HTML (פונקציה טהורה)
 
 **Files:**
 - Create: `src/pipeline/crawler/signals.ts`
@@ -648,7 +648,7 @@ export function extractSignals(html: string, baseUrl: string): PageSignals {
 - [ ] **צעד 4: הרץ וודא הצלחה**
 
 Run: `npx vitest run tests/signals.test.ts`
-Expected: PASS ‏(2 מבחנים).
+Expected: PASS (2 מבחנים).
 
 - [ ] **צעד 5: קומיט**
 
@@ -659,7 +659,7 @@ git commit -m "feat: pure HTML signal extraction (contact channels, pixels, plat
 
 ---
 
-### משימה 5: ה-Crawler ‏(עד 8 עמודים, עדיפות לעמודי מפתח)
+### משימה 5: ה-Crawler (עד 8 עמודים, עדיפות לעמודי מפתח)
 
 **Files:**
 - Create: `src/pipeline/crawler/crawl.ts`
@@ -808,7 +808,7 @@ export async function crawlWebsite(
 - [ ] **צעד 4: הרץ וודא הצלחה**
 
 Run: `npx vitest run tests/crawl.test.ts`
-Expected: PASS ‏(2 מבחנים).
+Expected: PASS (2 מבחנים).
 
 - [ ] **צעד 5: קומיט**
 
@@ -917,7 +917,7 @@ git commit -m "feat: PageSpeed Insights adapter (performance, SEO, LCP)"
 
 ---
 
-### משימה 7: ניתוח ביקורות ב-LLM ‏(מסקנות בלבד — בלי ציטוטים)
+### משימה 7: ניתוח ביקורות ב-LLM (מסקנות בלבד — בלי ציטוטים)
 
 **Files:**
 - Create: `src/pipeline/analyze/reviews.ts`
@@ -1032,7 +1032,7 @@ ${reviewLines}`;
 - [ ] **צעד 4: הרץ וודא הצלחה**
 
 Run: `npx vitest run tests/reviews.test.ts`
-Expected: PASS ‏(2 מבחנים).
+Expected: PASS (2 מבחנים).
 
 - [ ] **צעד 5: קומיט**
 
@@ -1234,7 +1234,7 @@ export async function runScan(
 - [ ] **צעד 4: הרץ וודא הצלחה**
 
 Run: `npx vitest run tests/scan.test.ts`
-Expected: PASS ‏(4 מבחנים).
+Expected: PASS (4 מבחנים).
 
 - [ ] **צעד 5: הרץ את כל חבילת המבחנים**
 
@@ -1328,7 +1328,7 @@ async function main() {
     process.exit(1);
   }
   if (candidates.length > 1 && pick === undefined) {
-    console.log("נמצאו כמה מועמדים — הרץ שוב עם ‎--pick <מספר>:");
+    console.log("נמצאו כמה מועמדים — הרץ שוב עם --pick <מספר>:");
     candidates.slice(0, 5).forEach((c, i) => {
       const stats = c.rating != null ? ` (⭐ ${c.rating}, ${c.reviewCount ?? 0} ביקורות)` : "";
       console.log(`  ${i + 1}. ${c.name} — ${c.address}${stats}`);
@@ -1389,9 +1389,9 @@ git commit -m "feat: scan CLI - search, pick candidate, write findings JSON"
 
 - [ ] **צעד 1: השג מפתחות (פעם אחת)**
 
-1. **GCP:** console.cloud.google.com ← צור פרויקט ← הפעל את שני ה-APIs: ‏"Places API (New)" ו-"PageSpeed Insights API" ← צור API Key ← העתק ל-`GOOGLE_API_KEY` ב-`.env`. ‏(Places דורש חשבון חיוב מופעל; יש מכסת חינם חודשית.)
-2. **Gemini:** aistudio.google.com ← ‏Get API key ← העתק ל-`GEMINI_API_KEY` ב-`.env`.
-3. צור `.env` לפי `.env.example` וודא שהוא לא נכנס ל-git: ‏`git status` לא אמור להציג אותו.
+1. **GCP:** console.cloud.google.com ← צור פרויקט ← הפעל את שני ה-APIs: "Places API (New)" ו-"PageSpeed Insights API" ← צור API Key ← העתק ל-`GOOGLE_API_KEY` ב-`.env`. (Places דורש חשבון חיוב מופעל; יש מכסת חינם חודשית.)
+2. **Gemini:** aistudio.google.com ← Get API key ← העתק ל-`GEMINI_API_KEY` ב-`.env`.
+3. צור `.env` לפי `.env.example` וודא שהוא לא נכנס ל-git: `git status` לא אמור להציג אותו.
 
 - [ ] **צעד 2: הרצת עשן ראשונה על עסק מוכר**
 
@@ -1437,4 +1437,4 @@ git commit -m "docs: milestone 1 gate results (5 real businesses)"
 
 ## סיום אבן דרך 1
 
-בסיום: כל המבחנים ירוקים, ‏CLI עובד על עסקים אמיתיים, טבלת השער מלאה והוחלט עובר/לא-עובר. אם עובר — אבן דרך 2 (סכמת DB + מנוע ציונים + מסכים 1–3) מקבלת תוכנית משלה.
+בסיום: כל המבחנים ירוקים, CLI עובד על עסקים אמיתיים, טבלת השער מלאה והוחלט עובר/לא-עובר. אם עובר — אבן דרך 2 (סכמת DB + מנוע ציונים + מסכים 1–3) מקבלת תוכנית משלה.

@@ -36,7 +36,7 @@ async function main() {
     process.exit(1);
   }
   if (candidates.length > 1 && pick === undefined) {
-    console.log("נמצאו כמה מועמדים — הריצו שוב עם ‎--pick <מספר>:");
+    console.log("נמצאו כמה מועמדים — הריצו שוב עם --pick <מספר>:");
     candidates.slice(0, 5).forEach((c, i) => {
       const stats = c.rating != null ? ` (⭐ ${c.rating}, ${c.reviewCount ?? 0} ביקורות)` : "";
       console.log(`  ${i + 1}. ${c.name} — ${c.address}${stats}`);
