@@ -2051,6 +2051,8 @@ Expected: פעמיים `קטלוג: 10 פריטים` — בלי שגיאת כפ�
 
 הלוגיקה (ממפים, ולידציית מעברים) טהורה ונבדקת; קריאות Prisma דקות ונבדקות עם fake פשוט.
 
+> **הערה מסקירת משימה 9 (לעתיד, לא חוסם):** כל ה-FKs הם ON DELETE RESTRICT (ברירת המחדל של Prisma). ב-MVP אף זרימה לא מוחקת אבחונים (ריצה חוזרת = שורת diagnosis חדשה), אז זה בטוח. אם אי פעם תתווסף מחיקת אבחון — להוסיף מיגרציה עם onDelete: Cascade על ילדי diagnosis (scans, interview_messages, business_models, roadmaps→items→briefs), ולהשאיר Restrict על roadmap_items.catalog_id כדי שקטלוג לא יימחק מתחת ל-Roadmap חי.
+
 **Files:**
 - Create: `src/server/db.ts`, `src/server/diagnosis-repo.ts`
 - Test: `tests/diagnosis-repo.test.ts`
