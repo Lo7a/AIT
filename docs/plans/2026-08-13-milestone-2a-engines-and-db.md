@@ -2565,7 +2565,7 @@ Expected: שניהם מסתיימים ב-`report_ready`, מדפיסים ציון
 **Files:**
 - Create: `docs/milestone-2a-gate.md`
 
-- [ ] **Step 1: יצירת מסמך השער** — ליצור `docs/milestone-2a-gate.md`:
+- [x] **Step 1: יצירת מסמך השער** — ליצור `docs/milestone-2a-gate.md`:
 
 ```markdown
 # שער יציאה — אבן דרך 2א
@@ -2591,9 +2591,10 @@ Expected: שניהם מסתיימים ב-`report_ready`, מדפיסים ציון
 - [ ] לא עובר — מה חסר: ________________
 ```
 
-- [ ] **Step 2: מילוי הטבלה** — להריץ את שלוש הפקודות, למלא את הטבלה ואת הצ'קבוקסים לפי התוצאות בפועל (לא למלא מראש).
+- [x] **Step 2: מילוי הטבלה** — להריץ את שלוש הפקודות, למלא את הטבלה ואת הצ'קבוקסים לפי התוצאות בפועל (לא למלא מראש).
+  בוצע: עסק 2 (בית מאפה ברכת רחל) הורץ חי עבור משימה זו (77/100, `report_ready`, דגל `no_website`); עסקים 1 ו-3 נלקחו מריצות עשן חיות שבוצעו קודם לכן היום ונמצאים ב-`report_ready` ב-DB. כל בדיקות הרוחב בוצעו בפועל (DB, ToS grep, טסטים, טייפצ'ק) — ראו `docs/milestone-2a-gate.md`. החלטת השער: **עובר**.
 
-- [ ] **Step 3: commit** — `git add -A && git commit -m "docs: milestone-2a exit gate results"`
+- [x] **Step 3: commit** — `git add -A && git commit -m "docs: milestone-2a exit gate results"`
 
 ---
 
