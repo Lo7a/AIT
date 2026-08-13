@@ -2299,7 +2299,9 @@ export async function saveScanResult(
 - Modify: `src/cli.ts` (משתמש ב-cli-shared), `package.json`
 - Test: `tests/cli-format.test.ts`
 
-- [ ] **Step 1: חילוץ הבחירה המשותפת** — ליצור `src/cli-shared.ts` על ידי העברת הלוגיקה הקיימת מ-`src/cli.ts` (חיפוש, הדפסת מועמדים, `--pick`) לפונקציה משותפת. לשמר את ההתנהגות הקיימת אחד-לאחד, כולל פורמט ההדפסה:
+- [x] **Step 1: חילוץ הבחירה המשותפת** — ליצור `src/cli-shared.ts` על ידי העברת הלוגיקה הקיימת מ-`src/cli.ts` (חיפוש, הדפסת מועמדים, `--pick`) לפונקציה משותפת. לשמר את ההתנהגות הקיימת אחד-לאחד, כולל פורמט ההדפסה:
+
+> **הערת as-built:** `PickResult` קיבל שדה נוסף `ambiguous?: boolean` שלא היה בסניפט התוכנית — כי `src/cli.ts` המקורי מבחין בין "לא נמצא/פספוס טווח" (`process.exit(1)`) לבין "כמה מועמדים, אין `--pick`" (`process.exitCode = 0; return;`, לא שגיאה). בלי השדה הזה החילוץ היה משנה קוד יציאה קיים. גם `pickCandidate` שומר על נוסח ההודעות המקורי מילה-במילה (כולל הנקודה הסופית ב"מחוץ לטווח") ועל חיתוך הרשימה ל-5 מועמדים (`candidates.slice(0, 5)`) — הסניפט בתוכנית לא חתך וניסח מחדש את ההודעות; נשמר המקור הקיים לפי ההנחיה המפורשת בתוכנית ("אם החתימות שונות מעט — המקור הקיים קובע"). המקור המחייב: `src/cli-shared.ts`, `src/cli.ts`.
 
 ```ts
 import { searchBusiness } from "./pipeline/google/places";
@@ -2330,7 +2332,7 @@ export async function pickCandidate(query: string, pick?: number): Promise<PickR
 
 (אם החתימות ב-`src/cli.ts` שונות מעט — המקור הקיים קובע; המטרה היא חילוץ, לא שכתוב.) לעדכן את `src/cli.ts` להשתמש ב-`pickCandidate` ולוודא ש-`npm run scan` מתנהג בדיוק כמו קודם (להריץ `npm run scan -- "בדיקה"` ידנית אם יש ספק).
 
-- [ ] **Step 2: מבחן נכשל לפורמט הדוח** — ליצור `tests/cli-format.test.ts`:
+- [x] **Step 2: מבחן נכשל לפורמט הדוח** — ליצור `tests/cli-format.test.ts`:
 
 ```ts
 import { describe, it, expect } from "vitest";
@@ -2376,9 +2378,11 @@ describe("formatDiagnosisSummary", () => {
 });
 ```
 
-- [ ] **Step 3: לוודא כישלון** — `npx vitest run tests/cli-format.test.ts` → FAIL.
+> **הערת as-built:** נוסף מבחן שני ל-`tests/cli-format.test.ts` לתיקוף חריג ה-topGaps הריק (סעיף הסטייה 5): `topGaps: []` על עסק בריא — מוודא ש-"פערים מובילים" לא מופיע (אין סקציה ריקה) וש-topStrengths עדיין מוצג. המקור המחייב: `tests/cli-format.test.ts`.
 
-- [ ] **Step 4: מימוש** — ליצור `src/cli-diagnose.ts`:
+- [x] **Step 3: לוודא כישלון** — `npx vitest run tests/cli-format.test.ts` → FAIL (2/2 נכשלו, `src/cli-diagnose` לא קיים).
+
+- [x] **Step 4: מימוש** — ליצור `src/cli-diagnose.ts`:
 
 ```ts
 import "dotenv/config";
@@ -2515,9 +2519,19 @@ if (process.argv[1]?.endsWith("cli-diagnose.ts")) {
     "diagnose": "tsx src/cli-diagnose.ts"
 ```
 
-- [ ] **Step 5: ירוק** — `npx vitest run` → כל החבילה PASS. `npm run typecheck` נקי.
+> **הערת as-built (סטיות שנצברו מסקירות משימות 3/6 ויושמו כאן):**
+> 1. **נירמול URL מוקדם:** `normalizeSiteUrl(url)` נקרא לפני כל כתיבה ל-DB (לתוך `siteUrl`, בדיוק לפי הקבוע ההיררכי בסניפט), אבל עטוף ב-`try/catch` ייעודי שמדפיס שגיאה עברית ("❌ כתובת האתר לא תקינה: …") ויוצא בקוד 1 — לא נופל ל-catch הכללי בתחתית הקובץ שהיה מדפיס גם כן עברית אך בלי הבחנה ממוקדת. `scanWebsiteOnly` נקרא עם `siteUrl.href` (לא ה-`url` הגולמי) כך שאותו אובייקט URL מנורמל משמש גם לשורת ה-DB וגם לסריקה.
+> 2. **כישלון כפול במסלול `--url`:** אחרי קבלת `scan` (אם `siteUrl` מוגדר) נבדק אם `scan.partial` מכיל גם `crawl_failed` וגם `pagespeed_failed`; אם כן — מעבר סטטוס חזרה ל-`created`, הדפסת "❌ שני המקורות נכשלו — אין ממצאים לאבחון" ויציאה בקוד 1, **לפני** המעבר ל-`scanned` ולפני `saveScanResult`/`report_ready`. הבדיקה חלה רק כש-`siteUrl` מוגדר (מסלול `--url` בלבד) — לא במסלול חיפוש עסק רגיל.
+> 3. **תזכורת no_gbp:** מסלול `--url` מדפיס שורה נוספת אחרי כותרת "🌐 אבחון אתר-בלבד" — "(מסלול זה מיועד לעסקים שאומתו כלא-קיימים בגוגל מפות — no_gbp)".
+> 4. `generateNarrative` לא נעטף ב-try/catch נוסף — יש לו fallback פנימי; `usedFallback` מוסיף סיומת ל-headline בדיוק כמו בסניפט.
+> 5. **topGaps ריק ב-`formatDiagnosisSummary`:** כשאין פערים מובילים מודפסת שורה חיובית ("לא נמצאו פערים מהותיים בסריקה — בסיס דיגיטלי חזק.") במקום סקציית "פערים מובילים:" ריקה; topStrengths עדיין מוצג כרגיל. מכוסה במבחן השני שנוסף ל-`tests/cli-format.test.ts`.
+> 6. `let findings` בסניפט (שמחזיק את `BusinessCandidate`/`null` בשלב 1) שונה בפועל ל-`let candidate: BusinessCandidate | undefined` כדי לא להתנגש שמית עם `scan: ScanFindings` בהמשך הפונקציה — שינוי קוסמטי בלבד, ללא השפעה על התנהגות.
+>
+> המקור המחייב: `src/cli-diagnose.ts`.
 
-- [ ] **Step 6: בדיקת עשן חיה (עם המפתחות האמיתיים)**
+- [x] **Step 5: ירוק** — `npx vitest run` → כל החבילה PASS (160/160, 16 קבצים). `npm run typecheck` נקי.
+
+- [x] **Step 6: בדיקת עשן חיה (עם המפתחות האמיתיים)**
 
 ```bash
 npm run diagnose -- "אופטיקה בק עפולה"
@@ -2526,7 +2540,9 @@ npm run diagnose -- --url https://www.lavangroup.co.il/
 
 Expected: שניהם מסתיימים ב-`report_ready`, מדפיסים ציון, פערים, חוזקות, שלמות וצעד הבא; ללבן גרופ הפער המוביל הוא היעדר פרופיל גוגל וממד המוניטין "אין מידע".
 
-- [ ] **Step 7: commit** — `git add -A && git commit -m "feat: full diagnose CLI - scan to scored report persisted through the state machine"`
+**תוצאה בפועל:** שתי הריצות הסתיימו ב-`report_ready` ללא שגיאות. אופטיקה בק: ציון כולל 73/100 (נראות 65, מוניטין 100, נגישות 70, תשתית 50, תהליכים "אין מידע"), פערים מובילים: אין הזמנה אונליין, אין פיקסל פייסבוק, ביצועי מובייל 56/100; שלמות 30%. לבן גרופ (`--url`): ציון כולל 71/100, נראות "50 (מידע חלקי)", **מוניטין "— (אין מידע)"** כצפוי, תשתית "100 (מידע חלקי)", הפער המוביל **"העסק לא קיים במפות גוגל"** כצפוי; דגלים `no_gbp, js_rendered, pagespeed_failed` (PSI נכשל גם אחרי retry באותה ריצה — לא הופעל מסלול הכישלון הכפול כי crawl הצליח).
+
+- [x] **Step 7: commit** — `git add -A && git commit -m "feat: full diagnose CLI - scan to scored report persisted through the state machine"`
 
 ---
 

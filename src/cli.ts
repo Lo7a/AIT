@@ -1,9 +1,9 @@
 import "dotenv/config";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { searchBusiness } from "./pipeline/google/places";
 import { runScan } from "./pipeline/scan";
 import { slugify } from "./pipeline/slug";
+import { pickCandidate } from "./cli-shared";
 
 function parseArgs(argv: string[]) {
   const positional: string[] = [];
@@ -30,26 +30,13 @@ async function main() {
   }
 
   console.log(`🔎 מחפש: "${query}"...`);
-  const candidates = await searchBusiness(query);
-  if (candidates.length === 0) {
-    console.log("לא נמצא עסק מתאים. נסו לנסח אחרת או להוסיף עיר.");
+  const picked = await pickCandidate(query, pick);
+  if (!picked.chosen) {
+    console.log(picked.printed);
+    if (picked.ambiguous) { process.exitCode = 0; return; }
     process.exit(1);
   }
-  if (candidates.length > 1 && pick === undefined) {
-    console.log("נמצאו כמה מועמדים — הריצו שוב עם --pick <מספר>:");
-    candidates.slice(0, 5).forEach((c, i) => {
-      const stats = c.rating != null ? ` (⭐ ${c.rating}, ${c.reviewCount ?? 0} ביקורות)` : "";
-      console.log(`  ${i + 1}. ${c.name} — ${c.address}${stats}`);
-    });
-    process.exitCode = 0;
-    return;
-  }
-
-  const chosen = candidates[(pick ?? 1) - 1];
-  if (!chosen) {
-    console.log(`--pick ${pick} מחוץ לטווח (נמצאו ${candidates.length} מועמדים).`);
-    process.exit(1);
-  }
+  const chosen = picked.chosen;
 
   console.log(`🏢 סורק את: ${chosen.name} — ${chosen.address}`);
   // priorPlacesCalls: 1 — קריאת החיפוש שכבר בוצעה נספרת בעלות
