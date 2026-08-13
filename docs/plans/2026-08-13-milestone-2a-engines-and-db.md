@@ -1876,6 +1876,8 @@ npx prisma migrate dev --name init --create-only   # כפי שתועד למעל�
 
 10 פריטים ראשוניים. `conditions.gapKeys` מפנה למפתחות חוקים מ-`dimensions.ts` — כך ההתאמה באבן דרך 4 תהיה דטרמיניסטית. טווחים מהאפיון (5) ומהיכרות השוק; המייסדים מרחיבים ידנית בהמשך.
 
+> **חוסמים למשימת ההתאמה של אבן דרך 4 (מסקירת משימה 10):** (א) פריטי הוואטסאפ 2 ו-8 חולקים מפתח `whatsapp` עם פער מחירים פי 15 — נדרש כלל בכירות/דירוג (שדה tier או prerequisite) לפני שההתאמה נחשפת ללקוח. (ב) 8 מ-10 טווחי המחיר עדיין בלי שורת בנצ'מרק עם מקור — סקירת מייסדים למחירים לפני שטווח כלשהו מגיע ל-Project Brief (נמסר ללהב כמשימה מקבילה, 2026-08-13). (ג) שקילת מפתח upsert יציב (slug) במקום השם העברי התצוגתי — שינוי שם היום משאיר שורה יתומה.
+
 **Files:**
 - Create: `prisma/seed.ts`
 - Modify: `package.json`
@@ -1940,7 +1942,7 @@ const CATALOG: CatalogSeed[] = [
     name: "הקמת פרופיל Google Business",
     problem: "העסק לא מופיע במפות גוגל — לקוחות שמחפשים בסביבה לא מוצאים אותו",
     solution: "הקמה ומילוי מלא של פרופיל העסק: פרטים, תמונות, שעות, קטגוריות ופוסטים",
-    conditions: { gapKeys: ["gbp_exists", "gbp_rating"] },
+    conditions: { gapKeys: ["gbp_exists"] }, // gbp_rating הוסר בסקירה — נבדק רק כשכבר יש פרופיל
     costRange: "₪0–1,500 חד־פעמי",
     savingRange: "חשיפה מקומית שאובדת היום לגמרי",
     complexity: "low",
@@ -2000,7 +2002,7 @@ const CATALOG: CatalogSeed[] = [
     name: "חיבור לידים ל-CRM והתראות",
     problem: "פניות מהאתר מגיעות למייל ונקברות שם — אין מעקב מי טופל ומי נפל",
     solution: "כל פנייה נרשמת אוטומטית ב-CRM עם התראה מיידית לוואטסאפ של המטפל",
-    conditions: { gapKeys: ["contact_form", "lead_handling"] },
+    conditions: { gapKeys: ["contact_form", "lead_handling", "email_link"] }, // email_link מבדיל מפריט 1
     costRange: "₪1,200–4,000 הקמה",
     savingRange: "אפס לידים שנופלים בין הכיסאות",
     complexity: "medium",

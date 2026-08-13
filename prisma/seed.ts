@@ -55,7 +55,8 @@ const CATALOG: CatalogSeed[] = [
     name: "הקמת פרופיל Google Business",
     problem: "העסק לא מופיע במפות גוגל — לקוחות שמחפשים בסביבה לא מוצאים אותו",
     solution: "הקמה ומילוי מלא של פרופיל העסק: פרטים, תמונות, שעות, קטגוריות ופוסטים",
-    conditions: { gapKeys: ["gbp_exists", "gbp_rating"] },
+    // gbp_rating הוסר (סקירת משימה 10): הוא נבדק רק כשכבר יש פרופיל — סתירה להמלצת "הקמת פרופיל"
+    conditions: { gapKeys: ["gbp_exists"] },
     costRange: "₪0–1,500 חד־פעמי",
     savingRange: "חשיפה מקומית שאובדת היום לגמרי",
     complexity: "low",
@@ -115,7 +116,8 @@ const CATALOG: CatalogSeed[] = [
     name: "חיבור לידים ל-CRM והתראות",
     problem: "פניות מהאתר מגיעות למייל ונקברות שם — אין מעקב מי טופל ומי נפל",
     solution: "כל פנייה נרשמת אוטומטית ב-CRM עם התראה מיידית לוואטסאפ של המטפל",
-    conditions: { gapKeys: ["contact_form", "lead_handling"] },
+    // email_link נוסף (סקירת משימה 10): מבדיל את הפריט מסוכן ה-AI (פריט 1) שחולק איתו את שני המפתחות האחרים
+    conditions: { gapKeys: ["contact_form", "lead_handling", "email_link"] },
     costRange: "₪1,200–4,000 הקמה",
     savingRange: "אפס לידים שנופלים בין הכיסאות",
     complexity: "medium",
