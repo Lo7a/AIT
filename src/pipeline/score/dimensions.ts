@@ -1,10 +1,8 @@
 import type { ScanFindings } from "../types";
 import type { DimensionDef } from "./types";
+import { noGbp, crawlUsable, reviewsAnalyzed } from "../evidence";
 
-// עזרי "ידוע": מתי מותר בכלל להסיק מהאותות
-const noGbp = (f: ScanFindings) => f.partial.includes("no_gbp");
-const crawlUsable = (f: ScanFindings) => !!f.websiteSignals && !f.partial.includes("js_rendered");
-const reviewsAnalyzed = (f: ScanFindings) => !!f.reviewInsights && f.reviewInsights.totalAnalyzed > 0;
+// עזר "ידוע" מקומי לממד הזה בלבד — לא משותף (רק accessibility צריך אותו)
 const phoneFound = (f: ScanFindings) => !!f.business.phone || !!f.websiteSignals?.hasPhoneLink;
 // "חוזרת" = עולה יותר מפעם אחת במדגם שנבדק, לא כל תמה שצוינה
 const recurringProblems = (f: ScanFindings) =>

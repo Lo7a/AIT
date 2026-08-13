@@ -1,4 +1,7 @@
 import type { ScanFindings } from "../types";
+import {
+  noGbp as noGbpOf, crawlUsable as crawlUsableOf, reviewsAnalyzed as reviewsAnalyzedOf,
+} from "../evidence";
 
 // עשר הסקציות של מודל העסק (אפיון 7)
 export const MODEL_SECTIONS = [
@@ -43,20 +46,20 @@ export function completenessOf(credits: Record<ModelSection, number>): number {
 
 export function deriveBusinessModel(f: ScanFindings): BusinessModel {
   const s = f.websiteSignals;
-  const noGbp = f.partial.includes("no_gbp");
+  const noGbp = noGbpOf(f);
   const problemThemes = f.reviewInsights?.problemThemes.map((t) => t.theme) ?? [];
   const domain = domainOf(f.business.website);
 
   // ביקורות "נותחו" רק אם יש דגימה בפועל (totalAnalyzed > 0) — לא מספיק ש-reviewInsights קיים:
   // analyze/reviews יכול להחזיר אובייקט מלא עם totalAnalyzed: 0 כש-scan.ts מדגיל no_review_text
-  // (אין טקסט לאף ביקורת). "לא נבדק כלום" חייב להיראות שונה מ"נבדק ונמצא נקי" (אותו predicate
-  // כמו reviewsAnalyzed ב-score/dimensions.ts). ראו הערת as-built בתוכנית.
-  const reviewsAnalyzed = !!f.reviewInsights && f.reviewInsights.totalAnalyzed > 0;
+  // (אין טקסט לאף ביקורת). "לא נבדק כלום" חייב להיראות שונה מ"נבדק ונמצא נקי" — predicate משותף
+  // עם score/dimensions.ts דרך ../evidence (ראו הערת as-built בתוכנית).
+  const reviewsAnalyzed = reviewsAnalyzedOf(f);
 
   // יש אותות אתר וניתן לסמוך על "לא נמצא": js_rendered הופך רק היעדרים לא-מהימנים, לא נוכחויות —
-  // אותה אסימטריה שנקבעה במשימה 6 (score/dimensions.ts crawlUsable): גילוי חיובי הוא ראיה תמיד,
-  // "לא נמצא" דורש שהזחילה קראה HTML אמיתי. ראו הערת as-built בתוכנית.
-  const crawlUsable = !!s && !f.partial.includes("js_rendered");
+  // אותה אסימטריה שנקבעה במשימה 6, עכשיו predicate משותף דרך ../evidence: גילוי חיובי הוא ראיה
+  // תמיד, "לא נמצא" דורש שהזחילה קראה HTML אמיתי. ראו הערת as-built בתוכנית.
+  const crawlUsable = crawlUsableOf(f);
 
   const toolsDetected = [
     ...(s?.hasGoogleAnalytics ? ["google_analytics"] : []),
