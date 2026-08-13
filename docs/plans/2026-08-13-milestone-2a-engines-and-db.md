@@ -1880,7 +1880,7 @@ npx prisma migrate dev --name init --create-only   # כפי שתועד למעל�
 - Create: `prisma/seed.ts`
 - Modify: `package.json`
 
-- [ ] **Step 1: כתיבת ה-seed** — ליצור `prisma/seed.ts`:
+- [x] **Step 1: כתיבת ה-seed** — ליצור `prisma/seed.ts`:
 
 ```ts
 import "dotenv/config";
@@ -2029,13 +2029,15 @@ async function main() {
 main().finally(() => prisma.$disconnect());
 ```
 
-- [ ] **Step 2: סקריפט** — ב-`package.json`:
+> **הערת as-built (אחרי הרצה מול ה-DB החי):** נבדקו כל 14 ה-`gapKeys` הייחודיים שמופיעים בקטלוג (10 פריטים) מול מפתחות החוקים בפועל ב-`src/pipeline/score/dimensions.ts` — כולם קיימים ותקפים, אין אזכור ל-`platform_known` (המפתח שהוסר בסבב הסקירה) ואין מפתח יתום אחר. **לא נדרש תיקון** לנתוני ה-seed שבתוכנית — הקוד נשתל כלשונו. `prisma/seed.ts` הורץ פעמיים מול Supabase (פרנקפורט) ואומת בסקריפט חד-פעמי (נמחק אחרי): `opportunity_catalog` = 10 שורות, `benchmarks` = 2 שורות (התואם ל-2 הפריטים בקטלוג עם `benchmarks`). שים לב: `tsconfig.json` כולל רק `["src", "tests"]` — `prisma/` **לא** נכלל ב-`npm run typecheck`; הקובץ נבדק ידנית עם `tsc --noEmit` על אותן הגדרות קומפיילר ויצא נקי.
+
+- [x] **Step 2: סקריפט** — ב-`package.json`:
 
 ```json
     "db:seed": "tsx prisma/seed.ts"
 ```
 
-- [ ] **Step 3: הרצה כפולה (אידמפוטנטיות)**
+- [x] **Step 3: הרצה כפולה (אידמפוטנטיות)**
 
 ```bash
 npm run db:seed && npm run db:seed
@@ -2043,7 +2045,9 @@ npm run db:seed && npm run db:seed
 
 Expected: פעמיים `קטלוג: 10 פריטים` — בלי שגיאת כפילות.
 
-- [ ] **Step 4: commit** — `git add -A && git commit -m "feat: seed opportunity catalog (10 items) + benchmarks, idempotent"`
+אומת בפועל: שתי ריצות עצמאיות (לא רצף `&&` אחד, אלא שתי קריאות `npm run db:seed` נפרדות) — שתיהן הדפיסו `קטלוג: 10 פריטים` בלי שגיאת מפתח כפול.
+
+- [x] **Step 4: commit** — `git add -A && git commit -m "feat: seed opportunity catalog (10 items) + benchmarks, idempotent"`
 
 ---
 
