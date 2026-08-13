@@ -194,15 +194,6 @@ async function main() {
 
   await transitionDiagnosis(prisma, created.diagnosisId, "scanned");
 
-  // שלב 3.5: השלמת שורת ה-Business עם האתר שהתגלה בסריקה — רק במסלול חיפוש עסק (Places); ב---url
-  // האתר כבר נשמר בשלב היצירה. city לא מתעדכן כאן — ל-ScanFindings אין כתובת/עיר היום (ראו הערת as-built בתוכנית).
-  if (!siteUrl && scan.business.website) {
-    await prisma.business.update({
-      where: { id: created.businessId },
-      data: { website: scan.business.website },
-    });
-  }
-
   // שלב 4: ציונים, מודל עסק, נרטיב (נרטיב שנכשל לא מפיל אבחון — יש fallback בפנים)
   const score = scoreFindings(DIMENSIONS, scan);
   const model = deriveBusinessModel(scan);
@@ -212,6 +203,20 @@ async function main() {
   // שלב 5: שמירה ומעבר ל-report_ready
   await saveScanResult(prisma, created.diagnosisId, toScanRow(scan, score, narrative.narrative), model);
   await transitionDiagnosis(prisma, created.diagnosisId, "report_ready");
+
+  // שלב 5.5: השלמת שורת ה-Business עם האתר שהתגלה — כתיבה קוסמטית אחרי שהאבחון כבר נשמר;
+  // כשל כאן לא מפיל אבחון ששולם. רק במסלול Places (ב---url האתר נשמר כבר ביצירה).
+  // city לא מתעדכן — ל-ScanFindings אין כתובת היום (ראו הערת as-built בתוכנית).
+  if (!siteUrl && scan.business.website) {
+    try {
+      await prisma.business.update({
+        where: { id: created.businessId },
+        data: { website: scan.business.website },
+      });
+    } catch (err) {
+      console.error("⚠️ עדכון האתר בשורת העסק נכשל (לא קריטי):", err instanceof Error ? err.message : err);
+    }
+  }
 
   // שלב 6: פלט
   mkdirSync("output", { recursive: true });
