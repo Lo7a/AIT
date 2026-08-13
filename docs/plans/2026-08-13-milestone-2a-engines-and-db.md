@@ -516,7 +516,7 @@ export function assertTransition(from: DiagnosisStatus, to: DiagnosisStatus): vo
 - Create: `src/pipeline/score/types.ts`, `src/pipeline/score/engine.ts`
 - Test: `tests/score-engine.test.ts`
 
-- [ ] **Step 1: טיפוסים** — ליצור `src/pipeline/score/types.ts` (אין לו מבחן — טיפוסים בלבד):
+- [x] **Step 1: טיפוסים** — ליצור `src/pipeline/score/types.ts` (אין לו מבחן — טיפוסים בלבד):
 
 ```ts
 import type { ScanFindings } from "../types";
@@ -573,7 +573,7 @@ export interface ScoreReport {
 }
 ```
 
-- [ ] **Step 2: מבחן נכשל** — ליצור `tests/score-engine.test.ts` עם ממד סינתטי (לא הממדים האמיתיים — הם במשימה 6):
+- [x] **Step 2: מבחן נכשל** — ליצור `tests/score-engine.test.ts` עם ממד סינתטי (לא הממדים האמיתיים — הם במשימה 6):
 
 ```ts
 import { describe, it, expect } from "vitest";
@@ -643,9 +643,9 @@ describe("score engine", () => {
 });
 ```
 
-- [ ] **Step 3: לוודא כישלון** — `npx vitest run tests/score-engine.test.ts` → FAIL.
+- [x] **Step 3: לוודא כישלון** — `npx vitest run tests/score-engine.test.ts` → FAIL.
 
-- [ ] **Step 4: מימוש** — ליצור `src/pipeline/score/engine.ts`:
+- [x] **Step 4: מימוש** — ליצור `src/pipeline/score/engine.ts`:
 
 ```ts
 import type { ScanFindings } from "../types";
@@ -711,9 +711,9 @@ export function scoreFindings(defs: DimensionDef[], f: ScanFindings): ScoreRepor
 }
 ```
 
-- [ ] **Step 5: ירוק** — `npx vitest run tests/score-engine.test.ts` → PASS. `npm run typecheck` נקי.
+- [x] **Step 5: ירוק** — `npx vitest run tests/score-engine.test.ts` → PASS. `npm run typecheck` נקי.
 
-- [ ] **Step 6: commit** — `git commit -am "feat: generic rule-based score engine with graceful degradation"`
+- [x] **Step 6: commit** — `git commit -am "feat: generic rule-based score engine with graceful degradation"`
 
 ---
 
