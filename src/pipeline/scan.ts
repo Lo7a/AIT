@@ -74,6 +74,10 @@ export async function runScan(
       partial.push("crawl_failed");
       partialDetails.crawl_failed = reasonOf(crawlResult);
     }
+    if (websiteSignals?.jsRendered) {
+      partial.push("js_rendered");
+      partialDetails.js_rendered = "האתר מרונדר ב-JavaScript — אותות ה-HTML חלקיים";
+    }
     if (psiResult.status === "fulfilled" && psiResult.value) pageSpeed = psiResult.value;
     else if (psiResult.status === "rejected") {
       partial.push("pagespeed_failed");

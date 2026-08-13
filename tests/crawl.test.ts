@@ -8,6 +8,9 @@ const HOME = `<html><body>
 </body></html>`;
 const CONTACT = `<html><body><a href="https://wa.me/972501234567">וואטסאפ</a></body></html>`;
 const GALLERY = `<html><body>תמונות</body></html>`;
+const NEXT_HTML = `<html><head><script src="/_next/static/chunks/main.js"></script></head>
+<body><div id="__next"></div></body></html>`;
+const BROCHURE_HTML = `<html><body><h1>ברוכים הבאים</h1><p>טלפון: 03-1234567</p></body></html>`;
 
 function htmlResponse(html: string, url = "") {
   return {
@@ -175,5 +178,18 @@ describe("crawlWebsite", () => {
     });
     const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 3 });
     expect(signals.platform).toBe("wordpress");
+  });
+
+  it("flags jsRendered on a link-less page with a JS-app root marker", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(htmlResponse(NEXT_HTML));
+    const signals = await crawlWebsite("https://spa.co.il", { fetchImpl });
+    expect(signals.jsRendered).toBe(true);
+    expect(signals.pagesCrawled).toBe(1);
+  });
+
+  it("does NOT flag a plain single-page brochure site", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(htmlResponse(BROCHURE_HTML));
+    const signals = await crawlWebsite("https://simple.co.il", { fetchImpl });
+    expect(signals.jsRendered).toBe(false);
   });
 });

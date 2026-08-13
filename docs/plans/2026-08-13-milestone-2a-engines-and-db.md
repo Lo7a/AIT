@@ -156,7 +156,7 @@ export async function runPageSpeed(
 - Modify: `src/pipeline/types.ts`, `src/pipeline/crawler/crawl.ts`, `src/pipeline/scan.ts`
 - Test: `tests/crawl.test.ts`, `tests/scan.test.ts` (קיימים — מוסיפים)
 
-- [ ] **Step 1: מבחנים נכשלים**
+- [x] **Step 1: מבחנים נכשלים**
 
 ל-`tests/crawl.test.ts` (להשתמש ב-helper הקיים בקובץ ליצירת mock fetch; אם שמו שונה — להתאים):
 
@@ -190,9 +190,9 @@ it("adds a js_rendered partial flag when the crawler flags it", async () => {
 });
 ```
 
-- [ ] **Step 2: לוודא כישלון** — `npx vitest run tests/crawl.test.ts tests/scan.test.ts` → FAIL (שדה לא קיים).
+- [x] **Step 2: לוודא כישלון** — `npx vitest run tests/crawl.test.ts tests/scan.test.ts` → FAIL (שדה לא קיים).
 
-- [ ] **Step 3: מימוש**
+- [x] **Step 3: מימוש**
 
 `src/pipeline/types.ts` — להוסיף ל-`WebsiteSignals`:
 
@@ -241,9 +241,9 @@ const JS_APP_ROOT_RE = /__NEXT_DATA__|id="__next"|id="root"|data-reactroot|ng-ve
     }
 ```
 
-- [ ] **Step 4: ירוק** — `npx vitest run` → כל הקבצים PASS. `npm run typecheck` נקי.
+- [x] **Step 4: ירוק** — `npx vitest run` → כל הקבצים PASS. `npm run typecheck` נקי.
 
-- [ ] **Step 5: commit** — `git commit -am "feat: detect client-rendered sites (jsRendered flag) so missing signals are not misread as gaps"`
+- [x] **Step 5: commit** — `git commit -am "feat: detect client-rendered sites (jsRendered flag) so missing signals are not misread as gaps"`
 
 ---
 

@@ -129,6 +129,14 @@ describe("runScan", () => {
     expect(findings.meta.estCostUsd).toBeCloseTo(0.06);
   });
 
+  it("adds a js_rendered partial flag when the crawler flags it", async () => {
+    const deps = richDeps({
+      crawl: vi.fn().mockResolvedValue({ ...RICH_SIGNALS, jsRendered: true }),
+    });
+    const findings = await runScan("pid-1", deps);
+    expect(findings.partial).toContain("js_rendered");
+  });
+
   it("flags no_review_text when a rated business has no review texts", async () => {
     const rated: PlaceDetails = { ...RICH_DETAILS, reviews: [] };
     const deps = richDeps({

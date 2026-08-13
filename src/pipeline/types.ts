@@ -35,6 +35,7 @@ export interface WebsiteSignals {
   hasFacebookPixel: boolean;
   hasGoogleAnalytics: boolean;
   platform?: string;
+  jsRendered?: boolean; // האתר מרונדר בצד לקוח — האותות מה-HTML הגולמי חלקיים, אסור להסיק מהם "אין"
 }
 
 export interface PageSpeedResult {
@@ -70,7 +71,9 @@ export type PartialFlag =
   | "no_review_text"
   | "crawl_failed"
   | "pagespeed_failed"
-  | "review_analysis_failed";
+  | "review_analysis_failed"
+  | "js_rendered"
+  | "no_gbp";
 
 export interface ScanFindings {
   business: {

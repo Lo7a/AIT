@@ -25,6 +25,9 @@ const BOOL_KEYS = [
   "hasOnlineBooking", "hasChatWidget", "hasFacebookPixel", "hasGoogleAnalytics",
 ] as const;
 
+// סמני אפליקציית JS — מעוגנים בתבניות ספציפיות של React/Next/Vue/Angular, לא בכל <script>
+const JS_APP_ROOT_RE = /__NEXT_DATA__|id="__next"|id="root"|data-reactroot|ng-version=|id="app"/;
+
 function priorityOf(url: string): number {
   let lower: string;
   try {
@@ -72,6 +75,8 @@ export async function crawlWebsite(
   // עובדים עם הכתובת הסופית (אחרי redirect) — אחרת בדיקת same-origin פוסלת את כל הקישורים
   const homeUrl = homePage.finalUrl;
   const home = extractSignals(homePage.html, homeUrl);
+  // אפס קישורים פנימיים + שורש אפליקציית JS = התוכן נבנה בדפדפן, ה-HTML הגולמי כמעט ריק
+  const jsRendered = home.internalLinks.length === 0 && JS_APP_ROOT_RE.test(homePage.html);
 
   const merged: Omit<PageSignals, "internalLinks"> = { ...home };
   const crawledUrls = [homeUrl];
@@ -114,5 +119,6 @@ export async function crawlWebsite(
     hasFacebookPixel: merged.hasFacebookPixel,
     hasGoogleAnalytics: merged.hasGoogleAnalytics,
     platform: merged.platform,
+    jsRendered,
   };
 }
