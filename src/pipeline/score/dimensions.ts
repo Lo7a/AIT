@@ -31,14 +31,16 @@ export const DIMENSIONS: DimensionDef[] = [
           && !(f.partial.includes("crawl_failed") && f.partial.includes("pagespeed_failed")),
         gapText: (f) => f.partial.includes("no_website")
           ? "לעסק אין אתר — אין בית דיגיטלי להפנות אליו לקוחות"
-          : "האתר רשום בגוגל אך לא הצלחנו לטעון אותו — ייתכן שהוא לא זמין גם ללקוחות",
+          : noGbp(f)
+            ? "לא הצלחנו לטעון את האתר — ייתכן שהוא לא זמין גם ללקוחות"
+            : "האתר רשום בגוגל אך לא הצלחנו לטעון אותו — ייתכן שהוא לא זמין גם ללקוחות",
         okText: () => "לעסק יש אתר",
       },
       {
         key: "perf", points: 20,
         known: (f) => f.pageSpeed?.performanceScore != null,
         earned: (f) => (f.pageSpeed?.performanceScore ?? 0) >= 70,
-        gapText: (f) => `ציון ביצועי מובייל ${f.pageSpeed?.performanceScore}/100 — מתחת ליעד של 70`,
+        gapText: (f) => `ציון ביצועי מובייל ${f.pageSpeed?.performanceScore}/100 — מתחת ליעד של 70, מבקרים במובייל נוטים לנטוש`,
         okText: (f) => `ביצועי מובייל טובים (${f.pageSpeed?.performanceScore}/100)`,
       },
       {

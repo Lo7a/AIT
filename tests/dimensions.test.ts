@@ -127,6 +127,12 @@ describe("real dimensions", () => {
     expect(ruleOf(at({ reviewCount: 25 }), "reputation", "review_volume").earned).toBe(true);
     expect(ruleOf(at({}, { performanceScore: 70, seoScore: 90, lcpMs: 4000 }), "visibility", "perf").earned).toBe(true);
     expect(ruleOf(at({}, { performanceScore: 69, seoScore: 89, lcpMs: 4001 }), "visibility", "perf").earned).toBe(false);
+    expect(ruleOf(at({}, { performanceScore: 70, seoScore: 90, lcpMs: 4000 }), "visibility", "lcp").earned).toBe(true);
+    expect(ruleOf(at({}, { performanceScore: 69, seoScore: 89, lcpMs: 4001 }), "visibility", "lcp").earned).toBe(false);
+    expect(ruleOf(at({}, { performanceScore: 70, seoScore: 90, lcpMs: 4000 }), "visibility", "seo").earned).toBe(true);
+    expect(ruleOf(at({}, { performanceScore: 69, seoScore: 89, lcpMs: 4001 }), "visibility", "seo").earned).toBe(false);
+    expect(ruleOf(at({ reviewCount: 4 }), "reputation", "has_reviews").earned).toBe(false);
+    expect(ruleOf(at({ reviewCount: 24 }), "reputation", "review_volume").earned).toBe(false);
   });
 
   it("phone_available is unknown on the GBP path when crawl failed and GBP has no phone", () => {
