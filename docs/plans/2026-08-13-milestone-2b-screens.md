@@ -1315,7 +1315,9 @@ git commit -m "feat(2b-5): extract runDiagnosis orchestrator with progress event
 
 ---
 
-### משימה 6: שלד Next.js — התקנה, קונפיג, RTL, פריסה
+### משימה 6: שלד Next.js — התקנה, קונפיג, RTL, פריסה ✅
+
+> **As-built (1da121f + d58079d):** next@15.5.23 / react@19.2.8 / tailwind@4.3.3. Next הוסיף אוטומטית allowJs+exclude ל-tsconfig (מוטציות סטנדרטיות, נבדקו — no-op בריפו הזה). tsbuildinfo נוסף ל-gitignore. אומת אמפירית: dotenv של ה-CLI לא דורס את טעינת ה-env של Next (override=false) — עדיפות Next תמיד גוברת; אזהרה עתידית: .env.local ייקרא רק ע"י Next ולא ע"י ה-CLI — לא ליצור כזה בלי יישור שניהם. typecheck שורד גם checkout נקי בלי .next (נבדק). tsconfig מכסה מעכשיו גם את tests+prisma ב-next build — קובץ בדיקה שבור מפיל build (צימוד מודע). תזכורת שנבדקה: reactStrictMode:false הוא רק הפחתת רעש — ההגנה האמיתית נגד ירי-כפול של סריקה בתשלום היא ה-guard ברמת המודול שחובה לממש במשימה 10.
 
 Next.js 15 נכנס לחבילה הקיימת: `src/app` לצד `src/pipeline`/`src/server`. בלי workspace, בלי מונורפו — RSC מייבא את שכבת השרת ישירות.
 
