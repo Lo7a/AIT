@@ -18,11 +18,15 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
   const diagnoses: { id: string; businessId: string; status: string; createdAt: Date }[] = [];
   const scans: any[] = [];
   const models: any[] = [];
+  const messages: any[] = [];
   // "from→to" לפי סדר - לב האסרטים על מכונת המצבים. נרשמים רק מעברים שהצליחו בפועל (count:1);
   // מעבר שנכשל (race מדומה דרך failTransitions, או סטטוס לא תואם) לא משאיר עקבות כאן
   const transitions: string[] = [];
   let nextId = 1;
   const genId = (p: string) => `${p}-${nextId++}`;
+  // סדר יציב להודעות ראיון: Date.now() לבדו עלול לחזור על עצמו בין שתי יצירות רצופות באותה
+  // מילישנייה (למשל שתי ההודעות של appendExchange) - מונה עולה מבטיח סדר כרונולוגי אמיתי
+  let msgSeq = 0;
 
   const db = {
     business: {
@@ -65,6 +69,11 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
         if (!d) throw new Error("diagnosis not found");
         return { status: d.status };
       },
+      // תמיכה מינימלית ל-interview-repo.ts: שליפת אבחון בודד לפי id (select נבלע, מחזיר שורה מלאה)
+      findUnique: async ({ where }: any) => {
+        const d = diagnoses.find((x) => x.id === where.id);
+        return d ? { ...d } : null;
+      },
       // תמיכה מינימלית ל-diagnosis-lookup.ts: האבחון האחרון של עסק, ממוין לפי createdAt
       findFirst: async ({ where, orderBy }: any) => {
         let rows = diagnoses.filter((d) => d.businessId === where.businessId);
@@ -83,9 +92,56 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
         return { count: 1 };
       },
     },
-    scan: { create: async ({ data }: any) => { scans.push(data); return { id: genId("scan"), ...data }; } },
+    scan: {
+      create: async ({ data }: any) => { scans.push(data); return { id: genId("scan"), ...data }; },
+      // תמיכה מינימלית ל-interview-repo.ts: הסריקה האחרונה של אבחון, ממוין לפי createdAt
+      findFirst: async ({ where, orderBy }: any) => {
+        let rows = scans.filter((s) => where?.diagnosisId == null || s.diagnosisId === where.diagnosisId);
+        if (orderBy?.createdAt === "desc") {
+          rows = [...rows].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        }
+        return rows[0] ? { ...rows[0] } : null;
+      },
+    },
     businessModelRow: {
-      upsert: async ({ where, create }: any) => { models.push({ where, create }); return { id: genId("bm") }; },
+      // upsert אמיתי: create בפעם הראשונה לdiagnosisId נתון, update בפעמים הבאות - כדי ש-findUnique
+      // למטה יוכל להחזיר את המצב האפקטיבי האחרון (לא רק את ה-create המקורי)
+      upsert: async ({ where, update, create }: any) => {
+        const existed = models.some((m) => m.where.diagnosisId === where.diagnosisId);
+        const payload = existed ? update : create;
+        models.push({ where, create, update, payload });
+        return { id: genId("bm"), diagnosisId: where.diagnosisId, ...payload };
+      },
+      // תמיכה מינימלית ל-interview-repo.ts: המודל השמור האחרון של אבחון, או null אם לא נשמר אף פעם -
+      // נגזר מהיסטוריית ה-upsert-ים (models) ולא ממצב פנימי נפרד, כדי שהיסטוריית הבדיקות תישאר גלויה
+      findUnique: async ({ where }: any) => {
+        const last = [...models].reverse().find((m) => m.where.diagnosisId === where.diagnosisId);
+        return last ? { id: genId("bm"), diagnosisId: where.diagnosisId, ...last.payload } : null;
+      },
+    },
+    interviewMessage: {
+      create: async ({ data }: any) => {
+        const row = {
+          id: genId("msg"),
+          diagnosisId: data.diagnosisId,
+          role: data.role,
+          content: data.content,
+          questionKey: data.questionKey ?? null,
+          isFreeText: data.isFreeText ?? false,
+          createdAt: new Date(Date.now() + msgSeq++),
+        };
+        messages.push(row);
+        return { ...row };
+      },
+      findMany: async ({ where, orderBy }: any) => {
+        let rows = messages.filter((m) => where?.diagnosisId == null || m.diagnosisId === where.diagnosisId);
+        if (orderBy?.createdAt === "asc") {
+          rows = [...rows].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+        } else if (orderBy?.createdAt === "desc") {
+          rows = [...rows].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        }
+        return rows.map((m) => ({ ...m }));
+      },
     },
     // אזהרה: הפרומיסים במערך שמועבר כאן נבנים eager (הקריאות ל-.create/.upsert כבר רצות לפני
     // שה-$transaction הזה בכלל נקרא - כך גם ה-Prisma האמיתי בונה אותן), אבל בניגוד ל-PrismaPromise
@@ -95,5 +151,5 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
     $transaction: async (arr: Promise<unknown>[]) => Promise.all(arr),
   };
 
-  return { db: db as any, businesses, diagnoses, scans, models, transitions };
+  return { db: db as any, businesses, diagnoses, scans, models, messages, transitions };
 }

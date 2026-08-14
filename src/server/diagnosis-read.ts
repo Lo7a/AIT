@@ -98,7 +98,7 @@ type ModelRowDb = {
   data: unknown; fieldSources: unknown; credits: unknown; completenessPct: number; updatedAt: Date;
 };
 
-function toModelView(m: ModelRowDb): ModelView {
+export function toModelView(m: ModelRowDb): ModelView {
   return {
     data: m.data as Record<ModelSection, Record<string, unknown>>,
     fieldSources: m.fieldSources as Partial<Record<ModelSection, FieldSource[]>>,
