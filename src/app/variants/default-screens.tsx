@@ -8,6 +8,10 @@ import {
   DATA_STATUS_LABEL, PARTIAL_FLAG_LABEL, scoreTone, type ScoreToneKind,
 } from "../../pipeline/report/presenter";
 import type { DataStatus, RuleResult } from "../../pipeline/score/types";
+import type { DiagnosisStatus } from "../../server/status";
+
+// הדוח קיים גם בזמן ראיון, הקישור לא נעלם
+const HAS_REPORT: DiagnosisStatus[] = ["report_ready", "interviewing", "roadmap_ready"];
 
 // שלושת המסכים המקוריים (ברירת מחדל, מינימליזם עיתונאי) - כל גרסה חדשה מתחילה בתור
 // re-export של אלה (ראו variants/{modern,dark,vivid}/index.tsx) עד שהיא מוחלפת במימוש
@@ -46,7 +50,7 @@ export function DefaultHome({ recent }: { recent: DiagnosisListItem[] }) {
                   {d.overall != null && (
                     <span className="tabular-nums text-sm font-semibold">{d.overall}/100</span>
                   )}
-                  {d.status === "report_ready" && (
+                  {HAS_REPORT.includes(d.status) && (
                     <Link
                       href={`/report/${d.id}`}
                       className="text-sm font-medium text-[#111111] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
@@ -352,13 +356,12 @@ export function DefaultReport({ report }: { report: ReportView }) {
           </div>
           <p className="mt-4 text-[#6F6E6A]">{nextStep.reason}</p>
           <div className="mt-5 flex flex-wrap gap-3">
-            <button
-              type="button"
-              disabled
-              className="cursor-not-allowed rounded-md bg-[#111111] px-5 py-2.5 text-white opacity-40"
+            <Link
+              href={`/interview/${report.id}`}
+              className="rounded-md bg-[#111111] px-5 py-2.5 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
             >
-              רוצה דיוק גבוה יותר? ראיון של 5 דקות (בקרוב)
-            </button>
+              רוצה דיוק גבוה יותר? ראיון של 5 דקות
+            </Link>
             <button
               type="button"
               disabled
