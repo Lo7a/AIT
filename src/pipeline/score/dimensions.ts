@@ -17,7 +17,7 @@ export const DIMENSIONS: DimensionDef[] = [
       {
         key: "gbp_exists", points: 20,
         known: () => true, earned: (f) => !noGbp(f),
-        gapText: () => "העסק לא קיים במפות גוגל — לקוחות שמחפשים בסביבה פשוט לא מוצאים אותו",
+        gapText: () => "העסק לא קיים במפות גוגל, לקוחות שמחפשים בסביבה פשוט לא מוצאים אותו",
         okText: () => "לעסק פרופיל פעיל בגוגל",
       },
       {
@@ -28,31 +28,31 @@ export const DIMENSIONS: DimensionDef[] = [
         earned: (f) => !f.partial.includes("no_website")
           && !(f.partial.includes("crawl_failed") && f.partial.includes("pagespeed_failed")),
         gapText: (f) => f.partial.includes("no_website")
-          ? "לעסק אין אתר — אין בית דיגיטלי להפנות אליו לקוחות"
+          ? "לעסק אין אתר, אין בית דיגיטלי להפנות אליו לקוחות"
           : noGbp(f)
-            ? "לא הצלחנו לטעון את האתר — ייתכן שהוא לא זמין גם ללקוחות"
-            : "האתר רשום בגוגל אך לא הצלחנו לטעון אותו — ייתכן שהוא לא זמין גם ללקוחות",
+            ? "לא הצלחנו לטעון את האתר, ייתכן שהוא לא זמין גם ללקוחות"
+            : "האתר רשום בגוגל אך לא הצלחנו לטעון אותו, ייתכן שהוא לא זמין גם ללקוחות",
         okText: () => "לעסק יש אתר",
       },
       {
         key: "perf", points: 20,
         known: (f) => f.pageSpeed?.performanceScore != null,
         earned: (f) => (f.pageSpeed?.performanceScore ?? 0) >= 70,
-        gapText: (f) => `ציון ביצועי מובייל ${f.pageSpeed?.performanceScore}/100 — מתחת ליעד של 70, מבקרים במובייל נוטים לנטוש`,
+        gapText: (f) => `ציון ביצועי מובייל ${f.pageSpeed?.performanceScore}/100 - מתחת ליעד של 70, מבקרים במובייל נוטים לנטוש`,
         okText: (f) => `ביצועי מובייל טובים (${f.pageSpeed?.performanceScore}/100)`,
       },
       {
         key: "lcp", points: 15,
         known: (f) => f.pageSpeed?.lcpMs != null,
         earned: (f) => (f.pageSpeed?.lcpMs ?? Infinity) <= 4000,
-        gapText: (f) => `העמוד הראשי נטען ${sec(f.pageSpeed?.lcpMs)} שניות — מעל היעד של 4 שניות`,
+        gapText: (f) => `העמוד הראשי נטען ${sec(f.pageSpeed?.lcpMs)} שניות, מעל היעד של 4 שניות`,
         okText: (f) => `זמן טעינה תקין (${sec(f.pageSpeed?.lcpMs)} שניות)`,
       },
       {
         key: "seo", points: 10,
         known: (f) => f.pageSpeed?.seoScore != null,
         earned: (f) => (f.pageSpeed?.seoScore ?? 0) >= 90,
-        gapText: (f) => `ציון SEO ${f.pageSpeed?.seoScore}/100 — יש כשלים בסיסיים באופטימיזציה למנועי חיפוש`,
+        gapText: (f) => `ציון SEO ${f.pageSpeed?.seoScore}/100, יש כשלים בסיסיים באופטימיזציה למנועי חיפוש`,
         okText: (f) => `בסיס SEO תקין (${f.pageSpeed?.seoScore}/100)`,
       },
       {
@@ -64,7 +64,7 @@ export const DIMENSIONS: DimensionDef[] = [
       {
         key: "gbp_rating", points: 10,
         known: (f) => !noGbp(f), earned: (f) => f.business.rating != null,
-        gapText: () => "עדיין אין דירוג בגוגל — הפרופיל חדש או לא פעיל",
+        gapText: () => "עדיין אין דירוג בגוגל, הפרופיל חדש או לא פעיל",
         okText: (f) => `דירוג ${f.business.rating} בגוגל`,
       },
     ],
@@ -77,22 +77,22 @@ export const DIMENSIONS: DimensionDef[] = [
         known: (f) => !noGbp(f), earned: (f) => (f.business.reviewCount ?? 0) >= 5,
         gapText: (f) => {
           const n = f.business.reviewCount ?? 0;
-          if (n === 0) return "אין ביקורות בגוגל — לקוח חדש לא רואה שום הוכחה חברתית";
-          if (n === 1) return "רק ביקורת אחת בגוגל — מעט מדי בשביל לבנות אמון";
-          return `רק ${n} ביקורות בגוגל — מעט מדי בשביל לבנות אמון`;
+          if (n === 0) return "אין ביקורות בגוגל, לקוח חדש לא רואה שום הוכחה חברתית";
+          if (n === 1) return "רק ביקורת אחת בגוגל, מעט מדי בשביל לבנות אמון";
+          return `רק ${n} ביקורות בגוגל, מעט מדי בשביל לבנות אמון`;
         },
         okText: (f) => `${f.business.reviewCount} ביקורות בגוגל`,
       },
       {
         key: "review_volume", points: 15,
         known: (f) => !noGbp(f), earned: (f) => (f.business.reviewCount ?? 0) >= 25,
-        gapText: () => "מאגר הביקורות קטן — איסוף ביקורות יזום יחזק את הנראות המקומית",
+        gapText: () => "מאגר הביקורות קטן, איסוף ביקורות יזום יחזק את הנראות המקומית",
         okText: () => "מאגר ביקורות מכובד",
       },
       {
         key: "rating_good", points: 25,
         known: (f) => f.business.rating != null, earned: (f) => (f.business.rating ?? 0) >= 4.2,
-        gapText: (f) => `דירוג ${f.business.rating} — מתחת לרף האמון של 4.2`,
+        gapText: (f) => `דירוג ${f.business.rating}, מתחת לרף האמון של 4.2`,
         okText: (f) => `דירוג מצוין: ${f.business.rating}`,
       },
       {
@@ -129,21 +129,21 @@ export const DIMENSIONS: DimensionDef[] = [
         // גילוי חיובי תקף גם באתר js_rendered — קישור שנמצא הוא נמצא. רק "לא נמצא" דורש crawl אמין.
         known: (f) => crawlUsable(f) || !!f.websiteSignals?.hasWhatsappLink,
         earned: (f) => !!f.websiteSignals?.hasWhatsappLink,
-        gapText: () => "אין קישור וואטסאפ באתר — הערוץ שלקוחות ישראלים מצפים לו",
+        gapText: () => "אין קישור וואטסאפ באתר, הערוץ שלקוחות ישראלים מצפים לו",
         okText: () => "וואטסאפ זמין באתר",
       },
       {
         key: "contact_form", points: 15,
         known: (f) => crawlUsable(f) || !!f.websiteSignals?.hasContactForm,
         earned: (f) => !!f.websiteSignals?.hasContactForm,
-        gapText: () => "אין טופס יצירת קשר באתר — לידים הולכים לאיבוד",
+        gapText: () => "אין טופס יצירת קשר באתר, לידים הולכים לאיבוד",
         okText: () => "יש טופס יצירת קשר",
       },
       {
         key: "online_booking", points: 30,
         known: (f) => crawlUsable(f) || !!f.websiteSignals?.hasOnlineBooking,
         earned: (f) => !!f.websiteSignals?.hasOnlineBooking,
-        gapText: () => "אין קביעת תור/הזמנה אונליין — כל תיאום דורש טלפון בשעות הפעילות",
+        gapText: () => "אין קביעת תור/הזמנה אונליין, כל תיאום דורש טלפון בשעות הפעילות",
         okText: () => "יש קביעת תור אונליין",
       },
       {
@@ -162,27 +162,27 @@ export const DIMENSIONS: DimensionDef[] = [
         key: "analytics", points: 35,
         known: (f) => crawlUsable(f) || !!f.websiteSignals?.hasGoogleAnalytics,
         earned: (f) => !!f.websiteSignals?.hasGoogleAnalytics,
-        gapText: () => "אין Google Analytics — העסק עיוור לתנועה באתר שלו",
+        gapText: () => "אין Google Analytics, העסק עיוור לתנועה באתר שלו",
         okText: () => "יש מדידת תנועה (Analytics)",
       },
       {
         key: "fb_pixel", points: 30,
         known: (f) => crawlUsable(f) || !!f.websiteSignals?.hasFacebookPixel,
         earned: (f) => !!f.websiteSignals?.hasFacebookPixel,
-        gapText: () => "אין פיקסל פייסבוק — אי אפשר לעשות רימרקטינג למבקרים",
+        gapText: () => "אין פיקסל פייסבוק, אי אפשר לעשות רימרקטינג למבקרים",
         okText: () => "פיקסל פייסבוק מותקן",
       },
       {
         key: "chat_widget", points: 20,
         known: (f) => crawlUsable(f) || !!f.websiteSignals?.hasChatWidget,
         earned: (f) => !!f.websiteSignals?.hasChatWidget,
-        gapText: () => "אין צ'אט באתר — פניות מחוץ לשעות הפעילות אובדות",
+        gapText: () => "אין צ'אט באתר, פניות מחוץ לשעות הפעילות אובדות",
         okText: () => "יש צ'אט באתר",
       },
       {
         key: "multi_page", points: 15,
         known: crawlUsable, earned: (f) => (f.websiteSignals?.pagesCrawled ?? 0) >= 4,
-        gapText: () => "בסריקה נמצאו עמודים בודדים בלבד — אתר רזה מקשה על לקוחות למצוא מידע",
+        gapText: () => "בסריקה נמצאו עמודים בודדים בלבד, אתר רזה מקשה על לקוחות למצוא מידע",
         okText: (f) => `אתר עם ${f.websiteSignals?.pagesCrawled} עמודים ומעלה`,
       },
     ],

@@ -106,7 +106,7 @@ export async function transitionDiagnosis(
     data: { status: to },
   });
   if (result.count === 0) {
-    throw new Error(`מעבר סטטוס נכשל — הסטטוס השתנה במקביל (${current.status} → ${to})`);
+    throw new Error(`מעבר סטטוס נכשל - הסטטוס השתנה במקביל (${current.status} → ${to})`);
   }
 }
 

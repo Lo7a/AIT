@@ -68,7 +68,7 @@ export async function runPageSpeed(
   } catch (err) {
     // PSI מריץ Lighthouse אמיתי — ריצה ראשונה על אתר "קר" נופלת לעיתים בטיים-אאוט ומצליחה מיד אחריה
     if (isTimeoutError(err)) {
-      console.warn("PageSpeed: טיים-אאוט בניסיון הראשון — מנסה שוב עם חלון קצר יותר");
+      console.warn("PageSpeed: טיים-אאוט בניסיון הראשון, מנסה שוב עם חלון קצר יותר");
       return attemptPageSpeed(url, opts, RETRY_TIMEOUT_MS);
     }
     throw err;

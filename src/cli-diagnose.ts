@@ -13,7 +13,7 @@ import type { DiagnoseEvent } from "./server/diagnose-events";
 function printEvent(e: DiagnoseEvent): void {
   switch (e.type) {
     case "created": console.log(`📋 אבחון ${e.diagnosisId} נוצר`); break;
-    case "step": console.log(`⏳ ${e.label}…`); break;
+    case "step": console.log(`⏳ ${e.label}...`); break;
     case "step_done": console.log(`   ${e.ok ? "✓" : "✗"} ${e.detail ?? ""}`); break;
     // done/error מטופלים בזרימה הראשית
     case "done": case "error": break;
@@ -28,7 +28,7 @@ async function main() {
   }
   const { query, pick, url } = parsed;
   if (!query && !url) {
-    console.log('שימוש: npm run diagnose -- "שם עסק עיר" [--pick N] | npm run diagnose -- --url https://…');
+    console.log('שימוש: npm run diagnose -- "שם עסק עיר" [--pick N] | npm run diagnose -- --url https://...');
     process.exit(1);
   }
 
@@ -44,10 +44,10 @@ async function main() {
     }
     console.log(`🌐 אבחון אתר-בלבד: ${siteUrl.href}`);
     // תזכורת חד-שורתית — מסלול זה מיועד לעסקים שאומתו כלא-קיימים בגוגל מפות, לא תחליף לחיפוש כשיש ספק
-    console.log("   (מסלול זה מיועד לעסקים שאומתו כלא-קיימים בגוגל מפות — no_gbp)");
+    console.log("   (מסלול זה מיועד לעסקים שאומתו כלא-קיימים בגוגל מפות: no_gbp)");
     // --url תמיד גובר על שם עסק/--pick שהתקבלו יחד איתו (אותה התנהגות כמו קודם) — עכשיו גם גלוי למשתמש
     if (query || pick != null) {
-      console.log("   ⚠️  התקבלו גם שם עסק ו/או --pick לצד --url — הם מתעלמים; מסלול --url תמיד גובר");
+      console.log("   ⚠️  התקבלו גם שם עסק ו/או --pick לצד --url, הם מתעלמים; מסלול --url תמיד גובר");
     }
   }
 
@@ -59,7 +59,7 @@ async function main() {
       // מיושר עם src/cli.ts: "כמה מועמדים, אין --pick" הוא לא שגיאה (יציאה 0), רק דורש קלט נוסף
       process.exit(picked.ambiguous ? 0 : 1);
     }
-    console.log(`🏢 מאבחן את: ${picked.chosen.name} — ${picked.chosen.address}`);
+    console.log(`🏢 מאבחן את: ${picked.chosen.name} - ${picked.chosen.address}`);
     candidate = picked.chosen;
   }
 
@@ -87,7 +87,7 @@ async function main() {
   writeFileSync(file, JSON.stringify({ findings: scan, score, model, nextStep, narrative }, null, 2), "utf8");
 
   console.log("\n✅ האבחון הושלם ונשמר (status: report_ready)\n");
-  console.log(`📣 ${narrative.narrative.headline}${narrative.usedFallback ? " (נרטיב תבנית — LLM לא אושר)" : ""}`);
+  console.log(`📣 ${narrative.narrative.headline}${narrative.usedFallback ? " (נרטיב תבנית, LLM לא אושר)" : ""}`);
   console.log(narrative.narrative.summary + "\n");
   console.log(formatDiagnosisSummary(score, model, nextStep));
   console.log(`\n   קובץ: ${file}`);

@@ -46,9 +46,9 @@ export function SearchBox() {
         if (res.status === 502) {
           // שגיאת צד-ספק עוברת ללוג בלבד — הטקסט הגולמי עלול להכיל פרטי תשתית (סקירת משימה 7)
           console.error("search upstream error:", data?.error);
-          setError("החיפוש נכשל — נסו שוב בעוד רגע");
+          setError("החיפוש נכשל, נסו שוב בעוד רגע");
         } else {
-          setError(data?.error ?? "החיפוש נכשל — נסו שוב");
+          setError(data?.error ?? "החיפוש נכשל, נסו שוב");
         }
         return;
       }
@@ -62,7 +62,7 @@ export function SearchBox() {
       }
       setCandidates(data.candidates);
     } catch {
-      setError("החיפוש נכשל — נסו שוב");
+      setError("החיפוש נכשל, נסו שוב");
     } finally {
       setBusy(false);
     }
@@ -75,40 +75,40 @@ export function SearchBox() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="שם העסק או כתובת האתר"
-          className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-lg shadow-sm focus:border-blue-500 focus:outline-none"
+          className="flex-1 rounded-lg border border-stone-300 bg-white px-4 py-3 text-lg shadow-sm focus:border-teal-700 focus:outline-none"
         />
         <input
           value={city}
           onChange={(e) => setCity(e.target.value)}
           placeholder="עיר (לא חובה)"
-          className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-lg shadow-sm focus:border-blue-500 focus:outline-none sm:w-40"
+          className="rounded-lg border border-stone-300 bg-white px-4 py-3 text-lg shadow-sm focus:border-teal-700 focus:outline-none sm:w-40"
         />
         <button
           type="submit"
           disabled={busy}
-          className="rounded-xl bg-blue-600 px-6 py-3 text-lg font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
+          className="rounded-lg bg-teal-700 px-6 py-3 text-lg font-semibold text-white shadow-sm hover:bg-teal-800 disabled:opacity-50"
         >
-          {busy ? "מחפשים…" : "אבחן את העסק שלי"}
+          {busy ? "מחפשים..." : "אבחן את העסק שלי"}
         </button>
       </form>
 
       {error && <p className="mt-3 text-red-600">{error}</p>}
 
       {candidates && (
-        <ul className="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white shadow-sm">
+        <ul className="mt-4 divide-y divide-stone-100 rounded-lg border border-stone-200 bg-white shadow-sm">
           {candidates.map((c) => (
             <li key={c.placeId}>
               <button
                 type="button"
                 onClick={() => chooseCandidate(c)}
-                className="flex w-full items-center justify-between px-4 py-3 text-right hover:bg-slate-50"
+                className="flex w-full items-center justify-between px-4 py-3 text-right hover:bg-stone-50"
               >
                 <span>
                   <span className="font-medium">{c.name}</span>
-                  <span className="block text-sm text-slate-500">{c.address}</span>
+                  <span className="block text-sm text-stone-500">{c.address}</span>
                 </span>
                 {c.rating != null && (
-                  <span className="text-sm text-slate-600">{c.rating} ★ ({c.reviewCount ?? 0})</span>
+                  <span className="text-sm text-stone-600">{c.rating} ★ ({c.reviewCount ?? 0})</span>
                 )}
               </button>
             </li>

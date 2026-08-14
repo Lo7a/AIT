@@ -90,17 +90,17 @@ describe("makeDiagnoseHandler", () => {
     const res = await handler(req({ placeId: "p1", name: "עסק" }));
     expect(res.status).toBe(200);
     const events = await eventsOf(res);
-    expect(events[events.length - 1]).toEqual({ type: "error", message: "האבחון נכשל — נסו שוב בעוד רגע" });
+    expect(events[events.length - 1]).toEqual({ type: "error", message: "האבחון נכשל, נסו שוב בעוד רגע" });
   });
 
   it("runner שנכשל עם DiagnoseFailed — ההודעה העברית המוכרת עוברת כמות שהיא", async () => {
     const handler = makeDiagnoseHandler(async () => {
-      throw new DiagnoseFailed("שני המקורות נכשלו — אין ממצאים לאבחון");
+      throw new DiagnoseFailed("שני המקורות נכשלו, אין ממצאים לאבחון");
     });
     const res = await handler(req({ placeId: "p1", name: "עסק" }));
     expect(res.status).toBe(200);
     const events = await eventsOf(res);
-    expect(events[events.length - 1]).toEqual({ type: "error", message: "שני המקורות נכשלו — אין ממצאים לאבחון" });
+    expect(events[events.length - 1]).toEqual({ type: "error", message: "שני המקורות נכשלו, אין ממצאים לאבחון" });
   });
 
   it("runner שזורק סינכרונית (בלי להגיע ל-await ראשון) — עדיין 200 וזרם עם error בסוף", async () => {
@@ -108,7 +108,7 @@ describe("makeDiagnoseHandler", () => {
     const res = await handler(req({ placeId: "p1", name: "עסק" }));
     expect(res.status).toBe(200);
     const events = await eventsOf(res);
-    expect(events[events.length - 1]).toEqual({ type: "error", message: "האבחון נכשל — נסו שוב בעוד רגע" });
+    expect(events[events.length - 1]).toEqual({ type: "error", message: "האבחון נכשל, נסו שוב בעוד רגע" });
   });
 
   it("runner שנכשל אחרי אירועים — האירועים שקדמו נשמרים בזרם", async () => {

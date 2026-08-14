@@ -13,7 +13,7 @@ async function main() {
     process.exit(1);
   }
   if (parsed.url) {
-    console.log("--url נתמך רק ב-diagnose: npm run diagnose -- --url https://…");
+    console.log("--url נתמך רק ב-diagnose: npm run diagnose -- --url https://...");
     process.exit(1);
   }
   const { query, pick } = parsed;
@@ -31,7 +31,7 @@ async function main() {
   }
   const chosen = picked.chosen;
 
-  console.log(`🏢 סורק את: ${chosen.name} — ${chosen.address}`);
+  console.log(`🏢 סורק את: ${chosen.name} - ${chosen.address}`);
   // priorPlacesCalls: 1 — קריאת החיפוש שכבר בוצעה נספרת בעלות
   const findings = await runScan(chosen.placeId, undefined, { priorPlacesCalls: 1 });
 
@@ -42,7 +42,7 @@ async function main() {
   console.log("\n✅ הסריקה הושלמה");
   console.log(`   קובץ: ${file}`);
   console.log(`   משך: ${((Date.now() - cliStart) / 1000).toFixed(1)} שניות (מתוכן סריקה: ${(findings.meta.durationMs / 1000).toFixed(1)})`);
-  console.log(`   חלקים חסרים: ${findings.partial.length > 0 ? findings.partial.join(", ") : "אין — סריקה מלאה"}`);
+  console.log(`   חלקים חסרים: ${findings.partial.length > 0 ? findings.partial.join(", ") : "אין (סריקה מלאה)"}`);
   if (findings.partialDetails) {
     for (const [flag, reason] of Object.entries(findings.partialDetails)) {
       console.log(`     · ${flag}: ${reason}`);

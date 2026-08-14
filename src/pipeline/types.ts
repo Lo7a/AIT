@@ -76,7 +76,7 @@ export type PartialFlag =
   | "no_gbp";
 
 // הסבר דגל js_rendered — משותף ל-runScan ול-scanWebsiteOnly (משימה 3)
-export const JS_RENDERED_DETAIL = "האתר מרונדר ב-JavaScript — אותות ה-HTML חלקיים";
+export const JS_RENDERED_DETAIL = "האתר מרונדר ב-JavaScript - אותות ה-HTML חלקיים";
 
 export interface ScanFindings {
   business: {

@@ -144,13 +144,13 @@ ${gapsInstruction}
 
 export function fallbackNarrative(f: ScanFindings, score: ScoreReport): ReportNarrative {
   const overallLine = score.overall == null
-    ? `אין מספיק מידע ציבורי על ${f.business.name} לציון כולל — וזה כשלעצמו ממצא`
+    ? `אין מספיק מידע ציבורי על ${f.business.name} לציון כולל, וזה כשלעצמו ממצא`
     : `${f.business.name}: ציון דיגיטלי ${score.overall} מתוך 100`;
   return {
     headline: overallLine,
     summary: score.topGaps.length > 0
       ? `הפערים המרכזיים שמצאנו: ${score.topGaps.map((g) => g.text).join(" · ")}`
-      : "לא מצאנו פערים מהותיים בסריקה הציבורית — בסיס דיגיטלי חזק.",
+      : "לא מצאנו פערים מהותיים בסריקה הציבורית. בסיס דיגיטלי חזק.",
     gapExplanations: score.topGaps.map((g) => ({ ruleKey: g.ruleKey, explanation: g.text })),
   };
 }

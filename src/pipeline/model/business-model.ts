@@ -139,7 +139,7 @@ export function recommendNextStep(m: BusinessModel): NextStepRecommendation {
     return {
       action: "free_text",
       // ניסוח שנכון גם כש"אין מידע ציבורי" וגם כשהיה מידע אבל לא הצלחנו לאסוף אותו (crawl/PSI נכשלו)
-      reason: "כמעט ולא הצלחנו לאסוף מידע על העסק ממקורות ציבוריים — ספר לנו עליו במילים שלך וזה ימלא את התמונה",
+      reason: "כמעט ולא הצלחנו לאסוף מידע על העסק ממקורות ציבוריים, ספר לנו עליו במילים שלך וזה ימלא את התמונה",
     };
   }
   // קרדיט 0.5 (מהסריקה בלבד) עדיין נחשב "לא הושלם" — רק אישור בראיון (קרדיט 1) סוגר סקציה.
@@ -149,6 +149,6 @@ export function recommendNextStep(m: BusinessModel): NextStepRecommendation {
   const label = missing?.[1] ?? "העסק";
   return {
     action: "interview",
-    reason: `השלם כמה שאלות על ${label} — זה ישפר משמעותית את דיוק ההמלצות`,
+    reason: `השלם כמה שאלות על ${label}, זה ישפר משמעותית את דיוק ההמלצות`,
   };
 }

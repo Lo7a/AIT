@@ -29,7 +29,7 @@ export function parseDiagnoseBody(body: unknown): DiagnoseTarget | { error: stri
   const hasUrl = typeof b.url === "string" && b.url.length > 0;
   // בדיוק אחד מהמסלולים; שדה בטיפוס לא-נכון (placeId מספרי) לא עובר המרה שקטה
   if (hasPlace === hasUrl || (b.placeId != null && typeof b.placeId !== "string") || (b.url != null && typeof b.url !== "string")) {
-    return { error: "יש לשלוח placeId+name או url — בדיוק אחד מהם" };
+    return { error: "יש לשלוח placeId+name או url - בדיוק אחד מהם" };
   }
   if (hasUrl) {
     try {
@@ -91,7 +91,7 @@ export function makeDiagnoseHandler(run: DiagnoseRunner) {
               emit({ type: "error", message: err.message });
             } else {
               console.error("⚠️ אבחון נכשל (פרטים בצד שרת בלבד):", err);
-              emit({ type: "error", message: "האבחון נכשל — נסו שוב בעוד רגע" });
+              emit({ type: "error", message: "האבחון נכשל, נסו שוב בעוד רגע" });
             }
           })
           .finally(() => {

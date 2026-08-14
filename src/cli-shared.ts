@@ -94,10 +94,10 @@ export async function pickCandidate(query: string, pick?: number): Promise<PickR
   }
   const lines = candidates.slice(0, MAX_LISTED_CANDIDATES).map((c, i) => {
     const extra = c.rating != null ? ` (⭐ ${c.rating}, ${c.reviewCount ?? 0} ביקורות)` : "";
-    return `  ${i + 1}. ${c.name} — ${c.address}${extra}`;
+    return `  ${i + 1}. ${c.name} - ${c.address}${extra}`;
   });
   return {
-    printed: `נמצאו כמה מועמדים — הריצו שוב עם --pick <מספר>:\n${lines.join("\n")}`,
+    printed: `נמצאו כמה מועמדים. הריצו שוב עם --pick <מספר>:\n${lines.join("\n")}`,
     ambiguous: true,
   };
 }

@@ -45,7 +45,7 @@ export class DiagnoseFailed extends Error {}
 
 type Emit = (e: DiagnoseEvent) => void;
 
-const CONTINUES_WITHOUT_DETAIL = "לא הצליח — ממשיכים בלי המקור הזה";
+const CONTINUES_WITHOUT_DETAIL = "לא הצליח - ממשיכים בלי המקור הזה";
 
 // step: עוטף dep יחיד בזוג אירועי step/step_done. failDetail מותאם למשמעות האמיתית של הכישלון —
 // עבור dep לא-פטאלי (crawl/pagespeed/reviews/narrative) "ממשיכים בלי המקור הזה" נכון; עבור dep פטאלי
@@ -139,7 +139,7 @@ export async function runDiagnosis(
 
     // מסלול URL: כישלון כפול (גם crawl וגם PSI) = אין שום ממצא — נבדק לפני scanned
     if (target.kind === "url" && findings.partial.includes("crawl_failed") && findings.partial.includes("pagespeed_failed")) {
-      throw new DiagnoseFailed("שני המקורות נכשלו — אין ממצאים לאבחון");
+      throw new DiagnoseFailed("שני המקורות נכשלו, אין ממצאים לאבחון");
     }
   } catch (err) {
     try {
