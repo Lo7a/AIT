@@ -1,0 +1,2036 @@
+<!DOCTYPE html>
+<!--
+  CONCEPT: "עיתון האבחון" / THE DIAGNOSIS GAZETTE
+  Chosen direction: a hybrid of "Premium Editorial Scrollytelling Document" + "Oversized Kinetic Hebrew Typography"
+  with "Processing Theater + Held-Back Score Moment" for the live scan, and "Data-as-Art living receipt" details.
+  Paradigm: the diagnosis as a printed press artifact on warm paper. Act 1 (entry) is the front gate with huge
+  confident Hebrew type. Act 2 (scan) flips to an ink-black live broadcast room, honest checks stamping in on a loop.
+  Act 3 (report) is the front page: masthead, a withheld score that draws itself and lands as a moment, verdict
+  headline in display type, biomarker-style dimension strips, money-leak findings, and a transparent score receipt.
+  Not SaaS-light, not dark-glass: warm paper, ink, one hot accent, ledger leaders, stamps, live type.
+-->
+<html dir="rtl" lang="he" data-palette="p1" data-font="f1">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>AIT - עיתון האבחון</title>
+<script>
+try{
+  var d=document.documentElement;
+  d.classList.add("js");
+  var q=new URLSearchParams(location.search);
+  d.setAttribute("data-palette",q.get("pal")||localStorage.getItem("ait-vc-palette")||"p1");
+  d.setAttribute("data-font",q.get("font")||localStorage.getItem("ait-vc-font")||"f1");
+}catch(e){}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@200..800&family=Frank+Ruhl+Libre:wght@300;400;500;700;900&family=Heebo:wght@100..900&family=IBM+Plex+Mono:wght@400;500;600&family=Rubik:wght@300..900&family=Secular+One&family=Suez+One&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f6f0e2;
+    --paper-2:#fbf7ec;
+    --card:#fcf9f0;
+    --paper-rgb:246,240,226;
+    --ink:#201812;
+    --ink-2:#54483a;
+    --ink-3:#8d8070;
+    --ink-rgb:32,24,18;
+    --line:rgba(32,24,18,.22);
+    --line-soft:rgba(32,24,18,.1);
+    --accent:#c2401c;
+    --accent-deep:#96300e;
+    --accent-rgb:194,64,28;
+    --accent-soft:rgba(194,64,28,.08);
+    --accent-on-ink:#e8825c;
+    --good:#2c7a52;
+    --good-soft:#e3efe6;
+    --warn:#a8720f;
+    --warn-soft:#f5ead1;
+    --bad:#b3402e;
+    --bad-soft:#f6e2dc;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+    --ease:cubic-bezier(.16,1,.3,1);
+    --font-display:'Suez One',system-ui,sans-serif;
+    --display-weight:400;
+    --font-body:'Heebo',system-ui,sans-serif;
+  }
+  html[data-palette="p2"]{
+    --paper:#f1f0e9;
+    --paper-2:#f8f7f0;
+    --card:#faf9f3;
+    --paper-rgb:241,240,233;
+    --ink:#171a26;
+    --ink-2:#454a5c;
+    --ink-3:#7f8494;
+    --ink-rgb:23,26,38;
+    --line:rgba(23,26,38,.22);
+    --line-soft:rgba(23,26,38,.1);
+    --accent:#23409f;
+    --accent-deep:#182e78;
+    --accent-rgb:35,64,159;
+    --accent-soft:rgba(35,64,159,.08);
+    --accent-on-ink:#8ba2f2;
+  }
+  html[data-palette="p3"]{
+    --paper:#f1efe2;
+    --paper-2:#f8f6ea;
+    --card:#faf8ee;
+    --paper-rgb:241,239,226;
+    --ink:#16211b;
+    --ink-2:#43514a;
+    --ink-3:#7d8a82;
+    --ink-rgb:22,33,27;
+    --line:rgba(22,33,27,.22);
+    --line-soft:rgba(22,33,27,.1);
+    --accent:#17694a;
+    --accent-deep:#0e4d35;
+    --accent-rgb:23,105,74;
+    --accent-soft:rgba(23,105,74,.08);
+    --accent-on-ink:#5fbd94;
+  }
+  html[data-font="f2"]{
+    --font-display:'Frank Ruhl Libre',serif;
+    --display-weight:800;
+    --font-body:'Assistant',system-ui,sans-serif;
+  }
+  html[data-font="f3"]{
+    --font-display:'Secular One',system-ui,sans-serif;
+    --display-weight:400;
+    --font-body:'Rubik',system-ui,sans-serif;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--font-body);
+    background:
+      radial-gradient(rgba(var(--ink-rgb),.05) 1px,transparent 1.3px) 0 0/26px 26px,
+      var(--paper);
+    color:var(--ink);
+    line-height:1.6;
+    min-width:1000px;
+  }
+  ::selection{background:var(--accent);color:var(--paper)}
+  .display,h1,h2,h3{font-family:var(--font-display);font-weight:var(--display-weight)}
+  .mono{font-family:var(--mono)}
+  button{font-family:inherit}
+  input{font-family:inherit;color:inherit}
+  :focus-visible{outline:2.5px solid var(--accent);outline-offset:3px;border-radius:3px}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 44px}
+
+  /* ============ control bar ============ */
+  .ctrlbar{
+    position:sticky;top:0;z-index:60;
+    background:rgba(var(--paper-rgb),.94);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .ctrlbar-inner{
+    max-width:1200px;margin:0 auto;padding:0 44px;
+    height:46px;display:flex;align-items:center;gap:12px;
+    font-size:12px;color:var(--ink-3);
+  }
+  .ctrl-label{font-weight:600;color:var(--ink-2);font-size:12.5px}
+  .pal-dots{display:flex;align-items:center;gap:9px}
+  .pal-dot{
+    width:24px;height:24px;border-radius:50%;
+    border:2px solid var(--paper-2);
+    box-shadow:0 0 0 1.5px var(--line);cursor:pointer;padding:0;
+    background:var(--dot);
+    transition:transform .18s var(--ease),box-shadow .18s var(--ease);
+  }
+  .pal-dot:hover{transform:scale(1.12)}
+  .pal-dot:active{transform:scale(.92)}
+  .pal-dot.on{box-shadow:0 0 0 2px var(--paper-2),0 0 0 4.5px var(--dot)}
+  .ctrl-sep{width:1px;height:18px;background:var(--line);margin:0 6px}
+  .font-btns{display:flex;align-items:center;gap:7px}
+  .font-btn{
+    font-size:13px;color:var(--ink-2);
+    border:1.5px solid var(--line);background:transparent;
+    border-radius:999px;padding:4px 14px;cursor:pointer;
+    transition:border-color .2s,color .2s,background .2s,transform .18s var(--ease);
+  }
+  .font-btn:hover{border-color:var(--accent);color:var(--accent-deep)}
+  .font-btn:active{transform:scale(.95)}
+  .font-btn.on{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+  .ctrl-note{margin-inline-start:auto;font-size:11.5px;color:var(--ink-3);letter-spacing:.04em}
+
+  /* ============ masthead nav ============ */
+  .topnav{
+    position:sticky;top:46px;z-index:50;
+    background:rgba(var(--paper-rgb),.92);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    border-bottom:2.5px solid var(--ink);
+  }
+  .topnav-inner{
+    max-width:1200px;margin:0 auto;padding:0 44px;
+    height:62px;display:flex;align-items:center;gap:26px;
+  }
+  .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--ink)}
+  .brand-mark{
+    width:34px;height:34px;background:var(--ink);color:var(--paper);
+    display:grid;place-items:center;
+    font-family:var(--font-display);font-weight:var(--display-weight);font-size:19px;
+    border-radius:6px;position:relative;
+  }
+  .brand-mark::after{
+    content:"";position:absolute;inset-inline-end:-3px;top:-3px;
+    width:10px;height:10px;background:var(--accent);border-radius:2px;
+  }
+  .brand-name{font-family:var(--font-display);font-weight:var(--display-weight);font-size:20px;letter-spacing:.02em}
+  .brand-sub{font-size:11px;color:var(--ink-3);margin-top:-3px;letter-spacing:.06em}
+  .nav-links{display:flex;gap:2px;margin-inline-start:12px}
+  .nav-links a{
+    text-decoration:none;color:var(--ink-2);font-size:13.5px;font-weight:600;
+    padding:8px 15px;border-radius:999px;display:flex;align-items:center;gap:8px;
+    transition:background .25s var(--ease),color .25s var(--ease);
+  }
+  .nav-links a .no{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);transition:color .25s}
+  .nav-links a:hover{background:rgba(var(--ink-rgb),.07)}
+  .nav-links a.active{background:var(--ink);color:var(--paper)}
+  .nav-links a.active .no{color:var(--accent-on-ink)}
+  .nav-edition{
+    margin-inline-start:auto;font-family:var(--mono);font-size:11px;color:var(--ink-3);
+    display:flex;align-items:center;gap:8px;letter-spacing:.03em;
+  }
+  .nav-edition .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:breathe 2.6s ease-in-out infinite}
+  @keyframes breathe{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.75)}}
+
+  /* ============ section chrome + gallery ============ */
+  section{position:relative;padding:74px 0 96px}
+  .sec-head{display:flex;align-items:center;gap:18px;margin-bottom:34px}
+  .sec-no{font-family:var(--mono);font-size:13px;color:var(--accent);font-weight:600;letter-spacing:.1em}
+  .sec-name{font-size:13.5px;font-weight:700;letter-spacing:.14em;color:var(--ink-2)}
+  .sec-rule{flex:1;height:1.5px;background:var(--line)}
+  .gallery-ctrl{display:flex;align-items:center;gap:10px}
+  .gal-btn{
+    width:30px;height:30px;border-radius:9px;
+    border:1.5px solid var(--line);background:transparent;
+    display:grid;place-items:center;cursor:pointer;color:var(--ink-2);
+    transition:border-color .2s,color .2s,background .2s,transform .18s var(--ease);
+  }
+  .gal-btn:hover{color:var(--paper);background:var(--ink);border-color:var(--ink)}
+  .gal-btn:active{transform:scale(.9)}
+  .gal-count{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);min-width:104px;text-align:center;letter-spacing:.02em}
+  .layout-alt{display:none}
+  .layout-alt.on{display:block;animation:altIn .32s var(--ease)}
+  @keyframes altIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  /* ============ shared atoms ============ */
+  .kicker{
+    display:inline-flex;align-items:center;gap:10px;
+    font-size:12.5px;font-weight:700;letter-spacing:.14em;color:var(--ink-2);
+  }
+  .kicker::before{content:"";width:9px;height:9px;background:var(--accent);border-radius:2px;flex:none}
+  .btn-main{
+    display:inline-flex;align-items:center;justify-content:center;gap:10px;
+    background:var(--ink);color:var(--paper);border:none;cursor:pointer;
+    font-family:var(--font-body);font-size:16.5px;font-weight:700;
+    padding:16px 30px;border-radius:12px;
+    box-shadow:-6px 6px 0 var(--accent);
+    transition:transform .18s var(--ease),box-shadow .18s var(--ease);
+  }
+  .btn-main:hover{transform:translate(-2px,2px);box-shadow:-3px 3px 0 var(--accent)}
+  .btn-main:active{transform:translate(-5px,5px);box-shadow:0 0 0 var(--accent)}
+  .btn-ghost{
+    display:inline-flex;align-items:center;gap:8px;
+    background:transparent;border:1.5px solid var(--line);color:var(--ink-2);
+    font-family:var(--font-body);font-size:14px;font-weight:600;
+    padding:11px 22px;border-radius:12px;cursor:pointer;
+    transition:border-color .2s,color .2s;
+  }
+  .btn-ghost:hover{border-color:var(--ink);color:var(--ink)}
+  .chip{
+    display:inline-flex;align-items:center;gap:7px;
+    font-size:12.5px;font-weight:700;letter-spacing:.02em;
+    border:1.5px solid;border-radius:999px;padding:4px 13px;white-space:nowrap;
+  }
+  .chip .n{font-family:var(--mono);font-weight:600}
+  .c-good{color:var(--good);border-color:var(--good);background:var(--good-soft)}
+  .c-warn{color:var(--warn);border-color:var(--warn);background:var(--warn-soft)}
+  .c-bad{color:var(--bad);border-color:var(--bad);background:var(--bad-soft)}
+  .c-mute{color:var(--ink-3);border-style:dashed;border-color:var(--ink-3);background:transparent}
+  .stamp{
+    display:inline-block;font-family:var(--font-display);font-weight:var(--display-weight);
+    color:var(--accent);border:2.5px solid var(--accent);border-radius:8px;
+    padding:5px 16px;letter-spacing:.1em;transform:rotate(-4deg);
+    font-size:15px;opacity:.92;
+  }
+  .lrow{display:flex;align-items:baseline;gap:12px}
+  .leader{flex:1;border-bottom:2px dotted var(--line);transform:translateY(-4px)}
+  .hairline{height:1px;background:var(--line)}
+
+  /* reveal system */
+  html.js [data-reveal]{opacity:0;transform:translateY(26px);transition:opacity .85s var(--ease),transform .85s var(--ease)}
+  html.js [data-reveal].in{opacity:1;transform:none}
+  .wm{display:inline-block;overflow:hidden;vertical-align:bottom;padding-bottom:.08em;margin-bottom:-.08em}
+  .wi{display:inline-block;will-change:transform}
+
+  /* ============ ENTRY ============ */
+  #entry{padding-top:58px}
+  .gaz-head{
+    display:flex;align-items:baseline;justify-content:space-between;
+    border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:44px;
+    font-family:var(--mono);font-size:11.5px;color:var(--ink-3);letter-spacing:.05em;
+  }
+  .hero-giant{
+    font-family:var(--font-display);font-weight:var(--display-weight);
+    font-size:clamp(64px,8.4vw,118px);line-height:1.04;letter-spacing:-.01em;
+    margin:6px 0 26px;
+  }
+  .hero-giant .l2{color:var(--accent)}
+  .hero-sub{font-size:17.5px;color:var(--ink-2);max-width:56ch;line-height:1.75}
+  .hero-top{display:grid;grid-template-columns:1.25fr .75fr;gap:56px;align-items:end;margin-bottom:46px}
+  .hero-side{border-inline-start:2.5px solid var(--ink);padding-inline-start:26px;padding-bottom:6px}
+  .hero-side .big-quote{font-family:var(--font-display);font-weight:var(--display-weight);font-size:21px;line-height:1.5;margin-bottom:14px}
+  .hero-side .who{font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+
+  .counter-bar{
+    display:grid;grid-template-columns:1.5fr 1fr auto;align-items:stretch;
+    border:2.5px solid var(--ink);border-radius:16px;background:var(--card);
+    box-shadow:-8px 8px 0 rgba(var(--ink-rgb),.09);
+    overflow:hidden;
+  }
+  .cfield{display:flex;flex-direction:column;justify-content:center;padding:16px 24px;gap:3px}
+  .cfield + .cfield{border-inline-start:1.5px solid var(--line)}
+  .cfield label{font-size:11.5px;font-weight:700;letter-spacing:.1em;color:var(--ink-3)}
+  .cfield input{
+    border:none;background:transparent;font-size:17px;font-weight:600;padding:2px 0;
+  }
+  .cfield input::placeholder{color:var(--ink-3);font-weight:400}
+  .cfield input:focus{outline:none}
+  .cfield:focus-within label{color:var(--accent-deep)}
+  .counter-bar .btn-main{border-radius:0;box-shadow:none;padding:0 34px;font-size:17px}
+  .counter-bar .btn-main:hover{transform:none;background:var(--accent)}
+  .counter-bar .btn-main:active{transform:none;background:var(--accent-deep)}
+  .form-hints{display:flex;gap:26px;margin-top:16px;font-size:13px;color:var(--ink-3)}
+  .form-hints span{display:flex;align-items:center;gap:8px}
+  .form-hints svg{color:var(--good);flex:none}
+
+  .entry-cols{display:grid;grid-template-columns:1.35fr 1fr;gap:64px;margin-top:58px}
+  .how-title,.recent-title{
+    font-size:12.5px;font-weight:700;letter-spacing:.14em;color:var(--ink-2);
+    display:flex;align-items:center;gap:12px;margin-bottom:18px;
+  }
+  .how-title::after,.recent-title::after{content:"";flex:1;height:1px;background:var(--line)}
+  .how-line{display:flex;gap:20px;padding:17px 0;border-bottom:1px dashed var(--line);align-items:baseline}
+  .how-line:last-child{border-bottom:none}
+  .how-no{
+    font-family:var(--font-display);font-weight:var(--display-weight);
+    font-size:34px;color:var(--accent);line-height:1;flex:none;width:44px;
+  }
+  .how-line b{display:block;font-size:16.5px;margin-bottom:2px}
+  .how-line p{font-size:14px;color:var(--ink-2)}
+  .recent-row{display:flex;align-items:baseline;gap:12px;padding:15px 0;border-bottom:1px dashed var(--line);font-size:15.5px}
+  .recent-row:last-child{border-bottom:none}
+  .recent-row .nm{font-weight:600}
+  .recent-row .ct{font-size:12.5px;color:var(--ink-3)}
+  .recent-score{
+    font-family:var(--mono);font-weight:600;font-size:15px;color:var(--ink);
+    border:1.5px solid var(--line);border-radius:8px;padding:2px 10px;background:var(--paper-2);
+  }
+  .recent-score.hi{color:var(--good);border-color:var(--good)}
+
+  .ticker{
+    margin-top:64px;border-top:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);
+    overflow:hidden;padding:12px 0;position:relative;
+  }
+  .ticker-track{display:inline-flex;white-space:nowrap;gap:0;animation:tickmove 26s linear infinite;will-change:transform}
+  .ticker:hover .ticker-track{animation-play-state:paused}
+  .ticker-item{
+    display:inline-flex;align-items:center;gap:10px;padding:0 22px;
+    font-family:var(--mono);font-size:13px;color:var(--ink-2);
+  }
+  .ticker-item b{color:var(--ink);font-weight:600}
+  .ticker-item .sq{width:8px;height:8px;background:var(--accent);border-radius:2px;flex:none}
+  @keyframes tickmove{from{transform:translateX(0)}to{transform:translateX(50%)}}
+
+  /* entry layout B: the pad */
+  .pad-grid{display:grid;grid-template-columns:1fr 1.05fr;gap:70px;align-items:start}
+  .pad-head .hero-giant{font-size:clamp(52px,6vw,86px)}
+  .pad-card{
+    position:relative;border:2.5px solid var(--ink);border-radius:18px;
+    background:var(--card);padding:38px 38px 34px;
+    box-shadow:-10px 10px 0 rgba(var(--ink-rgb),.09);
+  }
+  .pad-card .corner{
+    position:absolute;top:-14px;inset-inline-start:28px;
+    background:var(--accent);color:#fff;font-size:12px;font-weight:700;
+    letter-spacing:.12em;padding:5px 14px;border-radius:6px;
+  }
+  .pad-title{font-family:var(--font-display);font-weight:var(--display-weight);font-size:26px;margin-bottom:24px}
+  .pad-field{margin-bottom:22px}
+  .pad-field label{display:block;font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--ink-3);margin-bottom:7px}
+  .pad-field input{
+    width:100%;border:none;border-bottom:2px solid var(--line);
+    background:transparent;font-size:18px;font-weight:600;padding:7px 2px;
+    transition:border-color .25s;
+  }
+  .pad-field input:focus{outline:none;border-color:var(--accent)}
+  .pad-field input::placeholder{color:var(--ink-3);font-weight:400}
+  .pad-card .btn-main{width:100%;margin-top:6px}
+  .pad-note{margin-top:16px;font-size:13px;color:var(--ink-3);text-align:center}
+  .pad-stamps{display:flex;gap:14px;margin-top:30px;flex-wrap:wrap}
+  .mini-stamp{
+    border:1.5px solid var(--line);border-radius:12px;background:var(--paper-2);
+    padding:12px 18px;display:flex;flex-direction:column;gap:2px;min-width:150px;
+  }
+  .mini-stamp .nm{font-size:13px;font-weight:600;color:var(--ink-2)}
+  .mini-stamp .sc{font-family:var(--mono);font-size:22px;font-weight:600}
+  .mini-stamp .sc small{font-size:12px;color:var(--ink-3)}
+  .pad-how{margin-top:44px}
+
+  /* ============ SCAN: the machine room ============ */
+  #scan{
+    background:
+      radial-gradient(rgba(var(--paper-rgb),.06) 1px,transparent 1.3px) 0 0/22px 22px,
+      var(--ink);
+    color:var(--paper);
+  }
+  #scan .sec-name{color:rgba(var(--paper-rgb),.85)}
+  #scan .sec-rule{background:rgba(var(--paper-rgb),.25)}
+  #scan .gal-btn{border-color:rgba(var(--paper-rgb),.3);color:rgba(var(--paper-rgb),.85)}
+  #scan .gal-btn:hover{background:var(--paper);color:var(--ink);border-color:var(--paper)}
+  #scan .gal-count{color:rgba(var(--paper-rgb),.6)}
+  .live-badge{
+    display:inline-flex;align-items:center;gap:10px;
+    border:1.5px solid rgba(var(--paper-rgb),.35);border-radius:999px;
+    padding:7px 18px;font-size:13px;font-weight:700;letter-spacing:.12em;
+  }
+  .live-badge .reddot{width:9px;height:9px;border-radius:50%;background:#e5484d;animation:blink 1.15s ease-in-out infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+  .scan-stage{text-align:center;max-width:900px;margin:0 auto}
+  .scan-biz{
+    font-family:var(--mono);font-size:13px;color:rgba(var(--paper-rgb),.6);
+    margin:20px 0 34px;letter-spacing:.04em;
+  }
+  .stage-line{
+    overflow:hidden;font-size:clamp(42px,5.4vw,76px);min-height:2.42em;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .stage-word{
+    font-family:var(--font-display);font-weight:var(--display-weight);
+    font-size:inherit;line-height:1.18;color:var(--paper);
+  }
+  .stage-sub{
+    font-family:var(--mono);font-size:16px;color:var(--accent-on-ink);
+    min-height:1.7em;margin-top:14px;letter-spacing:.02em;
+  }
+  .stage-meta{
+    display:flex;align-items:baseline;justify-content:center;gap:34px;
+    margin:34px 0 18px;
+  }
+  .stage-step{font-family:var(--mono);font-size:13px;color:rgba(var(--paper-rgb),.6)}
+  .stage-pct{font-family:var(--font-display);font-weight:var(--display-weight);font-size:46px;line-height:1}
+  .stage-pct small{font-size:20px;color:rgba(var(--paper-rgb),.55)}
+  .rail{display:flex;gap:8px;max-width:660px;margin:0 auto 44px}
+  .rail .seg{height:7px;flex:1;background:rgba(var(--paper-rgb),.14);border-radius:99px;position:relative;overflow:hidden;transition:background .5s}
+  .rail .seg.done{background:var(--accent-on-ink)}
+  .rail .seg.act::after{
+    content:"";position:absolute;inset:0;border-radius:99px;
+    background:linear-gradient(90deg,transparent,rgba(var(--paper-rgb),.55),transparent);
+    animation:segsweep 1.1s linear infinite;
+  }
+  @keyframes segsweep{from{transform:translateX(100%)}to{transform:translateX(-100%)}}
+
+  .scan-lines{list-style:none;max-width:660px;margin:0 auto;text-align:start}
+  .scan-line{
+    display:flex;align-items:flex-start;gap:14px;
+    padding:13px 4px;border-bottom:1px dashed rgba(var(--paper-rgb),.16);
+    transition:opacity .4s;
+  }
+  .scan-line:last-child{border-bottom:none}
+  .scan-line .icon{position:relative;width:22px;height:22px;flex:none;margin-top:3px}
+  .scan-line .idle-dot,.scan-line .spinner,.scan-line .check{
+    position:absolute;inset:0;display:grid;place-items:center;
+    opacity:0;transform:scale(.6);transition:opacity .3s,transform .3s var(--ease);
+  }
+  .scan-line .idle-dot::before{content:"";width:10px;height:10px;border:2px solid rgba(var(--paper-rgb),.35);border-radius:50%}
+  .scan-line .spinner-ring{
+    width:16px;height:16px;border-radius:50%;
+    border:2.5px solid rgba(var(--paper-rgb),.2);border-top-color:var(--accent-on-ink);
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .scan-line .check-badge{
+    width:20px;height:20px;border-radius:50%;background:var(--accent-on-ink);color:var(--ink);
+    display:grid;place-items:center;
+  }
+  .scan-line.st-idle .idle-dot{opacity:1;transform:none}
+  .scan-line.st-active .spinner{opacity:1;transform:none}
+  .scan-line.st-done .check{opacity:1;transform:none}
+  .scan-line.st-idle{opacity:.45}
+  .scan-line .lbl{font-weight:600;font-size:15.5px}
+  .scan-line .sub{
+    display:block;font-family:var(--mono);font-size:12.5px;color:var(--accent-on-ink);
+    max-height:0;overflow:hidden;opacity:0;transition:max-height .45s var(--ease),opacity .45s;
+  }
+  .scan-line.st-done .sub:not(:empty){max-height:26px;opacity:1;margin-top:2px}
+  .scan-line .tick{
+    margin-inline-start:auto;font-family:var(--mono);font-size:11.5px;
+    color:rgba(var(--paper-rgb),.5);opacity:0;transition:opacity .4s;flex:none;margin-top:6px;
+  }
+  .scan-line.st-done .tick{opacity:1}
+  .scan-flash{
+    text-align:center;margin-top:38px;opacity:0;transform:translateY(10px);
+    transition:opacity .5s var(--ease),transform .5s var(--ease);pointer-events:none;
+  }
+  .scan-flash.on{opacity:1;transform:none}
+  .scan-flash .stamp{
+    color:var(--accent-on-ink);border-color:var(--accent-on-ink);
+    font-size:19px;padding:9px 26px;transform:rotate(-3deg);
+  }
+  .scan-flash p{font-size:13px;color:rgba(var(--paper-rgb),.55);margin-top:12px}
+
+  /* scan layout B: control room */
+  .machine-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:60px;align-items:start}
+  .machine-grid .scan-lines{max-width:none;margin:0}
+  .machine-side{
+    border:1.5px solid rgba(var(--paper-rgb),.22);border-radius:18px;
+    padding:34px;text-align:center;position:relative;overflow:hidden;
+  }
+  .machine-side::before{
+    content:"";position:absolute;inset:-40%;
+    background:conic-gradient(from 0deg,transparent 0 84%,rgba(var(--accent-rgb),.28) 96%,transparent 100%);
+    animation:sweep360 3.6s linear infinite;pointer-events:none;
+  }
+  @keyframes sweep360{to{transform:rotate(360deg)}}
+  .machine-side > *{position:relative}
+  .ring-wrap{width:180px;height:180px;margin:6px auto 10px;position:relative}
+  .ring-wrap svg{transform:rotate(-90deg)}
+  .ring-track{fill:none;stroke:rgba(var(--paper-rgb),.14);stroke-width:10}
+  .ring-fill{
+    fill:none;stroke:var(--accent-on-ink);stroke-width:10;stroke-linecap:round;
+    transition:stroke-dashoffset .7s var(--ease);
+  }
+  .ring-center{
+    position:absolute;inset:0;display:grid;place-items:center;text-align:center;
+  }
+  .ring-center .scan-pct-b{font-family:var(--font-display);font-weight:var(--display-weight);font-size:40px;line-height:1}
+  .ring-center small{font-family:var(--mono);font-size:11px;color:rgba(var(--paper-rgb),.55);display:block;margin-top:4px}
+  .machine-title{font-size:12.5px;font-weight:700;letter-spacing:.14em;color:rgba(var(--paper-rgb),.65);margin-bottom:8px}
+  .facts{list-style:none;margin-top:22px;text-align:start}
+  .facts li{
+    display:flex;align-items:center;gap:10px;
+    font-family:var(--mono);font-size:13px;padding:9px 2px;
+    border-bottom:1px dashed rgba(var(--paper-rgb),.14);
+    opacity:0;transform:translateX(14px);
+    transition:opacity .5s var(--ease),transform .5s var(--ease);
+  }
+  .facts li:last-child{border-bottom:none}
+  .facts li.pop{opacity:1;transform:none}
+  .facts li::before{content:"";width:7px;height:7px;background:var(--accent-on-ink);border-radius:2px;flex:none}
+  .facts li b{color:var(--paper);font-weight:600}
+  .facts li span{color:rgba(var(--paper-rgb),.6)}
+</style>
+<style>
+  /* ============ REPORT: the front page ============ */
+  .masthead{
+    border-top:3.5px solid var(--ink);border-bottom:1px solid var(--line);
+    padding:16px 2px 14px;display:flex;align-items:baseline;gap:26px;margin-bottom:8px;
+  }
+  .masthead .m-title{font-family:var(--font-display);font-weight:var(--display-weight);font-size:27px}
+  .masthead .m-biz{font-size:15px;font-weight:600;color:var(--ink-2)}
+  .masthead .m-meta{margin-inline-start:auto;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);display:flex;gap:22px}
+
+  .moment{text-align:center;padding:54px 0 30px;position:relative}
+  .moment-cap{
+    font-size:12.5px;font-weight:700;letter-spacing:.16em;color:var(--ink-3);
+    margin-bottom:10px;
+  }
+  .prep-cap{
+    font-family:var(--mono);font-size:12px;color:var(--ink-3);
+    height:20px;margin-bottom:4px;opacity:0;transition:opacity .4s;
+  }
+  .js-moment.preparing .prep-cap{opacity:1;animation:prepPulse 1s ease-in-out infinite}
+  @keyframes prepPulse{0%,100%{opacity:.35}50%{opacity:1}}
+  .dial-wrap{width:310px;margin:0 auto;position:relative}
+  .dial-track{fill:none;stroke:var(--line-soft);stroke-width:13}
+  .dial-fill{fill:none;stroke:var(--ink-3);stroke-width:13;stroke-linecap:round;transition:stroke .9s}
+  .js-moment.lit .dial-fill{stroke:var(--accent)}
+  .dial-tick{font-family:var(--mono);font-size:11px;fill:var(--ink-3)}
+  .dial-center{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding-top:8px;
+  }
+  .score-num{
+    font-family:var(--font-display);font-weight:var(--display-weight);
+    font-size:96px;line-height:.95;color:var(--ink-3);transition:color .9s;
+    font-variant-numeric:tabular-nums;
+  }
+  .js-moment.lit .score-num{color:var(--ink)}
+  .score-denom{font-family:var(--mono);font-size:14px;color:var(--ink-3);margin-top:6px}
+  .score-verdict-word{
+    font-size:13.5px;font-weight:700;color:var(--accent-deep);margin-top:8px;
+    opacity:0;transform:translateY(8px);transition:opacity .5s var(--ease),transform .5s var(--ease);
+  }
+  .js-moment.lit .score-verdict-word{opacity:1;transform:none}
+  .verdict-head{
+    font-family:var(--font-display);font-weight:var(--display-weight);
+    font-size:clamp(30px,3.5vw,50px);line-height:1.32;max-width:24ch;
+    margin:34px auto 0;
+  }
+  .score-chips{display:flex;justify-content:center;gap:12px;margin-top:26px;flex-wrap:wrap}
+  html.js .score-chips .chip{opacity:0;transform:translateY(10px);transition:opacity .5s var(--ease),transform .5s var(--ease)}
+  html.js .score-chips.in .chip{opacity:1;transform:none}
+  .score-chips.in .chip:nth-child(2){transition-delay:.12s}
+  .score-chips.in .chip:nth-child(3){transition-delay:.24s}
+  .replay-btn{
+    margin-top:26px;background:none;border:none;cursor:pointer;
+    font-family:var(--mono);font-size:12px;color:var(--ink-3);
+    border-bottom:1.5px dotted var(--ink-3);padding:2px 1px;
+    transition:color .2s,border-color .2s;
+  }
+  .replay-btn:hover{color:var(--accent-deep);border-color:var(--accent-deep)}
+
+  .lede{
+    max-width:760px;margin:44px auto 0;font-size:19px;line-height:1.85;color:var(--ink-2);
+  }
+  .lede::first-letter{
+    font-family:var(--font-display);font-weight:var(--display-weight);
+    font-size:64px;line-height:.8;color:var(--accent);
+    float:inline-start;margin-inline-end:12px;margin-top:8px;
+  }
+  .lede-label{
+    max-width:760px;margin:0 auto;display:flex;align-items:center;gap:12px;
+    font-size:12.5px;font-weight:700;letter-spacing:.14em;color:var(--ink-2);
+  }
+  .lede-label::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  .chap-head{display:flex;align-items:baseline;gap:16px;margin:74px 0 8px}
+  .chap-no{font-family:var(--mono);font-size:13px;color:var(--accent);font-weight:600}
+  .chap-title{font-family:var(--font-display);font-weight:var(--display-weight);font-size:clamp(26px,3vw,38px)}
+  .chap-rule{flex:1;height:1px;background:var(--line);transform:translateY(-6px)}
+  .chap-sub{font-size:14.5px;color:var(--ink-3);margin-bottom:26px}
+
+  /* dimensions strips */
+  .dim-row{
+    display:grid;grid-template-columns:190px 1fr 64px 110px;gap:22px;align-items:center;
+    padding:17px 2px;border-bottom:1px dashed var(--line);
+  }
+  .dim-row:last-child{border-bottom:none}
+  .dim-name{font-weight:700;font-size:15.5px}
+  .dim-strip{position:relative;height:13px;background:var(--paper-2);border:1px solid var(--line-soft);border-radius:99px}
+  .dim-fill{
+    position:absolute;inset-block:0;inset-inline-start:0;width:0;border-radius:99px;
+    background:var(--ink);transition:width 1.15s var(--ease) .15s;
+  }
+  .dim-fill.f-top{background:var(--good)}
+  .dim-fill.f-warn{background:var(--warn)}
+  .dim-strip.unknown{
+    background:repeating-linear-gradient(-45deg,transparent 0 7px,var(--line-soft) 7px 14px);
+    border-style:dashed;
+  }
+  .dim-val{font-family:var(--mono);font-size:16px;font-weight:600;text-align:center}
+  .dim-val.na{font-size:12px;color:var(--ink-3);font-weight:400}
+  .dim-row .chip{justify-self:start}
+
+  /* completeness */
+  .comp-box{
+    margin-top:30px;border:1.5px solid var(--line);border-radius:14px;background:var(--paper-2);
+    padding:20px 26px;display:flex;align-items:center;gap:26px;
+  }
+  .comp-num{font-family:var(--font-display);font-weight:var(--display-weight);font-size:38px;line-height:1;flex:none}
+  .comp-num small{font-size:16px;color:var(--ink-3)}
+  .comp-track{flex:1;height:11px;background:rgba(var(--ink-rgb),.08);border-radius:99px;position:relative}
+  .comp-fill{
+    position:absolute;inset-block:0;inset-inline-start:0;width:0;border-radius:99px;
+    background:var(--warn);transition:width 1.1s var(--ease) .2s;
+  }
+  .comp-txt{flex:1.4}
+  .comp-txt b{display:block;font-size:14.5px;margin-bottom:2px}
+  .comp-txt p{font-size:13.5px;color:var(--ink-2)}
+
+  /* gaps */
+  .gap-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .gap-card{
+    position:relative;border:2px solid var(--ink);border-radius:16px;background:var(--card);
+    padding:26px 24px 24px;overflow:hidden;
+    transition:transform .3s var(--ease),box-shadow .3s var(--ease);
+  }
+  .gap-card:hover{transform:translateY(-4px);box-shadow:-7px 7px 0 rgba(var(--ink-rgb),.1)}
+  .gap-card::after{
+    content:"";position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .35s;
+    background:radial-gradient(420px circle at var(--mx,50%) var(--my,40%),rgba(var(--accent-rgb),.1),transparent 62%);
+  }
+  .gap-card:hover::after{opacity:1}
+  .gap-ghost{
+    position:absolute;top:-26px;inset-inline-end:6px;z-index:0;
+    font-family:var(--font-display);font-weight:var(--display-weight);font-size:130px;line-height:1;
+    color:transparent;-webkit-text-stroke:1.5px var(--line);pointer-events:none;
+  }
+  .gap-card > *{position:relative;z-index:1}
+  .gap-tag{
+    display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.1em;
+    color:var(--bad);border:1.5px solid var(--bad);border-radius:999px;padding:3px 12px;
+    margin-bottom:16px;background:var(--bad-soft);
+  }
+  .gap-card h4{font-family:var(--font-display);font-weight:var(--display-weight);font-size:20px;line-height:1.35;margin-bottom:10px}
+  .gap-card p{font-size:14px;color:var(--ink-2);line-height:1.7}
+
+  /* strengths */
+  .str-list{list-style:none;max-width:760px}
+  .str-list li{
+    display:flex;align-items:center;gap:18px;padding:17px 2px;
+    border-bottom:1px dashed var(--line);font-size:16.5px;font-weight:600;
+  }
+  .str-list li:last-child{border-bottom:none}
+  .str-check{
+    width:30px;height:30px;flex:none;border-radius:8px;
+    background:var(--good);color:#fff;display:grid;place-items:center;
+    transform:rotate(-4deg);
+  }
+  .str-list .note{font-size:13px;color:var(--ink-3);font-weight:400;margin-inline-start:auto;font-family:var(--mono)}
+
+  /* receipt */
+  .receipt-grid{display:grid;grid-template-columns:1fr .9fr;gap:60px;align-items:start}
+  .receipt{
+    border:2px solid var(--ink);border-radius:16px;background:var(--card);
+    padding:30px 32px;box-shadow:-8px 8px 0 rgba(var(--ink-rgb),.09);
+    position:relative;
+  }
+  .receipt::before{
+    content:"";position:absolute;top:-1px;inset-inline:18px;height:8px;
+    background:repeating-linear-gradient(90deg,var(--ink) 0 9px,transparent 9px 18px);
+    border-radius:0 0 4px 4px;opacity:.85;
+  }
+  .receipt-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;padding-top:8px}
+  .receipt-head b{font-size:17px}
+  .receipt-head .rsc{font-family:var(--mono);font-size:17px;font-weight:600}
+  .receipt-sub{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-bottom:18px}
+  .receipt .lrow{padding:11px 0;font-size:15px}
+  .receipt .lrow .rv{font-family:var(--mono);font-weight:600;font-size:15px}
+  .receipt .lrow .rv.plus{color:var(--good)}
+  .receipt .lrow .rv.zero{color:var(--bad)}
+  .receipt-total{
+    border-top:2.5px solid var(--ink);margin-top:12px;padding-top:14px;
+    display:flex;align-items:baseline;justify-content:space-between;font-weight:800;font-size:16.5px;
+  }
+  .receipt-total .rv{font-family:var(--mono);font-size:22px}
+  .receipt-note{margin-top:18px;font-size:12.5px;color:var(--ink-3);text-align:center}
+  .receipt-side h4{font-family:var(--font-display);font-weight:var(--display-weight);font-size:24px;margin-bottom:14px;line-height:1.4}
+  .receipt-side p{font-size:15px;color:var(--ink-2);line-height:1.8;margin-bottom:14px}
+
+  /* CTA band */
+  .cta-band{
+    margin-top:80px;border:2.5px solid var(--ink);border-radius:20px;
+    background:var(--ink);color:var(--paper);padding:44px 48px;
+    display:flex;align-items:center;gap:44px;position:relative;overflow:hidden;
+  }
+  .cta-band::before{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(rgba(var(--paper-rgb),.07) 1px,transparent 1.3px) 0 0/20px 20px;
+  }
+  .cta-band > *{position:relative}
+  .cta-band h3{font-size:clamp(24px,2.6vw,34px);line-height:1.35;margin-bottom:8px}
+  .cta-band p{font-size:14.5px;color:rgba(var(--paper-rgb),.7)}
+  .cta-band .btn-main{
+    background:var(--paper);color:var(--ink);box-shadow:-6px 6px 0 var(--accent);
+    flex:none;
+  }
+  .cta-band .btn-ghost{border-color:rgba(var(--paper-rgb),.35);color:var(--paper);flex:none}
+  .cta-band .btn-ghost:hover{border-color:var(--paper)}
+  .cta-actions{margin-inline-start:auto;display:flex;gap:14px;align-items:center}
+
+  /* report layout B: chronicle / constellation */
+  .constel-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center;margin-top:10px}
+  .constel-grid > *{min-width:0}
+  .constel-wrap{position:relative;width:100%;max-width:500px;margin:0 auto}
+  .constel-wrap svg{display:block;width:100%;height:auto}
+  .constel-axis{stroke:var(--line);stroke-width:1}
+  .constel-axis.na{stroke-dasharray:4 5}
+  .constel-guide{fill:none;stroke:var(--line-soft);stroke-width:1}
+  .constel-poly{
+    fill:rgba(var(--accent-rgb),.1);stroke:var(--accent);stroke-width:2.5;
+    stroke-linejoin:round;
+  }
+  .constel-dash{stroke:var(--accent);stroke-width:2;stroke-dasharray:5 6;fill:none;opacity:.65}
+  .constel-node{fill:var(--accent);stroke:var(--card);stroke-width:2.5}
+  .constel-node.na-node{fill:var(--paper);stroke:var(--ink-3);stroke-dasharray:3 3;stroke-width:1.8}
+  .constel-lbl{font-size:12.5px;font-weight:700;fill:var(--ink-2);font-family:var(--font-body)}
+  .constel-val{font-family:var(--mono);font-size:12px;font-weight:600;fill:var(--accent-deep)}
+  .constel-center-num{
+    font-family:var(--font-display);font-weight:var(--display-weight);font-size:46px;fill:var(--ink);
+  }
+  .constel-center-sub{font-family:var(--mono);font-size:10.5px;fill:var(--ink-3)}
+  .chron-side .verdict-head{margin:18px 0 0;text-align:start;font-size:clamp(26px,2.9vw,40px);max-width:none}
+  .chron-side .lede{margin:22px 0 0;font-size:16.5px}
+  .chron-side .lede::first-letter{font-size:46px}
+  .spine{border-inline-start:2.5px solid var(--ink);margin-top:64px;padding-inline-start:38px;position:relative}
+  .spine-item{position:relative;padding-bottom:46px}
+  .spine-item:last-child{padding-bottom:6px}
+  .spine-dot{
+    position:absolute;inset-inline-start:-48px;top:4px;
+    width:17px;height:17px;border-radius:50%;background:var(--paper);
+    border:3.5px solid var(--ink);
+  }
+  .spine-item.warn-dot .spine-dot{border-color:var(--bad);background:var(--bad-soft)}
+  .spine-item.good-dot .spine-dot{border-color:var(--good);background:var(--good-soft)}
+  .spine-kicker{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);letter-spacing:.08em;margin-bottom:6px}
+  .spine-item h4{font-family:var(--font-display);font-weight:var(--display-weight);font-size:22px;margin-bottom:8px;line-height:1.4}
+  .spine-item p{font-size:14.5px;color:var(--ink-2);max-width:64ch;line-height:1.75}
+  .spine-strips{margin-top:14px;max-width:640px}
+  .spine-strips .dim-row{grid-template-columns:170px 1fr 56px 100px;padding:12px 0}
+
+  /* report layout C: the clinical file */
+  .file-band{
+    border:2.5px solid var(--ink);border-radius:18px;background:var(--card);
+    padding:30px 36px;display:flex;align-items:center;gap:36px;
+    box-shadow:-9px 9px 0 rgba(var(--ink-rgb),.08);
+  }
+  .file-id h3{font-family:var(--font-display);font-weight:var(--display-weight);font-size:30px;line-height:1.2}
+  .file-id p{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-top:6px}
+  .file-meta{display:flex;gap:0;margin-inline-start:auto;text-align:center}
+  .file-cell{padding:0 26px;border-inline-start:1.5px solid var(--line)}
+  .file-cell:first-child{border-inline-start:none}
+  .file-cell .v{font-family:var(--mono);font-size:22px;font-weight:600;line-height:1.2}
+  .file-cell .k{font-size:11.5px;color:var(--ink-3);font-weight:600;letter-spacing:.06em}
+  .file-stamp{flex:none}
+  .file-cols{display:grid;grid-template-columns:.92fr 1.08fr;gap:56px;margin-top:52px;align-items:start}
+  .file-score-side{text-align:center;border:1.5px solid var(--line);border-radius:18px;padding:34px 30px;background:var(--paper-2)}
+  .file-score-side .dial-wrap{width:250px}
+  .file-score-side .score-num{font-size:74px}
+  .file-score-side .lede{font-size:15px;margin:26px 0 0;text-align:start}
+  .file-score-side .lede::first-letter{font-size:40px;margin-top:5px}
+  .file-dims h4,.file-find h4{
+    font-size:12.5px;font-weight:700;letter-spacing:.14em;color:var(--ink-2);
+    display:flex;align-items:center;gap:12px;margin-bottom:6px;
+  }
+  .file-dims h4::after,.file-find h4::after{content:"";flex:1;height:1px;background:var(--line)}
+  .clin-row{padding:15px 0;border-bottom:1px dashed var(--line)}
+  .clin-row:last-child{border-bottom:none}
+  .clin-top{display:flex;align-items:baseline;gap:12px;margin-bottom:9px}
+  .clin-top .nm{font-weight:700;font-size:15px}
+  .clin-top .chip{margin-inline-start:auto}
+  .clin-scale{position:relative;height:26px}
+  .clin-track{position:absolute;inset-inline:0;top:11px;height:5px;background:rgba(var(--ink-rgb),.1);border-radius:99px}
+  .clin-gridline{position:absolute;top:8px;width:1.5px;height:11px;background:var(--line)}
+  .clin-marker{
+    position:absolute;top:2px;width:3.5px;height:22px;border-radius:2px;background:var(--ink);
+    inset-inline-start:0;transition:inset-inline-start 1.1s var(--ease) .15s;
+  }
+  .clin-marker::after{
+    content:attr(data-v);position:absolute;top:-4px;inset-inline-start:9px;
+    font-family:var(--mono);font-size:11.5px;font-weight:600;color:var(--ink);
+  }
+  .clin-scale.unknown .clin-track{
+    background:repeating-linear-gradient(-45deg,transparent 0 6px,rgba(var(--ink-rgb),.12) 6px 12px);
+  }
+  .clin-na-txt{position:absolute;top:4px;inset-inline-start:2px;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);background:var(--paper);padding-inline-end:12px;line-height:1.6}
+  .find-row{
+    display:flex;align-items:flex-start;gap:16px;padding:15px 2px;
+    border-bottom:1px dashed var(--line);
+  }
+  .find-row:last-child{border-bottom:none}
+  .find-tag{
+    flex:none;font-size:11px;font-weight:700;letter-spacing:.08em;
+    border-radius:6px;padding:4px 10px;margin-top:2px;
+  }
+  .find-tag.t-fix{background:var(--bad-soft);color:var(--bad);border:1.5px solid var(--bad)}
+  .find-tag.t-ok{background:var(--good-soft);color:var(--good);border:1.5px solid var(--good)}
+  .find-row b{display:block;font-size:15px;margin-bottom:2px}
+  .find-row p{font-size:13.5px;color:var(--ink-2);line-height:1.65}
+
+  /* footer */
+  footer{border-top:3px solid var(--ink);padding:30px 0 42px;margin-top:20px}
+  .foot-inner{
+    max-width:1200px;margin:0 auto;padding:0 44px;
+    display:flex;align-items:baseline;gap:24px;
+    font-family:var(--mono);font-size:11.5px;color:var(--ink-3);
+  }
+  .foot-inner .fb{font-family:var(--font-display);font-weight:var(--display-weight);font-size:16px;color:var(--ink)}
+  .foot-inner .left{margin-inline-start:auto}
+
+  /* print: the report survives on paper */
+  @media print{
+    .ctrlbar,.topnav,.gallery-ctrl,#scan,.ticker,.replay-btn,.cta-band,footer{display:none !important}
+    body{min-width:0;background:#fff}
+    section{padding:20px 0}
+    html.js [data-reveal]{opacity:1 !important;transform:none !important}
+    .wi{transform:none !important}
+    .dim-fill,.comp-fill{transition:none}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+    html.js [data-reveal]{opacity:1;transform:none}
+    .ticker-track{animation:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= control bar ================= -->
+<div class="ctrlbar">
+  <div class="ctrlbar-inner">
+    <span class="ctrl-label">צבע</span>
+    <div class="pal-dots">
+      <button class="pal-dot" data-pal="p1" style="--dot:#c2401c" title="חמרה" aria-label="פלטת חמרה"></button>
+      <button class="pal-dot" data-pal="p2" style="--dot:#23409f" title="דיו" aria-label="פלטת דיו"></button>
+      <button class="pal-dot" data-pal="p3" style="--dot:#17694a" title="יער" aria-label="פלטת יער"></button>
+    </div>
+    <div class="ctrl-sep"></div>
+    <span class="ctrl-label">פונט</span>
+    <div class="font-btns">
+      <button class="font-btn" data-fontset="f1" style="font-family:'Suez One'">סואץ</button>
+      <button class="font-btn" data-fontset="f2" style="font-family:'Frank Ruhl Libre';font-weight:700">פרנק רול</button>
+      <button class="font-btn" data-fontset="f3" style="font-family:'Secular One'">סקולר</button>
+    </div>
+    <span class="ctrl-note">וריאנט 03: עיתון האבחון</span>
+  </div>
+</div>
+
+<!-- ================= masthead nav ================= -->
+<nav class="topnav">
+  <div class="topnav-inner">
+    <a class="brand" href="#entry">
+      <span class="brand-mark">א</span>
+      <span>
+        <span class="brand-name">AIT</span>
+        <span class="brand-sub" style="display:block">עיתון האבחון העסקי</span>
+      </span>
+    </a>
+    <div class="nav-links">
+      <a href="#entry" data-nav="entry"><span class="no">01</span>כניסה</a>
+      <a href="#scan" data-nav="scan"><span class="no">02</span>סריקה חיה</a>
+      <a href="#report" data-nav="report"><span class="no">03</span>דוח</a>
+    </div>
+    <span class="nav-edition"><span class="dot"></span>מהדורת אוגוסט 2026</span>
+  </div>
+</nav>
+
+<main>
+<style>
+  /* additions: word-mask fallback, constellation choreography, strip triggers */
+  html.js .wi{transform:translateY(115%);transition:transform .8s var(--ease)}
+  html.js .wi.wi-in{transform:none}
+  [data-reveal].in .dim-fill{width:var(--w)}
+  [data-reveal].in .comp-fill{width:var(--w)}
+  [data-reveal].in .clin-marker{inset-inline-start:var(--pos)}
+  [data-reveal].in .comp-mini i{width:var(--w)}
+  .comp-mini{margin-top:12px;max-width:420px;height:9px;background:rgba(var(--ink-rgb),.08);border-radius:99px;position:relative;overflow:hidden}
+  .comp-mini i{position:absolute;inset-block:0;inset-inline-start:0;width:0;border-radius:99px;background:var(--warn);transition:width 1s var(--ease) .25s;display:block}
+  .constel-poly,.constel-dash{transform-box:view-box;transform-origin:center;transition:opacity 1s var(--ease),transform 1.2s var(--ease)}
+  html.js .constel-wrap:not(.lit) .constel-poly,
+  html.js .constel-wrap:not(.lit) .constel-dash{opacity:0;transform:scale(.55)}
+  .constel-node{transform-box:view-box;transform-origin:center;transition:opacity .5s var(--ease),transform .55s var(--ease)}
+  html.js .constel-wrap:not(.lit) .constel-node{opacity:0;transform:scale(.2)}
+  .constel-wrap.lit .constel-node.n1{transition-delay:.55s}
+  .constel-wrap.lit .constel-node.n2{transition-delay:.7s}
+  .constel-wrap.lit .constel-node.n3{transition-delay:.85s}
+  .constel-wrap.lit .constel-node.n4{transition-delay:1s}
+  .constel-wrap.lit .constel-node.n5{transition-delay:1.15s}
+  .constel-val,.constel-na-lbl{transition:opacity .6s var(--ease) 1.2s}
+  html.js .constel-wrap:not(.lit) .constel-val,
+  html.js .constel-wrap:not(.lit) .constel-na-lbl{opacity:0}
+  .file-score-side .verdict-head{font-size:23px;line-height:1.55;margin:26px 0 0;max-width:none}
+  .chron-kicker{font-family:var(--mono);font-size:12px;color:var(--accent-deep);letter-spacing:.1em;margin-bottom:10px}
+</style>
+
+<!-- ================= 01 ENTRY ================= -->
+<section id="entry" data-section="entry">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-no">01</span>
+      <span class="sec-name">כניסה</span>
+      <span class="sec-rule"></span>
+      <div class="gallery-ctrl">
+        <button class="gal-btn gal-prev" aria-label="פריסה קודמת">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+        <span class="gal-count"></span>
+        <button class="gal-btn gal-next" aria-label="פריסה הבאה">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- entry layout A: the front gate -->
+    <div class="layout-alt">
+      <div class="gaz-head">
+        <span>גיליון מס' 084 • אבחון עסקי מבוסס בינה מלאכותית</span>
+        <span>עפולה והצפון • אוגוסט 2026</span>
+      </div>
+      <div class="hero-top">
+        <div>
+          <span class="kicker">סריקה, ציון, תוכנית פעולה</span>
+          <h1 class="hero-giant">
+            <span class="block" data-split>העסק שלך,</span>
+            <span class="block l2" data-split>בלי סיפורים.</span>
+          </h1>
+          <p class="hero-sub" data-reveal>AIT סורקת את מה שכל לקוח רואה: פרופיל גוגל, ביקורות, האתר ומהירות הטעינה במובייל. בסוף מחכה לך ציון אחד ברור, שלושה פערים שעולים כסף, ומה מתקנים קודם.</p>
+        </div>
+        <aside class="hero-side" data-reveal>
+          <p class="big-quote">מדברים דוגרי: מה עובד, מה דולף, ומה מתקנים מחר בבוקר.</p>
+          <p class="who">שיטת AIT • שבע בדיקות, דוח אחד</p>
+        </aside>
+      </div>
+
+      <form class="counter-bar" data-reveal onsubmit="return false">
+        <div class="cfield">
+          <label for="biz-a">שם העסק או כתובת האתר</label>
+          <input id="biz-a" type="text" placeholder="לדוגמה: אופטיקה בק, עפולה">
+        </div>
+        <div class="cfield">
+          <label for="city-a">עיר (לא חובה)</label>
+          <input id="city-a" type="text" placeholder="עפולה">
+        </div>
+        <button class="btn-main" type="submit">אבחן את העסק שלי</button>
+      </form>
+      <div class="form-hints" data-reveal>
+        <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>נתונים גלויים בלבד, בלי גישה למערכות</span>
+        <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>דוח מוכן תוך דקות</span>
+        <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>עברית פשוטה, בלי ז'רגון</span>
+      </div>
+
+      <div class="entry-cols">
+        <div data-reveal>
+          <div class="how-title">איך זה עובד</div>
+          <div class="how-line">
+            <span class="how-no">1</span>
+            <span><b>מקלידים שם עסק או כתובת אתר</b><p>זה כל מה שצריך. בלי סיסמאות ובלי חיבורים.</p></span>
+          </div>
+          <div class="how-line">
+            <span class="how-no">2</span>
+            <span><b>המערכת סורקת את מה שכל לקוח רואה</b><p>פרופיל גוגל, ביקורות, עמודי האתר ומהירות הטעינה במובייל.</p></span>
+          </div>
+          <div class="how-line">
+            <span class="how-no">3</span>
+            <span><b>מקבלים דוח דוגרי</b><p>ציון ברור, פערים שעולים כסף, ומה מתקנים קודם.</p></span>
+          </div>
+        </div>
+        <div data-reveal>
+          <div class="recent-title">נבדקו לאחרונה</div>
+          <div class="recent-row">
+            <span class="nm">אופטיקה בק</span><span class="ct">עפולה</span>
+            <span class="leader"></span><span class="recent-score">73</span>
+          </div>
+          <div class="recent-row">
+            <span class="nm">בית מאפה ברכת רחל</span>
+            <span class="leader"></span><span class="recent-score hi">84</span>
+          </div>
+          <div class="recent-row">
+            <span class="nm">lavangroup.co.il</span>
+            <span class="leader"></span><span class="recent-score">63</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ticker" data-reveal aria-hidden="true">
+        <div class="ticker-track">
+          <span class="ticker-item"><span class="sq"></span>נבדק עכשיו: <b>אופטיקה בק</b> עפולה 73/100</span>
+          <span class="ticker-item"><span class="sq"></span><b>בית מאפה ברכת רחל</b> 84/100</span>
+          <span class="ticker-item"><span class="sq"></span><b>lavangroup.co.il</b> 63/100</span>
+          <span class="ticker-item"><span class="sq"></span>שבע בדיקות, ציון אחד, תוכנית אחת</span>
+          <span class="ticker-item"><span class="sq"></span>מהדורת אוגוסט 2026</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- entry layout B: the diagnosis pad -->
+    <div class="layout-alt">
+      <div class="pad-grid">
+        <div class="pad-head">
+          <span class="kicker">אבחון עסקי מבוסס בינה מלאכותית</span>
+          <h1 class="hero-giant" style="margin-top:14px">
+            <span class="block" data-split>שבע בדיקות.</span>
+            <span class="block l2" data-split>אפס ניחושים.</span>
+          </h1>
+          <p class="hero-sub" data-reveal>מזינים שם עסק, והמערכת עוברת על גוגל, הביקורות, האתר והמהירות במובייל. הדוח אומר בדיוק מה חזק, מה חסר, וכמה זה עולה לך.</p>
+          <div class="pad-how" data-reveal>
+            <div class="how-title">איך זה עובד</div>
+            <div class="how-line">
+              <span class="how-no">1</span>
+              <span><b>מקלידים שם עסק או כתובת אתר</b><p>זה כל מה שצריך. בלי סיסמאות ובלי חיבורים.</p></span>
+            </div>
+            <div class="how-line">
+              <span class="how-no">2</span>
+              <span><b>המערכת סורקת את מה שכל לקוח רואה</b><p>פרופיל גוגל, ביקורות, עמודי האתר ומהירות הטעינה.</p></span>
+            </div>
+            <div class="how-line">
+              <span class="how-no">3</span>
+              <span><b>מקבלים דוח דוגרי</b><p>ציון ברור, פערים שעולים כסף, ומה מתקנים קודם.</p></span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="pad-card" data-reveal>
+            <span class="corner">שתי דקות</span>
+            <div class="pad-title">טופס אבחון</div>
+            <div class="pad-field">
+              <label for="biz-b">שם העסק או כתובת האתר</label>
+              <input id="biz-b" type="text" placeholder="לדוגמה: אופטיקה בק, עפולה">
+            </div>
+            <div class="pad-field">
+              <label for="city-b">עיר (לא חובה)</label>
+              <input id="city-b" type="text" placeholder="עפולה">
+            </div>
+            <button class="btn-main" type="button">אבחן את העסק שלי</button>
+            <p class="pad-note">נתונים גלויים בלבד • דוח תוך דקות • עברית פשוטה</p>
+          </div>
+          <div class="pad-stamps" data-reveal>
+            <div class="mini-stamp">
+              <span class="nm">אופטיקה בק, עפולה</span>
+              <span class="sc">73 <small>/ 100</small></span>
+            </div>
+            <div class="mini-stamp">
+              <span class="nm">בית מאפה ברכת רחל</span>
+              <span class="sc" style="color:var(--good)">84 <small>/ 100</small></span>
+            </div>
+            <div class="mini-stamp">
+              <span class="nm">lavangroup.co.il</span>
+              <span class="sc">63 <small>/ 100</small></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 02 LIVE SCAN ================= -->
+<section id="scan" data-section="scan">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-no">02</span>
+      <span class="sec-name">סריקה חיה</span>
+      <span class="sec-rule"></span>
+      <div class="gallery-ctrl">
+        <button class="gal-btn gal-prev" aria-label="פריסה קודמת">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+        <span class="gal-count"></span>
+        <button class="gal-btn gal-next" aria-label="פריסה הבאה">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- scan layout A: the stage -->
+    <div class="layout-alt">
+      <div class="scan-stage">
+        <span class="live-badge"><span class="reddot"></span>שידור חי מהסריקה</span>
+        <p class="scan-biz">אופטיקה בק בע"מ • עפולה • סריקה מס' 084</p>
+        <div class="stage-line"><div class="stage-word js-stage">מאתרים את פרטי העסק בגוגל</div></div>
+        <p class="stage-sub js-stagesub"></p>
+        <div class="stage-meta">
+          <span class="stage-step js-step">שלב 1 מתוך 7</span>
+          <span class="stage-pct"><span class="js-pct">0</span><small>%</small></span>
+        </div>
+        <div class="rail js-rail">
+          <span class="seg"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span>
+        </div>
+        <ul class="scan-lines"></ul>
+        <div class="scan-flash js-flash">
+          <span class="stamp">הדוח מוכן</span>
+          <p>עוברים לעמוד הראשון של הדוח</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- scan layout B: the control room -->
+    <div class="layout-alt">
+      <div class="machine-grid">
+        <div>
+          <span class="live-badge"><span class="reddot"></span>שידור חי מהסריקה</span>
+          <p class="scan-biz" style="text-align:start">אופטיקה בק בע"מ • עפולה • סריקה מס' 084</p>
+          <ul class="scan-lines"></ul>
+          <div class="scan-flash js-flash" style="text-align:start">
+            <span class="stamp">הדוח מוכן</span>
+            <p>עוברים לעמוד הראשון של הדוח</p>
+          </div>
+        </div>
+        <div class="machine-side">
+          <div class="machine-title">מד סריקה</div>
+          <div class="ring-wrap">
+            <svg width="180" height="180" viewBox="0 0 160 160">
+              <circle class="ring-track" cx="80" cy="80" r="64"></circle>
+              <circle class="ring-fill js-ringfill" cx="80" cy="80" r="64" stroke-dasharray="402.12" stroke-dashoffset="402.12"></circle>
+            </svg>
+            <div class="ring-center">
+              <div>
+                <div class="scan-pct-b"><span class="js-pct">0</span><small style="font-size:18px">%</small></div>
+                <small class="js-step">שלב 1 מתוך 7</small>
+              </div>
+            </div>
+          </div>
+          <div class="machine-title" style="margin-top:20px">עובדות שנאספו</div>
+          <ul class="facts">
+            <li data-step="0"><b>80 ביקורות</b><span>דירוג 4.9 בגוגל</span></li>
+            <li data-step="1"><b>8 עמודים</b><span>נסרקו באתר</span></li>
+            <li data-step="2"><b>ציון 46</b><span>ביצועים במובייל</span></li>
+            <li data-step="3"><b>5 ביקורות</b><span>נותחו לעומק</span></li>
+            <li data-step="4"><b>73/100</b><span>ציון משוקלל</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ================= 03 REPORT ================= -->
+<section id="report" data-section="report">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-no">03</span>
+      <span class="sec-name">דוח</span>
+      <span class="sec-rule"></span>
+      <div class="gallery-ctrl">
+        <button class="gal-btn gal-prev" aria-label="פריסה קודמת">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+        <span class="gal-count"></span>
+        <button class="gal-btn gal-next" aria-label="פריסה הבאה">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- report layout A: the front page -->
+    <div class="layout-alt">
+      <div class="masthead">
+        <span class="m-title">דוח אבחון דיגיטלי</span>
+        <span class="m-biz">אופטיקה בק בע"מ • עפולה</span>
+        <span class="m-meta"><span>תיק 2026-084</span><span>אוגוסט 2026</span></span>
+      </div>
+
+      <div class="moment js-moment">
+        <p class="moment-cap">הציון המשוקלל של אופטיקה בק</p>
+        <p class="prep-cap">קוראים את נתוני הסריקה</p>
+        <div class="dial-wrap">
+          <svg width="310" height="310" viewBox="0 0 240 240">
+            <path class="dial-track" d="M 46.46 181.71 A 96 96 0 1 1 193.54 181.71"></path>
+            <path class="dial-fill js-dialfill" d="M 46.46 181.71 A 96 96 0 1 1 193.54 181.71"></path>
+            <text class="dial-tick" x="46.5" y="206" text-anchor="middle">0</text>
+            <text class="dial-tick" x="193.5" y="206" text-anchor="middle">100</text>
+          </svg>
+          <div class="dial-center">
+            <span class="score-num js-score">0</span>
+            <span class="score-denom">מתוך 100</span>
+            <span class="score-verdict-word">טוב, עם מקום ברור לצמיחה</span>
+          </div>
+        </div>
+        <h2 class="verdict-head" data-split>לאופטיקה בק מוניטין מצוין עם דירוג של 4.9, אך תשתיות דיגיטליות חלקיות מגבילות את הפוטנציאל</h2>
+        <div class="score-chips js-chips">
+          <span class="chip c-good">מוניטין וביקורות <span class="n">100</span></span>
+          <span class="chip c-warn">תשתית דיגיטלית <span class="n">50</span></span>
+          <span class="chip c-mute">בשלות תהליכים: אין מידע</span>
+        </div>
+        <button class="replay-btn js-replay" type="button">להריץ שוב את רגע הציון</button>
+      </div>
+
+      <div class="lede-label" style="margin-top:56px">השורה התחתונה</div>
+      <p class="lede" data-reveal>העסק נהנה מ-80 ביקורות בדירוג 4.9 ומנוכחות דיגיטלית פעילה, אבל היעדר הזמנת תורים אונליין, פיקסל שיווקי ואתר איטי במובייל משאירים לקוחות ופניות על השולחן.</p>
+
+      <div class="chap-head">
+        <span class="chap-no">פרק 01</span>
+        <h3 class="chap-title">חמשת הממדים</h3>
+        <span class="chap-rule"></span>
+      </div>
+      <p class="chap-sub">ציון לכל ממד לפי מה שנמצא בסריקה. כיסוי הנתונים מסומן ליד כל שורה, ומה שאין עליו מידע לא מקבל אפס, הוא מסומן בכנות.</p>
+      <div>
+        <div class="dim-row" data-reveal>
+          <span class="dim-name">נראות דיגיטלית</span>
+          <span class="dim-strip"><span class="dim-fill" style="--w:65%"></span></span>
+          <span class="dim-val">65</span>
+          <span class="chip c-good">מלא</span>
+        </div>
+        <div class="dim-row" data-reveal>
+          <span class="dim-name">מוניטין וביקורות</span>
+          <span class="dim-strip"><span class="dim-fill f-top" style="--w:100%"></span></span>
+          <span class="dim-val">100</span>
+          <span class="chip c-good">מלא</span>
+        </div>
+        <div class="dim-row" data-reveal>
+          <span class="dim-name">נגישות ללקוח</span>
+          <span class="dim-strip"><span class="dim-fill" style="--w:70%"></span></span>
+          <span class="dim-val">70</span>
+          <span class="chip c-good">מלא</span>
+        </div>
+        <div class="dim-row" data-reveal>
+          <span class="dim-name">תשתית דיגיטלית</span>
+          <span class="dim-strip"><span class="dim-fill f-warn" style="--w:50%"></span></span>
+          <span class="dim-val">50</span>
+          <span class="chip c-warn">חלקי</span>
+        </div>
+        <div class="dim-row" data-reveal>
+          <span class="dim-name">בשלות תהליכים</span>
+          <span class="dim-strip unknown"></span>
+          <span class="dim-val na">אין מידע</span>
+          <span class="chip c-mute">אין מידע</span>
+        </div>
+      </div>
+      <div class="comp-box" data-reveal>
+        <span class="comp-num">30<small>%</small></span>
+        <span class="comp-track"><span class="comp-fill" style="--w:30%"></span></span>
+        <span class="comp-txt">
+          <b>שלמות התמונה</b>
+          <p>ראיון קצר על טיפול בלידים ישלים את התמונה.</p>
+        </span>
+      </div>
+
+      <div class="chap-head">
+        <span class="chap-no">פרק 02</span>
+        <h3 class="chap-title">איפה נשאר כסף על השולחן</h3>
+        <span class="chap-rule"></span>
+      </div>
+      <p class="chap-sub">שלושה פערים שנמצאו בסריקה, מדורגים לפי מה שכואב קודם.</p>
+      <div class="gap-grid">
+        <div class="gap-card" data-reveal>
+          <span class="gap-ghost">01</span>
+          <span class="gap-tag">תורים</span>
+          <h4>אין קביעת תורים אונליין</h4>
+          <p>עסק שחי על תורים מפסיד לקוחות שרוצים לקבוע ב-22:00 בלילה.</p>
+        </div>
+        <div class="gap-card" data-reveal>
+          <span class="gap-ghost">02</span>
+          <span class="gap-tag">שיווק</span>
+          <h4>אין פיקסל שיווקי</h4>
+          <p>אי אפשר לעשות רימרקטינג למבקרים באתר.</p>
+        </div>
+        <div class="gap-card" data-reveal>
+          <span class="gap-ghost">03</span>
+          <span class="gap-tag">ביצועים</span>
+          <h4>האתר איטי במובייל</h4>
+          <p>ציון ביצועים 46, טעינה 12.7 שניות.</p>
+        </div>
+      </div>
+
+      <div class="chap-head">
+        <span class="chap-no">פרק 03</span>
+        <h3 class="chap-title">מה כבר עובד</h3>
+        <span class="chap-rule"></span>
+      </div>
+      <ul class="str-list">
+        <li data-reveal>
+          <span class="str-check"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+          דירוג מצוין: 4.9 מ-80 ביקורות
+          <span class="note">גוגל עסקים</span>
+        </li>
+        <li data-reveal>
+          <span class="str-check"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+          וואטסאפ, טלפון וטופס יצירת קשר זמינים באתר
+          <span class="note">3 ערוצים</span>
+        </li>
+        <li data-reveal>
+          <span class="str-check"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+          פרופיל גוגל פעיל ומלא
+          <span class="note">מאומת</span>
+        </li>
+      </ul>
+
+      <div class="chap-head">
+        <span class="chap-no">פרק 04</span>
+        <h3 class="chap-title">איך נולד ציון, בלי קסמים</h3>
+        <span class="chap-rule"></span>
+      </div>
+      <div class="receipt-grid">
+        <div class="receipt" data-reveal>
+          <div class="receipt-head"><b>נגישות ללקוח</b><span class="rsc">70/100</span></div>
+          <p class="receipt-sub">פירוט חישוב • ממד 3 מתוך 5</p>
+          <div class="lrow"><span>וואטסאפ באתר</span><span class="leader"></span><span class="rv plus">25+</span></div>
+          <div class="lrow"><span>טלפון קליקבילי</span><span class="leader"></span><span class="rv plus">20+</span></div>
+          <div class="lrow"><span>טופס יצירת קשר</span><span class="leader"></span><span class="rv plus">25+</span></div>
+          <div class="lrow"><span>קביעת תורים אונליין</span><span class="leader"></span><span class="rv zero">0 מתוך 30</span></div>
+          <div class="receipt-total"><span>סך הכל</span><span class="rv">70</span></div>
+          <p class="receipt-note">כל ציון בדוח נבנה מחוקים גלויים כאלה. אין קופסה שחורה.</p>
+        </div>
+        <div class="receipt-side" data-reveal>
+          <h4>כל נקודה מוסברת. זה ההבדל בין ציון לבין דעה.</h4>
+          <p>הציון לא נולד מהרגשה. כל ממד נבנה מבדיקות שאפשר לראות בעיניים: יש וואטסאפ באתר או אין, הטלפון קליקבילי או לא. מה שנמצא מקבל נקודות, מה שחסר מסומן כפער.</p>
+          <p>ככה גם ברור מה מתקנים קודם: קביעת תורים אונליין שווה לאופטיקה בק 30 נקודות בממד הזה, יותר מכל שיפור אחר.</p>
+        </div>
+      </div>
+
+      <div class="cta-band" data-reveal>
+        <div>
+          <h3>זה הדוח של אופטיקה בק. מה היה כתוב בדוח שלך?</h3>
+          <p>ראיון קצר על טיפול בלידים ישלים את התמונה ויפתח תוכנית פעולה מלאה.</p>
+        </div>
+        <div class="cta-actions">
+          <button class="btn-ghost" type="button">להשלים ראיון קצר</button>
+          <button class="btn-main" type="button">אבחן את העסק שלי</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- report layout B: the chronicle -->
+    <div class="layout-alt">
+      <div class="masthead">
+        <span class="m-title">כרוניקה של אבחון</span>
+        <span class="m-biz">אופטיקה בק בע"מ • עפולה</span>
+        <span class="m-meta"><span>תיק 2026-084</span><span>אוגוסט 2026</span></span>
+      </div>
+
+      <div class="constel-grid js-moment">
+        <div class="chron-side">
+          <p class="chron-kicker">הציון המשוקלל: 73 מתוך 100</p>
+          <h2 class="verdict-head" data-split>לאופטיקה בק מוניטין מצוין עם דירוג של 4.9, אך תשתיות דיגיטליות חלקיות מגבילות את הפוטנציאל</h2>
+          <p class="lede">העסק נהנה מ-80 ביקורות בדירוג 4.9 ומנוכחות דיגיטלית פעילה, אבל היעדר הזמנת תורים אונליין, פיקסל שיווקי ואתר איטי במובייל משאירים לקוחות ופניות על השולחן.</p>
+          <button class="replay-btn js-replay" type="button" style="margin-top:20px">להריץ שוב את רגע הציון</button>
+        </div>
+        <div class="constel-wrap js-constel">
+          <svg width="100%" viewBox="0 0 460 360">
+            <polygon class="constel-guide" points="230,150.5 258.1,170.9 247.3,203.9 212.7,203.9 201.9,170.9"></polygon>
+            <polygon class="constel-guide" points="230,121 286.1,161.8 264.7,227.7 195.3,227.7 173.9,161.8"></polygon>
+            <polygon class="constel-guide" points="230,91.5 314.2,152.7 282,251.6 178,251.6 145.8,152.7"></polygon>
+            <polygon class="constel-guide" points="230,62 342.2,143.5 299.4,275.5 160.6,275.5 117.8,143.5"></polygon>
+            <line class="constel-axis" x1="230" y1="180" x2="230" y2="62"></line>
+            <line class="constel-axis" x1="230" y1="180" x2="342.2" y2="143.5"></line>
+            <line class="constel-axis" x1="230" y1="180" x2="299.4" y2="275.5"></line>
+            <line class="constel-axis" x1="230" y1="180" x2="160.6" y2="275.5"></line>
+            <line class="constel-axis na" x1="230" y1="180" x2="117.8" y2="143.5"></line>
+            <path class="constel-poly" d="M 230 103.3 L 342.2 143.5 L 278.6 246.8 L 195.3 227.7"></path>
+            <path class="constel-dash" d="M 195.3 227.7 L 168.3 159.9 L 230 103.3"></path>
+            <circle class="constel-node n1" cx="230" cy="103.3" r="6"></circle>
+            <circle class="constel-node n2" cx="342.2" cy="143.5" r="6"></circle>
+            <circle class="constel-node n3" cx="278.6" cy="246.8" r="6"></circle>
+            <circle class="constel-node n4" cx="195.3" cy="227.7" r="6"></circle>
+            <circle class="constel-node na-node n5" cx="168.3" cy="159.9" r="6"></circle>
+            <circle cx="230" cy="180" r="36" fill="var(--card)" stroke="var(--line)" stroke-width="1"></circle>
+            <text class="constel-center-num js-score" x="230" y="192" text-anchor="middle">0</text>
+            <text class="constel-center-sub" x="230" y="210" text-anchor="middle">מתוך 100</text>
+            <text class="constel-lbl" x="230" y="44" text-anchor="middle">נראות דיגיטלית</text>
+            <text class="constel-val" x="246" y="98">65</text>
+            <text class="constel-lbl" x="352" y="140" text-anchor="start">מוניטין וביקורות</text>
+            <text class="constel-val" x="344" y="130" text-anchor="end">100</text>
+            <text class="constel-lbl" x="305" y="298" text-anchor="middle">נגישות ללקוח</text>
+            <text class="constel-val" x="292" y="252">70</text>
+            <text class="constel-lbl" x="152" y="298" text-anchor="middle">תשתית דיגיטלית</text>
+            <text class="constel-val" x="182" y="222" text-anchor="start">50</text>
+            <text class="constel-lbl constel-na-lbl" x="108" y="140" text-anchor="end">בשלות תהליכים</text>
+            <text class="constel-val constel-na-lbl" x="160" y="152" text-anchor="end" style="fill:var(--ink-3)">אין מידע</text>
+          </svg>
+        </div>
+      </div>
+
+      <div class="spine">
+        <div class="spine-item" data-reveal>
+          <p class="spine-kicker">הממדים • כיסוי נתונים לצד כל שורה</p>
+          <h4>חמישה ממדים, ציון לכל אחד</h4>
+          <div class="spine-strips">
+            <div class="dim-row" data-reveal>
+              <span class="dim-name">נראות דיגיטלית</span>
+              <span class="dim-strip"><span class="dim-fill" style="--w:65%"></span></span>
+              <span class="dim-val">65</span>
+              <span class="chip c-good">מלא</span>
+            </div>
+            <div class="dim-row" data-reveal>
+              <span class="dim-name">מוניטין וביקורות</span>
+              <span class="dim-strip"><span class="dim-fill f-top" style="--w:100%"></span></span>
+              <span class="dim-val">100</span>
+              <span class="chip c-good">מלא</span>
+            </div>
+            <div class="dim-row" data-reveal>
+              <span class="dim-name">נגישות ללקוח</span>
+              <span class="dim-strip"><span class="dim-fill" style="--w:70%"></span></span>
+              <span class="dim-val">70</span>
+              <span class="chip c-good">מלא</span>
+            </div>
+            <div class="dim-row" data-reveal>
+              <span class="dim-name">תשתית דיגיטלית</span>
+              <span class="dim-strip"><span class="dim-fill f-warn" style="--w:50%"></span></span>
+              <span class="dim-val">50</span>
+              <span class="chip c-warn">חלקי</span>
+            </div>
+            <div class="dim-row" data-reveal>
+              <span class="dim-name">בשלות תהליכים</span>
+              <span class="dim-strip unknown"></span>
+              <span class="dim-val na">אין מידע</span>
+              <span class="chip c-mute">אין מידע</span>
+            </div>
+          </div>
+        </div>
+        <div class="spine-item warn-dot" data-reveal>
+          <p class="spine-kicker">פער 01 • תורים</p>
+          <h4>אין קביעת תורים אונליין</h4>
+          <p>עסק שחי על תורים מפסיד לקוחות שרוצים לקבוע ב-22:00 בלילה.</p>
+        </div>
+        <div class="spine-item warn-dot" data-reveal>
+          <p class="spine-kicker">פער 02 • שיווק</p>
+          <h4>אין פיקסל שיווקי</h4>
+          <p>אי אפשר לעשות רימרקטינג למבקרים באתר.</p>
+        </div>
+        <div class="spine-item warn-dot" data-reveal>
+          <p class="spine-kicker">פער 03 • ביצועים</p>
+          <h4>האתר איטי במובייל</h4>
+          <p>ציון ביצועים 46, טעינה 12.7 שניות.</p>
+        </div>
+        <div class="spine-item good-dot" data-reveal>
+          <p class="spine-kicker">החוזקות</p>
+          <h4>מה כבר עובד</h4>
+          <p>דירוג מצוין: 4.9 מ-80 ביקורות. וואטסאפ, טלפון וטופס יצירת קשר זמינים באתר. פרופיל גוגל פעיל ומלא.</p>
+        </div>
+        <div class="spine-item" data-reveal>
+          <p class="spine-kicker">שקיפות</p>
+          <h4>איך נולד הציון</h4>
+          <p>דוגמה מנגישות ללקוח: וואטסאפ באתר 25+, טלפון קליקבילי 20+, טופס יצירת קשר 25+, קביעת תורים אונליין 0 מתוך 30. סך הכל 70 מתוך 100.</p>
+        </div>
+        <div class="spine-item" data-reveal>
+          <p class="spine-kicker">שלמות התמונה</p>
+          <h4>30% מהראיון הושלם</h4>
+          <p>ראיון קצר על טיפול בלידים ישלים את התמונה.</p>
+          <span class="comp-mini"><i style="--w:30%"></i></span>
+        </div>
+      </div>
+
+      <div class="cta-band" data-reveal>
+        <div>
+          <h3>זה הדוח של אופטיקה בק. מה היה כתוב בדוח שלך?</h3>
+          <p>ראיון קצר על טיפול בלידים ישלים את התמונה ויפתח תוכנית פעולה מלאה.</p>
+        </div>
+        <div class="cta-actions">
+          <button class="btn-ghost" type="button">להשלים ראיון קצר</button>
+          <button class="btn-main" type="button">אבחן את העסק שלי</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- report layout C: the clinical file -->
+    <div class="layout-alt">
+      <div class="file-band" data-reveal>
+        <div class="file-id">
+          <h3>אופטיקה בק בע"מ</h3>
+          <p>תיק אבחון 2026-084 • עפולה • אוגוסט 2026</p>
+        </div>
+        <div class="file-meta">
+          <div class="file-cell"><div class="v">80</div><div class="k">ביקורות</div></div>
+          <div class="file-cell"><div class="v">4.9</div><div class="k">דירוג גוגל</div></div>
+          <div class="file-cell"><div class="v">8</div><div class="k">עמודים נסרקו</div></div>
+          <div class="file-cell"><div class="v">46</div><div class="k">ציון מובייל</div></div>
+        </div>
+        <span class="stamp file-stamp">נבדק</span>
+      </div>
+
+      <div class="file-cols">
+        <div class="file-score-side js-moment">
+          <p class="moment-cap">הציון המשוקלל</p>
+          <p class="prep-cap">קוראים את נתוני הסריקה</p>
+          <div class="dial-wrap">
+            <svg width="250" height="250" viewBox="0 0 240 240">
+              <path class="dial-track" d="M 46.46 181.71 A 96 96 0 1 1 193.54 181.71"></path>
+              <path class="dial-fill js-dialfill" d="M 46.46 181.71 A 96 96 0 1 1 193.54 181.71"></path>
+              <text class="dial-tick" x="46.5" y="206" text-anchor="middle">0</text>
+              <text class="dial-tick" x="193.5" y="206" text-anchor="middle">100</text>
+            </svg>
+            <div class="dial-center">
+              <span class="score-num js-score">0</span>
+              <span class="score-denom">מתוך 100</span>
+            </div>
+          </div>
+          <h2 class="verdict-head" data-split>לאופטיקה בק מוניטין מצוין עם דירוג של 4.9, אך תשתיות דיגיטליות חלקיות מגבילות את הפוטנציאל</h2>
+          <p class="lede">העסק נהנה מ-80 ביקורות בדירוג 4.9 ומנוכחות דיגיטלית פעילה, אבל היעדר הזמנת תורים אונליין, פיקסל שיווקי ואתר איטי במובייל משאירים לקוחות ופניות על השולחן.</p>
+          <button class="replay-btn js-replay" type="button" style="margin-top:18px">להריץ שוב את רגע הציון</button>
+        </div>
+
+        <div>
+          <div class="file-dims">
+            <h4>חמשת הממדים</h4>
+            <div class="clin-row" data-reveal>
+              <div class="clin-top"><span class="nm">נראות דיגיטלית</span><span class="chip c-good">מלא</span></div>
+              <div class="clin-scale">
+                <span class="clin-track"></span>
+                <span class="clin-gridline" style="inset-inline-start:0"></span><span class="clin-gridline" style="inset-inline-start:25%"></span><span class="clin-gridline" style="inset-inline-start:50%"></span><span class="clin-gridline" style="inset-inline-start:75%"></span><span class="clin-gridline" style="inset-inline-start:calc(100% - 2px)"></span>
+                <span class="clin-marker" data-v="65" style="--pos:calc(65% - 2px)"></span>
+              </div>
+            </div>
+            <div class="clin-row" data-reveal>
+              <div class="clin-top"><span class="nm">מוניטין וביקורות</span><span class="chip c-good">מלא</span></div>
+              <div class="clin-scale">
+                <span class="clin-track"></span>
+                <span class="clin-gridline" style="inset-inline-start:0"></span><span class="clin-gridline" style="inset-inline-start:25%"></span><span class="clin-gridline" style="inset-inline-start:50%"></span><span class="clin-gridline" style="inset-inline-start:75%"></span><span class="clin-gridline" style="inset-inline-start:calc(100% - 2px)"></span>
+                <span class="clin-marker" data-v="100" style="--pos:calc(100% - 4px);background:var(--good)"></span>
+              </div>
+            </div>
+            <div class="clin-row" data-reveal>
+              <div class="clin-top"><span class="nm">נגישות ללקוח</span><span class="chip c-good">מלא</span></div>
+              <div class="clin-scale">
+                <span class="clin-track"></span>
+                <span class="clin-gridline" style="inset-inline-start:0"></span><span class="clin-gridline" style="inset-inline-start:25%"></span><span class="clin-gridline" style="inset-inline-start:50%"></span><span class="clin-gridline" style="inset-inline-start:75%"></span><span class="clin-gridline" style="inset-inline-start:calc(100% - 2px)"></span>
+                <span class="clin-marker" data-v="70" style="--pos:calc(70% - 2px)"></span>
+              </div>
+            </div>
+            <div class="clin-row" data-reveal>
+              <div class="clin-top"><span class="nm">תשתית דיגיטלית</span><span class="chip c-warn">חלקי</span></div>
+              <div class="clin-scale">
+                <span class="clin-track"></span>
+                <span class="clin-gridline" style="inset-inline-start:0"></span><span class="clin-gridline" style="inset-inline-start:25%"></span><span class="clin-gridline" style="inset-inline-start:50%"></span><span class="clin-gridline" style="inset-inline-start:75%"></span><span class="clin-gridline" style="inset-inline-start:calc(100% - 2px)"></span>
+                <span class="clin-marker" data-v="50" style="--pos:calc(50% - 2px);background:var(--warn)"></span>
+              </div>
+            </div>
+            <div class="clin-row" data-reveal>
+              <div class="clin-top"><span class="nm">בשלות תהליכים</span><span class="chip c-mute">אין מידע</span></div>
+              <div class="clin-scale unknown">
+                <span class="clin-track"></span>
+                <span class="clin-na-txt">יושלם בראיון קצר</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="comp-box" data-reveal style="margin-top:26px">
+            <span class="comp-num">30<small>%</small></span>
+            <span class="comp-track"><span class="comp-fill" style="--w:30%"></span></span>
+            <span class="comp-txt">
+              <b>שלמות התמונה</b>
+              <p>ראיון קצר על טיפול בלידים ישלים את התמונה.</p>
+            </span>
+          </div>
+
+          <div class="file-find" style="margin-top:38px">
+            <h4>ממצאים</h4>
+            <div class="find-row" data-reveal>
+              <span class="find-tag t-fix">לטיפול</span>
+              <span><b>אין קביעת תורים אונליין</b><p>עסק שחי על תורים מפסיד לקוחות שרוצים לקבוע ב-22:00 בלילה.</p></span>
+            </div>
+            <div class="find-row" data-reveal>
+              <span class="find-tag t-fix">לטיפול</span>
+              <span><b>אין פיקסל שיווקי</b><p>אי אפשר לעשות רימרקטינג למבקרים באתר.</p></span>
+            </div>
+            <div class="find-row" data-reveal>
+              <span class="find-tag t-fix">לטיפול</span>
+              <span><b>האתר איטי במובייל</b><p>ציון ביצועים 46, טעינה 12.7 שניות.</p></span>
+            </div>
+            <div class="find-row" data-reveal>
+              <span class="find-tag t-ok">תקין</span>
+              <span><b>דירוג מצוין: 4.9 מ-80 ביקורות</b></span>
+            </div>
+            <div class="find-row" data-reveal>
+              <span class="find-tag t-ok">תקין</span>
+              <span><b>וואטסאפ, טלפון וטופס יצירת קשר זמינים באתר</b></span>
+            </div>
+            <div class="find-row" data-reveal>
+              <span class="find-tag t-ok">תקין</span>
+              <span><b>פרופיל גוגל פעיל ומלא</b></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="receipt-grid" style="margin-top:56px">
+        <div class="receipt" data-reveal>
+          <div class="receipt-head"><b>נגישות ללקוח</b><span class="rsc">70/100</span></div>
+          <p class="receipt-sub">פירוט חישוב • ממד 3 מתוך 5</p>
+          <div class="lrow"><span>וואטסאפ באתר</span><span class="leader"></span><span class="rv plus">25+</span></div>
+          <div class="lrow"><span>טלפון קליקבילי</span><span class="leader"></span><span class="rv plus">20+</span></div>
+          <div class="lrow"><span>טופס יצירת קשר</span><span class="leader"></span><span class="rv plus">25+</span></div>
+          <div class="lrow"><span>קביעת תורים אונליין</span><span class="leader"></span><span class="rv zero">0 מתוך 30</span></div>
+          <div class="receipt-total"><span>סך הכל</span><span class="rv">70</span></div>
+          <p class="receipt-note">כל ציון בדוח נבנה מחוקים גלויים כאלה. אין קופסה שחורה.</p>
+        </div>
+        <div class="receipt-side" data-reveal>
+          <h4>כל נקודה מוסברת. זה ההבדל בין ציון לבין דעה.</h4>
+          <p>הציון לא נולד מהרגשה. כל ממד נבנה מבדיקות שאפשר לראות בעיניים: יש וואטסאפ באתר או אין, הטלפון קליקבילי או לא. מה שנמצא מקבל נקודות, מה שחסר מסומן כפער.</p>
+          <p>ככה גם ברור מה מתקנים קודם: קביעת תורים אונליין שווה לאופטיקה בק 30 נקודות בממד הזה, יותר מכל שיפור אחר.</p>
+        </div>
+      </div>
+
+      <div class="cta-band" data-reveal>
+        <div>
+          <h3>זה הדוח של אופטיקה בק. מה היה כתוב בדוח שלך?</h3>
+          <p>ראיון קצר על טיפול בלידים ישלים את התמונה ויפתח תוכנית פעולה מלאה.</p>
+        </div>
+        <div class="cta-actions">
+          <button class="btn-ghost" type="button">להשלים ראיון קצר</button>
+          <button class="btn-main" type="button">אבחן את העסק שלי</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="foot-inner">
+    <span class="fb">AIT</span>
+    <span>עיתון האבחון העסקי • וריאנט עיצוב 03</span>
+    <span class="left">כל הנתונים בדף לקוחים מסריקה אמיתית של אופטיקה בק בע"מ, עפולה</span>
+  </div>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js" integrity="sha384-HOvlOYPIs/zjoIkWUGXkVmXsjr8GuZLV+Q+rcPwmJOVZVpvTSXQChiN4t9Euv9Vc" crossorigin="anonymous"></script>
+<script>
+(function(){
+  "use strict";
+
+  var LS_PAL = "ait-vc-palette";
+  var LS_FONT = "ait-vc-font";
+  var G = window.gsap || null;
+  var RM = false;
+  try{ RM = window.matchMedia("(prefers-reduced-motion: reduce)").matches; }catch(e){}
+
+  function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+  function $all(sel,root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); }
+
+  /* ---------- palette + font pickers ---------- */
+  var root = document.documentElement;
+  var palDots = $all(".pal-dot");
+  var fontBtns = $all(".font-btn");
+
+  function setPalette(p){
+    root.setAttribute("data-palette",p);
+    lsSet(LS_PAL,p);
+    palDots.forEach(function(d){ d.classList.toggle("on", d.getAttribute("data-pal")===p); });
+  }
+  function setFont(f){
+    root.setAttribute("data-font",f);
+    lsSet(LS_FONT,f);
+    fontBtns.forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-fontset")===f); });
+  }
+  palDots.forEach(function(d){ d.addEventListener("click",function(){ setPalette(d.getAttribute("data-pal")); }); });
+  fontBtns.forEach(function(b){ b.addEventListener("click",function(){ setFont(b.getAttribute("data-fontset")); }); });
+  setPalette(root.getAttribute("data-palette")||"p1");
+  setFont(root.getAttribute("data-font")||"f1");
+
+  /* ---------- nav active state ---------- */
+  var sectionIds = ["entry","scan","report"];
+  var navLinks = {};
+  sectionIds.forEach(function(id){ navLinks[id] = document.querySelector('[data-nav="'+id+'"]'); });
+  var navObs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        sectionIds.forEach(function(id){ navLinks[id].classList.remove("active"); });
+        navLinks[e.target.id].classList.add("active");
+      }
+    });
+  },{rootMargin:"-40% 0px -55% 0px"});
+  sectionIds.forEach(function(id){ navObs.observe(document.getElementById(id)); });
+
+  /* ---------- word split + masked reveal ---------- */
+  function splitWords(el){
+    var words = el.textContent.trim().split(/\s+/);
+    el.innerHTML = words.map(function(w){
+      return '<span class="wm"><span class="wi">'+w+'</span></span>';
+    }).join(" ");
+  }
+  function playSplit(el){
+    var ws = $all(".wi",el);
+    ws.forEach(function(w,i){
+      w.style.transitionDelay = (i*70)+"ms";
+      w.classList.add("wi-in");
+    });
+  }
+  function resetSplit(el){
+    var ws = $all(".wi",el);
+    ws.forEach(function(w){
+      w.style.transition = "none";
+      w.style.transitionDelay = "0ms";
+      w.classList.remove("wi-in");
+    });
+    void el.offsetWidth;
+    ws.forEach(function(w){ w.style.transition = ""; });
+  }
+  $all("[data-split]").forEach(splitWords);
+  if(RM){ $all(".wi").forEach(function(w){ w.classList.add("wi-in"); }); }
+
+  var autoSplits = $all("[data-split]").filter(function(el){ return el.getAttribute("data-split")!=="moment"; });
+  if(!RM){
+    var splitObs = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting && !e.target.dataset.splitPlayed){
+          e.target.dataset.splitPlayed = "1";
+          requestAnimationFrame(function(){ playSplit(e.target); });
+        }
+      });
+    },{threshold:.35});
+    autoSplits.forEach(function(el){ splitObs.observe(el); });
+  }
+
+  /* ---------- reveal on scroll ---------- */
+  var revObs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if(e.isIntersecting) e.target.classList.add("in"); });
+  },{threshold:.16,rootMargin:"0px 0px -6% 0px"});
+  $all("[data-reveal]").forEach(function(el){ revObs.observe(el); });
+
+  /* ---------- count-up helper ---------- */
+  function countTo(el, target, ms){
+    if(el._raf) cancelAnimationFrame(el._raf);
+    var from = parseInt(el.textContent,10); if(isNaN(from)) from = 0;
+    var start = null;
+    function frame(ts){
+      if(!start) start = ts;
+      var t = Math.min((ts-start)/ms, 1);
+      var eased = 1 - Math.pow(1-t, 3);
+      el.textContent = Math.round(from + (target-from)*eased);
+      if(t < 1) el._raf = requestAnimationFrame(frame);
+    }
+    el._raf = requestAnimationFrame(frame);
+  }
+
+  /* ---------- per-section layout galleries ---------- */
+  var galleries = {};
+  var hoveredGallery = null;
+  var reportSeen = false;
+  var reportGallery = null;
+
+  $all("section[data-section]").forEach(function(sec){
+    var name = sec.getAttribute("data-section");
+    var alts = $all(".layout-alt",sec);
+    var count = alts.length;
+    if(!count) return;
+    var counter = sec.querySelector(".gal-count");
+    var key = "ait-vc-layout-"+name;
+    var idx = parseInt(lsGet(key),10);
+    try{
+      var qv = parseInt(new URLSearchParams(location.search).get("l-"+name),10);
+      if(!isNaN(qv)) idx = qv - 1;
+    }catch(e){}
+    if(isNaN(idx) || idx < 0 || idx >= count) idx = 0;
+
+    function show(i, fromUser){
+      idx = ((i % count) + count) % count;
+      alts.forEach(function(a,j){ a.classList.toggle("on", j===idx); });
+      counter.textContent = "פריסה "+(idx+1)+" מתוך "+count;
+      lsSet(key, String(idx));
+      if(fromUser && name === "report" && reportSeen){
+        playReport(alts[idx], RM);
+      }
+    }
+    show(idx, false);
+
+    sec.querySelector(".gal-prev").addEventListener("click",function(){ show(idx-1, true); });
+    sec.querySelector(".gal-next").addEventListener("click",function(){ show(idx+1, true); });
+    sec.addEventListener("mouseenter",function(){ hoveredGallery = name; });
+    sec.addEventListener("mouseleave",function(){ if(hoveredGallery === name) hoveredGallery = null; });
+
+    galleries[name] = {
+      next:function(){ show(idx+1, true); },
+      prev:function(){ show(idx-1, true); },
+      current:function(){ return alts[idx]; }
+    };
+    if(name === "report") reportGallery = galleries[name];
+  });
+
+  document.addEventListener("keydown",function(e){
+    if(!hoveredGallery) return;
+    var tag = (e.target && e.target.tagName) || "";
+    if(tag === "INPUT" || tag === "TEXTAREA") return;
+    if(e.key === "ArrowLeft"){ galleries[hoveredGallery].next(); e.preventDefault(); }
+    else if(e.key === "ArrowRight"){ galleries[hoveredGallery].prev(); e.preventDefault(); }
+  });
+
+  /* ---------- build scan lines ---------- */
+  var scanData = [
+    {lbl:"מאתרים את פרטי העסק בגוגל", sub:"נמצאו 80 ביקורות ודירוג 4.9", t:"1.2 שניות"},
+    {lbl:"קוראים את האתר", sub:"נסרקו 8 עמודים", t:"3.4 שניות"},
+    {lbl:"בודקים מהירות טעינה במובייל", sub:"ציון ביצועים 46", t:"8.1 שניות"},
+    {lbl:"מנתחים את הביקורות", sub:"נותחו 5 ביקורות", t:"2.6 שניות"},
+    {lbl:"מחשבים ציונים ומודל עסק", sub:"ציון כולל 73/100", t:"1.8 שניות"},
+    {lbl:"כותבים את הדוח", sub:"", t:"4.3 שניות"},
+    {lbl:"שומרים את האבחון", sub:"", t:"0.4 שניות"}
+  ];
+  var checkSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  var lineHtml = scanData.map(function(s){
+    return '<li class="scan-line st-idle">'
+      +'<span class="icon"><span class="idle-dot"></span><span class="spinner"><span class="spinner-ring"></span></span><span class="check"><span class="check-badge">'+checkSvg+'</span></span></span>'
+      +'<span style="flex:1"><span class="lbl">'+s.lbl+'</span><span class="sub"></span></span>'
+      +'<span class="tick"></span>'
+      +'</li>';
+  }).join("");
+  $all(".scan-lines").forEach(function(ul){ ul.innerHTML = lineHtml; });
+
+  /* ---------- live scan loop ---------- */
+  var lineSets = $all(".scan-lines").map(function(ul){ return $all(".scan-line",ul); });
+  var stageWord = document.querySelector(".js-stage");
+  var stageSub = document.querySelector(".js-stagesub");
+  var stepEls = $all(".js-step");
+  var pctEls = $all(".js-pct");
+  var railSegs = $all(".js-rail .seg");
+  var ringFills = $all(".js-ringfill");
+  var factRows = $all(".facts li");
+  var flashes = $all(".js-flash");
+  var RING_C = 402.12;
+  var DUR = [1600,1900,2300,1700,1600,1900,1300];
+  var GAP = 280;
+
+  function setStage(text){
+    if(!stageWord) return;
+    stageWord.textContent = text;
+    if(G && !RM){
+      G.fromTo(stageWord,{yPercent:70,opacity:0},{yPercent:0,opacity:1,duration:.55,ease:"power3.out"});
+    }
+  }
+  function setProgress(doneCount){
+    var p = Math.round(doneCount/7*100);
+    pctEls.forEach(function(el){ countTo(el,p,500); });
+    ringFills.forEach(function(c){ c.style.strokeDashoffset = String(RING_C*(1-doneCount/7)); });
+  }
+  function setLineState(i, state){
+    lineSets.forEach(function(set){
+      var li = set[i]; if(!li) return;
+      li.classList.remove("st-idle","st-active","st-done");
+      li.classList.add(state);
+      if(state === "st-done"){
+        li.querySelector(".sub").textContent = scanData[i].sub;
+        li.querySelector(".tick").textContent = scanData[i].t;
+      }
+    });
+  }
+  function resetScanAll(){
+    lineSets.forEach(function(set){
+      set.forEach(function(li){
+        li.classList.remove("st-active","st-done");
+        li.classList.add("st-idle");
+        li.querySelector(".sub").textContent = "";
+        li.querySelector(".tick").textContent = "";
+      });
+    });
+    railSegs.forEach(function(s){ s.classList.remove("act","done"); });
+    factRows.forEach(function(f){ f.classList.remove("pop"); });
+    flashes.forEach(function(f){ f.classList.remove("on"); });
+    if(stageSub) stageSub.textContent = "";
+    setProgress(0);
+  }
+  function scanStep(i){
+    setLineState(i,"st-active");
+    setStage(scanData[i].lbl);
+    stepEls.forEach(function(el){ el.textContent = "שלב "+(i+1)+" מתוך 7"; });
+    if(railSegs[i]) railSegs[i].classList.add("act");
+    setTimeout(function(){
+      setLineState(i,"st-done");
+      if(railSegs[i]){ railSegs[i].classList.remove("act"); railSegs[i].classList.add("done"); }
+      if(stageSub) stageSub.textContent = scanData[i].sub;
+      setProgress(i+1);
+      factRows.forEach(function(f){ if(parseInt(f.getAttribute("data-step"),10)===i) f.classList.add("pop"); });
+      if(i < 6){
+        setTimeout(function(){ scanStep(i+1); }, GAP);
+      }else{
+        flashes.forEach(function(f){ f.classList.add("on"); });
+        setTimeout(function(){
+          resetScanAll();
+          setTimeout(function(){ scanStep(0); }, 600);
+        }, 2600);
+      }
+    }, DUR[i]);
+  }
+  if(RM){
+    scanData.forEach(function(s,i){ setLineState(i,"st-done"); if(railSegs[i]) railSegs[i].classList.add("done"); });
+    factRows.forEach(function(f){ f.classList.add("pop"); });
+    stepEls.forEach(function(el){ el.textContent = "שלב 7 מתוך 7"; });
+    pctEls.forEach(function(el){ el.textContent = "100"; });
+    ringFills.forEach(function(c){ c.style.strokeDashoffset = "0"; });
+    if(stageWord) stageWord.textContent = scanData[6].lbl;
+    flashes.forEach(function(f){ f.classList.add("on"); });
+  }else{
+    resetScanAll();
+    setTimeout(function(){ scanStep(0); }, 900);
+  }
+
+  /* ---------- the score moment ---------- */
+  var SCORE = 73;
+  $all(".js-dialfill").forEach(function(p){
+    var L = p.getTotalLength();
+    p.dataset.len = String(L);
+    p.style.strokeDasharray = String(L);
+    p.style.strokeDashoffset = String(L);
+  });
+
+  function playReport(scope, instant){
+    if(!scope) return;
+    scope.dataset.played = "1";
+    if(scope._timers){ scope._timers.forEach(clearTimeout); }
+    scope._timers = [];
+    var moment = scope.querySelector(".js-moment");
+    var dials = $all(".js-dialfill",scope);
+    var scores = $all(".js-score",scope);
+    var chips = scope.querySelector(".js-chips");
+    var constel = scope.querySelector(".js-constel");
+    var verdicts = $all('[data-split="moment"]',scope);
+
+    /* reset */
+    if(moment) moment.classList.remove("lit","preparing");
+    dials.forEach(function(p){
+      p.style.transition = "none";
+      p.style.strokeDashoffset = p.dataset.len;
+      void p.getBoundingClientRect();
+    });
+    scores.forEach(function(el){ if(el._raf) cancelAnimationFrame(el._raf); el.textContent = "0"; });
+    if(chips) chips.classList.remove("in");
+    if(constel){
+      constel.style.transition = "none";
+      $all(".constel-poly,.constel-dash,.constel-node,.constel-val,.constel-na-lbl",constel).forEach(function(n){ n.style.transition = "none"; });
+      constel.classList.remove("lit");
+      void constel.getBoundingClientRect();
+      $all(".constel-poly,.constel-dash,.constel-node,.constel-val,.constel-na-lbl",constel).forEach(function(n){ n.style.transition = ""; });
+      constel.style.transition = "";
+    }
+    verdicts.forEach(resetSplit);
+
+    if(instant){
+      if(moment) moment.classList.add("lit");
+      dials.forEach(function(p){
+        p.style.transition = "none";
+        p.style.strokeDashoffset = String(parseFloat(p.dataset.len)*(1-SCORE/100));
+      });
+      scores.forEach(function(el){ el.textContent = String(SCORE); });
+      if(chips) chips.classList.add("in");
+      if(constel) constel.classList.add("lit");
+      verdicts.forEach(function(v){ $all(".wi",v).forEach(function(w){ w.classList.add("wi-in"); }); });
+      return;
+    }
+
+    function later(fn,ms){ scope._timers.push(setTimeout(fn,ms)); }
+
+    later(function(){ if(moment) moment.classList.add("preparing"); }, 100);
+    later(function(){
+      if(moment) moment.classList.remove("preparing");
+      dials.forEach(function(p){
+        p.style.transition = "stroke-dashoffset 1.5s cubic-bezier(.22,.9,.24,1), stroke .9s";
+        p.style.strokeDashoffset = String(parseFloat(p.dataset.len)*(1-SCORE/100));
+      });
+      scores.forEach(function(el){ countTo(el,SCORE,1500); });
+      if(constel) constel.classList.add("lit");
+    }, 640);
+    later(function(){
+      if(moment) moment.classList.add("lit");
+      if(G){
+        $all(".score-num",scope).forEach(function(el){
+          G.fromTo(el,{scale:1.07},{scale:1,duration:.6,ease:"back.out(2.5)"});
+        });
+      }
+    }, 2160);
+    later(function(){ verdicts.forEach(playSplit); }, 2350);
+    later(function(){ if(chips) chips.classList.add("in"); }, 3000);
+  }
+
+  /* first-view trigger: the moment plays when the report enters the viewport */
+  var momentObs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(!e.isIntersecting) return;
+      var alt = e.target.closest(".layout-alt");
+      if(!alt || !alt.classList.contains("on")) return;
+      if(alt.dataset.played) return;
+      reportSeen = true;
+      playReport(alt, RM);
+    });
+  },{threshold:.3});
+  $all("#report .js-moment").forEach(function(m){ momentObs.observe(m); });
+  document.getElementById("report").addEventListener("mouseenter",function(){ /* keep hover tracking alive */ });
+
+  $all(".js-replay").forEach(function(btn){
+    btn.addEventListener("click",function(){
+      reportSeen = true;
+      playReport(btn.closest(".layout-alt"), false);
+    });
+  });
+
+  /* ---------- gap card spotlight ---------- */
+  $all(".gap-card").forEach(function(card){
+    card.addEventListener("pointermove",function(ev){
+      var r = card.getBoundingClientRect();
+      card.style.setProperty("--mx",(ev.clientX-r.left)+"px");
+      card.style.setProperty("--my",(ev.clientY-r.top)+"px");
+    });
+  });
+
+  /* ---------- ticker ---------- */
+  $all(".ticker-track").forEach(function(track){
+    track.innerHTML += track.innerHTML;
+  });
+
+})();
+</script>
+</body>
+</html>
