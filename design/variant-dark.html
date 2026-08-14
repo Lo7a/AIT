@@ -1,0 +1,1024 @@
+<!doctype html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIT - אבחון דיגיטלי לעסקים</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050505;
+    --panel:rgba(255,255,255,.035);
+    --panel2:#0a0a0d;
+    --hair:rgba(255,255,255,.09);
+    --hair-soft:rgba(255,255,255,.055);
+    --txt:#f4f4f6;
+    --mut:rgba(244,244,246,.58);
+    --dim:rgba(244,244,246,.34);
+    --vio:#a78bfa;
+    --vio-deep:#7c5cf0;
+    --emr:#34d399;
+    --amb:#fbbf24;
+    --red:#fb7185;
+    --ease:cubic-bezier(.32,.72,0,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg);
+    color:var(--txt);
+    font-family:'Heebo',sans-serif;
+    font-size:16px;
+    line-height:1.6;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  .num{font-family:'Space Grotesk','Heebo',sans-serif;font-feature-settings:'tnum'}
+  ::selection{background:rgba(167,139,250,.35)}
+
+  /* ===== background orbs ===== */
+  .orbs{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:.55;will-change:transform}
+  .orb.a{width:640px;height:640px;top:-180px;right:-140px;background:radial-gradient(circle,rgba(124,92,240,.34),transparent 65%);animation:drift1 26s var(--ease) infinite alternate}
+  .orb.b{width:520px;height:520px;top:38%;left:-180px;background:radial-gradient(circle,rgba(52,211,153,.20),transparent 65%);animation:drift2 32s var(--ease) infinite alternate}
+  .orb.c{width:560px;height:560px;bottom:-220px;right:22%;background:radial-gradient(circle,rgba(124,92,240,.20),transparent 65%);animation:drift1 38s var(--ease) infinite alternate-reverse}
+  @keyframes drift1{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(-70px,60px,0) scale(1.12)}}
+  @keyframes drift2{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(80px,-50px,0) scale(1.08)}}
+  .grid-tex{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);
+    background-size:56px 56px;
+    -webkit-mask-image:radial-gradient(ellipse 70% 55% at 50% 8%,#000 30%,transparent 75%);
+    mask-image:radial-gradient(ellipse 70% 55% at 50% 8%,#000 30%,transparent 75%);
+  }
+
+  /* ===== floating nav ===== */
+  nav.float{
+    position:fixed;top:22px;right:50%;transform:translateX(50%);z-index:40;
+    display:flex;align-items:center;gap:6px;
+    padding:7px 10px 7px 7px;border-radius:999px;
+    background:rgba(10,10,14,.62);
+    border:1px solid var(--hair);
+    backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+    box-shadow:0 12px 40px rgba(0,0,0,.5), inset 0 1px 1px rgba(255,255,255,.07);
+  }
+  nav.float .brand{
+    display:flex;align-items:center;gap:9px;
+    padding:6px 16px 6px 14px;margin-left:4px;
+    border-radius:999px;background:rgba(255,255,255,.05);
+    border:1px solid var(--hair-soft);
+    font-weight:900;font-size:15px;letter-spacing:.5px;
+  }
+  nav.float .brand .dot{width:9px;height:9px;border-radius:50%;
+    background:linear-gradient(135deg,var(--vio),var(--emr));
+    box-shadow:0 0 12px rgba(167,139,250,.8)}
+  nav.float a{
+    color:var(--mut);text-decoration:none;font-size:13.5px;font-weight:600;
+    padding:7px 16px;border-radius:999px;border:1px solid transparent;
+    transition:all .5s var(--ease);
+  }
+  nav.float a:hover{color:var(--txt);background:rgba(255,255,255,.06)}
+  nav.float a.on{color:var(--txt);background:rgba(255,255,255,.08);border-color:var(--hair-soft)}
+
+  /* ===== layout ===== */
+  main{position:relative;z-index:1}
+  section.screen{
+    position:relative;
+    max-width:1180px;margin:0 auto;
+    padding:130px 44px 110px;
+  }
+  section.screen + section.screen{border-top:1px solid rgba(255,255,255,.05)}
+  .sec-tag{
+    position:absolute;top:44px;right:44px;
+    display:flex;align-items:center;gap:10px;
+    font-size:11px;letter-spacing:.24em;color:var(--dim);font-weight:600;
+  }
+  .sec-tag b{font-family:'Space Grotesk';font-weight:600;color:var(--mut)}
+  .sec-tag::after{content:'';width:44px;height:1px;background:linear-gradient(90deg,var(--hair),transparent)}
+
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:6px 15px;border-radius:999px;
+    background:rgba(167,139,250,.09);
+    border:1px solid rgba(167,139,250,.22);
+    color:#c9b8fc;font-size:11.5px;font-weight:700;letter-spacing:.14em;
+  }
+  .eyebrow .pulse{width:6px;height:6px;border-radius:50%;background:var(--emr);
+    box-shadow:0 0 8px rgba(52,211,153,.9);animation:pulse 2.2s var(--ease) infinite}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.75)}}
+
+  /* ===== double bezel ===== */
+  .shell{
+    background:rgba(255,255,255,.045);
+    border:1px solid var(--hair);
+    border-radius:30px;padding:8px;
+    box-shadow:0 30px 80px rgba(0,0,0,.45);
+  }
+  .core{
+    background:linear-gradient(180deg,#0c0c10,#08080b);
+    border:1px solid var(--hair-soft);
+    border-radius:22px;
+    box-shadow:inset 0 1px 1px rgba(255,255,255,.06);
+    position:relative;overflow:hidden;
+  }
+
+  /* ===== buttons ===== */
+  .btn{
+    display:inline-flex;align-items:center;gap:14px;
+    padding:9px 10px 9px 26px;border-radius:999px;border:none;cursor:pointer;
+    background:linear-gradient(135deg,#8f6ef5,#6d4de0);
+    color:#fff;font-family:'Heebo';font-size:16px;font-weight:800;
+    box-shadow:0 10px 34px rgba(124,92,240,.4), inset 0 1px 1px rgba(255,255,255,.3);
+    transition:all .55s var(--ease);
+  }
+  .btn .cap{
+    width:36px;height:36px;border-radius:50%;flex:0 0 36px;
+    background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.22);
+    display:flex;align-items:center;justify-content:center;
+    transition:all .55s var(--ease);
+  }
+  .btn:hover{transform:translateY(-2px);box-shadow:0 16px 44px rgba(124,92,240,.55), inset 0 1px 1px rgba(255,255,255,.3)}
+  .btn:hover .cap{transform:translateX(-3px) scale(1.06);background:rgba(255,255,255,.25)}
+  .btn:active{transform:scale(.98)}
+  .btn.ghost{
+    background:rgba(255,255,255,.05);color:var(--txt);
+    border:1px solid var(--hair);box-shadow:none;font-weight:700;
+  }
+  .btn.ghost .cap{background:rgba(255,255,255,.07);border-color:var(--hair)}
+  .btn.ghost:hover{background:rgba(255,255,255,.09);box-shadow:0 10px 30px rgba(0,0,0,.4)}
+
+  /* ===== reveal ===== */
+  .rv{opacity:0;transform:translateY(38px);filter:blur(10px);transition:opacity 1s var(--ease),transform 1s var(--ease),filter 1s var(--ease)}
+  .rv.on{opacity:1;transform:none;filter:none}
+
+  /* =====================================================
+     SCREEN 1 - ENTRY
+  ===================================================== */
+  #entry{padding-top:150px;min-height:100vh;display:flex;flex-direction:column;justify-content:center}
+  .entry-grid{display:grid;grid-template-columns:1.25fr .85fr;gap:56px;align-items:center}
+  h1.hero{
+    font-size:clamp(44px,4.6vw,60px);font-weight:900;line-height:1.14;
+    letter-spacing:-.01em;margin:26px 0 18px;
+  }
+  h1.hero .glow{
+    background:linear-gradient(120deg,#c8b6ff 0%,#8f6ef5 45%,#34d399 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .hero-sub{color:var(--mut);font-size:18px;max-width:520px;font-weight:400;margin-bottom:40px}
+  .hero-sub b{color:var(--txt);font-weight:600}
+
+  .diagform .core{padding:12px}
+  .fieldrow{display:grid;grid-template-columns:1.6fr 1fr;gap:10px;margin-bottom:10px}
+  .field{position:relative}
+  .field svg{position:absolute;top:50%;right:16px;transform:translateY(-50%);opacity:.4;pointer-events:none}
+  .field input{
+    width:100%;padding:16px 46px 16px 16px;
+    background:rgba(255,255,255,.04);border:1px solid var(--hair-soft);border-radius:14px;
+    color:var(--txt);font-family:'Heebo';font-size:15.5px;font-weight:500;outline:none;
+    transition:all .5s var(--ease);
+  }
+  .field input::placeholder{color:var(--dim);font-weight:400}
+  .field input:focus{border-color:rgba(167,139,250,.55);background:rgba(167,139,250,.06);
+    box-shadow:0 0 0 4px rgba(167,139,250,.12)}
+  .formfoot{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .trust{display:flex;gap:18px;flex-wrap:wrap}
+  .trust span{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--mut);font-weight:500}
+  .trust svg{color:var(--emr)}
+
+  /* recent panel */
+  .recent .core{padding:26px 26px 16px}
+  .recent h3{font-size:13px;font-weight:700;letter-spacing:.14em;color:var(--dim);margin-bottom:18px;
+    display:flex;align-items:center;gap:9px}
+  .recent h3 .live{width:7px;height:7px;border-radius:50%;background:var(--emr);box-shadow:0 0 10px rgba(52,211,153,.9);animation:pulse 2.2s var(--ease) infinite}
+  .rrow{
+    display:flex;align-items:center;gap:14px;
+    padding:13px 6px;border-top:1px solid rgba(255,255,255,.05);
+    transition:all .5s var(--ease);
+  }
+  .rrow:first-of-type{border-top:none}
+  .rrow:hover{background:rgba(255,255,255,.025);border-radius:12px;padding-right:12px}
+  .rrow .who{flex:1;min-width:0}
+  .rrow .who b{display:block;font-size:14.5px;font-weight:700}
+  .rrow .who i{font-style:normal;font-size:12px;color:var(--dim)}
+  .miniring{position:relative;width:46px;height:46px;flex:0 0 46px}
+  .miniring svg{width:46px;height:46px;transform:rotate(-90deg)}
+  .miniring .v{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-family:'Space Grotesk';font-size:13.5px;font-weight:700}
+
+  /* how it works */
+  .how{margin-top:64px}
+  .how-head{display:flex;align-items:center;gap:18px;margin-bottom:22px}
+  .how-head h2{font-size:13px;font-weight:700;letter-spacing:.2em;color:var(--dim);white-space:nowrap}
+  .how-head::after{content:'';flex:1;height:1px;background:linear-gradient(-90deg,var(--hair),transparent)}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .step{
+    position:relative;padding:22px 22px 20px;
+    background:var(--panel);border:1px solid var(--hair-soft);border-radius:20px;
+    transition:all .6s var(--ease);
+  }
+  .step:hover{transform:translateY(-4px);border-color:rgba(167,139,250,.3);background:rgba(167,139,250,.05)}
+  .step .n{
+    font-family:'Space Grotesk';font-size:13px;font-weight:700;color:var(--vio);
+    width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.25);margin-bottom:14px;
+  }
+  .step b{display:block;font-size:15.5px;font-weight:700;margin-bottom:4px}
+  .step p{font-size:13px;color:var(--mut)}
+
+  /* =====================================================
+     SCREEN 2 - LIVE SCAN
+  ===================================================== */
+  #scan{min-height:100vh;display:flex;flex-direction:column;justify-content:center}
+  .scan-wrap{max-width:760px;margin:0 auto;width:100%}
+  .scan-head{text-align:center;margin-bottom:34px}
+  .scan-head h2{font-size:clamp(28px,3vw,38px);font-weight:900;margin:18px 0 8px}
+  .scan-head p{color:var(--mut);font-size:15.5px}
+  .scan-head p b{color:var(--txt);font-weight:700}
+
+  .term .core{padding:0}
+  .term-bar{
+    display:flex;align-items:center;gap:14px;
+    padding:15px 22px;border-bottom:1px solid var(--hair-soft);
+  }
+  .lights{display:flex;gap:7px}
+  .lights i{width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.08)}
+  .lights i:first-child{background:rgba(251,113,133,.5)}
+  .lights i:nth-child(2){background:rgba(251,191,36,.45)}
+  .lights i:nth-child(3){background:rgba(52,211,153,.5)}
+  .term-bar .addr{
+    flex:1;text-align:center;font-size:12.5px;color:var(--dim);font-weight:500;
+    background:rgba(255,255,255,.035);border:1px solid var(--hair-soft);
+    border-radius:9px;padding:5px 14px;
+  }
+  .term-bar .pct{font-family:'Space Grotesk';font-size:13px;font-weight:700;color:var(--vio);min-width:44px;text-align:left}
+  .pbar{height:2px;background:rgba(255,255,255,.06);position:relative;overflow:hidden}
+  .pbar i{
+    position:absolute;inset-block:0;right:0;width:100%;
+    background:linear-gradient(-90deg,var(--vio),var(--emr));
+    transform:scaleX(0);transform-origin:right;
+    transition:transform 1.6s var(--ease);
+    box-shadow:0 0 14px rgba(167,139,250,.7);
+  }
+  .term-body{padding:14px 26px 22px;position:relative}
+  .beam{
+    position:absolute;inset-inline:0;top:0;height:64px;pointer-events:none;
+    background:linear-gradient(180deg,transparent,rgba(167,139,250,.06),transparent);
+    animation:beam 3.4s var(--ease) infinite;opacity:.9;
+  }
+  @keyframes beam{0%{transform:translateY(-30px)}55%{transform:translateY(360px)}100%{transform:translateY(360px);opacity:0}}
+  .ln{
+    display:flex;align-items:flex-start;gap:15px;
+    padding:13px 4px;border-top:1px solid rgba(255,255,255,.04);
+    opacity:0;transform:translateY(10px);
+    transition:opacity .7s var(--ease),transform .7s var(--ease);
+  }
+  .ln:first-child{border-top:none}
+  .ln.act,.ln.done{opacity:1;transform:none}
+  .ln .st{width:26px;height:26px;flex:0 0 26px;position:relative;margin-top:1px}
+  .ln .spin,.ln .chk{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    transition:opacity .45s var(--ease),transform .45s var(--ease)}
+  .ln .spin{opacity:0}
+  .ln.act .spin{opacity:1}
+  .ln .spin i{
+    width:17px;height:17px;border-radius:50%;
+    border:2px solid rgba(167,139,250,.2);border-top-color:var(--vio);
+    animation:rot 0.9s linear infinite;display:block;
+    box-shadow:0 0 10px rgba(167,139,250,.25);
+  }
+  @keyframes rot{to{transform:rotate(360deg)}}
+  .ln .chk{opacity:0;transform:scale(.5)}
+  .ln.done .chk{opacity:1;transform:scale(1)}
+  .ln.done .spin{opacity:0}
+  .ln .chk span{
+    width:22px;height:22px;border-radius:50%;
+    background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.4);
+    display:flex;align-items:center;justify-content:center;color:var(--emr);
+    box-shadow:0 0 12px rgba(52,211,153,.25);
+  }
+  .ln .tx{flex:1;min-width:0}
+  .ln .main{font-size:15px;font-weight:600;color:var(--dim);transition:color .5s var(--ease)}
+  .ln.act .main{color:var(--txt)}
+  .ln.done .main{color:var(--mut)}
+  .ln .res{
+    font-size:13px;color:var(--emr);font-weight:600;margin-top:1px;
+    font-family:'Space Grotesk','Heebo',sans-serif;
+    opacity:0;transform:translateY(-4px);
+    max-height:0;overflow:hidden;
+    transition:all .6s var(--ease);
+  }
+  .ln.done .res{opacity:1;transform:none;max-height:26px}
+  .ln.act .dots{display:inline-flex;gap:3px;margin-right:6px}
+  .ln .dots{display:none}
+  .ln .dots i{width:4px;height:4px;border-radius:50%;background:var(--vio);animation:dotp 1.2s var(--ease) infinite}
+  .ln .dots i:nth-child(2){animation-delay:.18s}
+  .ln .dots i:nth-child(3){animation-delay:.36s}
+  @keyframes dotp{0%,100%{opacity:.2;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
+  .term-foot{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 24px;border-top:1px solid var(--hair-soft);
+    font-size:12px;color:var(--dim);
+  }
+  .term-foot .num{color:var(--mut)}
+
+  /* =====================================================
+     SCREEN 3 - REPORT
+  ===================================================== */
+  .rep-head{margin-bottom:16px}
+  .rep-head .core{padding:36px 40px;display:flex;align-items:center;gap:44px;flex-wrap:wrap}
+  .rep-id{flex:1;min-width:300px}
+  .rep-id h2{font-size:clamp(30px,3.2vw,42px);font-weight:900;line-height:1.15;margin:16px 0 8px}
+  .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .meta span{
+    font-size:12.5px;color:var(--mut);font-weight:500;
+    padding:5px 13px;border-radius:999px;
+    background:rgba(255,255,255,.04);border:1px solid var(--hair-soft);
+  }
+  .meta span b{color:var(--txt);font-weight:700}
+
+  .dial{position:relative;width:210px;height:210px;flex:0 0 210px;margin:0 auto}
+  .dial svg{width:210px;height:210px;transform:rotate(-90deg)}
+  .dial .track{fill:none;stroke:rgba(255,255,255,.06);stroke-width:11}
+  .dial .arc{
+    fill:none;stroke:url(#dialGrad);stroke-width:11;stroke-linecap:round;
+    stroke-dasharray:552;stroke-dashoffset:552;
+    transition:stroke-dashoffset 1.8s var(--ease);
+    filter:drop-shadow(0 0 10px rgba(167,139,250,.55)) drop-shadow(0 0 26px rgba(52,211,153,.25));
+  }
+  .dial.on .arc{stroke-dashoffset:149}
+  .dial .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+  .dial .mid .big{font-family:'Space Grotesk';font-size:58px;font-weight:700;line-height:1;
+    text-shadow:0 0 34px rgba(167,139,250,.5)}
+  .dial .mid .of{font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.14em}
+  .dial .mid .tag{
+    margin-top:8px;font-size:11px;font-weight:700;color:var(--emr);
+    padding:3px 11px;border-radius:999px;background:rgba(52,211,153,.1);
+    border:1px solid rgba(52,211,153,.3);
+  }
+
+  .narr{margin-bottom:16px}
+  .narr .core{padding:30px 36px;
+    background:linear-gradient(135deg,rgba(124,92,240,.1),rgba(8,8,11,.4) 45%),linear-gradient(180deg,#0c0c10,#08080b)}
+  .narr h3{font-size:21px;font-weight:800;line-height:1.45;margin-bottom:10px}
+  .narr p{color:var(--mut);font-size:15.5px;max-width:820px}
+  .narr p b{color:var(--txt);font-weight:600}
+
+  .rep-cols{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;margin-bottom:16px;align-items:stretch}
+  .rep-cols .shell{display:flex}
+  .rep-cols .core{flex:1;padding:28px 30px}
+  .blk-title{display:flex;align-items:center;gap:11px;margin-bottom:22px}
+  .blk-title .ic{
+    width:34px;height:34px;border-radius:11px;flex:0 0 34px;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.25);color:var(--vio);
+  }
+  .blk-title .ic.warn{background:rgba(251,113,133,.09);border-color:rgba(251,113,133,.28);color:var(--red)}
+  .blk-title .ic.good{background:rgba(52,211,153,.09);border-color:rgba(52,211,153,.28);color:var(--emr)}
+  .blk-title h3{font-size:17px;font-weight:800}
+  .blk-title small{display:block;font-size:12px;color:var(--dim);font-weight:500}
+
+  /* dimensions */
+  .dim{display:flex;align-items:center;gap:14px;padding:12px 0;border-top:1px solid rgba(255,255,255,.045)}
+  .dim:first-of-type{border-top:none;padding-top:0}
+  .dim .lb{width:132px;flex:0 0 132px;font-size:14px;font-weight:700}
+  .dim .bar{flex:1;height:7px;border-radius:99px;background:rgba(255,255,255,.06);overflow:hidden;position:relative}
+  .dim .bar i{
+    position:absolute;inset-block:0;right:0;border-radius:99px;
+    width:var(--w);transform:scaleX(0);transform-origin:right;
+    transition:transform 1.3s var(--ease);
+  }
+  .on .dim .bar i{transform:scaleX(1)}
+  .dim .bar i.hi{background:linear-gradient(-90deg,var(--emr),#6ee7b7);box-shadow:0 0 12px rgba(52,211,153,.5)}
+  .dim .bar i.md{background:linear-gradient(-90deg,var(--vio),#c4b5fd);box-shadow:0 0 12px rgba(167,139,250,.5)}
+  .dim .bar i.lo{background:linear-gradient(-90deg,var(--amb),#fde68a);box-shadow:0 0 12px rgba(251,191,36,.45)}
+  .dim .bar.empty{background:repeating-linear-gradient(-45deg,rgba(255,255,255,.06) 0 5px,transparent 5px 10px)}
+  .dim .sc{width:40px;flex:0 0 40px;text-align:left;font-family:'Space Grotesk';font-size:16px;font-weight:700}
+  .dim .sc small{font-size:10px;color:var(--dim);font-weight:500}
+  .chip{
+    font-size:10.5px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap;
+    letter-spacing:.02em;
+  }
+  .chip.full{color:#7ee8c3;background:rgba(52,211,153,.09);border:1px solid rgba(52,211,153,.28)}
+  .chip.part{color:#fcd34d;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.28)}
+  .chip.none{color:var(--dim);background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.16)}
+
+  /* rules transparency */
+  details.rules{margin-top:20px;border-top:1px solid rgba(255,255,255,.05);padding-top:6px}
+  details.rules summary{
+    list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;
+    padding:10px 4px;font-size:13.5px;font-weight:700;color:var(--vio);
+    transition:color .4s var(--ease);
+  }
+  details.rules summary::-webkit-details-marker{display:none}
+  details.rules summary:hover{color:#c9b8fc}
+  details.rules summary .chev{transition:transform .5s var(--ease);display:flex}
+  details.rules[open] summary .chev{transform:rotate(180deg)}
+  .rules-body{
+    margin:6px 2px 8px;padding:16px 18px;border-radius:14px;
+    background:rgba(255,255,255,.03);border:1px solid var(--hair-soft);
+  }
+  .rules-body .rt{font-size:12px;color:var(--dim);margin-bottom:12px}
+  .rules-body .rt b{color:var(--mut)}
+  .rrule{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:7px 0;border-top:1px dashed rgba(255,255,255,.07);font-size:13.5px}
+  .rrule:first-of-type{border-top:none;padding-top:0}
+  .rrule .pts{font-family:'Space Grotesk';font-weight:700;font-size:14px}
+  .rrule .pts.plus{color:var(--emr)}
+  .rrule .pts.zero{color:var(--red)}
+  .rrule.total{border-top:1px solid rgba(255,255,255,.12);margin-top:6px;padding-top:10px;font-weight:800}
+  .rrule.total .pts{color:var(--vio);font-size:15px}
+
+  /* gaps */
+  .gap{
+    display:flex;gap:15px;padding:15px 14px;border-radius:16px;margin-bottom:10px;
+    background:rgba(251,113,133,.045);border:1px solid rgba(251,113,133,.14);
+    transition:all .5s var(--ease);
+  }
+  .gap:hover{background:rgba(251,113,133,.07);transform:translateX(-3px)}
+  .gap:last-child{margin-bottom:0}
+  .gap .gic{
+    width:38px;height:38px;flex:0 0 38px;border-radius:12px;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(251,113,133,.1);border:1px solid rgba(251,113,133,.25);color:var(--red);
+  }
+  .gap b{display:block;font-size:14.5px;font-weight:800;margin-bottom:2px}
+  .gap p{font-size:13px;color:var(--mut);line-height:1.55}
+  .gap p .num{color:#fda4af;font-weight:600}
+
+  /* strengths */
+  .stg{display:flex;align-items:flex-start;gap:13px;padding:12px 4px;border-top:1px solid rgba(255,255,255,.045)}
+  .stg:first-of-type{border-top:none;padding-top:0}
+  .stg .sic{
+    width:30px;height:30px;flex:0 0 30px;border-radius:50%;margin-top:2px;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(52,211,153,.09);border:1px solid rgba(52,211,153,.3);color:var(--emr);
+  }
+  .stg p{font-size:14.5px;font-weight:600;padding-top:4px}
+  .stg p .num{color:#7ee8c3}
+
+  /* completeness footer */
+  .complete .core{padding:26px 32px;display:flex;align-items:center;gap:34px;flex-wrap:wrap}
+  .cring{position:relative;width:76px;height:76px;flex:0 0 76px}
+  .cring svg{width:76px;height:76px;transform:rotate(-90deg)}
+  .cring .v{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-family:'Space Grotesk';font-size:16px;font-weight:700;color:var(--amb)}
+  .cring circle.t{fill:none;stroke:rgba(255,255,255,.07);stroke-width:6}
+  .cring circle.a{fill:none;stroke:var(--amb);stroke-width:6;stroke-linecap:round;
+    stroke-dasharray:207;stroke-dashoffset:207;transition:stroke-dashoffset 1.6s var(--ease);
+    filter:drop-shadow(0 0 8px rgba(251,191,36,.5))}
+  .on .cring circle.a{stroke-dashoffset:145}
+  .complete .ct{flex:1;min-width:260px}
+  .complete .ct b{display:block;font-size:16.5px;font-weight:800;margin-bottom:3px}
+  .complete .ct p{font-size:14px;color:var(--mut)}
+
+  footer{
+    position:relative;z-index:1;
+    max-width:1180px;margin:0 auto;padding:34px 44px 46px;
+    display:flex;align-items:center;justify-content:space-between;
+    border-top:1px solid rgba(255,255,255,.05);
+    color:var(--dim);font-size:12.5px;
+  }
+  footer .fb{display:flex;align-items:center;gap:8px;font-weight:800;color:var(--mut)}
+  footer .fb .dot{width:7px;height:7px;border-radius:50%;background:linear-gradient(135deg,var(--vio),var(--emr))}
+
+  @media (max-width:1080px){
+    .entry-grid{grid-template-columns:1fr;gap:40px}
+    .rep-cols{grid-template-columns:1fr}
+    .steps{grid-template-columns:1fr 1fr 1fr}
+  }
+</style>
+</head>
+<body>
+
+<div class="orbs" aria-hidden="true">
+  <div class="orb a"></div>
+  <div class="orb b"></div>
+  <div class="orb c"></div>
+</div>
+<div class="grid-tex" aria-hidden="true"></div>
+
+<nav class="float">
+  <span class="brand"><span class="dot"></span>AIT</span>
+  <a href="#entry" data-nav="entry">כניסה</a>
+  <a href="#scan" data-nav="scan">סריקה חיה</a>
+  <a href="#report" data-nav="report">דוח</a>
+</nav>
+
+<main>
+
+<!-- ============ SCREEN 1: ENTRY ============ -->
+<section class="screen" id="entry" style="scroll-margin-top:40px">
+  <div class="sec-tag"><b>01</b> מסך כניסה</div>
+
+  <div class="entry-grid">
+    <div>
+      <span class="eyebrow rv"><span class="pulse"></span>אבחון דיגיטלי לעסקים קטנים</span>
+      <h1 class="hero rv" style="transition-delay:.08s">איפה העסק שלך<br><span class="glow">מפסיד לקוחות</span> בדיגיטל?</h1>
+      <p class="hero-sub rv" style="transition-delay:.16s">
+        מזינים שם עסק או כתובת אתר, ותוך דקה מקבלים <b>ציון מ-100</b> על הנוכחות הדיגיטלית:
+        גוגל, ביקורות, אתר, מהירות ופניות. בלי שיחת מכירה, בלי טפסים ארוכים.
+      </p>
+
+      <div class="shell diagform rv" style="transition-delay:.24s">
+        <div class="core">
+          <div class="fieldrow">
+            <label class="field">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/></svg>
+              <input type="text" placeholder="שם העסק או כתובת האתר">
+            </label>
+            <label class="field">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 21s-6.5-5.2-6.5-10a6.5 6.5 0 0 1 13 0c0 4.8-6.5 10-6.5 10z"/><circle cx="12" cy="10.6" r="2.3"/></svg>
+              <input type="text" placeholder="עיר">
+            </label>
+          </div>
+          <div class="formfoot">
+            <div class="trust">
+              <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>אבחון ראשוני חינם</span>
+              <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>בלי התחייבות</span>
+              <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>תוך דקה</span>
+            </div>
+            <button class="btn">
+              אבחן את העסק שלי
+              <span class="cap">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="shell recent rv" style="transition-delay:.32s">
+      <div class="core">
+        <h3><span class="live"></span>אובחנו לאחרונה</h3>
+
+        <div class="rrow">
+          <div class="miniring">
+            <svg viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="4"/><circle cx="23" cy="23" r="19" fill="none" stroke="#a78bfa" stroke-width="4" stroke-linecap="round" stroke-dasharray="119" stroke-dashoffset="32.2" style="filter:drop-shadow(0 0 5px rgba(167,139,250,.6))"/></svg>
+            <span class="v">73</span>
+          </div>
+          <div class="who"><b>אופטיקה בק בע"מ</b><i>עפולה · אופטיקה</i></div>
+        </div>
+
+        <div class="rrow">
+          <div class="miniring">
+            <svg viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="4"/><circle cx="23" cy="23" r="19" fill="none" stroke="#34d399" stroke-width="4" stroke-linecap="round" stroke-dasharray="119" stroke-dashoffset="19" style="filter:drop-shadow(0 0 5px rgba(52,211,153,.6))"/></svg>
+            <span class="v">84</span>
+          </div>
+          <div class="who"><b>בית מאפה ברכת רחל</b><i>מאפייה</i></div>
+        </div>
+
+        <div class="rrow">
+          <div class="miniring">
+            <svg viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="4"/><circle cx="23" cy="23" r="19" fill="none" stroke="#fbbf24" stroke-width="4" stroke-linecap="round" stroke-dasharray="119" stroke-dashoffset="44" style="filter:drop-shadow(0 0 5px rgba(251,191,36,.55))"/></svg>
+            <span class="v">63</span>
+          </div>
+          <div class="who"><b><span dir="ltr">lavangroup.co.il</span></b><i>אתר עסקי</i></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="how rv" style="transition-delay:.4s">
+    <div class="how-head"><h2>איך זה עובד</h2></div>
+    <div class="steps">
+      <div class="step">
+        <span class="n num">01</span>
+        <b>מזינים שם או אתר</b>
+        <p>שם העסק כמו שהוא מופיע בגוגל, או כתובת האתר. זה הכל.</p>
+      </div>
+      <div class="step">
+        <span class="n num">02</span>
+        <b>סריקה חכמה של הנוכחות הדיגיטלית</b>
+        <p>פרופיל גוגל, ביקורות, עמודי האתר, מהירות במובייל וערוצי פנייה.</p>
+      </div>
+      <div class="step">
+        <span class="n num">03</span>
+        <b>דוח מפורט עם ציון והמלצות</b>
+        <p>ציון כולל, פירוק לפי תחומים, פערים שעולים כסף ומה לתקן קודם.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCREEN 2: LIVE SCAN ============ -->
+<section class="screen" id="scan" style="scroll-margin-top:40px">
+  <div class="sec-tag"><b>02</b> סריקה חיה</div>
+
+  <div class="scan-wrap">
+    <div class="scan-head rv">
+      <span class="eyebrow"><span class="pulse"></span>סריקה פעילה</span>
+      <h2>סורקים את <b style="background:linear-gradient(120deg,#c8b6ff,#8f6ef5);-webkit-background-clip:text;background-clip:text;color:transparent">אופטיקה בק בע"מ</b></h2>
+      <p>אפשר להישאר במסך - זה לוקח <b>פחות מדקה</b></p>
+    </div>
+
+    <div class="shell term rv" style="transition-delay:.12s">
+      <div class="core">
+        <div class="term-bar">
+          <div class="lights"><i></i><i></i><i></i></div>
+          <div class="addr num">ait.scan / optika-bak-afula</div>
+          <div class="pct num" id="scanPct">0%</div>
+        </div>
+        <div class="pbar"><i id="scanBar"></i></div>
+
+        <div class="term-body" id="scanBody">
+          <div class="beam" aria-hidden="true"></div>
+
+          <div class="ln" data-i="0">
+            <span class="st"><span class="spin"><i></i></span><span class="chk"><span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></span></span>
+            <div class="tx">
+              <p class="main">מאתרים את פרטי העסק בגוגל<span class="dots"><i></i><i></i><i></i></span></p>
+              <p class="res">נמצאו 80 ביקורות ודירוג 4.9</p>
+            </div>
+          </div>
+
+          <div class="ln" data-i="1">
+            <span class="st"><span class="spin"><i></i></span><span class="chk"><span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></span></span>
+            <div class="tx">
+              <p class="main">קוראים את האתר<span class="dots"><i></i><i></i><i></i></span></p>
+              <p class="res">נסרקו 8 עמודים</p>
+            </div>
+          </div>
+
+          <div class="ln" data-i="2">
+            <span class="st"><span class="spin"><i></i></span><span class="chk"><span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></span></span>
+            <div class="tx">
+              <p class="main">בודקים מהירות טעינה במובייל<span class="dots"><i></i><i></i><i></i></span></p>
+              <p class="res">ציון ביצועים 46</p>
+            </div>
+          </div>
+
+          <div class="ln" data-i="3">
+            <span class="st"><span class="spin"><i></i></span><span class="chk"><span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></span></span>
+            <div class="tx">
+              <p class="main">מנתחים את הביקורות<span class="dots"><i></i><i></i><i></i></span></p>
+              <p class="res">נותחו 5 ביקורות</p>
+            </div>
+          </div>
+
+          <div class="ln" data-i="4">
+            <span class="st"><span class="spin"><i></i></span><span class="chk"><span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></span></span>
+            <div class="tx">
+              <p class="main">מחשבים ציונים ומודל עסק<span class="dots"><i></i><i></i><i></i></span></p>
+              <p class="res">ציון כולל 73/100</p>
+            </div>
+          </div>
+
+          <div class="ln" data-i="5">
+            <span class="st"><span class="spin"><i></i></span><span class="chk"><span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></span></span>
+            <div class="tx">
+              <p class="main">כותבים את הדוח<span class="dots"><i></i><i></i><i></i></span></p>
+              <p class="res"></p>
+            </div>
+          </div>
+
+          <div class="ln" data-i="6">
+            <span class="st"><span class="spin"><i></i></span><span class="chk"><span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></span></span>
+            <div class="tx">
+              <p class="main">שומרים את האבחון<span class="dots"><i></i><i></i><i></i></span></p>
+              <p class="res"></p>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="term-foot">
+          <span>7 בדיקות · מקורות: גוגל, האתר, PageSpeed</span>
+          <span class="num" id="scanStep">בדיקה 1 מתוך 7</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCREEN 3: REPORT ============ -->
+<section class="screen" id="report" style="scroll-margin-top:40px">
+  <div class="sec-tag"><b>03</b> דוח אבחון</div>
+
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <linearGradient id="dialGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#a78bfa"/>
+        <stop offset="100%" stop-color="#34d399"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <!-- header -->
+  <div class="shell rep-head rv">
+    <div class="core">
+      <div class="rep-id">
+        <span class="eyebrow">דוח אבחון ראשוני</span>
+        <h2>אופטיקה בק בע"מ</h2>
+        <div class="meta">
+          <span>עפולה</span>
+          <span>אופטיקה</span>
+          <span>14 באוגוסט 2026</span>
+          <span><b class="num">80</b> ביקורות</span>
+          <span>דירוג <b class="num">4.9</b></span>
+          <span><b class="num">8</b> עמודים נסרקו</span>
+        </div>
+      </div>
+      <div class="dial" id="dial">
+        <svg viewBox="0 0 210 210">
+          <circle class="track" cx="105" cy="105" r="88"/>
+          <circle class="arc" cx="105" cy="105" r="88"/>
+        </svg>
+        <div class="mid">
+          <span class="big num" id="dialNum">0</span>
+          <span class="of num">/ 100</span>
+          <span class="tag">בסיס טוב, יש פערים</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- narrative -->
+  <div class="shell narr rv" style="transition-delay:.08s">
+    <div class="core">
+      <h3>לאופטיקה בק מוניטין מצוין עם דירוג של 4.9, אך תשתיות דיגיטליות חלקיות מגבילות את הפוטנציאל</h3>
+      <p>העסק נהנה מ-80 ביקורות בדירוג 4.9 ומנוכחות דיגיטלית פעילה, אבל היעדר הזמנת תורים אונליין, פיקסל שיווקי ואתר איטי במובייל משאירים לקוחות ופניות על השולחן.</p>
+    </div>
+  </div>
+
+  <div class="rep-cols">
+    <!-- dimensions -->
+    <div class="shell rv" style="transition-delay:.14s" data-anim>
+      <div class="core">
+        <div class="blk-title">
+          <span class="ic">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 19V10M10 19V5M16 19v-7M22 19H2"/></svg>
+          </span>
+          <div><h3>ציון לפי תחומים</h3><small>5 ממדים, כל אחד מ-100</small></div>
+        </div>
+
+        <div class="dim">
+          <span class="lb">נראות דיגיטלית</span>
+          <div class="bar"><i class="md" style="--w:65%"></i></div>
+          <span class="sc num">65</span>
+          <span class="chip full">מידע מלא</span>
+        </div>
+        <div class="dim">
+          <span class="lb">מוניטין וביקורות</span>
+          <div class="bar"><i class="hi" style="--w:100%"></i></div>
+          <span class="sc num">100</span>
+          <span class="chip full">מידע מלא</span>
+        </div>
+        <div class="dim">
+          <span class="lb">נגישות ללקוח</span>
+          <div class="bar"><i class="md" style="--w:70%"></i></div>
+          <span class="sc num">70</span>
+          <span class="chip full">מידע מלא</span>
+        </div>
+        <div class="dim">
+          <span class="lb">תשתית דיגיטלית</span>
+          <div class="bar"><i class="lo" style="--w:50%"></i></div>
+          <span class="sc num">50</span>
+          <span class="chip part">מידע חלקי</span>
+        </div>
+        <div class="dim">
+          <span class="lb">בשלות תהליכים</span>
+          <div class="bar empty"></div>
+          <span class="sc num">-</span>
+          <span class="chip none">אין מידע</span>
+        </div>
+
+        <details class="rules">
+          <summary>
+            <span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+            איך חושב הציון?
+          </summary>
+          <div class="rules-body">
+            <p class="rt">כל תחום מחושב מכללים גלויים. דוגמה: <b>נגישות ללקוח</b></p>
+            <div class="rrule"><span>וואטסאפ באתר</span><span class="pts plus">25+</span></div>
+            <div class="rrule"><span>טלפון קליקבילי</span><span class="pts plus">20+</span></div>
+            <div class="rrule"><span>טופס יצירת קשר</span><span class="pts plus">25+</span></div>
+            <div class="rrule"><span>קביעת תורים אונליין</span><span class="pts zero">0 מתוך 30</span></div>
+            <div class="rrule total"><span>סך הכל נגישות ללקוח</span><span class="pts">70 / 100</span></div>
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <!-- gaps -->
+    <div class="shell rv" style="transition-delay:.2s">
+      <div class="core">
+        <div class="blk-title">
+          <span class="ic warn">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 16.5v.5"/><path d="M10.3 3.9L2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+          </span>
+          <div><h3>3 פערים שעולים כסף</h3><small>לפי סדר השפעה על העסק</small></div>
+        </div>
+
+        <div class="gap">
+          <span class="gic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18M10 15l4 4M14 15l-4 4"/></svg></span>
+          <div>
+            <b>אין קביעת תורים אונליין</b>
+            <p>עסק שחי על תורים מפסיד לקוחות שרוצים לקבוע <span class="num">ב-22:00</span> בלילה</p>
+          </div>
+        </div>
+
+        <div class="gap">
+          <span class="gic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg></span>
+          <div>
+            <b>אין פיקסל שיווקי</b>
+            <p>אי אפשר לעשות רימרקטינג למבקרים באתר</p>
+          </div>
+        </div>
+
+        <div class="gap">
+          <span class="gic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3.5 15a8.5 8.5 0 1 1 17 0"/><path d="M12 15l4-5.5"/><path d="M2 19h20"/></svg></span>
+          <div>
+            <b>האתר איטי במובייל</b>
+            <p>ציון ביצועים <span class="num">46</span>, טעינה <span class="num">12.7</span> שניות</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rep-cols" style="grid-template-columns:.9fr 1.1fr">
+    <!-- strengths -->
+    <div class="shell rv" style="transition-delay:.1s">
+      <div class="core">
+        <div class="blk-title">
+          <span class="ic good">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6L12 16.7 6.6 19.6l1.1-6L3.2 9.4l6.1-.8z"/></svg>
+          </span>
+          <div><h3>מה כבר עובד טוב</h3><small>נכסים קיימים לבנות עליהם</small></div>
+        </div>
+
+        <div class="stg">
+          <span class="sic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+          <p>דירוג מצוין: <span class="num">4.9</span> מ-<span class="num">80</span> ביקורות</p>
+        </div>
+        <div class="stg">
+          <span class="sic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+          <p>וואטסאפ, טלפון וטופס יצירת קשר זמינים באתר</p>
+        </div>
+        <div class="stg">
+          <span class="sic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+          <p>פרופיל גוגל פעיל ומלא</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- completeness -->
+    <div class="shell complete rv" style="transition-delay:.16s" data-anim>
+      <div class="core">
+        <div class="cring">
+          <svg viewBox="0 0 76 76">
+            <circle class="t" cx="38" cy="38" r="33"/>
+            <circle class="a" cx="38" cy="38" r="33"/>
+          </svg>
+          <span class="v">30%</span>
+        </div>
+        <div class="ct">
+          <b>שלמות המידע: 30% - אפשר לדייק את התמונה</b>
+          <p>ראיון קצר על טיפול בלידים ישלים את התמונה. הציון יתעדכן בהתאם.</p>
+        </div>
+        <button class="btn ghost">
+          להשלמת האבחון
+          <span class="cap">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</section>
+</main>
+
+<footer>
+  <span class="fb"><span class="dot"></span>AIT</span>
+  <span>תצוגת עיצוב - גרסה כהה פרימיום · 2026</span>
+</footer>
+
+<script>
+(function(){
+  'use strict';
+
+  /* reveal on scroll */
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        e.target.classList.add('on');
+        io.unobserve(e.target);
+      }
+    });
+  },{threshold:.18});
+  document.querySelectorAll('.rv').forEach(function(el){io.observe(el)});
+
+  /* score dial + counter */
+  var dial = document.getElementById('dial');
+  var dialNum = document.getElementById('dialNum');
+  var dio = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(!e.isIntersecting) return;
+      dial.classList.add('on');
+      var t0 = null;
+      function tick(ts){
+        if(!t0) t0 = ts;
+        var p = Math.min((ts - t0) / 1700, 1);
+        var eased = 1 - Math.pow(1 - p, 3);
+        dialNum.textContent = Math.round(73 * eased);
+        if(p < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+      dio.unobserve(dial);
+    });
+  },{threshold:.4});
+  dio.observe(dial);
+
+  /* bar + ring blocks */
+  document.querySelectorAll('[data-anim]').forEach(function(el){
+    var o = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){ el.classList.add('on'); o.unobserve(el); }
+      });
+    },{threshold:.3});
+    o.observe(el);
+  });
+
+  /* nav highlight */
+  var navLinks = {};
+  document.querySelectorAll('[data-nav]').forEach(function(a){ navLinks[a.dataset.nav] = a; });
+  ['entry','scan','report'].forEach(function(id){
+    var sec = document.getElementById(id);
+    var so = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){
+          Object.keys(navLinks).forEach(function(k){ navLinks[k].classList.remove('on'); });
+          navLinks[id].classList.add('on');
+        }
+      });
+    },{threshold:.35});
+    so.observe(sec);
+  });
+
+  /* live scan loop */
+  var lines = Array.prototype.slice.call(document.querySelectorAll('#scanBody .ln'));
+  var bar = document.getElementById('scanBar');
+  var pct = document.getElementById('scanPct');
+  var stepEl = document.getElementById('scanStep');
+  var N = lines.length;
+  var STEP_MS = 1900;
+  var HOLD_MS = 3200;
+  var idx = 0;
+  var running = false;
+
+  function setProgress(done){
+    var p = Math.round(done / N * 100);
+    bar.style.transform = 'scaleX(' + (done / N) + ')';
+    pct.textContent = p + '%';
+    stepEl.textContent = done >= N ? 'הסריקה הושלמה' : 'בדיקה ' + (done + 1) + ' מתוך ' + N;
+  }
+
+  function resetScan(){
+    lines.forEach(function(l){ l.classList.remove('act','done'); });
+    bar.style.transition = 'none';
+    bar.style.transform = 'scaleX(0)';
+    void bar.offsetWidth;
+    bar.style.transition = '';
+    pct.textContent = '0%';
+    stepEl.textContent = 'בדיקה 1 מתוך ' + N;
+    idx = 0;
+  }
+
+  function step(){
+    if(idx > 0) {
+      lines[idx - 1].classList.remove('act');
+      lines[idx - 1].classList.add('done');
+    }
+    if(idx < N){
+      lines[idx].classList.add('act');
+      setProgress(idx);
+      idx++;
+      setTimeout(step, STEP_MS);
+    } else {
+      setProgress(N);
+      setTimeout(function(){
+        resetScan();
+        setTimeout(step, 700);
+      }, HOLD_MS);
+    }
+  }
+
+  var scanSec = document.getElementById('scan');
+  var sco = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting && !running){
+        running = true;
+        setTimeout(step, 500);
+        sco.unobserve(scanSec);
+      }
+    });
+  },{threshold:.25});
+  sco.observe(scanSec);
+})();
+</script>
+
+</body>
+</html>
