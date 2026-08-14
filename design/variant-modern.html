@@ -1,12 +1,19 @@
 <!DOCTYPE html>
-<html dir="rtl" lang="he">
+<html dir="rtl" lang="he" data-palette="p1" data-font="f1">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AIT - אבחון דיגיטלי לעסקים</title>
+<script>
+try{
+  var d=document.documentElement;
+  d.setAttribute("data-palette",localStorage.getItem("ait-vm-palette")||"p1");
+  d.setAttribute("data-font",localStorage.getItem("ait-vm-font")||"f1");
+}catch(e){}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;800&family=Heebo:wght@300;400;500;600;700;800&family=Assistant:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#f6f6f9;
@@ -20,6 +27,7 @@
     --accent-deep:#403dbb;
     --accent-soft:#eeeefb;
     --accent-mid:#c9c8f2;
+    --accent-rgb:83,80,214;
     --good:#2f9e6e;
     --good-soft:#e7f6ef;
     --warn:#c07a1d;
@@ -31,23 +39,109 @@
     --shadow:0 24px 48px -28px rgba(35,33,90,.18);
     --shadow-soft:0 12px 28px -18px rgba(35,33,90,.14);
     --ease:cubic-bezier(.16,1,.3,1);
+    --font-display:'Rubik',system-ui,sans-serif;
+    --font-body:'Rubik',system-ui,sans-serif;
+    --font-num:'Rubik',system-ui,sans-serif;
+  }
+  html[data-palette="p2"]{
+    --bg:#faf7f1;
+    --surface:#ffffff;
+    --ink:#1b201c;
+    --ink-2:#4c534e;
+    --ink-3:#8b918b;
+    --line:#e8e3d8;
+    --line-soft:#f1ede3;
+    --accent:#0e7a5f;
+    --accent-deep:#095c47;
+    --accent-soft:#e9f4ef;
+    --accent-mid:#bcdfd2;
+    --accent-rgb:14,122,95;
+    --shadow:0 24px 48px -28px rgba(22,58,44,.17);
+    --shadow-soft:0 12px 28px -18px rgba(22,58,44,.13);
+  }
+  html[data-palette="p3"]{
+    --bg:#f3f5fa;
+    --surface:#ffffff;
+    --ink:#141c33;
+    --ink-2:#454e66;
+    --ink-3:#8590a6;
+    --line:#e1e5ef;
+    --line-soft:#ecf0f6;
+    --accent:#b97812;
+    --accent-deep:#8f5b0a;
+    --accent-soft:#faf1de;
+    --accent-mid:#ecd8a9;
+    --accent-rgb:185,120,18;
+    --shadow:0 24px 48px -28px rgba(26,36,72,.17);
+    --shadow-soft:0 12px 28px -18px rgba(26,36,72,.13);
+  }
+  html[data-font="f2"]{
+    --font-display:'Heebo',system-ui,sans-serif;
+    --font-body:'Heebo',system-ui,sans-serif;
+    --font-num:'Heebo',system-ui,sans-serif;
+  }
+  html[data-font="f3"]{
+    --font-display:'Assistant',system-ui,sans-serif;
+    --font-body:'Assistant',system-ui,sans-serif;
+    --font-num:'Space Grotesk','Assistant',system-ui,sans-serif;
   }
   *{margin:0;padding:0;box-sizing:border-box}
   html{scroll-behavior:smooth}
   body{
-    font-family:'Rubik',system-ui,sans-serif;
+    font-family:var(--font-body);
     background:var(--bg);
     color:var(--ink);
     line-height:1.6;
     min-width:1000px;
   }
+  h1,h2,h3,h4,.brand{font-family:var(--font-display)}
+  .ri-num,.dim-score,.ring-center .big,.comp-num,.gap-stat .n,.scan-topbar .pct,
+  .mini-ring .num,.rule-row .rv,.step-num,.flow-num,.rt-pill b,.dial-center .scan-pct,
+  .nr-gap .gnum,.nr-gap .gstat .n,.gal-count{font-family:var(--font-num)}
   ::selection{background:var(--accent-mid);color:var(--ink)}
 
   .wrap{max-width:1240px;margin:0 auto;padding:0 40px}
 
+  /* ---------- control bar ---------- */
+  .ctrlbar{
+    position:sticky;top:0;z-index:50;
+    background:rgba(255,255,255,.92);
+    backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--line-soft);
+  }
+  .ctrlbar-inner{
+    max-width:1240px;margin:0 auto;padding:0 40px;
+    height:44px;display:flex;align-items:center;gap:12px;
+    font-size:12px;color:var(--ink-3);
+  }
+  .ctrl-label{font-weight:600;color:var(--ink-2);font-size:12.5px}
+  .pal-dots{display:flex;align-items:center;gap:9px}
+  .pal-dot{
+    width:24px;height:24px;border-radius:50%;border:2px solid #fff;
+    box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0;
+    background:var(--dot);
+    transition:transform .18s var(--ease),box-shadow .18s var(--ease);
+  }
+  .pal-dot:hover{transform:scale(1.1)}
+  .pal-dot:active{transform:scale(.94)}
+  .pal-dot.on{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--dot)}
+  .ctrl-sep{width:1px;height:18px;background:var(--line);margin:0 4px}
+  .font-btns{display:flex;align-items:center;gap:7px}
+  .font-btn{
+    font-size:12.5px;font-weight:500;color:var(--ink-2);
+    border:1px solid var(--line);background:var(--surface);
+    border-radius:99px;padding:5px 13px;cursor:pointer;
+    transition:border-color .2s,color .2s,background .2s,transform .18s var(--ease);
+  }
+  .font-btn:hover{border-color:var(--accent-mid);color:var(--accent-deep)}
+  .font-btn:active{transform:scale(.96)}
+  .font-btn.on{border-color:var(--accent);color:var(--accent-deep);background:var(--accent-soft)}
+  .ctrl-note{margin-inline-start:auto;font-size:11.5px;color:var(--ink-3)}
+
   /* ---------- sticky nav ---------- */
   .topnav{
-    position:sticky;top:0;z-index:40;
+    position:sticky;top:44px;z-index:40;
     background:rgba(255,255,255,.82);
     backdrop-filter:blur(14px);
     -webkit-backdrop-filter:blur(14px);
@@ -84,15 +178,31 @@
   .sec-label{
     display:inline-flex;align-items:center;gap:10px;
     font-size:11.5px;font-weight:600;letter-spacing:.14em;color:var(--ink-3);
-    margin-bottom:20px;
   }
   .sec-label::before{content:"";width:26px;height:1.5px;background:var(--accent);border-radius:2px}
+  .sec-head-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+
+  /* ---------- layout gallery ---------- */
+  .gallery-ctrl{display:flex;align-items:center;gap:10px}
+  .gal-btn{
+    width:28px;height:28px;border-radius:9px;
+    border:1px solid var(--line);background:var(--surface);
+    display:grid;place-items:center;cursor:pointer;color:var(--ink-2);
+    box-shadow:var(--shadow-soft);
+    transition:border-color .2s,color .2s,transform .18s var(--ease);
+  }
+  .gal-btn:hover{color:var(--accent-deep);border-color:var(--accent-mid)}
+  .gal-btn:active{transform:scale(.92)}
+  .gal-count{font-size:12px;color:var(--ink-3);min-width:96px;text-align:center}
+  .layout-alt{display:none}
+  .layout-alt.on{display:block;animation:altIn .28s var(--ease)}
+  @keyframes altIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
   /* ================= ENTRY ================= */
   #entry{
     background:
-      radial-gradient(720px 420px at 12% -8%, rgba(83,80,214,.09), transparent 60%),
-      radial-gradient(560px 380px at 92% 22%, rgba(83,80,214,.06), transparent 60%),
+      radial-gradient(720px 420px at 12% -8%, rgba(var(--accent-rgb),.09), transparent 60%),
+      radial-gradient(560px 380px at 92% 22%, rgba(var(--accent-rgb),.06), transparent 60%),
       var(--bg);
     padding-top:64px;
   }
@@ -118,7 +228,7 @@
 
   .lead-card{
     background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
-    padding:22px;box-shadow:var(--shadow);max-width:560px;
+    padding:22px;box-shadow:var(--shadow);max-width:560px;text-align:right;
   }
   .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
   .field label{font-size:13px;font-weight:600;color:var(--ink-2)}
@@ -137,10 +247,10 @@
     background:linear-gradient(150deg,var(--accent) 0%,var(--accent-deep) 100%);
     border:none;border-radius:var(--radius-sm);padding:14px 20px;cursor:pointer;
     display:flex;align-items:center;justify-content:center;gap:10px;
-    box-shadow:0 14px 24px -12px rgba(64,61,187,.5),inset 0 1px 0 rgba(255,255,255,.22);
+    box-shadow:0 14px 24px -12px rgba(var(--accent-rgb),.5),inset 0 1px 0 rgba(255,255,255,.22);
     transition:transform .18s var(--ease),box-shadow .18s var(--ease);
   }
-  .cta:hover{transform:translateY(-1px);box-shadow:0 18px 30px -12px rgba(64,61,187,.55),inset 0 1px 0 rgba(255,255,255,.22)}
+  .cta:hover{transform:translateY(-1px);box-shadow:0 18px 30px -12px rgba(var(--accent-rgb),.55),inset 0 1px 0 rgba(255,255,255,.22)}
   .cta:active{transform:translateY(0) scale(.985)}
   .trust-row{display:flex;gap:18px;margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
   .trust{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-2)}
@@ -212,8 +322,45 @@
   .step b{display:block;font-size:14.5px;font-weight:600;margin-bottom:3px}
   .step p{font-size:13px;color:var(--ink-2)}
 
+  /* entry layout 2: centered hero */
+  .hero-center{max-width:780px;margin:0 auto;text-align:center;display:flex;flex-direction:column;align-items:center}
+  .hero-center .hero-sub{margin:0 auto 30px}
+  .lead-center{max-width:680px;width:100%;margin:0 auto}
+  .field-row3{display:grid;grid-template-columns:1.5fr 1fr auto;gap:12px;align-items:end}
+  .field-row3 .field{margin-bottom:0}
+  .cta-inline{width:auto;margin-top:0;padding:12.5px 24px;white-space:nowrap}
+  .recent-ticker{
+    display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;
+    margin-top:28px;font-size:13px;color:var(--ink-3);
+  }
+  .rt-pill{
+    display:inline-flex;align-items:center;gap:9px;
+    background:var(--surface);border:1px solid var(--line);border-radius:99px;
+    padding:6px 15px;font-size:12.5px;color:var(--ink-2);box-shadow:var(--shadow-soft);
+  }
+  .rt-pill b{color:var(--accent-deep);font-weight:700}
+  .steps-flow{
+    position:relative;max-width:980px;margin:76px auto 0;
+    display:grid;grid-template-columns:1fr 1fr 1fr;
+  }
+  .steps-flow::before{
+    content:"";position:absolute;top:18px;right:16%;left:16%;
+    border-top:2px dashed var(--line);
+  }
+  .flow-step{text-align:center;padding:0 26px;position:relative}
+  .flow-num{
+    width:36px;height:36px;border-radius:50%;position:relative;z-index:1;
+    background:var(--surface);border:1px solid var(--accent-mid);color:var(--accent-deep);
+    font-size:14px;font-weight:700;display:grid;place-items:center;
+    margin:0 auto 12px;box-shadow:var(--shadow-soft);
+  }
+  .flow-step b{display:block;font-size:14.5px;font-weight:600;margin-bottom:4px}
+  .flow-step p{font-size:13px;color:var(--ink-2);max-width:32ch;margin:0 auto}
+
   /* ================= SCAN ================= */
   #scan{background:#fbfbfd;border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)}
+  html[data-palette="p2"] #scan{background:#fdfbf7}
+  html[data-palette="p3"] #scan{background:#f8fafc}
   .scan-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:26px}
   .scan-head h2{font-size:26px;font-weight:700;letter-spacing:-.01em}
   .scan-head p{font-size:14px;color:var(--ink-2);margin-top:4px}
@@ -308,6 +455,49 @@
   }
   .scan-note .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:breathe 1.8s ease-in-out infinite}
 
+  /* scan layout 2: focal dial */
+  .scan-focal{max-width:660px;margin:0 auto;text-align:center}
+  .focal-head{margin-bottom:8px}
+  .focal-head h2{font-size:26px;font-weight:700;letter-spacing:-.01em}
+  .focal-head p{font-size:14px;color:var(--ink-2);margin-top:4px}
+  .focal-biz{
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--surface);border:1px solid var(--line);border-radius:99px;
+    padding:6px 16px;font-size:12.5px;color:var(--ink-2);
+    box-shadow:var(--shadow-soft);margin:14px 0 30px;
+  }
+  .focal-biz b{color:var(--ink);font-weight:600}
+  .dial-wrap{position:relative;width:190px;height:190px;margin:0 auto}
+  .dial-wrap::after{
+    content:"";position:absolute;inset:16px;border-radius:50%;pointer-events:none;
+    animation:dialpulse 2.4s ease-out infinite;
+  }
+  @keyframes dialpulse{
+    0%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),.18)}
+    70%{box-shadow:0 0 0 26px rgba(var(--accent-rgb),0)}
+    100%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),0)}
+  }
+  .dial-wrap svg{transform:rotate(-90deg)}
+  .dial-track{fill:none;stroke:var(--line-soft);stroke-width:10}
+  .dial-fill{
+    fill:none;stroke:url(#ringGrad);stroke-width:10;stroke-linecap:round;
+    transition:stroke-dashoffset .8s var(--ease);
+  }
+  .dial-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+  .dial-center .scan-pct{font-size:36px;font-weight:800;letter-spacing:-.02em;line-height:1;color:var(--ink)}
+  .dial-center .scan-stage{font-size:12px;color:var(--ink-3);max-width:16ch}
+  .scan-lines-slim{
+    max-width:540px;margin:26px auto 0;text-align:right;
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow-soft);padding:8px;list-style:none;
+  }
+  .chips-row{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:22px}
+  .chip.finding{
+    margin-bottom:0;display:inline-flex;align-items:center;gap:8px;
+    padding:8px 15px;border-radius:99px;background:var(--surface);
+  }
+  .chip.finding svg{margin-top:0}
+
   /* ================= REPORT ================= */
   .report-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:24px}
   .report-head h2{font-size:26px;font-weight:700;letter-spacing:-.01em}
@@ -335,7 +525,7 @@
   /* hero tile */
   .t-hero{grid-column:span 7;display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:center;
     background:
-      radial-gradient(360px 220px at 88% 0%, rgba(83,80,214,.07), transparent 65%),
+      radial-gradient(360px 220px at 88% 0%, rgba(var(--accent-rgb),.07), transparent 65%),
       var(--surface);
   }
   .ring-wrap{position:relative;width:172px;height:172px;flex-shrink:0}
@@ -343,7 +533,6 @@
   .ring-track{fill:none;stroke:var(--line-soft);stroke-width:13}
   .ring-fill{
     fill:none;stroke:url(#ringGrad);stroke-width:13;stroke-linecap:round;
-    stroke-dasharray:452;stroke-dashoffset:452;
     transition:stroke-dashoffset 1.6s var(--ease);
   }
   .ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
@@ -360,6 +549,12 @@
   .t-hero .biz-line span{font-size:12.5px;color:var(--ink-3)}
   .t-hero h3{font-size:20px;font-weight:700;line-height:1.4;letter-spacing:-.01em;margin-bottom:10px}
   .t-hero .deck{font-size:14px;color:var(--ink-2)}
+
+  /* small ring variant (narrative + sidebar layouts) */
+  .ring-sm{position:relative;width:132px;height:132px}
+  .ring-sm svg{transform:rotate(-90deg)}
+  .ring-sm .ring-track,.ring-sm .ring-fill{stroke-width:10}
+  .ring-sm .ring-center .big{font-size:34px}
 
   /* dimensions tile */
   .t-dims{grid-column:span 5}
@@ -407,13 +602,13 @@
 
   /* rules tile */
   .t-rules{grid-column:span 5}
-  .t-rules details summary{
+  .t-rules details summary,.rules-inline details summary{
     list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;
     font-size:14.5px;font-weight:600;
   }
-  .t-rules details summary::-webkit-details-marker{display:none}
-  .t-rules .chev{transition:transform .3s var(--ease);color:var(--ink-3)}
-  .t-rules details[open] .chev{transform:rotate(180deg)}
+  .t-rules details summary::-webkit-details-marker,.rules-inline details summary::-webkit-details-marker{display:none}
+  .t-rules .chev,.rules-inline .chev{transition:transform .3s var(--ease);color:var(--ink-3)}
+  .t-rules details[open] .chev,.rules-inline details[open] .chev{transform:rotate(180deg)}
   .rules-body{margin-top:16px;padding-top:14px;border-top:1px solid var(--line-soft)}
   .rule-row{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:8px 0;align-items:center}
   .rule-row .rn{font-size:13px}
@@ -444,6 +639,73 @@
   }
   .comp-next svg{flex-shrink:0;margin-top:2px}
 
+  /* report layout 2: narrative flow */
+  .narrative{
+    max-width:820px;margin:0 auto;
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:46px 54px;
+  }
+  .nr-head{
+    display:flex;flex-direction:column;align-items:center;text-align:center;
+    border-bottom:1px solid var(--line-soft);padding-bottom:30px;margin-bottom:26px;
+  }
+  .nr-head .ring-sm{margin-bottom:18px}
+  .nr-head .biz-line{font-size:13px;color:var(--ink-3);margin-bottom:10px}
+  .nr-head .biz-line b{color:var(--ink);font-size:14.5px;font-weight:600}
+  .nr-head h3{font-size:22px;font-weight:700;line-height:1.4;letter-spacing:-.01em;margin-bottom:12px;max-width:34ch}
+  .nr-head .deck{font-size:14.5px;color:var(--ink-2);max-width:58ch}
+  .nr-sec{padding:26px 0;border-top:1px solid var(--line-soft)}
+  .nr-sec:first-of-type{border-top:none;padding-top:0}
+  .nr-sec h4{font-size:12.5px;font-weight:600;color:var(--ink-3);letter-spacing:.07em;margin-bottom:16px}
+  .nr-gap{
+    display:grid;grid-template-columns:34px 1fr auto;gap:6px 16px;align-items:start;
+    padding:14px 0;
+  }
+  .nr-gap + .nr-gap{border-top:1px dashed var(--line)}
+  .nr-gap .gnum{
+    width:34px;height:34px;border-radius:10px;grid-row:span 2;
+    background:var(--bad-soft);color:var(--bad);font-size:14px;font-weight:700;
+    display:grid;place-items:center;
+  }
+  .nr-gap b{font-size:14.5px;font-weight:600}
+  .nr-gap p{font-size:13px;color:var(--ink-2);grid-column:2}
+  .nr-gap .gstat{text-align:left;min-width:96px;grid-row:span 2}
+  .nr-gap .gstat .n{display:block;font-size:19px;font-weight:800;color:var(--bad);letter-spacing:-.02em;line-height:1.2}
+  .nr-gap .gstat .l{font-size:11px;color:var(--ink-3)}
+  .nr-strong-row{display:flex;flex-wrap:wrap;gap:10px}
+  .nr-strong-row .strong-pill{
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--good-soft);border:1px solid rgba(47,158,110,.25);border-radius:99px;
+    padding:7px 15px;font-size:12.5px;color:var(--ink-2);
+  }
+  .nr-strong-row .strong-pill svg{color:var(--good);flex-shrink:0}
+  .nr-complete{
+    margin-top:4px;background:var(--accent-soft);border:1px solid var(--accent-mid);
+    border-radius:var(--radius-sm);padding:16px 20px;
+    display:flex;align-items:center;gap:18px;
+  }
+  .nr-complete .comp-num{margin-bottom:0;font-size:28px;flex-shrink:0}
+  .nr-complete .nc-mid{flex:1}
+  .nr-complete .nc-mid .comp-cap{margin-bottom:8px;color:var(--accent-deep)}
+  .nr-complete .comp-bar{margin-bottom:0;background:rgba(255,255,255,.7)}
+  .nr-complete .nc-next{font-size:12.5px;color:var(--accent-deep);max-width:34ch}
+
+  /* report layout 3: sidebar anchored */
+  .side-grid{display:grid;grid-template-columns:320px 1fr;gap:22px;align-items:start}
+  .side-rail{position:sticky;top:122px;display:flex;flex-direction:column;gap:18px}
+  .rail-score{display:flex;flex-direction:column;align-items:center;text-align:center}
+  .rail-score .ring-sm{margin-bottom:14px}
+  .rail-score .biz-line{font-size:12.5px;color:var(--ink-3)}
+  .rail-score .biz-line b{display:block;color:var(--ink);font-size:14.5px;font-weight:600}
+  .rail-badge{
+    margin-top:10px;background:var(--accent-soft);color:var(--accent-deep);
+    font-size:11px;font-weight:700;padding:4px 12px;border-radius:99px;
+    border:1px solid var(--accent-mid);
+  }
+  .side-main{display:flex;flex-direction:column;gap:18px}
+  .side-main .t-gap{border-inline-start:3px solid var(--bad)}
+  .side-main .gap-stat{margin-top:2px}
+
   footer{
     border-top:1px solid var(--line-soft);padding:26px 0 34px;
     font-size:12.5px;color:var(--ink-3);
@@ -452,6 +714,35 @@
 </style>
 </head>
 <body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="var(--accent)"/>
+      <stop offset="100%" stop-color="var(--accent-deep)"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<!-- ================= CONTROL BAR ================= -->
+<div class="ctrlbar">
+  <div class="ctrlbar-inner">
+    <span class="ctrl-label">פלטה:</span>
+    <div class="pal-dots">
+      <button class="pal-dot" data-pal="p1" style="--dot:#5350d6" title="אינדיגו סגול" aria-label="פלטה 1"></button>
+      <button class="pal-dot" data-pal="p2" style="--dot:#0e7a5f" title="ירוק אמרלד על לבן חם" aria-label="פלטה 2"></button>
+      <button class="pal-dot" data-pal="p3" style="--dot:#b97812" title="נייבי כהה עם ענבר" aria-label="פלטה 3"></button>
+    </div>
+    <span class="ctrl-sep"></span>
+    <span class="ctrl-label">פונט:</span>
+    <div class="font-btns">
+      <button class="font-btn" data-fontset="f1" style="font-family:'Rubik',sans-serif">Rubik</button>
+      <button class="font-btn" data-fontset="f2" style="font-family:'Heebo',sans-serif">Heebo</button>
+      <button class="font-btn" data-fontset="f3" style="font-family:'Assistant',sans-serif">Assistant <span style="font-family:'Space Grotesk',sans-serif">+ Grotesk</span></button>
+    </div>
+    <span class="ctrl-note">הבחירות נשמרות בדפדפן</span>
+  </div>
+</div>
 
 <nav class="topnav">
   <div class="topnav-inner">
@@ -466,11 +757,131 @@
 </nav>
 
 <!-- ================= ENTRY ================= -->
-<section id="entry">
+<section id="entry" data-section="entry">
   <div class="wrap">
-    <div class="sec-label">01 / מסך כניסה</div>
-    <div class="hero-grid">
-      <div>
+    <div class="sec-head-row">
+      <div class="sec-label">01 / מסך כניסה</div>
+      <div class="gallery-ctrl">
+        <button class="gal-btn gal-prev" aria-label="פריסה קודמת">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+        <span class="gal-count"></span>
+        <button class="gal-btn gal-next" aria-label="פריסה הבאה">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- entry layout 1: split hero (original) -->
+    <div class="layout-alt" data-idx="0">
+      <div class="hero-grid">
+        <div>
+          <div class="eyebrow">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+            אבחון דיגיטלי לעסקים קטנים ובינוניים
+          </div>
+          <h1>העסק שלך מפסיד לקוחות בדיגיטל. <span class="hl">תוך דקה</span> תדע בדיוק איפה.</h1>
+          <p class="hero-sub">מזינים שם עסק או כתובת אתר, והמערכת סורקת את הנוכחות הדיגיטלית: גוגל, ביקורות, אתר, מהירות טעינה וערוצי פנייה. בסוף מקבלים דוח עם ציון, פערים מדויקים והמלצות מעשיות.</p>
+
+          <div class="lead-card">
+            <div class="field-row">
+              <div class="field">
+                <label for="biz">שם העסק או כתובת האתר</label>
+                <input id="biz" type="text" placeholder="לדוגמה: אופטיקה בק, או optica-bek.co.il">
+              </div>
+              <div class="field">
+                <label for="city">עיר (לא חובה)</label>
+                <input id="city" type="text" placeholder="עפולה">
+              </div>
+            </div>
+            <button class="cta">
+              אבחן את העסק שלי
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+            </button>
+            <div class="trust-row">
+              <span class="trust"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> אבחון ראשוני חינם</span>
+              <span class="trust"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> בלי התחייבות</span>
+              <span class="trust"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> תוך דקה</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-side">
+          <div class="recent-card">
+            <div class="recent-head">
+              <h3>אבחונים אחרונים</h3>
+              <span class="live"><span class="dot"></span> מתעדכן</span>
+            </div>
+            <div class="recent-item">
+              <div class="ri-avatar">אב</div>
+              <div>
+                <div class="ri-name">אופטיקה בק בע"מ</div>
+                <div class="ri-meta">עפולה - לפני 4 דקות</div>
+              </div>
+              <div class="ri-score">
+                <span class="ri-num">73 <small>/ 100</small></span>
+                <span class="ri-bar"><i style="width:73%"></i></span>
+              </div>
+            </div>
+            <div class="recent-item">
+              <div class="ri-avatar">במ</div>
+              <div>
+                <div class="ri-name">בית מאפה ברכת רחל</div>
+                <div class="ri-meta">לפני 27 דקות</div>
+              </div>
+              <div class="ri-score">
+                <span class="ri-num">84 <small>/ 100</small></span>
+                <span class="ri-bar"><i style="width:84%"></i></span>
+              </div>
+            </div>
+            <div class="recent-item">
+              <div class="ri-avatar">lv</div>
+              <div>
+                <div class="ri-name"><span dir="ltr">lavangroup.co.il</span></div>
+                <div class="ri-meta">לפני שעה</div>
+              </div>
+              <div class="ri-score">
+                <span class="ri-num">63 <small>/ 100</small></span>
+                <span class="ri-bar"><i style="width:63%"></i></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="float-score">
+            <div class="mini-ring">
+              <svg width="52" height="52" viewBox="0 0 52 52">
+                <circle cx="26" cy="26" r="21" fill="none" stroke="var(--line-soft)" stroke-width="6"/>
+                <circle cx="26" cy="26" r="21" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" stroke-dasharray="131.9" stroke-dashoffset="35.6"/>
+              </svg>
+              <span class="num">73</span>
+            </div>
+            <div class="txt">
+              <b>ציון דיגיטלי כולל</b>
+              <span>ממוצע בענף האופטיקה: 61</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="steps-strip">
+        <div class="step">
+          <span class="step-num">1</span>
+          <div><b>מזינים שם או אתר</b><p>שם העסק והעיר מספיקים. אין צורך בגישה למערכות או בסיסמאות.</p></div>
+        </div>
+        <div class="step">
+          <span class="step-num">2</span>
+          <div><b>סריקה חכמה של הנוכחות הדיגיטלית</b><p>פרופיל גוגל, ביקורות, האתר עצמו, מהירות טעינה וערוצי יצירת קשר.</p></div>
+        </div>
+        <div class="step">
+          <span class="step-num">3</span>
+          <div><b>דוח מפורט עם ציון והמלצות</b><p>ציון כולל, פירוק לפי תחומים, הפערים שעולים כסף ומה לתקן קודם.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- entry layout 2: centered hero -->
+    <div class="layout-alt" data-idx="1">
+      <div class="hero-center">
         <div class="eyebrow">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
           אבחון דיגיטלי לעסקים קטנים ובינוניים
@@ -478,196 +889,184 @@
         <h1>העסק שלך מפסיד לקוחות בדיגיטל. <span class="hl">תוך דקה</span> תדע בדיוק איפה.</h1>
         <p class="hero-sub">מזינים שם עסק או כתובת אתר, והמערכת סורקת את הנוכחות הדיגיטלית: גוגל, ביקורות, אתר, מהירות טעינה וערוצי פנייה. בסוף מקבלים דוח עם ציון, פערים מדויקים והמלצות מעשיות.</p>
 
-        <div class="lead-card">
-          <div class="field-row">
+        <div class="lead-card lead-center">
+          <div class="field-row3">
             <div class="field">
-              <label for="biz">שם עסק או כתובת אתר</label>
-              <input id="biz" type="text" placeholder="לדוגמה: אופטיקה בק, או optica-bek.co.il">
+              <label for="biz2">שם העסק או כתובת האתר</label>
+              <input id="biz2" type="text" placeholder="לדוגמה: אופטיקה בק, או optica-bek.co.il">
             </div>
             <div class="field">
-              <label for="city">עיר</label>
-              <input id="city" type="text" placeholder="עפולה">
+              <label for="city2">עיר (לא חובה)</label>
+              <input id="city2" type="text" placeholder="עפולה">
             </div>
+            <button class="cta cta-inline">
+              אבחן את העסק שלי
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+            </button>
           </div>
-          <button class="cta">
-            אבחן את העסק שלי
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
-          </button>
           <div class="trust-row">
             <span class="trust"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> אבחון ראשוני חינם</span>
             <span class="trust"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> בלי התחייבות</span>
             <span class="trust"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> תוך דקה</span>
           </div>
         </div>
-      </div>
 
-      <div class="hero-side">
-        <div class="recent-card">
-          <div class="recent-head">
-            <h3>אבחונים אחרונים</h3>
-            <span class="live"><span class="dot"></span> מתעדכן</span>
-          </div>
-          <div class="recent-item">
-            <div class="ri-avatar">אב</div>
-            <div>
-              <div class="ri-name">אופטיקה בק בע"מ</div>
-              <div class="ri-meta">עפולה - לפני 4 דקות</div>
-            </div>
-            <div class="ri-score">
-              <span class="ri-num">73 <small>/ 100</small></span>
-              <span class="ri-bar"><i style="width:73%"></i></span>
-            </div>
-          </div>
-          <div class="recent-item">
-            <div class="ri-avatar">במ</div>
-            <div>
-              <div class="ri-name">בית מאפה ברכת רחל</div>
-              <div class="ri-meta">לפני 27 דקות</div>
-            </div>
-            <div class="ri-score">
-              <span class="ri-num">84 <small>/ 100</small></span>
-              <span class="ri-bar"><i style="width:84%"></i></span>
-            </div>
-          </div>
-          <div class="recent-item">
-            <div class="ri-avatar">lv</div>
-            <div>
-              <div class="ri-name"><span dir="ltr">lavangroup.co.il</span></div>
-              <div class="ri-meta">לפני שעה</div>
-            </div>
-            <div class="ri-score">
-              <span class="ri-num">63 <small>/ 100</small></span>
-              <span class="ri-bar"><i style="width:63%"></i></span>
-            </div>
-          </div>
-        </div>
-
-        <div class="float-score">
-          <div class="mini-ring">
-            <svg width="52" height="52" viewBox="0 0 52 52">
-              <circle cx="26" cy="26" r="21" fill="none" stroke="var(--line-soft)" stroke-width="6"/>
-              <circle cx="26" cy="26" r="21" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" stroke-dasharray="131.9" stroke-dashoffset="35.6"/>
-            </svg>
-            <span class="num">73</span>
-          </div>
-          <div class="txt">
-            <b>ציון דיגיטלי כולל</b>
-            <span>ממוצע בענף האופטיקה: 61</span>
-          </div>
+        <div class="recent-ticker">
+          <span>נבדקו לאחרונה:</span>
+          <span class="rt-pill">אופטיקה בק בע"מ <b>73</b></span>
+          <span class="rt-pill">בית מאפה ברכת רחל <b>84</b></span>
+          <span class="rt-pill"><span dir="ltr">lavangroup.co.il</span> <b>63</b></span>
         </div>
       </div>
-    </div>
 
-    <div class="steps-strip">
-      <div class="step">
-        <span class="step-num">1</span>
-        <div><b>מזינים שם או אתר</b><p>שם העסק והעיר מספיקים. אין צורך בגישה למערכות או בסיסמאות.</p></div>
-      </div>
-      <div class="step">
-        <span class="step-num">2</span>
-        <div><b>סריקה חכמה של הנוכחות הדיגיטלית</b><p>פרופיל גוגל, ביקורות, האתר עצמו, מהירות טעינה וערוצי יצירת קשר.</p></div>
-      </div>
-      <div class="step">
-        <span class="step-num">3</span>
-        <div><b>דוח מפורט עם ציון והמלצות</b><p>ציון כולל, פירוק לפי תחומים, הפערים שעולים כסף ומה לתקן קודם.</p></div>
+      <div class="steps-flow">
+        <div class="flow-step">
+          <span class="flow-num">1</span>
+          <b>מזינים שם או אתר</b>
+          <p>שם העסק והעיר מספיקים. אין צורך בגישה למערכות או בסיסמאות.</p>
+        </div>
+        <div class="flow-step">
+          <span class="flow-num">2</span>
+          <b>סריקה חכמה של הנוכחות הדיגיטלית</b>
+          <p>פרופיל גוגל, ביקורות, האתר עצמו, מהירות טעינה וערוצי יצירת קשר.</p>
+        </div>
+        <div class="flow-step">
+          <span class="flow-num">3</span>
+          <b>דוח מפורט עם ציון והמלצות</b>
+          <p>ציון כולל, פירוק לפי תחומים, הפערים שעולים כסף ומה לתקן קודם.</p>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
 <!-- ================= SCAN ================= -->
-<section id="scan">
+<section id="scan" data-section="scan">
   <div class="wrap">
-    <div class="sec-label">02 / סריקה חיה</div>
-    <div class="scan-head">
-      <div>
-        <h2>סורקים את העסק עכשיו</h2>
-        <p>כל שלב נבדק בזמן אמת. הממצאים נאספים לדוח שמחכה בסוף.</p>
-      </div>
-      <div class="scan-biz">
-        <div>
-          <b>אופטיקה בק בע"מ</b><br>
-          <span>עפולה</span>
-        </div>
-        <div class="ri-avatar">אב</div>
+    <div class="sec-head-row">
+      <div class="sec-label">02 / סריקה חיה</div>
+      <div class="gallery-ctrl">
+        <button class="gal-btn gal-prev" aria-label="פריסה קודמת">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+        <span class="gal-count"></span>
+        <button class="gal-btn gal-next" aria-label="פריסה הבאה">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
       </div>
     </div>
 
-    <div class="scan-grid">
-      <div class="scan-panel">
-        <div class="scan-topbar">
-          <span class="pct" id="scanPct">0%</span>
-          <div class="scan-progress"><i id="scanBar"></i></div>
-          <span class="stage" id="scanStage">מתחילים...</span>
+    <!-- scan layout 1: list flow + findings (original) -->
+    <div class="layout-alt" data-idx="0">
+      <div class="scan-head">
+        <div>
+          <h2>סורקים את העסק עכשיו</h2>
+          <p>כל שלב נבדק בזמן אמת. הממצאים נאספים לדוח שמחכה בסוף.</p>
         </div>
-        <ul class="scan-lines" id="scanLines">
-          <li class="scan-line" data-sub="נמצאו 80 ביקורות ודירוג 4.9">
-            <span class="icon"><span class="idle-dot"></span><span class="spinner"><span class="spinner-ring"></span></span><span class="check"><span class="check-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></span></span>
-            <span><span class="lbl">מאתרים את פרטי העסק בגוגל</span><span class="sub"></span></span>
-            <span class="tick" data-t="1.2 שניות"></span>
-          </li>
-          <li class="scan-line" data-sub="נסרקו 8 עמודים">
-            <span class="icon"><span class="idle-dot"></span><span class="spinner"><span class="spinner-ring"></span></span><span class="check"><span class="check-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></span></span>
-            <span><span class="lbl">קוראים את האתר</span><span class="sub"></span></span>
-            <span class="tick" data-t="3.4 שניות"></span>
-          </li>
-          <li class="scan-line" data-sub="ציון ביצועים 46">
-            <span class="icon"><span class="idle-dot"></span><span class="spinner"><span class="spinner-ring"></span></span><span class="check"><span class="check-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></span></span>
-            <span><span class="lbl">בודקים מהירות טעינה במובייל</span><span class="sub"></span></span>
-            <span class="tick" data-t="8.1 שניות"></span>
-          </li>
-          <li class="scan-line" data-sub="נותחו 5 ביקורות">
-            <span class="icon"><span class="idle-dot"></span><span class="spinner"><span class="spinner-ring"></span></span><span class="check"><span class="check-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></span></span>
-            <span><span class="lbl">מנתחים את הביקורות</span><span class="sub"></span></span>
-            <span class="tick" data-t="2.6 שניות"></span>
-          </li>
-          <li class="scan-line" data-sub="ציון כולל 73/100">
-            <span class="icon"><span class="idle-dot"></span><span class="spinner"><span class="spinner-ring"></span></span><span class="check"><span class="check-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></span></span>
-            <span><span class="lbl">מחשבים ציונים ומודל עסק</span><span class="sub"></span></span>
-            <span class="tick" data-t="1.8 שניות"></span>
-          </li>
-          <li class="scan-line" data-sub="">
-            <span class="icon"><span class="idle-dot"></span><span class="spinner"><span class="spinner-ring"></span></span><span class="check"><span class="check-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></span></span>
-            <span><span class="lbl">כותבים את הדוח</span><span class="sub"></span></span>
-            <span class="tick" data-t="4.3 שניות"></span>
-          </li>
-          <li class="scan-line" data-sub="">
-            <span class="icon"><span class="idle-dot"></span><span class="spinner"><span class="spinner-ring"></span></span><span class="check"><span class="check-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></span></span>
-            <span><span class="lbl">שומרים את האבחון</span><span class="sub"></span></span>
-            <span class="tick" data-t="0.4 שניות"></span>
-          </li>
-        </ul>
+        <div class="scan-biz">
+          <div>
+            <b>אופטיקה בק בע"מ</b><br>
+            <span>עפולה</span>
+          </div>
+          <div class="ri-avatar">אב</div>
+        </div>
       </div>
 
-      <div class="findings-card">
-        <h3>ממצאים ראשונים</h3>
-        <p class="hint">מופיעים תוך כדי הסריקה, לפני שהדוח מוכן</p>
-        <div class="finding f-good" data-step="0">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 2.5 14 8l6 .7-4.4 4.1 1.2 5.9-5.3-3-5.3 3 1.2-5.9L3 8.7 9 8z"/></svg>
-          <span><b>דירוג 4.9 בגוגל</b> על בסיס 80 ביקורות. מוניטין חזק מהממוצע בענף.</span>
+      <div class="scan-grid">
+        <div class="scan-panel">
+          <div class="scan-topbar">
+            <span class="pct scan-pct">0%</span>
+            <div class="scan-progress"><i class="scan-bar-fill"></i></div>
+            <span class="stage scan-stage">מתחילים...</span>
+          </div>
+          <ul class="scan-lines"></ul>
         </div>
-        <div class="finding f-warn" data-step="1">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
-          <span><b>אין קביעת תורים אונליין</b> באף אחד מ-8 עמודי האתר שנסרקו.</span>
+
+        <div class="findings-card">
+          <h3>ממצאים ראשונים</h3>
+          <p class="hint">מופיעים תוך כדי הסריקה, לפני שהדוח מוכן</p>
+          <div class="finding f-good" data-step="0">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 2.5 14 8l6 .7-4.4 4.1 1.2 5.9-5.3-3-5.3 3 1.2-5.9L3 8.7 9 8z"/></svg>
+            <span><b>דירוג 4.9 בגוגל</b> על בסיס 80 ביקורות. מוניטין חזק מהממוצע בענף.</span>
+          </div>
+          <div class="finding f-warn" data-step="1">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+            <span><b>אין קביעת תורים אונליין</b> באף אחד מ-8 עמודי האתר שנסרקו.</span>
+          </div>
+          <div class="finding f-bad" data-step="2">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            <span><b>טעינה של 12.7 שניות במובייל.</b> רוב הגולשים נוטשים אחרי 3.</span>
+          </div>
+          <div class="finding f-good" data-step="3">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            <span><b>הלקוחות מרוצים מהשירות.</b> ניתוח הביקורות מזהה שבחים חוזרים על יחס אישי.</span>
+          </div>
+          <div class="scan-note"><span class="dot"></span> הסריקה רצה בלולאה לצורך תצוגת העיצוב</div>
         </div>
-        <div class="finding f-bad" data-step="2">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-          <span><b>טעינה של 12.7 שניות במובייל.</b> רוב הגולשים נוטשים אחרי 3.</span>
+      </div>
+    </div>
+
+    <!-- scan layout 2: focal dial -->
+    <div class="layout-alt" data-idx="1">
+      <div class="scan-focal">
+        <div class="focal-head">
+          <h2>סורקים את העסק עכשיו</h2>
+          <p>כל שלב נבדק בזמן אמת. הממצאים נאספים לדוח שמחכה בסוף.</p>
         </div>
-        <div class="finding f-good" data-step="3">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-          <span><b>הלקוחות מרוצים מהשירות.</b> ניתוח הביקורות מזהה שבחים חוזרים על יחס אישי.</span>
+        <div class="focal-biz"><b>אופטיקה בק בע"מ</b> עפולה</div>
+
+        <div class="dial-wrap">
+          <svg width="190" height="190" viewBox="0 0 190 190">
+            <circle class="dial-track" cx="95" cy="95" r="84"/>
+            <circle class="dial-fill" cx="95" cy="95" r="84"/>
+          </svg>
+          <div class="dial-center">
+            <span class="scan-pct">0%</span>
+            <span class="scan-stage">מתחילים...</span>
+          </div>
         </div>
-        <div class="scan-note"><span class="dot"></span> הסריקה רצה בלולאה לצורך תצוגת העיצוב</div>
+
+        <ul class="scan-lines scan-lines-slim"></ul>
+
+        <div class="chips-row">
+          <span class="chip finding f-good" data-step="0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 2.5 14 8l6 .7-4.4 4.1 1.2 5.9-5.3-3-5.3 3 1.2-5.9L3 8.7 9 8z"/></svg>
+            דירוג 4.9 מ-80 ביקורות
+          </span>
+          <span class="chip finding f-warn" data-step="1">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+            אין קביעת תורים אונליין
+          </span>
+          <span class="chip finding f-bad" data-step="2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            טעינה 12.7 שניות במובייל
+          </span>
+          <span class="chip finding f-good" data-step="3">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            שבחים חוזרים על יחס אישי
+          </span>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
 <!-- ================= REPORT ================= -->
-<section id="report">
+<section id="report" data-section="report">
   <div class="wrap">
-    <div class="sec-label">03 / דוח אבחון</div>
+    <div class="sec-head-row">
+      <div class="sec-label">03 / דוח אבחון</div>
+      <div class="gallery-ctrl">
+        <button class="gal-btn gal-prev" aria-label="פריסה קודמת">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+        <span class="gal-count"></span>
+        <button class="gal-btn gal-next" aria-label="פריסה הבאה">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+      </div>
+    </div>
+
     <div class="report-head">
       <div>
         <h2>דוח אבחון דיגיטלי</h2>
@@ -685,189 +1084,500 @@
       </div>
     </div>
 
-    <div class="bento">
+    <!-- report layout 1: bento (original) -->
+    <div class="layout-alt" data-idx="0">
+      <div class="bento">
 
-      <!-- hero tile -->
-      <div class="tile t-hero" id="heroTile">
-        <div class="ring-wrap">
-          <svg width="172" height="172" viewBox="0 0 172 172">
-            <defs>
-              <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#6d6ae0"/>
-                <stop offset="100%" stop-color="#403dbb"/>
-              </linearGradient>
-            </defs>
-            <circle class="ring-track" cx="86" cy="86" r="72"/>
-            <circle class="ring-fill" id="ringFill" cx="86" cy="86" r="72"/>
-          </svg>
-          <div class="ring-center">
-            <span class="big" id="scoreNum">0</span>
-            <span class="of">מתוך 100</span>
+        <!-- hero tile -->
+        <div class="tile t-hero">
+          <div class="ring-wrap">
+            <svg width="172" height="172" viewBox="0 0 172 172">
+              <circle class="ring-track" cx="86" cy="86" r="72"/>
+              <circle class="ring-fill" cx="86" cy="86" r="72"/>
+            </svg>
+            <div class="ring-center">
+              <span class="big score-count">0</span>
+              <span class="of">מתוך 100</span>
+            </div>
+            <span class="ring-badge">מעל ממוצע הענף</span>
           </div>
-          <span class="ring-badge">מעל ממוצע הענף</span>
+          <div>
+            <div class="biz-line">
+              <b>אופטיקה בק בע"מ</b>
+              <span>עפולה</span>
+            </div>
+            <h3>לאופטיקה בק מוניטין מצוין עם דירוג של 4.9, אך תשתיות דיגיטליות חלקיות מגבילות את הפוטנציאל</h3>
+            <p class="deck">העסק נהנה מ-80 ביקורות בדירוג 4.9 ומנוכחות דיגיטלית פעילה, אבל היעדר הזמנת תורים אונליין, פיקסל שיווקי ואתר איטי במובייל משאירים לקוחות ופניות על השולחן.</p>
+          </div>
         </div>
-        <div>
-          <div class="biz-line">
-            <b>אופטיקה בק בע"מ</b>
-            <span>עפולה</span>
+
+        <!-- dimensions tile -->
+        <div class="tile t-dims">
+          <div class="tile-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15v-4"/><path d="M12 15V8"/><path d="M17 15v-7"/></svg>
+            ציונים לפי תחום
           </div>
+          <div class="dim">
+            <div class="dim-top">
+              <span class="dim-name">נראות דיגיטלית</span>
+              <span class="dim-right"><span class="badge full">מידע מלא</span><span class="dim-score">65</span></span>
+            </div>
+            <span class="dim-bar"><i data-w="65%"></i></span>
+          </div>
+          <div class="dim">
+            <div class="dim-top">
+              <span class="dim-name">מוניטין וביקורות</span>
+              <span class="dim-right"><span class="badge full">מידע מלא</span><span class="dim-score">100</span></span>
+            </div>
+            <span class="dim-bar"><i data-w="100%"></i></span>
+          </div>
+          <div class="dim">
+            <div class="dim-top">
+              <span class="dim-name">נגישות ללקוח</span>
+              <span class="dim-right"><span class="badge full">מידע מלא</span><span class="dim-score">70</span></span>
+            </div>
+            <span class="dim-bar"><i data-w="70%"></i></span>
+          </div>
+          <div class="dim">
+            <div class="dim-top">
+              <span class="dim-name">תשתית דיגיטלית</span>
+              <span class="dim-right"><span class="badge partial">מידע חלקי</span><span class="dim-score">50</span></span>
+            </div>
+            <span class="dim-bar"><i data-w="50%"></i></span>
+          </div>
+          <div class="dim">
+            <div class="dim-top">
+              <span class="dim-name">בשלות תהליכים</span>
+              <span class="dim-right"><span class="badge none">אין מידע</span><span class="dim-score" style="color:var(--ink-3)">-</span></span>
+            </div>
+            <span class="dim-bar empty"></span>
+          </div>
+        </div>
+
+        <!-- gap 1 -->
+        <div class="tile t-gap g1">
+          <span class="gap-tag">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+            הפער המשמעותי ביותר
+          </span>
+          <b>אין קביעת תורים אונליין</b>
+          <p>עסק שחי על תורים מפסיד לקוחות שרוצים לקבוע ב-22:00 בלילה. כרגע כל פנייה מחוץ לשעות הפעילות הולכת לאיבוד או למתחרה.</p>
+          <div class="gap-stat">
+            <span class="n">0/30</span>
+            <span class="l">נקודות ברכיב קביעת תורים, מתוך ציון נגישות ללקוח</span>
+          </div>
+        </div>
+
+        <!-- gap 2 -->
+        <div class="tile t-gap g2">
+          <span class="gap-tag">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+            פער שיווקי
+          </span>
+          <b>אין פיקסל שיווקי</b>
+          <p>אי אפשר לעשות רימרקטינג למבקרים באתר. כל גולש שיצא בלי לפנות הוא לקוח שאין דרך להחזיר.</p>
+          <div class="gap-stat">
+            <span class="n">0</span>
+            <span class="l">כלי מדידה ופרסום מותקנים באתר</span>
+          </div>
+        </div>
+
+        <!-- gap 3 -->
+        <div class="tile t-gap g3">
+          <span class="gap-tag">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+            פער טכני
+          </span>
+          <b>האתר איטי במובייל</b>
+          <p>ציון ביצועים 46, טעינה 12.7 שניות.</p>
+          <div class="gap-stat">
+            <span class="n">12.7</span>
+            <span class="l">שניות טעינה במובייל</span>
+          </div>
+        </div>
+
+        <!-- strengths -->
+        <div class="tile t-strong">
+          <div class="tile-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 2.5 14 8l6 .7-4.4 4.1 1.2 5.9-5.3-3-5.3 3 1.2-5.9L3 8.7 9 8z"/></svg>
+            מה כבר עובד טוב
+          </div>
+          <div class="strong-item">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            <span>דירוג מצוין: 4.9 מ-80 ביקורות</span>
+          </div>
+          <div class="strong-item">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            <span>וואטסאפ, טלפון וטופס יצירת קשר זמינים באתר</span>
+          </div>
+          <div class="strong-item">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            <span>פרופיל גוגל פעיל ומלא</span>
+          </div>
+        </div>
+
+        <!-- rules transparency -->
+        <div class="tile t-rules">
+          <details open>
+            <summary>
+              איך חושב הציון? דוגמה: נגישות ללקוח
+              <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <div class="rules-body">
+              <div class="rule-row">
+                <span class="rn">וואטסאפ באתר</span><span class="rv">25+</span>
+                <span class="rule-bar"><i style="width:83%"></i></span>
+              </div>
+              <div class="rule-row">
+                <span class="rn">טלפון קליקבילי</span><span class="rv">20+</span>
+                <span class="rule-bar"><i style="width:66%"></i></span>
+              </div>
+              <div class="rule-row">
+                <span class="rn">טופס יצירת קשר</span><span class="rv">25+</span>
+                <span class="rule-bar"><i style="width:83%"></i></span>
+              </div>
+              <div class="rule-row">
+                <span class="rn">קביעת תורים אונליין</span><span class="rv zero">0 מתוך 30</span>
+                <span class="rule-bar"><i class="zero"></i></span>
+              </div>
+              <div class="rules-total">
+                סך הכל נגישות ללקוח
+                <span>70 / 100</span>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <!-- completeness -->
+        <div class="tile t-complete">
+          <div class="tile-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            שלמות האבחון
+          </div>
+          <div class="comp-num">30<small>%</small></div>
+          <div class="comp-cap">מהתמונה המלאה נאספה עד כה</div>
+          <div class="comp-bar"><i data-w="30%"></i></div>
+          <div class="comp-next">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            <span>הצעד הבא: ראיון קצר על טיפול בלידים ישלים את התמונה</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- report layout 2: single-column narrative -->
+    <div class="layout-alt" data-idx="1">
+      <article class="narrative">
+        <header class="nr-head">
+          <div class="ring-sm">
+            <svg width="132" height="132" viewBox="0 0 132 132">
+              <circle class="ring-track" cx="66" cy="66" r="56"/>
+              <circle class="ring-fill" cx="66" cy="66" r="56"/>
+            </svg>
+            <div class="ring-center">
+              <span class="big score-count">0</span>
+              <span class="of">מתוך 100</span>
+            </div>
+          </div>
+          <div class="biz-line"><b>אופטיקה בק בע"מ</b> עפולה</div>
           <h3>לאופטיקה בק מוניטין מצוין עם דירוג של 4.9, אך תשתיות דיגיטליות חלקיות מגבילות את הפוטנציאל</h3>
           <p class="deck">העסק נהנה מ-80 ביקורות בדירוג 4.9 ומנוכחות דיגיטלית פעילה, אבל היעדר הזמנת תורים אונליין, פיקסל שיווקי ואתר איטי במובייל משאירים לקוחות ופניות על השולחן.</p>
-        </div>
-      </div>
+        </header>
 
-      <!-- dimensions tile -->
-      <div class="tile t-dims">
-        <div class="tile-title">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15v-4"/><path d="M12 15V8"/><path d="M17 15v-7"/></svg>
-          ציונים לפי תחום
-        </div>
-        <div class="dim">
-          <div class="dim-top">
-            <span class="dim-name">נראות דיגיטלית</span>
-            <span class="dim-right"><span class="badge full">מידע מלא</span><span class="dim-score">65</span></span>
-          </div>
-          <span class="dim-bar"><i data-w="65%"></i></span>
-        </div>
-        <div class="dim">
-          <div class="dim-top">
-            <span class="dim-name">מוניטין וביקורות</span>
-            <span class="dim-right"><span class="badge full">מידע מלא</span><span class="dim-score">100</span></span>
-          </div>
-          <span class="dim-bar"><i data-w="100%"></i></span>
-        </div>
-        <div class="dim">
-          <div class="dim-top">
-            <span class="dim-name">נגישות ללקוח</span>
-            <span class="dim-right"><span class="badge full">מידע מלא</span><span class="dim-score">70</span></span>
-          </div>
-          <span class="dim-bar"><i data-w="70%"></i></span>
-        </div>
-        <div class="dim">
-          <div class="dim-top">
-            <span class="dim-name">תשתית דיגיטלית</span>
-            <span class="dim-right"><span class="badge partial">מידע חלקי</span><span class="dim-score">50</span></span>
-          </div>
-          <span class="dim-bar"><i data-w="50%"></i></span>
-        </div>
-        <div class="dim">
-          <div class="dim-top">
-            <span class="dim-name">בשלות תהליכים</span>
-            <span class="dim-right"><span class="badge none">אין מידע</span><span class="dim-score" style="color:var(--ink-3)">-</span></span>
-          </div>
-          <span class="dim-bar empty"></span>
-        </div>
-      </div>
-
-      <!-- gap 1 -->
-      <div class="tile t-gap g1">
-        <span class="gap-tag">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
-          הפער המשמעותי ביותר
-        </span>
-        <b>אין קביעת תורים אונליין</b>
-        <p>עסק שחי על תורים מפסיד לקוחות שרוצים לקבוע ב-22:00 בלילה. כרגע כל פנייה מחוץ לשעות הפעילות הולכת לאיבוד או למתחרה.</p>
-        <div class="gap-stat">
-          <span class="n">0/30</span>
-          <span class="l">נקודות ברכיב קביעת תורים, מתוך ציון נגישות ללקוח</span>
-        </div>
-      </div>
-
-      <!-- gap 2 -->
-      <div class="tile t-gap g2">
-        <span class="gap-tag">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
-          פער שיווקי
-        </span>
-        <b>אין פיקסל שיווקי</b>
-        <p>אי אפשר לעשות רימרקטינג למבקרים באתר. כל גולש שיצא בלי לפנות הוא לקוח שאין דרך להחזיר.</p>
-        <div class="gap-stat">
-          <span class="n">0</span>
-          <span class="l">כלי מדידה ופרסום מותקנים באתר</span>
-        </div>
-      </div>
-
-      <!-- gap 3 -->
-      <div class="tile t-gap g3">
-        <span class="gap-tag">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
-          פער טכני
-        </span>
-        <b>האתר איטי במובייל</b>
-        <p>ציון ביצועים 46, טעינה 12.7 שניות.</p>
-        <div class="gap-stat">
-          <span class="n">12.7</span>
-          <span class="l">שניות טעינה במובייל</span>
-        </div>
-      </div>
-
-      <!-- strengths -->
-      <div class="tile t-strong">
-        <div class="tile-title">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 2.5 14 8l6 .7-4.4 4.1 1.2 5.9-5.3-3-5.3 3 1.2-5.9L3 8.7 9 8z"/></svg>
-          מה כבר עובד טוב
-        </div>
-        <div class="strong-item">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-          <span>דירוג מצוין: 4.9 מ-80 ביקורות</span>
-        </div>
-        <div class="strong-item">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-          <span>וואטסאפ, טלפון וטופס יצירת קשר זמינים באתר</span>
-        </div>
-        <div class="strong-item">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-          <span>פרופיל גוגל פעיל ומלא</span>
-        </div>
-      </div>
-
-      <!-- rules transparency -->
-      <div class="tile t-rules">
-        <details open>
-          <summary>
-            איך חושב הציון? דוגמה: נגישות ללקוח
-            <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-          </summary>
-          <div class="rules-body">
-            <div class="rule-row">
-              <span class="rn">וואטסאפ באתר</span><span class="rv">25+</span>
-              <span class="rule-bar"><i style="width:83%"></i></span>
+        <div class="nr-sec">
+          <h4>ציונים לפי תחום</h4>
+          <div class="dim">
+            <div class="dim-top">
+              <span class="dim-name">נראות דיגיטלית</span>
+              <span class="dim-right"><span class="badge full">מידע מלא</span><span class="dim-score">65</span></span>
             </div>
-            <div class="rule-row">
-              <span class="rn">טלפון קליקבילי</span><span class="rv">20+</span>
-              <span class="rule-bar"><i style="width:66%"></i></span>
+            <span class="dim-bar"><i data-w="65%"></i></span>
+          </div>
+          <div class="dim">
+            <div class="dim-top">
+              <span class="dim-name">מוניטין וביקורות</span>
+              <span class="dim-right"><span class="badge full">מידע מלא</span><span class="dim-score">100</span></span>
             </div>
-            <div class="rule-row">
-              <span class="rn">טופס יצירת קשר</span><span class="rv">25+</span>
-              <span class="rule-bar"><i style="width:83%"></i></span>
+            <span class="dim-bar"><i data-w="100%"></i></span>
+          </div>
+          <div class="dim">
+            <div class="dim-top">
+              <span class="dim-name">נגישות ללקוח</span>
+              <span class="dim-right"><span class="badge full">מידע מלא</span><span class="dim-score">70</span></span>
             </div>
-            <div class="rule-row">
-              <span class="rn">קביעת תורים אונליין</span><span class="rv zero">0 מתוך 30</span>
-              <span class="rule-bar"><i class="zero"></i></span>
+            <span class="dim-bar"><i data-w="70%"></i></span>
+          </div>
+          <div class="dim">
+            <div class="dim-top">
+              <span class="dim-name">תשתית דיגיטלית</span>
+              <span class="dim-right"><span class="badge partial">מידע חלקי</span><span class="dim-score">50</span></span>
             </div>
-            <div class="rules-total">
-              סך הכל נגישות ללקוח
-              <span>70 / 100</span>
+            <span class="dim-bar"><i data-w="50%"></i></span>
+          </div>
+          <div class="dim">
+            <div class="dim-top">
+              <span class="dim-name">בשלות תהליכים</span>
+              <span class="dim-right"><span class="badge none">אין מידע</span><span class="dim-score" style="color:var(--ink-3)">-</span></span>
+            </div>
+            <span class="dim-bar empty"></span>
+          </div>
+        </div>
+
+        <div class="nr-sec">
+          <h4>שלושת הפערים המרכזיים</h4>
+          <div class="nr-gap">
+            <span class="gnum">1</span>
+            <b>אין קביעת תורים אונליין</b>
+            <span class="gstat"><span class="n">0/30</span><span class="l">נקודות ברכיב</span></span>
+            <p>עסק שחי על תורים מפסיד לקוחות שרוצים לקבוע ב-22:00 בלילה. כרגע כל פנייה מחוץ לשעות הפעילות הולכת לאיבוד או למתחרה.</p>
+          </div>
+          <div class="nr-gap">
+            <span class="gnum">2</span>
+            <b>אין פיקסל שיווקי</b>
+            <span class="gstat"><span class="n">0</span><span class="l">כלי מדידה באתר</span></span>
+            <p>אי אפשר לעשות רימרקטינג למבקרים באתר. כל גולש שיצא בלי לפנות הוא לקוח שאין דרך להחזיר.</p>
+          </div>
+          <div class="nr-gap">
+            <span class="gnum">3</span>
+            <b>האתר איטי במובייל</b>
+            <span class="gstat"><span class="n">12.7</span><span class="l">שניות טעינה</span></span>
+            <p>ציון ביצועים 46, טעינה 12.7 שניות. רוב הגולשים נוטשים הרבה לפני שהעמוד נטען.</p>
+          </div>
+        </div>
+
+        <div class="nr-sec">
+          <h4>מה כבר עובד טוב</h4>
+          <div class="nr-strong-row">
+            <span class="strong-pill">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              דירוג מצוין: 4.9 מ-80 ביקורות
+            </span>
+            <span class="strong-pill">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              וואטסאפ, טלפון וטופס יצירת קשר זמינים באתר
+            </span>
+            <span class="strong-pill">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              פרופיל גוגל פעיל ומלא
+            </span>
+          </div>
+        </div>
+
+        <div class="nr-sec rules-inline">
+          <details open>
+            <summary>
+              איך חושב הציון? דוגמה: נגישות ללקוח
+              <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <div class="rules-body">
+              <div class="rule-row">
+                <span class="rn">וואטסאפ באתר</span><span class="rv">25+</span>
+                <span class="rule-bar"><i style="width:83%"></i></span>
+              </div>
+              <div class="rule-row">
+                <span class="rn">טלפון קליקבילי</span><span class="rv">20+</span>
+                <span class="rule-bar"><i style="width:66%"></i></span>
+              </div>
+              <div class="rule-row">
+                <span class="rn">טופס יצירת קשר</span><span class="rv">25+</span>
+                <span class="rule-bar"><i style="width:83%"></i></span>
+              </div>
+              <div class="rule-row">
+                <span class="rn">קביעת תורים אונליין</span><span class="rv zero">0 מתוך 30</span>
+                <span class="rule-bar"><i class="zero"></i></span>
+              </div>
+              <div class="rules-total">
+                סך הכל נגישות ללקוח
+                <span>70 / 100</span>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <div class="nr-complete">
+          <span class="comp-num">30<small>%</small></span>
+          <span class="nc-mid">
+            <span class="comp-cap">שלמות האבחון: מהתמונה המלאה נאספה עד כה</span>
+            <span class="comp-bar"><i data-w="30%"></i></span>
+          </span>
+          <span class="nc-next">הצעד הבא: ראיון קצר על טיפול בלידים ישלים את התמונה</span>
+        </div>
+      </article>
+    </div>
+
+    <!-- report layout 3: sticky sidebar + scrolling detail -->
+    <div class="layout-alt" data-idx="2">
+      <div class="side-grid">
+        <aside class="side-rail">
+          <div class="tile rail-score">
+            <div class="ring-sm">
+              <svg width="132" height="132" viewBox="0 0 132 132">
+                <circle class="ring-track" cx="66" cy="66" r="56"/>
+                <circle class="ring-fill" cx="66" cy="66" r="56"/>
+              </svg>
+              <div class="ring-center">
+                <span class="big score-count">0</span>
+                <span class="of">מתוך 100</span>
+              </div>
+            </div>
+            <div class="biz-line"><b>אופטיקה בק בע"מ</b> עפולה</div>
+            <span class="rail-badge">מעל ממוצע הענף</span>
+          </div>
+
+          <div class="tile">
+            <div class="tile-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15v-4"/><path d="M12 15V8"/><path d="M17 15v-7"/></svg>
+              ציונים לפי תחום
+            </div>
+            <div class="dim">
+              <div class="dim-top">
+                <span class="dim-name">נראות דיגיטלית</span>
+                <span class="dim-right"><span class="badge full">מידע מלא</span><span class="dim-score">65</span></span>
+              </div>
+              <span class="dim-bar"><i data-w="65%"></i></span>
+            </div>
+            <div class="dim">
+              <div class="dim-top">
+                <span class="dim-name">מוניטין וביקורות</span>
+                <span class="dim-right"><span class="badge full">מידע מלא</span><span class="dim-score">100</span></span>
+              </div>
+              <span class="dim-bar"><i data-w="100%"></i></span>
+            </div>
+            <div class="dim">
+              <div class="dim-top">
+                <span class="dim-name">נגישות ללקוח</span>
+                <span class="dim-right"><span class="badge full">מידע מלא</span><span class="dim-score">70</span></span>
+              </div>
+              <span class="dim-bar"><i data-w="70%"></i></span>
+            </div>
+            <div class="dim">
+              <div class="dim-top">
+                <span class="dim-name">תשתית דיגיטלית</span>
+                <span class="dim-right"><span class="badge partial">מידע חלקי</span><span class="dim-score">50</span></span>
+              </div>
+              <span class="dim-bar"><i data-w="50%"></i></span>
+            </div>
+            <div class="dim">
+              <div class="dim-top">
+                <span class="dim-name">בשלות תהליכים</span>
+                <span class="dim-right"><span class="badge none">אין מידע</span><span class="dim-score" style="color:var(--ink-3)">-</span></span>
+              </div>
+              <span class="dim-bar empty"></span>
             </div>
           </div>
-        </details>
-      </div>
 
-      <!-- completeness -->
-      <div class="tile t-complete">
-        <div class="tile-title">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-          שלמות האבחון
-        </div>
-        <div class="comp-num">30<small>%</small></div>
-        <div class="comp-cap">מהתמונה המלאה נאספה עד כה</div>
-        <div class="comp-bar"><i id="compBar" data-w="30%"></i></div>
-        <div class="comp-next">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-          <span>הצעד הבא: ראיון קצר על טיפול בלידים ישלים את התמונה</span>
+          <div class="tile t-complete">
+            <div class="tile-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              שלמות האבחון
+            </div>
+            <div class="comp-num">30<small>%</small></div>
+            <div class="comp-cap">מהתמונה המלאה נאספה עד כה</div>
+            <div class="comp-bar"><i data-w="30%"></i></div>
+            <div class="comp-next">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+              <span>הצעד הבא: ראיון קצר על טיפול בלידים ישלים את התמונה</span>
+            </div>
+          </div>
+        </aside>
+
+        <div class="side-main">
+          <div class="tile">
+            <h3 style="font-size:19px;font-weight:700;line-height:1.4;letter-spacing:-.01em;margin-bottom:10px">לאופטיקה בק מוניטין מצוין עם דירוג של 4.9, אך תשתיות דיגיטליות חלקיות מגבילות את הפוטנציאל</h3>
+            <p style="font-size:14px;color:var(--ink-2)">העסק נהנה מ-80 ביקורות בדירוג 4.9 ומנוכחות דיגיטלית פעילה, אבל היעדר הזמנת תורים אונליין, פיקסל שיווקי ואתר איטי במובייל משאירים לקוחות ופניות על השולחן.</p>
+          </div>
+
+          <div class="tile t-gap">
+            <span class="gap-tag">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+              הפער המשמעותי ביותר
+            </span>
+            <b>אין קביעת תורים אונליין</b>
+            <p>עסק שחי על תורים מפסיד לקוחות שרוצים לקבוע ב-22:00 בלילה. כרגע כל פנייה מחוץ לשעות הפעילות הולכת לאיבוד או למתחרה.</p>
+            <div class="gap-stat">
+              <span class="n">0/30</span>
+              <span class="l">נקודות ברכיב קביעת תורים, מתוך ציון נגישות ללקוח</span>
+            </div>
+          </div>
+
+          <div class="tile t-gap">
+            <span class="gap-tag">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+              פער שיווקי
+            </span>
+            <b>אין פיקסל שיווקי</b>
+            <p>אי אפשר לעשות רימרקטינג למבקרים באתר. כל גולש שיצא בלי לפנות הוא לקוח שאין דרך להחזיר.</p>
+            <div class="gap-stat">
+              <span class="n">0</span>
+              <span class="l">כלי מדידה ופרסום מותקנים באתר</span>
+            </div>
+          </div>
+
+          <div class="tile t-gap">
+            <span class="gap-tag">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+              פער טכני
+            </span>
+            <b>האתר איטי במובייל</b>
+            <p>ציון ביצועים 46, טעינה 12.7 שניות.</p>
+            <div class="gap-stat">
+              <span class="n">12.7</span>
+              <span class="l">שניות טעינה במובייל</span>
+            </div>
+          </div>
+
+          <div class="tile">
+            <div class="tile-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 2.5 14 8l6 .7-4.4 4.1 1.2 5.9-5.3-3-5.3 3 1.2-5.9L3 8.7 9 8z"/></svg>
+              מה כבר עובד טוב
+            </div>
+            <div class="strong-item">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              <span>דירוג מצוין: 4.9 מ-80 ביקורות</span>
+            </div>
+            <div class="strong-item">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              <span>וואטסאפ, טלפון וטופס יצירת קשר זמינים באתר</span>
+            </div>
+            <div class="strong-item">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              <span>פרופיל גוגל פעיל ומלא</span>
+            </div>
+          </div>
+
+          <div class="tile rules-inline">
+            <details open>
+              <summary>
+                איך חושב הציון? דוגמה: נגישות ללקוח
+                <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              </summary>
+              <div class="rules-body">
+                <div class="rule-row">
+                  <span class="rn">וואטסאפ באתר</span><span class="rv">25+</span>
+                  <span class="rule-bar"><i style="width:83%"></i></span>
+                </div>
+                <div class="rule-row">
+                  <span class="rn">טלפון קליקבילי</span><span class="rv">20+</span>
+                  <span class="rule-bar"><i style="width:66%"></i></span>
+                </div>
+                <div class="rule-row">
+                  <span class="rn">טופס יצירת קשר</span><span class="rv">25+</span>
+                  <span class="rule-bar"><i style="width:83%"></i></span>
+                </div>
+                <div class="rule-row">
+                  <span class="rn">קביעת תורים אונליין</span><span class="rv zero">0 מתוך 30</span>
+                  <span class="rule-bar"><i class="zero"></i></span>
+                </div>
+                <div class="rules-total">
+                  סך הכל נגישות ללקוח
+                  <span>70 / 100</span>
+                </div>
+              </div>
+            </details>
+          </div>
         </div>
       </div>
-
     </div>
   </div>
 </section>
@@ -882,6 +1592,36 @@
 <script>
 (function(){
   "use strict";
+
+  var LS_PAL = "ait-vm-palette";
+  var LS_FONT = "ait-vm-font";
+  function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+  function $all(sel,root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); }
+
+  /* ---- palette + font pickers ---- */
+  var root = document.documentElement;
+  var palDots = $all(".pal-dot");
+  var fontBtns = $all(".font-btn");
+
+  function setPalette(p){
+    root.setAttribute("data-palette",p);
+    lsSet(LS_PAL,p);
+    palDots.forEach(function(d){ d.classList.toggle("on", d.getAttribute("data-pal")===p); });
+  }
+  function setFont(f){
+    root.setAttribute("data-font",f);
+    lsSet(LS_FONT,f);
+    fontBtns.forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-fontset")===f); });
+  }
+  palDots.forEach(function(d){
+    d.addEventListener("click",function(){ setPalette(d.getAttribute("data-pal")); });
+  });
+  fontBtns.forEach(function(b){
+    b.addEventListener("click",function(){ setFont(b.getAttribute("data-fontset")); });
+  });
+  setPalette(root.getAttribute("data-palette")||"p1");
+  setFont(root.getAttribute("data-font")||"f1");
 
   /* ---- nav active state ---- */
   var sections = ["entry","scan","report"];
@@ -899,72 +1639,7 @@
   },{rootMargin:"-40% 0px -55% 0px"});
   sections.forEach(function(id){ obs.observe(document.getElementById(id)); });
 
-  /* ---- live scan loop ---- */
-  var lines = Array.prototype.slice.call(document.querySelectorAll("#scanLines .scan-line"));
-  var bar = document.getElementById("scanBar");
-  var pct = document.getElementById("scanPct");
-  var stage = document.getElementById("scanStage");
-  var findings = Array.prototype.slice.call(document.querySelectorAll(".finding"));
-  var stageNames = ["איתור העסק","סריקת האתר","בדיקת ביצועים","ניתוח ביקורות","חישוב ציונים","כתיבת הדוח","שמירה"];
-  var STEP_MS = 1500;
-  var current = -1;
-  var timer = null;
-
-  function resetScan(){
-    lines.forEach(function(l){
-      l.classList.remove("active","done");
-      l.querySelector(".sub").textContent = "";
-      l.querySelector(".tick").textContent = "";
-    });
-    findings.forEach(function(f){ f.classList.remove("show"); });
-    bar.style.width = "0%";
-    pct.textContent = "0%";
-    stage.textContent = "מתחילים...";
-    current = -1;
-  }
-
-  function advance(){
-    if(current >= 0 && current < lines.length){
-      var prev = lines[current];
-      prev.classList.remove("active");
-      prev.classList.add("done");
-      prev.querySelector(".sub").textContent = prev.getAttribute("data-sub");
-      prev.querySelector(".tick").textContent = prev.querySelector(".tick").getAttribute("data-t");
-      findings.forEach(function(f){
-        if(parseInt(f.getAttribute("data-step"),10) === current){ f.classList.add("show"); }
-      });
-    }
-    current++;
-    if(current < lines.length){
-      var line = lines[current];
-      line.classList.add("active");
-      line.querySelector(".tick").textContent = "בודק...";
-      stage.textContent = stageNames[current];
-      var p = Math.round(((current + 0.5) / lines.length) * 100);
-      bar.style.width = p + "%";
-      pct.textContent = p + "%";
-      timer = setTimeout(advance, STEP_MS);
-    } else {
-      bar.style.width = "100%";
-      pct.textContent = "100%";
-      stage.textContent = "האבחון מוכן";
-      timer = setTimeout(function(){
-        resetScan();
-        timer = setTimeout(advance, 900);
-      }, 3200);
-    }
-  }
-  resetScan();
-  timer = setTimeout(advance, 700);
-
-  /* ---- report reveals ---- */
-  var ringFill = document.getElementById("ringFill");
-  var scoreNum = document.getElementById("scoreNum");
-  var CIRC = 2 * Math.PI * 72; /* 452.39 */
-  ringFill.style.strokeDasharray = CIRC;
-  ringFill.style.strokeDashoffset = CIRC;
-  var ringDone = false;
-
+  /* ---- count-up helper ---- */
   function countUp(el, target, ms){
     var start = null;
     function tickFn(ts){
@@ -977,21 +1652,191 @@
     requestAnimationFrame(tickFn);
   }
 
+  /* ---- report reveal (works per layout alternative) ---- */
+  var reportSeen = false;
+  function playReport(scope){
+    if(!scope) return;
+    $all(".ring-fill",scope).forEach(function(c){
+      var r = parseFloat(c.getAttribute("r"));
+      var C = 2 * Math.PI * r;
+      c.style.transition = "none";
+      c.style.strokeDasharray = C;
+      c.style.strokeDashoffset = C;
+      void c.getBoundingClientRect();
+      c.style.transition = "";
+      requestAnimationFrame(function(){
+        requestAnimationFrame(function(){
+          c.style.strokeDashoffset = C * (1 - 0.73);
+        });
+      });
+    });
+    $all(".score-count",scope).forEach(function(el){ countUp(el, 73, 1500); });
+    $all("[data-w]",scope).forEach(function(b){
+      b.style.transition = "none";
+      b.style.width = "0";
+      void b.offsetWidth;
+      b.style.transition = "";
+      b.style.width = b.getAttribute("data-w");
+    });
+  }
+
+  /* ---- per-section layout galleries ---- */
+  var galleries = {};
+  var hoveredGallery = null;
+
+  $all("section[data-section]").forEach(function(sec){
+    var name = sec.getAttribute("data-section");
+    var alts = $all(".layout-alt",sec);
+    var count = alts.length;
+    if(!count) return;
+    var counter = sec.querySelector(".gal-count");
+    var key = "ait-vm-layout-"+name;
+    var idx = parseInt(lsGet(key),10);
+    if(isNaN(idx) || idx < 0 || idx >= count) idx = 0;
+
+    function show(i, fromUser){
+      idx = ((i % count) + count) % count;
+      alts.forEach(function(a,j){ a.classList.toggle("on", j===idx); });
+      counter.textContent = "פריסה "+(idx+1)+" מתוך "+count;
+      lsSet(key, String(idx));
+      if(fromUser && name === "report" && reportSeen){
+        playReport(alts[idx]);
+      }
+    }
+    show(idx, false);
+
+    sec.querySelector(".gal-prev").addEventListener("click",function(){ show(idx-1, true); });
+    sec.querySelector(".gal-next").addEventListener("click",function(){ show(idx+1, true); });
+    sec.addEventListener("mouseenter",function(){ hoveredGallery = name; });
+    sec.addEventListener("mouseleave",function(){ if(hoveredGallery === name) hoveredGallery = null; });
+
+    galleries[name] = {
+      next:function(){ show(idx+1, true); },
+      prev:function(){ show(idx-1, true); },
+      current:function(){ return alts[idx]; }
+    };
+  });
+
+  document.addEventListener("keydown",function(e){
+    if(!hoveredGallery) return;
+    var tag = (e.target && e.target.tagName) || "";
+    if(tag === "INPUT" || tag === "TEXTAREA") return;
+    if(e.key === "ArrowLeft"){ galleries[hoveredGallery].next(); e.preventDefault(); }
+    else if(e.key === "ArrowRight"){ galleries[hoveredGallery].prev(); e.preventDefault(); }
+  });
+
+  /* ---- build scan lines into every scan layout ---- */
+  var scanData = [
+    {lbl:"מאתרים את פרטי העסק בגוגל", sub:"נמצאו 80 ביקורות ודירוג 4.9", t:"1.2 שניות"},
+    {lbl:"קוראים את האתר",             sub:"נסרקו 8 עמודים",             t:"3.4 שניות"},
+    {lbl:"בודקים מהירות טעינה במובייל", sub:"ציון ביצועים 46",            t:"8.1 שניות"},
+    {lbl:"מנתחים את הביקורות",         sub:"נותחו 5 ביקורות",            t:"2.6 שניות"},
+    {lbl:"מחשבים ציונים ומודל עסק",    sub:"ציון כולל 73/100",           t:"1.8 שניות"},
+    {lbl:"כותבים את הדוח",             sub:"",                            t:"4.3 שניות"},
+    {lbl:"שומרים את האבחון",           sub:"",                            t:"0.4 שניות"}
+  ];
+  var checkSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  var lineHtml = scanData.map(function(s){
+    return '<li class="scan-line" data-sub="'+s.sub+'">'
+      +'<span class="icon"><span class="idle-dot"></span><span class="spinner"><span class="spinner-ring"></span></span><span class="check"><span class="check-badge">'+checkSvg+'</span></span></span>'
+      +'<span><span class="lbl">'+s.lbl+'</span><span class="sub"></span></span>'
+      +'<span class="tick" data-t="'+s.t+'"></span>'
+      +'</li>';
+  }).join("");
+  $all(".scan-lines").forEach(function(ul){ ul.innerHTML = lineHtml; });
+
+  /* ---- live scan loop (drives all scan layouts at once) ---- */
+  var lineSets = $all(".scan-lines").map(function(ul){ return $all(".scan-line",ul); });
+  var bars = $all(".scan-bar-fill");
+  var pcts = $all(".scan-pct");
+  var stages = $all(".scan-stage");
+  var dials = $all(".dial-fill");
+  var findings = $all(".finding");
+  var stageNames = ["איתור העסק","סריקת האתר","בדיקת ביצועים","ניתוח ביקורות","חישוב ציונים","כתיבת הדוח","שמירה"];
+  var STEP_MS = 1500;
+  var STEPS = scanData.length;
+  var current = -1;
+  var timer = null;
+
+  dials.forEach(function(c){
+    var r = parseFloat(c.getAttribute("r"));
+    var C = 2 * Math.PI * r;
+    c.style.strokeDasharray = C;
+    c.style.strokeDashoffset = C;
+  });
+
+  function setProgress(p){
+    bars.forEach(function(b){ b.style.width = p + "%"; });
+    pcts.forEach(function(el){ el.textContent = p + "%"; });
+    dials.forEach(function(c){
+      var C = parseFloat(c.style.strokeDasharray);
+      c.style.strokeDashoffset = C * (1 - p / 100);
+    });
+  }
+  function setStage(txt){
+    stages.forEach(function(el){ el.textContent = txt; });
+  }
+
+  function resetScan(){
+    lineSets.forEach(function(set){
+      set.forEach(function(l){
+        l.classList.remove("active","done");
+        l.querySelector(".sub").textContent = "";
+        l.querySelector(".tick").textContent = "";
+      });
+    });
+    findings.forEach(function(f){ f.classList.remove("show"); });
+    setProgress(0);
+    setStage("מתחילים...");
+    current = -1;
+  }
+
+  function advance(){
+    if(current >= 0 && current < STEPS){
+      lineSets.forEach(function(set){
+        var prev = set[current];
+        prev.classList.remove("active");
+        prev.classList.add("done");
+        prev.querySelector(".sub").textContent = prev.getAttribute("data-sub");
+        prev.querySelector(".tick").textContent = prev.querySelector(".tick").getAttribute("data-t");
+      });
+      findings.forEach(function(f){
+        if(parseInt(f.getAttribute("data-step"),10) === current){ f.classList.add("show"); }
+      });
+    }
+    current++;
+    if(current < STEPS){
+      lineSets.forEach(function(set){
+        var line = set[current];
+        line.classList.add("active");
+        line.querySelector(".tick").textContent = "בודק...";
+      });
+      setStage(stageNames[current]);
+      setProgress(Math.round(((current + 0.5) / STEPS) * 100));
+      timer = setTimeout(advance, STEP_MS);
+    } else {
+      setProgress(100);
+      setStage("האבחון מוכן");
+      timer = setTimeout(function(){
+        resetScan();
+        timer = setTimeout(advance, 900);
+      }, 3200);
+    }
+  }
+  resetScan();
+  timer = setTimeout(advance, 700);
+
+  /* ---- report reveal on first scroll into view ---- */
+  var reportSec = document.getElementById("report");
   var reportObs = new IntersectionObserver(function(entries){
     entries.forEach(function(e){
-      if(!e.isIntersecting) return;
-      if(!ringDone){
-        ringDone = true;
-        ringFill.style.strokeDashoffset = CIRC * (1 - 0.73);
-        countUp(scoreNum, 73, 1500);
-      }
-      document.querySelectorAll(".dim-bar i[data-w], .comp-bar i[data-w]").forEach(function(b){
-        b.style.width = b.getAttribute("data-w");
-      });
+      if(!e.isIntersecting || reportSeen) return;
+      reportSeen = true;
+      playReport(galleries.report ? galleries.report.current() : reportSec);
       reportObs.disconnect();
     });
-  },{threshold:0.25});
-  reportObs.observe(document.getElementById("heroTile"));
+  },{threshold:0.2});
+  reportObs.observe(reportSec);
 })();
 </script>
 </body>

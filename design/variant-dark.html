@@ -1,49 +1,160 @@
 <!doctype html>
-<html dir="rtl" lang="he">
+<html dir="rtl" lang="he" data-palette="p1" data-font="f1">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AIT - אבחון דיגיטלי לעסקים</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=Rubik:wght@300;400;500;600;700;800;900&family=Assistant:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{
+  /* ===== palette tokens ===== */
+  :root, html[data-palette="p1"]{
     --bg:#050505;
     --panel:rgba(255,255,255,.035);
-    --panel2:#0a0a0d;
+    --panel2a:#0c0c10;
+    --panel2b:#08080b;
     --hair:rgba(255,255,255,.09);
     --hair-soft:rgba(255,255,255,.055);
     --txt:#f4f4f6;
     --mut:rgba(244,244,246,.58);
     --dim:rgba(244,244,246,.34);
-    --vio:#a78bfa;
-    --vio-deep:#7c5cf0;
-    --emr:#34d399;
-    --amb:#fbbf24;
-    --red:#fb7185;
+    --acc:#a78bfa;
+    --acc-rgb:167,139,250;
+    --acc-soft:#c9b8fc;
+    --accd-rgb:124,92,240;
+    --acc-deep1:#8f6ef5;
+    --acc-deep2:#6d4de0;
+    --acc2:#34d399;
+    --acc2-rgb:52,211,153;
+    --acc2-soft:#7ee8c3;
+    --grad-a:#c8b6ff;
+    --grad-b:#8f6ef5;
+    --grad-c:#34d399;
+    --warn:#fbbf24;
+    --warn-rgb:251,191,36;
+    --warn-soft:#fcd34d;
+    --warn-soft2:#fde68a;
+    --bad:#fb7185;
+    --bad-rgb:251,113,133;
+    --bad-soft:#fda4af;
+    --btn-txt:#ffffff;
     --ease:cubic-bezier(.32,.72,0,1);
   }
+  html[data-palette="p2"]{
+    --bg:#04070b;
+    --panel2a:#0a1016;
+    --panel2b:#070b10;
+    --acc:#22d3ee;
+    --acc-rgb:34,211,238;
+    --acc-soft:#a5f3fc;
+    --accd-rgb:8,145,178;
+    --acc-deep1:#38bdf8;
+    --acc-deep2:#0369a1;
+    --acc2:#7dd3fc;
+    --acc2-rgb:125,211,252;
+    --acc2-soft:#bae6fd;
+    --grad-a:#cffafe;
+    --grad-b:#22d3ee;
+    --grad-c:#7dd3fc;
+    --btn-txt:#ffffff;
+  }
+  html[data-palette="p3"]{
+    --bg:#0a0806;
+    --panel:rgba(255,244,222,.035);
+    --panel2a:#141009;
+    --panel2b:#0d0a06;
+    --hair:rgba(255,240,214,.1);
+    --hair-soft:rgba(255,240,214,.06);
+    --txt:#f7f2e8;
+    --mut:rgba(247,242,232,.58);
+    --dim:rgba(247,242,232,.34);
+    --acc:#e6c47c;
+    --acc-rgb:230,196,124;
+    --acc-soft:#f3dfae;
+    --accd-rgb:176,128,44;
+    --acc-deep1:#e0b45e;
+    --acc-deep2:#a97c22;
+    --acc2:#f0e0be;
+    --acc2-rgb:240,224,190;
+    --acc2-soft:#f7ecd4;
+    --grad-a:#f7ecd4;
+    --grad-b:#e6c47c;
+    --grad-c:#caa45c;
+    --btn-txt:#1c1206;
+  }
+
+  /* ===== font tokens ===== */
+  :root, html[data-font="f1"]{
+    --font-body:'Heebo',sans-serif;
+    --font-display:'Heebo',sans-serif;
+    --font-num:'Space Grotesk','Heebo',sans-serif;
+  }
+  html[data-font="f2"]{
+    --font-body:'Rubik',sans-serif;
+    --font-display:'Rubik',sans-serif;
+    --font-num:'Rubik',sans-serif;
+  }
+  html[data-font="f3"]{
+    --font-body:'Assistant',sans-serif;
+    --font-display:'Assistant',sans-serif;
+    --font-num:'IBM Plex Mono','Assistant',monospace;
+  }
+
   *{margin:0;padding:0;box-sizing:border-box}
   html{scroll-behavior:smooth}
   body{
     background:var(--bg);
     color:var(--txt);
-    font-family:'Heebo',sans-serif;
+    font-family:var(--font-body);
     font-size:16px;
     line-height:1.6;
     overflow-x:hidden;
     -webkit-font-smoothing:antialiased;
+    transition:background .6s var(--ease),color .6s var(--ease);
   }
-  .num{font-family:'Space Grotesk','Heebo',sans-serif;font-feature-settings:'tnum'}
-  ::selection{background:rgba(167,139,250,.35)}
+  h1,h2,h3{font-family:var(--font-display)}
+  .num{font-family:var(--font-num);font-feature-settings:'tnum'}
+  ::selection{background:rgba(var(--acc-rgb),.35)}
+  button{font-family:var(--font-body)}
+
+  /* ===== control bar ===== */
+  .ctrlbar{
+    position:sticky;top:0;z-index:60;
+    display:flex;align-items:center;gap:26px;flex-wrap:wrap;
+    padding:10px 28px;
+    background:rgba(7,7,9,.74);
+    border-bottom:1px solid var(--hair-soft);
+    backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+  }
+  .ctrl-grp{display:flex;align-items:center;gap:10px}
+  .ctrl-grp .lb{font-size:12px;font-weight:700;color:var(--dim);letter-spacing:.06em}
+  .pal-dot{
+    width:24px;height:24px;border-radius:50%;cursor:pointer;
+    border:1px solid rgba(255,255,255,.2);
+    transition:transform .45s var(--ease),box-shadow .45s var(--ease);
+  }
+  .pal-dot:hover{transform:scale(1.14)}
+  .pal-dot.on{box-shadow:0 0 0 2px var(--bg),0 0 0 4px rgba(255,255,255,.6)}
+  .pal-dot[data-p="p1"]{background:linear-gradient(135deg,#a78bfa,#34d399)}
+  .pal-dot[data-p="p2"]{background:linear-gradient(135deg,#22d3ee,#7dd3fc)}
+  .pal-dot[data-p="p3"]{background:linear-gradient(135deg,#e6c47c,#f0e0be)}
+  .font-btn{
+    padding:5px 14px;border-radius:999px;cursor:pointer;
+    background:rgba(255,255,255,.05);border:1px solid var(--hair-soft);
+    color:var(--mut);font-size:13px;font-weight:600;
+    transition:all .45s var(--ease);
+  }
+  .font-btn:hover{color:var(--txt);background:rgba(255,255,255,.09)}
+  .font-btn.on{color:var(--txt);border-color:rgba(var(--acc-rgb),.5);background:rgba(var(--acc-rgb),.12)}
+  .ctrl-sep{width:1px;height:20px;background:var(--hair)}
 
   /* ===== background orbs ===== */
   .orbs{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
   .orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:.55;will-change:transform}
-  .orb.a{width:640px;height:640px;top:-180px;right:-140px;background:radial-gradient(circle,rgba(124,92,240,.34),transparent 65%);animation:drift1 26s var(--ease) infinite alternate}
-  .orb.b{width:520px;height:520px;top:38%;left:-180px;background:radial-gradient(circle,rgba(52,211,153,.20),transparent 65%);animation:drift2 32s var(--ease) infinite alternate}
-  .orb.c{width:560px;height:560px;bottom:-220px;right:22%;background:radial-gradient(circle,rgba(124,92,240,.20),transparent 65%);animation:drift1 38s var(--ease) infinite alternate-reverse}
+  .orb.a{width:640px;height:640px;top:-180px;right:-140px;background:radial-gradient(circle,rgba(var(--accd-rgb),.34),transparent 65%);animation:drift1 26s var(--ease) infinite alternate}
+  .orb.b{width:520px;height:520px;top:38%;left:-180px;background:radial-gradient(circle,rgba(var(--acc2-rgb),.2),transparent 65%);animation:drift2 32s var(--ease) infinite alternate}
+  .orb.c{width:560px;height:560px;bottom:-220px;right:22%;background:radial-gradient(circle,rgba(var(--accd-rgb),.2),transparent 65%);animation:drift1 38s var(--ease) infinite alternate-reverse}
   @keyframes drift1{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(-70px,60px,0) scale(1.12)}}
   @keyframes drift2{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(80px,-50px,0) scale(1.08)}}
   .grid-tex{position:fixed;inset:0;z-index:0;pointer-events:none;
@@ -55,7 +166,7 @@
 
   /* ===== floating nav ===== */
   nav.float{
-    position:fixed;top:22px;right:50%;transform:translateX(50%);z-index:40;
+    position:fixed;top:70px;right:50%;transform:translateX(50%);z-index:40;
     display:flex;align-items:center;gap:6px;
     padding:7px 10px 7px 7px;border-radius:999px;
     background:rgba(10,10,14,.62);
@@ -71,8 +182,8 @@
     font-weight:900;font-size:15px;letter-spacing:.5px;
   }
   nav.float .brand .dot{width:9px;height:9px;border-radius:50%;
-    background:linear-gradient(135deg,var(--vio),var(--emr));
-    box-shadow:0 0 12px rgba(167,139,250,.8)}
+    background:linear-gradient(135deg,var(--acc),var(--acc2));
+    box-shadow:0 0 12px rgba(var(--acc-rgb),.8)}
   nav.float a{
     color:var(--mut);text-decoration:none;font-size:13.5px;font-weight:600;
     padding:7px 16px;border-radius:999px;border:1px solid transparent;
@@ -89,23 +200,44 @@
     padding:130px 44px 110px;
   }
   section.screen + section.screen{border-top:1px solid rgba(255,255,255,.05)}
+  .sec-head{
+    position:absolute;top:44px;inset-inline:44px;z-index:5;
+    display:flex;align-items:center;justify-content:space-between;gap:20px;
+  }
   .sec-tag{
-    position:absolute;top:44px;right:44px;
     display:flex;align-items:center;gap:10px;
     font-size:11px;letter-spacing:.24em;color:var(--dim);font-weight:600;
   }
-  .sec-tag b{font-family:'Space Grotesk';font-weight:600;color:var(--mut)}
+  .sec-tag b{font-family:var(--font-num);font-weight:600;color:var(--mut)}
   .sec-tag::after{content:'';width:44px;height:1px;background:linear-gradient(90deg,var(--hair),transparent)}
+
+  /* layout gallery control */
+  .lay-ctl{display:flex;align-items:center;gap:8px}
+  .lc-btn{
+    width:30px;height:30px;border-radius:10px;cursor:pointer;
+    background:rgba(255,255,255,.05);border:1px solid var(--hair);
+    color:var(--mut);display:flex;align-items:center;justify-content:center;
+    transition:all .45s var(--ease);
+  }
+  .lc-btn:hover{color:var(--txt);background:rgba(var(--acc-rgb),.12);border-color:rgba(var(--acc-rgb),.4)}
+  .lc-btn:active{transform:scale(.94)}
+  .lc-count{font-size:12px;color:var(--mut);font-weight:600;min-width:96px;text-align:center;white-space:nowrap}
+  .lc-count b{color:var(--txt);font-weight:700}
+
+  /* layout alternatives */
+  .alt{display:none}
+  .alt.show{display:block;animation:altIn .5s var(--ease)}
+  @keyframes altIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 
   .eyebrow{
     display:inline-flex;align-items:center;gap:8px;
     padding:6px 15px;border-radius:999px;
-    background:rgba(167,139,250,.09);
-    border:1px solid rgba(167,139,250,.22);
-    color:#c9b8fc;font-size:11.5px;font-weight:700;letter-spacing:.14em;
+    background:rgba(var(--acc-rgb),.09);
+    border:1px solid rgba(var(--acc-rgb),.22);
+    color:var(--acc-soft);font-size:11.5px;font-weight:700;letter-spacing:.14em;
   }
-  .eyebrow .pulse{width:6px;height:6px;border-radius:50%;background:var(--emr);
-    box-shadow:0 0 8px rgba(52,211,153,.9);animation:pulse 2.2s var(--ease) infinite}
+  .eyebrow .pulse{width:6px;height:6px;border-radius:50%;background:var(--acc2);
+    box-shadow:0 0 8px rgba(var(--acc2-rgb),.9);animation:pulse 2.2s var(--ease) infinite}
   @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.75)}}
 
   /* ===== double bezel ===== */
@@ -116,7 +248,7 @@
     box-shadow:0 30px 80px rgba(0,0,0,.45);
   }
   .core{
-    background:linear-gradient(180deg,#0c0c10,#08080b);
+    background:linear-gradient(180deg,var(--panel2a),var(--panel2b));
     border:1px solid var(--hair-soft);
     border-radius:22px;
     box-shadow:inset 0 1px 1px rgba(255,255,255,.06);
@@ -127,9 +259,9 @@
   .btn{
     display:inline-flex;align-items:center;gap:14px;
     padding:9px 10px 9px 26px;border-radius:999px;border:none;cursor:pointer;
-    background:linear-gradient(135deg,#8f6ef5,#6d4de0);
-    color:#fff;font-family:'Heebo';font-size:16px;font-weight:800;
-    box-shadow:0 10px 34px rgba(124,92,240,.4), inset 0 1px 1px rgba(255,255,255,.3);
+    background:linear-gradient(135deg,var(--acc-deep1),var(--acc-deep2));
+    color:var(--btn-txt);font-family:var(--font-body);font-size:16px;font-weight:800;
+    box-shadow:0 10px 34px rgba(var(--accd-rgb),.4), inset 0 1px 1px rgba(255,255,255,.3);
     transition:all .55s var(--ease);
   }
   .btn .cap{
@@ -138,7 +270,7 @@
     display:flex;align-items:center;justify-content:center;
     transition:all .55s var(--ease);
   }
-  .btn:hover{transform:translateY(-2px);box-shadow:0 16px 44px rgba(124,92,240,.55), inset 0 1px 1px rgba(255,255,255,.3)}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 16px 44px rgba(var(--accd-rgb),.55), inset 0 1px 1px rgba(255,255,255,.3)}
   .btn:hover .cap{transform:translateX(-3px) scale(1.06);background:rgba(255,255,255,.25)}
   .btn:active{transform:scale(.98)}
   .btn.ghost{
@@ -162,7 +294,7 @@
     letter-spacing:-.01em;margin:26px 0 18px;
   }
   h1.hero .glow{
-    background:linear-gradient(120deg,#c8b6ff 0%,#8f6ef5 45%,#34d399 100%);
+    background:linear-gradient(120deg,var(--grad-a) 0%,var(--grad-b) 45%,var(--grad-c) 100%);
     -webkit-background-clip:text;background-clip:text;color:transparent;
   }
   .hero-sub{color:var(--mut);font-size:18px;max-width:520px;font-weight:400;margin-bottom:40px}
@@ -175,22 +307,22 @@
   .field input{
     width:100%;padding:16px 46px 16px 16px;
     background:rgba(255,255,255,.04);border:1px solid var(--hair-soft);border-radius:14px;
-    color:var(--txt);font-family:'Heebo';font-size:15.5px;font-weight:500;outline:none;
+    color:var(--txt);font-family:var(--font-body);font-size:15.5px;font-weight:500;outline:none;
     transition:all .5s var(--ease);
   }
   .field input::placeholder{color:var(--dim);font-weight:400}
-  .field input:focus{border-color:rgba(167,139,250,.55);background:rgba(167,139,250,.06);
-    box-shadow:0 0 0 4px rgba(167,139,250,.12)}
+  .field input:focus{border-color:rgba(var(--acc-rgb),.55);background:rgba(var(--acc-rgb),.06);
+    box-shadow:0 0 0 4px rgba(var(--acc-rgb),.12)}
   .formfoot{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
   .trust{display:flex;gap:18px;flex-wrap:wrap}
   .trust span{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--mut);font-weight:500}
-  .trust svg{color:var(--emr)}
+  .trust svg{color:var(--acc2)}
 
   /* recent panel */
   .recent .core{padding:26px 26px 16px}
   .recent h3{font-size:13px;font-weight:700;letter-spacing:.14em;color:var(--dim);margin-bottom:18px;
     display:flex;align-items:center;gap:9px}
-  .recent h3 .live{width:7px;height:7px;border-radius:50%;background:var(--emr);box-shadow:0 0 10px rgba(52,211,153,.9);animation:pulse 2.2s var(--ease) infinite}
+  .recent h3 .live{width:7px;height:7px;border-radius:50%;background:var(--acc2);box-shadow:0 0 10px rgba(var(--acc2-rgb),.9);animation:pulse 2.2s var(--ease) infinite}
   .rrow{
     display:flex;align-items:center;gap:14px;
     padding:13px 6px;border-top:1px solid rgba(255,255,255,.05);
@@ -204,7 +336,7 @@
   .miniring{position:relative;width:46px;height:46px;flex:0 0 46px}
   .miniring svg{width:46px;height:46px;transform:rotate(-90deg)}
   .miniring .v{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-    font-family:'Space Grotesk';font-size:13.5px;font-weight:700}
+    font-family:var(--font-num);font-size:13.5px;font-weight:700}
 
   /* how it works */
   .how{margin-top:64px}
@@ -217,14 +349,51 @@
     background:var(--panel);border:1px solid var(--hair-soft);border-radius:20px;
     transition:all .6s var(--ease);
   }
-  .step:hover{transform:translateY(-4px);border-color:rgba(167,139,250,.3);background:rgba(167,139,250,.05)}
+  .step:hover{transform:translateY(-4px);border-color:rgba(var(--acc-rgb),.3);background:rgba(var(--acc-rgb),.05)}
   .step .n{
-    font-family:'Space Grotesk';font-size:13px;font-weight:700;color:var(--vio);
+    font-family:var(--font-num);font-size:13px;font-weight:700;color:var(--acc);
     width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;
-    background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.25);margin-bottom:14px;
+    background:rgba(var(--acc-rgb),.1);border:1px solid rgba(var(--acc-rgb),.25);margin-bottom:14px;
   }
   .step b{display:block;font-size:15.5px;font-weight:700;margin-bottom:4px}
   .step p{font-size:13px;color:var(--mut)}
+
+  /* entry - alternative 2: centered hero */
+  .entry-c{max-width:840px;margin:0 auto;display:flex;flex-direction:column;align-items:center;text-align:center}
+  .entry-c h1.hero{font-size:clamp(46px,5.2vw,70px)}
+  .entry-c .hero-sub{margin-inline:auto;max-width:560px}
+  .entry-c .diagform{width:100%;max-width:700px;text-align:right}
+  .recent-strip{display:flex;align-items:center;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:36px}
+  .recent-strip .cap-lb{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--dim)}
+  .recent-strip .cap-lb .live{width:6px;height:6px;border-radius:50%;background:var(--acc2);box-shadow:0 0 9px rgba(var(--acc2-rgb),.9);animation:pulse 2.2s var(--ease) infinite}
+  .rchip{
+    display:flex;align-items:center;gap:10px;
+    padding:7px 10px 7px 16px;border-radius:999px;
+    background:var(--panel);border:1px solid var(--hair-soft);
+    font-size:13.5px;font-weight:600;transition:all .5s var(--ease);
+  }
+  .rchip:hover{transform:translateY(-2px);border-color:rgba(var(--acc-rgb),.3)}
+  .rchip .sc2{
+    width:32px;height:32px;border-radius:50%;flex:0 0 32px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-num);font-size:12.5px;font-weight:700;
+  }
+  .rchip .sc2.hi{color:var(--acc2);background:rgba(var(--acc2-rgb),.1);border:1px solid rgba(var(--acc2-rgb),.35)}
+  .rchip .sc2.md{color:var(--acc);background:rgba(var(--acc-rgb),.1);border:1px solid rgba(var(--acc-rgb),.35)}
+  .rchip .sc2.lo{color:var(--warn);background:rgba(var(--warn-rgb),.1);border:1px solid rgba(var(--warn-rgb),.35)}
+  .tl{position:relative;display:grid;grid-template-columns:repeat(3,1fr);width:100%;margin-top:60px}
+  .tl::before{content:'';position:absolute;top:16px;inset-inline:17%;height:1px;
+    background:linear-gradient(90deg,transparent,var(--hair),var(--hair),transparent)}
+  .tstep{position:relative;text-align:center;padding:0 20px}
+  .tstep .tn{
+    position:relative;z-index:1;width:32px;height:32px;border-radius:50%;margin:0 auto 14px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-num);font-size:12.5px;font-weight:700;color:var(--acc);
+    background:var(--bg);border:1px solid rgba(var(--acc-rgb),.4);
+    box-shadow:0 0 16px rgba(var(--acc-rgb),.25);
+  }
+  .tstep b{display:block;font-size:15px;font-weight:700;margin-bottom:4px}
+  .tstep p{font-size:13px;color:var(--mut);max-width:250px;margin:0 auto}
 
   /* =====================================================
      SCREEN 2 - LIVE SCAN
@@ -233,6 +402,8 @@
   .scan-wrap{max-width:760px;margin:0 auto;width:100%}
   .scan-head{text-align:center;margin-bottom:34px}
   .scan-head h2{font-size:clamp(28px,3vw,38px);font-weight:900;margin:18px 0 8px}
+  .scan-head h2 b{background:linear-gradient(120deg,var(--grad-a),var(--grad-b));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
   .scan-head p{color:var(--mut);font-size:15.5px}
   .scan-head p b{color:var(--txt);font-weight:700}
 
@@ -243,27 +414,27 @@
   }
   .lights{display:flex;gap:7px}
   .lights i{width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.08)}
-  .lights i:first-child{background:rgba(251,113,133,.5)}
-  .lights i:nth-child(2){background:rgba(251,191,36,.45)}
-  .lights i:nth-child(3){background:rgba(52,211,153,.5)}
+  .lights i:first-child{background:rgba(var(--bad-rgb),.5)}
+  .lights i:nth-child(2){background:rgba(var(--warn-rgb),.45)}
+  .lights i:nth-child(3){background:rgba(var(--acc2-rgb),.5)}
   .term-bar .addr{
     flex:1;text-align:center;font-size:12.5px;color:var(--dim);font-weight:500;
     background:rgba(255,255,255,.035);border:1px solid var(--hair-soft);
     border-radius:9px;padding:5px 14px;
   }
-  .term-bar .pct{font-family:'Space Grotesk';font-size:13px;font-weight:700;color:var(--vio);min-width:44px;text-align:left}
+  .term-bar .scan-pct{font-family:var(--font-num);font-size:13px;font-weight:700;color:var(--acc);min-width:44px;text-align:left}
   .pbar{height:2px;background:rgba(255,255,255,.06);position:relative;overflow:hidden}
   .pbar i{
     position:absolute;inset-block:0;right:0;width:100%;
-    background:linear-gradient(-90deg,var(--vio),var(--emr));
+    background:linear-gradient(-90deg,var(--acc),var(--acc2));
     transform:scaleX(0);transform-origin:right;
     transition:transform 1.6s var(--ease);
-    box-shadow:0 0 14px rgba(167,139,250,.7);
+    box-shadow:0 0 14px rgba(var(--acc-rgb),.7);
   }
   .term-body{padding:14px 26px 22px;position:relative}
   .beam{
     position:absolute;inset-inline:0;top:0;height:64px;pointer-events:none;
-    background:linear-gradient(180deg,transparent,rgba(167,139,250,.06),transparent);
+    background:linear-gradient(180deg,transparent,rgba(var(--acc-rgb),.06),transparent);
     animation:beam 3.4s var(--ease) infinite;opacity:.9;
   }
   @keyframes beam{0%{transform:translateY(-30px)}55%{transform:translateY(360px)}100%{transform:translateY(360px);opacity:0}}
@@ -282,9 +453,9 @@
   .ln.act .spin{opacity:1}
   .ln .spin i{
     width:17px;height:17px;border-radius:50%;
-    border:2px solid rgba(167,139,250,.2);border-top-color:var(--vio);
+    border:2px solid rgba(var(--acc-rgb),.2);border-top-color:var(--acc);
     animation:rot 0.9s linear infinite;display:block;
-    box-shadow:0 0 10px rgba(167,139,250,.25);
+    box-shadow:0 0 10px rgba(var(--acc-rgb),.25);
   }
   @keyframes rot{to{transform:rotate(360deg)}}
   .ln .chk{opacity:0;transform:scale(.5)}
@@ -292,17 +463,17 @@
   .ln.done .spin{opacity:0}
   .ln .chk span{
     width:22px;height:22px;border-radius:50%;
-    background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.4);
-    display:flex;align-items:center;justify-content:center;color:var(--emr);
-    box-shadow:0 0 12px rgba(52,211,153,.25);
+    background:rgba(var(--acc2-rgb),.12);border:1px solid rgba(var(--acc2-rgb),.4);
+    display:flex;align-items:center;justify-content:center;color:var(--acc2);
+    box-shadow:0 0 12px rgba(var(--acc2-rgb),.25);
   }
   .ln .tx{flex:1;min-width:0}
   .ln .main{font-size:15px;font-weight:600;color:var(--dim);transition:color .5s var(--ease)}
   .ln.act .main{color:var(--txt)}
   .ln.done .main{color:var(--mut)}
   .ln .res{
-    font-size:13px;color:var(--emr);font-weight:600;margin-top:1px;
-    font-family:'Space Grotesk','Heebo',sans-serif;
+    font-size:13px;color:var(--acc2);font-weight:600;margin-top:1px;
+    font-family:var(--font-num);
     opacity:0;transform:translateY(-4px);
     max-height:0;overflow:hidden;
     transition:all .6s var(--ease);
@@ -310,7 +481,7 @@
   .ln.done .res{opacity:1;transform:none;max-height:26px}
   .ln.act .dots{display:inline-flex;gap:3px;margin-right:6px}
   .ln .dots{display:none}
-  .ln .dots i{width:4px;height:4px;border-radius:50%;background:var(--vio);animation:dotp 1.2s var(--ease) infinite}
+  .ln .dots i{width:4px;height:4px;border-radius:50%;background:var(--acc);animation:dotp 1.2s var(--ease) infinite}
   .ln .dots i:nth-child(2){animation-delay:.18s}
   .ln .dots i:nth-child(3){animation-delay:.36s}
   @keyframes dotp{0%,100%{opacity:.2;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
@@ -320,6 +491,29 @@
     font-size:12px;color:var(--dim);
   }
   .term-foot .num{color:var(--mut)}
+
+  /* scan - alternative 2: focal orb */
+  .focal{display:flex;flex-direction:column;align-items:center}
+  .focal-orb{position:relative;width:250px;height:250px;margin:6px 0 4px}
+  .focal-orb .glowbg{position:absolute;inset:-46px;border-radius:50%;pointer-events:none;
+    background:radial-gradient(circle,rgba(var(--acc-rgb),.22),transparent 65%);
+    animation:pulse 3.2s var(--ease) infinite}
+  .focal-orb .ring1{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(255,255,255,.08)}
+  .focal-orb .ring2{position:absolute;inset:18px;border-radius:50%;
+    border:1px dashed rgba(var(--acc-rgb),.35);animation:spinr 16s linear infinite}
+  .focal-orb .ring3{position:absolute;inset:0;border-radius:50%;
+    border:2px solid transparent;border-top-color:var(--acc);border-left-color:rgba(var(--acc2-rgb),.7);
+    animation:spinr 2.6s linear infinite;
+    filter:drop-shadow(0 0 8px rgba(var(--acc-rgb),.5))}
+  @keyframes spinr{to{transform:rotate(360deg)}}
+  .focal-orb .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+  .focal-orb .mid .scan-pct{font-family:var(--font-num);font-size:52px;font-weight:700;line-height:1;
+    text-shadow:0 0 32px rgba(var(--acc-rgb),.5)}
+  .focal-orb .mid small{font-size:10.5px;color:var(--dim);letter-spacing:.2em;font-weight:600}
+  .focal .scan-step{font-size:13px;color:var(--mut);font-weight:600;margin-top:10px}
+  .focal-lines{width:100%;max-width:560px;margin-top:24px}
+  .focal-lines .ln{padding:10px 4px}
+  .focal-foot{margin-top:26px;font-size:12px;color:var(--dim)}
 
   /* =====================================================
      SCREEN 3 - REPORT
@@ -337,28 +531,32 @@
   .meta span b{color:var(--txt);font-weight:700}
 
   .dial{position:relative;width:210px;height:210px;flex:0 0 210px;margin:0 auto}
-  .dial svg{width:210px;height:210px;transform:rotate(-90deg)}
+  .dial svg{width:100%;height:100%;transform:rotate(-90deg)}
   .dial .track{fill:none;stroke:rgba(255,255,255,.06);stroke-width:11}
   .dial .arc{
     fill:none;stroke:url(#dialGrad);stroke-width:11;stroke-linecap:round;
     stroke-dasharray:552;stroke-dashoffset:552;
     transition:stroke-dashoffset 1.8s var(--ease);
-    filter:drop-shadow(0 0 10px rgba(167,139,250,.55)) drop-shadow(0 0 26px rgba(52,211,153,.25));
+    filter:drop-shadow(0 0 10px rgba(var(--acc-rgb),.55)) drop-shadow(0 0 26px rgba(var(--acc2-rgb),.25));
   }
-  .dial.on .arc{stroke-dashoffset:149}
+  #dialGrad stop:first-child{stop-color:var(--acc)}
+  #dialGrad stop:last-child{stop-color:var(--acc2)}
   .dial .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
-  .dial .mid .big{font-family:'Space Grotesk';font-size:58px;font-weight:700;line-height:1;
-    text-shadow:0 0 34px rgba(167,139,250,.5)}
+  .dial .mid .big{font-family:var(--font-num);font-size:58px;font-weight:700;line-height:1;
+    text-shadow:0 0 34px rgba(var(--acc-rgb),.5)}
   .dial .mid .of{font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.14em}
   .dial .mid .tag{
-    margin-top:8px;font-size:11px;font-weight:700;color:var(--emr);
-    padding:3px 11px;border-radius:999px;background:rgba(52,211,153,.1);
-    border:1px solid rgba(52,211,153,.3);
+    margin-top:8px;font-size:11px;font-weight:700;color:var(--acc2);
+    padding:3px 11px;border-radius:999px;background:rgba(var(--acc2-rgb),.1);
+    border:1px solid rgba(var(--acc2-rgb),.3);
   }
+  .dial.sm{width:168px;height:168px;flex:0 0 168px}
+  .dial.sm .mid .big{font-size:44px}
+  .dial.sm .mid .tag{margin-top:5px;font-size:10px}
 
   .narr{margin-bottom:16px}
   .narr .core{padding:30px 36px;
-    background:linear-gradient(135deg,rgba(124,92,240,.1),rgba(8,8,11,.4) 45%),linear-gradient(180deg,#0c0c10,#08080b)}
+    background:linear-gradient(135deg,rgba(var(--accd-rgb),.1),rgba(0,0,0,.25) 45%),linear-gradient(180deg,var(--panel2a),var(--panel2b))}
   .narr h3{font-size:21px;font-weight:800;line-height:1.45;margin-bottom:10px}
   .narr p{color:var(--mut);font-size:15.5px;max-width:820px}
   .narr p b{color:var(--txt);font-weight:600}
@@ -370,10 +568,10 @@
   .blk-title .ic{
     width:34px;height:34px;border-radius:11px;flex:0 0 34px;
     display:flex;align-items:center;justify-content:center;
-    background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.25);color:var(--vio);
+    background:rgba(var(--acc-rgb),.1);border:1px solid rgba(var(--acc-rgb),.25);color:var(--acc);
   }
-  .blk-title .ic.warn{background:rgba(251,113,133,.09);border-color:rgba(251,113,133,.28);color:var(--red)}
-  .blk-title .ic.good{background:rgba(52,211,153,.09);border-color:rgba(52,211,153,.28);color:var(--emr)}
+  .blk-title .ic.warn{background:rgba(var(--bad-rgb),.09);border-color:rgba(var(--bad-rgb),.28);color:var(--bad)}
+  .blk-title .ic.good{background:rgba(var(--acc2-rgb),.09);border-color:rgba(var(--acc2-rgb),.28);color:var(--acc2)}
   .blk-title h3{font-size:17px;font-weight:800}
   .blk-title small{display:block;font-size:12px;color:var(--dim);font-weight:500}
 
@@ -388,29 +586,31 @@
     transition:transform 1.3s var(--ease);
   }
   .on .dim .bar i{transform:scaleX(1)}
-  .dim .bar i.hi{background:linear-gradient(-90deg,var(--emr),#6ee7b7);box-shadow:0 0 12px rgba(52,211,153,.5)}
-  .dim .bar i.md{background:linear-gradient(-90deg,var(--vio),#c4b5fd);box-shadow:0 0 12px rgba(167,139,250,.5)}
-  .dim .bar i.lo{background:linear-gradient(-90deg,var(--amb),#fde68a);box-shadow:0 0 12px rgba(251,191,36,.45)}
+  .dim .bar i.hi{background:linear-gradient(-90deg,var(--acc2),var(--acc2-soft));box-shadow:0 0 12px rgba(var(--acc2-rgb),.5)}
+  .dim .bar i.md{background:linear-gradient(-90deg,var(--acc),var(--acc-soft));box-shadow:0 0 12px rgba(var(--acc-rgb),.5)}
+  .dim .bar i.lo{background:linear-gradient(-90deg,var(--warn),var(--warn-soft2));box-shadow:0 0 12px rgba(var(--warn-rgb),.45)}
   .dim .bar.empty{background:repeating-linear-gradient(-45deg,rgba(255,255,255,.06) 0 5px,transparent 5px 10px)}
-  .dim .sc{width:40px;flex:0 0 40px;text-align:left;font-family:'Space Grotesk';font-size:16px;font-weight:700}
+  .dim .sc{width:40px;flex:0 0 40px;text-align:left;font-family:var(--font-num);font-size:16px;font-weight:700}
   .dim .sc small{font-size:10px;color:var(--dim);font-weight:500}
+  .dim.slim .lb{width:104px;flex:0 0 104px;font-size:13px}
+  .dim.slim .sc{font-size:14px;width:32px;flex:0 0 32px}
   .chip{
     font-size:10.5px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap;
     letter-spacing:.02em;
   }
-  .chip.full{color:#7ee8c3;background:rgba(52,211,153,.09);border:1px solid rgba(52,211,153,.28)}
-  .chip.part{color:#fcd34d;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.28)}
+  .chip.full{color:var(--acc2-soft);background:rgba(var(--acc2-rgb),.09);border:1px solid rgba(var(--acc2-rgb),.28)}
+  .chip.part{color:var(--warn-soft);background:rgba(var(--warn-rgb),.08);border:1px solid rgba(var(--warn-rgb),.28)}
   .chip.none{color:var(--dim);background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.16)}
 
   /* rules transparency */
   details.rules{margin-top:20px;border-top:1px solid rgba(255,255,255,.05);padding-top:6px}
   details.rules summary{
     list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;
-    padding:10px 4px;font-size:13.5px;font-weight:700;color:var(--vio);
+    padding:10px 4px;font-size:13.5px;font-weight:700;color:var(--acc);
     transition:color .4s var(--ease);
   }
   details.rules summary::-webkit-details-marker{display:none}
-  details.rules summary:hover{color:#c9b8fc}
+  details.rules summary:hover{color:var(--acc-soft)}
   details.rules summary .chev{transition:transform .5s var(--ease);display:flex}
   details.rules[open] summary .chev{transform:rotate(180deg)}
   .rules-body{
@@ -422,28 +622,28 @@
   .rrule{display:flex;align-items:center;justify-content:space-between;gap:12px;
     padding:7px 0;border-top:1px dashed rgba(255,255,255,.07);font-size:13.5px}
   .rrule:first-of-type{border-top:none;padding-top:0}
-  .rrule .pts{font-family:'Space Grotesk';font-weight:700;font-size:14px}
-  .rrule .pts.plus{color:var(--emr)}
-  .rrule .pts.zero{color:var(--red)}
+  .rrule .pts{font-family:var(--font-num);font-weight:700;font-size:14px}
+  .rrule .pts.plus{color:var(--acc2)}
+  .rrule .pts.zero{color:var(--bad)}
   .rrule.total{border-top:1px solid rgba(255,255,255,.12);margin-top:6px;padding-top:10px;font-weight:800}
-  .rrule.total .pts{color:var(--vio);font-size:15px}
+  .rrule.total .pts{color:var(--acc);font-size:15px}
 
   /* gaps */
   .gap{
     display:flex;gap:15px;padding:15px 14px;border-radius:16px;margin-bottom:10px;
-    background:rgba(251,113,133,.045);border:1px solid rgba(251,113,133,.14);
+    background:rgba(var(--bad-rgb),.045);border:1px solid rgba(var(--bad-rgb),.14);
     transition:all .5s var(--ease);
   }
-  .gap:hover{background:rgba(251,113,133,.07);transform:translateX(-3px)}
+  .gap:hover{background:rgba(var(--bad-rgb),.07);transform:translateX(-3px)}
   .gap:last-child{margin-bottom:0}
   .gap .gic{
     width:38px;height:38px;flex:0 0 38px;border-radius:12px;
     display:flex;align-items:center;justify-content:center;
-    background:rgba(251,113,133,.1);border:1px solid rgba(251,113,133,.25);color:var(--red);
+    background:rgba(var(--bad-rgb),.1);border:1px solid rgba(var(--bad-rgb),.25);color:var(--bad);
   }
   .gap b{display:block;font-size:14.5px;font-weight:800;margin-bottom:2px}
   .gap p{font-size:13px;color:var(--mut);line-height:1.55}
-  .gap p .num{color:#fda4af;font-weight:600}
+  .gap p .num{color:var(--bad-soft);font-weight:600}
 
   /* strengths */
   .stg{display:flex;align-items:flex-start;gap:13px;padding:12px 4px;border-top:1px solid rgba(255,255,255,.045)}
@@ -451,25 +651,61 @@
   .stg .sic{
     width:30px;height:30px;flex:0 0 30px;border-radius:50%;margin-top:2px;
     display:flex;align-items:center;justify-content:center;
-    background:rgba(52,211,153,.09);border:1px solid rgba(52,211,153,.3);color:var(--emr);
+    background:rgba(var(--acc2-rgb),.09);border:1px solid rgba(var(--acc2-rgb),.3);color:var(--acc2);
   }
   .stg p{font-size:14.5px;font-weight:600;padding-top:4px}
-  .stg p .num{color:#7ee8c3}
+  .stg p .num{color:var(--acc2-soft)}
 
   /* completeness footer */
   .complete .core{padding:26px 32px;display:flex;align-items:center;gap:34px;flex-wrap:wrap}
   .cring{position:relative;width:76px;height:76px;flex:0 0 76px}
   .cring svg{width:76px;height:76px;transform:rotate(-90deg)}
   .cring .v{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-    font-family:'Space Grotesk';font-size:16px;font-weight:700;color:var(--amb)}
+    font-family:var(--font-num);font-size:16px;font-weight:700;color:var(--warn)}
   .cring circle.t{fill:none;stroke:rgba(255,255,255,.07);stroke-width:6}
-  .cring circle.a{fill:none;stroke:var(--amb);stroke-width:6;stroke-linecap:round;
+  .cring circle.a{fill:none;stroke:var(--warn);stroke-width:6;stroke-linecap:round;
     stroke-dasharray:207;stroke-dashoffset:207;transition:stroke-dashoffset 1.6s var(--ease);
-    filter:drop-shadow(0 0 8px rgba(251,191,36,.5))}
+    filter:drop-shadow(0 0 8px rgba(var(--warn-rgb),.5))}
   .on .cring circle.a{stroke-dashoffset:145}
   .complete .ct{flex:1;min-width:260px}
   .complete .ct b{display:block;font-size:16.5px;font-weight:800;margin-bottom:3px}
   .complete .ct p{font-size:14px;color:var(--mut)}
+
+  /* report - alternative B: single column narrative */
+  .repB{max-width:780px;margin:0 auto}
+  .repB .topper{text-align:center;margin-bottom:40px}
+  .repB .topper h2{font-size:clamp(30px,3.4vw,44px);font-weight:900;margin:18px 0 10px}
+  .repB .topper .meta{justify-content:center}
+  .repB .topper .dial{margin-top:30px}
+  .repB .lede{text-align:center;margin-bottom:44px}
+  .repB .lede h3{font-size:clamp(20px,2.2vw,26px);font-weight:800;line-height:1.5;margin-bottom:12px}
+  .repB .lede p{color:var(--mut);font-size:16.5px;max-width:640px;margin:0 auto}
+  .divide{display:flex;align-items:center;gap:14px;margin:40px 0 20px;
+    color:var(--dim);font-size:11.5px;letter-spacing:.22em;font-weight:700}
+  .divide::before,.divide::after{content:'';flex:1;height:1px;background:var(--hair-soft)}
+  .repB .shell{margin-bottom:16px}
+  .repB .core{padding:28px 30px}
+
+  /* report - alternative C: sticky sidebar */
+  .repC{display:grid;grid-template-columns:350px minmax(0,1fr);gap:16px;align-items:start}
+  .repC .side{position:sticky;top:96px;display:flex;flex-direction:column;gap:16px}
+  .repC .side .core{padding:26px 24px}
+  .repC .side .who-h{text-align:center;margin-bottom:16px}
+  .repC .side .who-h b{display:block;font-size:19px;font-weight:900}
+  .repC .side .who-h i{font-style:normal;font-size:12.5px;color:var(--dim)}
+  .repC .side .mini-meta{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:14px}
+  .repC .side .mini-meta span{font-size:11.5px;color:var(--mut);padding:3px 10px;border-radius:999px;
+    background:rgba(255,255,255,.04);border:1px solid var(--hair-soft)}
+  .repC .side .mini-meta span b{color:var(--txt)}
+  .repC .side h4{font-size:12px;font-weight:700;letter-spacing:.16em;color:var(--dim);margin:2px 0 12px}
+  .repC .side .cfoot{display:flex;align-items:center;gap:14px;margin-top:4px}
+  .repC .side .cfoot .cring{width:56px;height:56px;flex:0 0 56px}
+  .repC .side .cfoot .cring svg{width:56px;height:56px}
+  .repC .side .cfoot p{font-size:12.5px;color:var(--mut);line-height:1.5}
+  .repC .side .cfoot p b{color:var(--txt)}
+  .repC .main{display:flex;flex-direction:column;gap:16px;min-width:0}
+  .repC .main .core{padding:28px 30px}
+  .repC .main .narr{margin-bottom:0}
 
   footer{
     position:relative;z-index:1;
@@ -479,16 +715,46 @@
     color:var(--dim);font-size:12.5px;
   }
   footer .fb{display:flex;align-items:center;gap:8px;font-weight:800;color:var(--mut)}
-  footer .fb .dot{width:7px;height:7px;border-radius:50%;background:linear-gradient(135deg,var(--vio),var(--emr))}
+  footer .fb .dot{width:7px;height:7px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2))}
 
   @media (max-width:1080px){
     .entry-grid{grid-template-columns:1fr;gap:40px}
     .rep-cols{grid-template-columns:1fr}
     .steps{grid-template-columns:1fr 1fr 1fr}
+    .repC{grid-template-columns:1fr}
+    .repC .side{position:static}
+  }
+  @media (max-width:768px){
+    section.screen{padding:110px 20px 80px}
+    .sec-head{inset-inline:20px}
+    .fieldrow{grid-template-columns:1fr}
+    .steps{grid-template-columns:1fr}
+    .tl{grid-template-columns:1fr;gap:26px}
+    .tl::before{display:none}
+    .ctrlbar{gap:14px;padding:10px 16px}
+    nav.float{display:none}
+    .rep-head .core{justify-content:center}
   }
 </style>
 </head>
 <body>
+
+<!-- ===== uniform control bar ===== -->
+<div class="ctrlbar" id="ctrlbar">
+  <div class="ctrl-grp">
+    <span class="lb">פלטה:</span>
+    <button class="pal-dot" data-p="p1" title="סגול וברקת" aria-label="פלטה 1"></button>
+    <button class="pal-dot" data-p="p2" title="ציאן וקרח" aria-label="פלטה 2"></button>
+    <button class="pal-dot" data-p="p3" title="זהב ושמפניה" aria-label="פלטה 3"></button>
+  </div>
+  <span class="ctrl-sep"></span>
+  <div class="ctrl-grp">
+    <span class="lb">פונט:</span>
+    <button class="font-btn" data-f="f1" style="font-family:'Heebo',sans-serif">Heebo</button>
+    <button class="font-btn" data-f="f2" style="font-family:'Rubik',sans-serif">Rubik</button>
+    <button class="font-btn" data-f="f3" style="font-family:'Assistant',sans-serif">Assistant</button>
+  </div>
+</div>
 
 <div class="orbs" aria-hidden="true">
   <div class="orb a"></div>
@@ -504,19 +770,134 @@
   <a href="#report" data-nav="report">דוח</a>
 </nav>
 
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="dialGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"/>
+      <stop offset="100%"/>
+    </linearGradient>
+  </defs>
+</svg>
+
 <main>
 
 <!-- ============ SCREEN 1: ENTRY ============ -->
-<section class="screen" id="entry" style="scroll-margin-top:40px">
-  <div class="sec-tag"><b>01</b> מסך כניסה</div>
+<section class="screen" id="entry" style="scroll-margin-top:60px">
+  <div class="sec-head">
+    <div class="sec-tag"><b>01</b> מסך כניסה</div>
+    <div class="lay-ctl" data-sec="entry">
+      <button class="lc-btn lc-prev" aria-label="פריסה קודמת">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+      <span class="lc-count">פריסה <b class="num">1</b> מתוך 2</span>
+      <button class="lc-btn lc-next" aria-label="פריסה הבאה">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+      </button>
+    </div>
+  </div>
 
-  <div class="entry-grid">
-    <div>
+  <!-- entry layout 1: split hero (current) -->
+  <div class="alt show" data-alt="1">
+    <div class="entry-grid">
+      <div>
+        <span class="eyebrow rv"><span class="pulse"></span>אבחון דיגיטלי לעסקים קטנים</span>
+        <h1 class="hero rv" style="transition-delay:.08s">איפה העסק שלך<br><span class="glow">מפסיד לקוחות</span> בדיגיטל?</h1>
+        <p class="hero-sub rv" style="transition-delay:.16s">
+          מזינים שם עסק או כתובת אתר, ותוך דקה מקבלים <b>ציון מ-100</b> על הנוכחות הדיגיטלית:
+          גוגל, ביקורות, אתר, מהירות ופניות. בלי שיחת מכירה, בלי טפסים ארוכים.
+        </p>
+
+        <div class="shell diagform rv" style="transition-delay:.24s">
+          <div class="core">
+            <div class="fieldrow">
+              <label class="field">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/></svg>
+                <input type="text" placeholder="שם העסק או כתובת האתר">
+              </label>
+              <label class="field">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 21s-6.5-5.2-6.5-10a6.5 6.5 0 0 1 13 0c0 4.8-6.5 10-6.5 10z"/><circle cx="12" cy="10.6" r="2.3"/></svg>
+                <input type="text" placeholder="עיר (לא חובה)">
+              </label>
+            </div>
+            <div class="formfoot">
+              <div class="trust">
+                <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>אבחון ראשוני חינם</span>
+                <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>בלי התחייבות</span>
+                <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>תוך דקה</span>
+              </div>
+              <button class="btn">
+                אבחן את העסק שלי
+                <span class="cap">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg>
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="shell recent rv" style="transition-delay:.32s">
+        <div class="core">
+          <h3><span class="live"></span>אובחנו לאחרונה</h3>
+
+          <div class="rrow">
+            <div class="miniring">
+              <svg viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="4"/><circle cx="23" cy="23" r="19" fill="none" stroke-width="4" stroke-linecap="round" stroke-dasharray="119" stroke-dashoffset="32.2" style="stroke:var(--acc);filter:drop-shadow(0 0 5px rgba(var(--acc-rgb),.6))"/></svg>
+              <span class="v">73</span>
+            </div>
+            <div class="who"><b>אופטיקה בק בע"מ</b><i>עפולה · אופטיקה</i></div>
+          </div>
+
+          <div class="rrow">
+            <div class="miniring">
+              <svg viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="4"/><circle cx="23" cy="23" r="19" fill="none" stroke-width="4" stroke-linecap="round" stroke-dasharray="119" stroke-dashoffset="19" style="stroke:var(--acc2);filter:drop-shadow(0 0 5px rgba(var(--acc2-rgb),.6))"/></svg>
+              <span class="v">84</span>
+            </div>
+            <div class="who"><b>בית מאפה ברכת רחל</b><i>מאפייה</i></div>
+          </div>
+
+          <div class="rrow">
+            <div class="miniring">
+              <svg viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="4"/><circle cx="23" cy="23" r="19" fill="none" stroke-width="4" stroke-linecap="round" stroke-dasharray="119" stroke-dashoffset="44" style="stroke:var(--warn);filter:drop-shadow(0 0 5px rgba(var(--warn-rgb),.55))"/></svg>
+              <span class="v">63</span>
+            </div>
+            <div class="who"><b><span dir="ltr">lavangroup.co.il</span></b><i>אתר עסקי</i></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="how rv" style="transition-delay:.4s">
+      <div class="how-head"><h2>איך זה עובד</h2></div>
+      <div class="steps">
+        <div class="step">
+          <span class="n num">01</span>
+          <b>מזינים שם או אתר</b>
+          <p>שם העסק כמו שהוא מופיע בגוגל, או כתובת האתר. זה הכל.</p>
+        </div>
+        <div class="step">
+          <span class="n num">02</span>
+          <b>סריקה חכמה של הנוכחות הדיגיטלית</b>
+          <p>פרופיל גוגל, ביקורות, עמודי האתר, מהירות במובייל וערוצי פנייה.</p>
+        </div>
+        <div class="step">
+          <span class="n num">03</span>
+          <b>דוח מפורט עם ציון והמלצות</b>
+          <p>ציון כולל, פירוק לפי תחומים, פערים שעולים כסף ומה לתקן קודם.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- entry layout 2: centered hero -->
+  <div class="alt" data-alt="2">
+    <div class="entry-c">
       <span class="eyebrow rv"><span class="pulse"></span>אבחון דיגיטלי לעסקים קטנים</span>
       <h1 class="hero rv" style="transition-delay:.08s">איפה העסק שלך<br><span class="glow">מפסיד לקוחות</span> בדיגיטל?</h1>
       <p class="hero-sub rv" style="transition-delay:.16s">
-        מזינים שם עסק או כתובת אתר, ותוך דקה מקבלים <b>ציון מ-100</b> על הנוכחות הדיגיטלית:
-        גוגל, ביקורות, אתר, מהירות ופניות. בלי שיחת מכירה, בלי טפסים ארוכים.
+        מזינים שם עסק או כתובת אתר, ותוך דקה מקבלים <b>ציון מ-100</b> על הנוכחות הדיגיטלית.
+        בלי שיחת מכירה, בלי טפסים ארוכים.
       </p>
 
       <div class="shell diagform rv" style="transition-delay:.24s">
@@ -528,7 +909,7 @@
             </label>
             <label class="field">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 21s-6.5-5.2-6.5-10a6.5 6.5 0 0 1 13 0c0 4.8-6.5 10-6.5 10z"/><circle cx="12" cy="10.6" r="2.3"/></svg>
-              <input type="text" placeholder="עיר">
+              <input type="text" placeholder="עיר (לא חובה)">
             </label>
           </div>
           <div class="formfoot">
@@ -546,169 +927,420 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="shell recent rv" style="transition-delay:.32s">
-      <div class="core">
-        <h3><span class="live"></span>אובחנו לאחרונה</h3>
-
-        <div class="rrow">
-          <div class="miniring">
-            <svg viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="4"/><circle cx="23" cy="23" r="19" fill="none" stroke="#a78bfa" stroke-width="4" stroke-linecap="round" stroke-dasharray="119" stroke-dashoffset="32.2" style="filter:drop-shadow(0 0 5px rgba(167,139,250,.6))"/></svg>
-            <span class="v">73</span>
-          </div>
-          <div class="who"><b>אופטיקה בק בע"מ</b><i>עפולה · אופטיקה</i></div>
-        </div>
-
-        <div class="rrow">
-          <div class="miniring">
-            <svg viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="4"/><circle cx="23" cy="23" r="19" fill="none" stroke="#34d399" stroke-width="4" stroke-linecap="round" stroke-dasharray="119" stroke-dashoffset="19" style="filter:drop-shadow(0 0 5px rgba(52,211,153,.6))"/></svg>
-            <span class="v">84</span>
-          </div>
-          <div class="who"><b>בית מאפה ברכת רחל</b><i>מאפייה</i></div>
-        </div>
-
-        <div class="rrow">
-          <div class="miniring">
-            <svg viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="4"/><circle cx="23" cy="23" r="19" fill="none" stroke="#fbbf24" stroke-width="4" stroke-linecap="round" stroke-dasharray="119" stroke-dashoffset="44" style="filter:drop-shadow(0 0 5px rgba(251,191,36,.55))"/></svg>
-            <span class="v">63</span>
-          </div>
-          <div class="who"><b><span dir="ltr">lavangroup.co.il</span></b><i>אתר עסקי</i></div>
-        </div>
-
+      <div class="recent-strip rv" style="transition-delay:.32s">
+        <span class="cap-lb"><span class="live"></span>אובחנו לאחרונה:</span>
+        <span class="rchip">אופטיקה בק בע"מ<span class="sc2 md num">73</span></span>
+        <span class="rchip">בית מאפה ברכת רחל<span class="sc2 hi num">84</span></span>
+        <span class="rchip"><span dir="ltr">lavangroup.co.il</span><span class="sc2 lo num">63</span></span>
       </div>
-    </div>
-  </div>
 
-  <div class="how rv" style="transition-delay:.4s">
-    <div class="how-head"><h2>איך זה עובד</h2></div>
-    <div class="steps">
-      <div class="step">
-        <span class="n num">01</span>
-        <b>מזינים שם או אתר</b>
-        <p>שם העסק כמו שהוא מופיע בגוגל, או כתובת האתר. זה הכל.</p>
-      </div>
-      <div class="step">
-        <span class="n num">02</span>
-        <b>סריקה חכמה של הנוכחות הדיגיטלית</b>
-        <p>פרופיל גוגל, ביקורות, עמודי האתר, מהירות במובייל וערוצי פנייה.</p>
-      </div>
-      <div class="step">
-        <span class="n num">03</span>
-        <b>דוח מפורט עם ציון והמלצות</b>
-        <p>ציון כולל, פירוק לפי תחומים, פערים שעולים כסף ומה לתקן קודם.</p>
+      <div class="tl rv" style="transition-delay:.4s">
+        <div class="tstep">
+          <span class="tn num">01</span>
+          <b>מזינים שם או אתר</b>
+          <p>שם העסק כמו שהוא מופיע בגוגל, או כתובת האתר. זה הכל.</p>
+        </div>
+        <div class="tstep">
+          <span class="tn num">02</span>
+          <b>סריקה חכמה</b>
+          <p>פרופיל גוגל, ביקורות, עמודי האתר, מהירות במובייל וערוצי פנייה.</p>
+        </div>
+        <div class="tstep">
+          <span class="tn num">03</span>
+          <b>דוח עם ציון והמלצות</b>
+          <p>ציון כולל, פירוק לפי תחומים, פערים שעולים כסף ומה לתקן קודם.</p>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
 <!-- ============ SCREEN 2: LIVE SCAN ============ -->
-<section class="screen" id="scan" style="scroll-margin-top:40px">
-  <div class="sec-tag"><b>02</b> סריקה חיה</div>
-
-  <div class="scan-wrap">
-    <div class="scan-head rv">
-      <span class="eyebrow"><span class="pulse"></span>סריקה פעילה</span>
-      <h2>סורקים את <b style="background:linear-gradient(120deg,#c8b6ff,#8f6ef5);-webkit-background-clip:text;background-clip:text;color:transparent">אופטיקה בק בע"מ</b></h2>
-      <p>אפשר להישאר במסך - זה לוקח <b>פחות מדקה</b></p>
+<section class="screen" id="scan" style="scroll-margin-top:60px">
+  <div class="sec-head">
+    <div class="sec-tag"><b>02</b> סריקה חיה</div>
+    <div class="lay-ctl" data-sec="scan">
+      <button class="lc-btn lc-prev" aria-label="פריסה קודמת">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+      <span class="lc-count">פריסה <b class="num">1</b> מתוך 2</span>
+      <button class="lc-btn lc-next" aria-label="פריסה הבאה">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+      </button>
     </div>
+  </div>
 
-    <div class="shell term rv" style="transition-delay:.12s">
-      <div class="core">
-        <div class="term-bar">
-          <div class="lights"><i></i><i></i><i></i></div>
-          <div class="addr num">ait.scan / optika-bak-afula</div>
-          <div class="pct num" id="scanPct">0%</div>
+  <!-- scan layout 1: terminal list (current) -->
+  <div class="alt show" data-alt="1">
+    <div class="scan-wrap">
+      <div class="scan-head rv">
+        <span class="eyebrow"><span class="pulse"></span>סריקה פעילה</span>
+        <h2>סורקים את <b>אופטיקה בק בע"מ</b></h2>
+        <p>אפשר להישאר במסך - זה לוקח <b>פחות מדקה</b></p>
+      </div>
+
+      <div class="shell term rv" style="transition-delay:.12s">
+        <div class="core">
+          <div class="term-bar">
+            <div class="lights"><i></i><i></i><i></i></div>
+            <div class="addr num">ait.scan / optika-bak-afula</div>
+            <div class="scan-pct num">0%</div>
+          </div>
+          <div class="pbar"><i class="scan-bar"></i></div>
+
+          <div class="term-body">
+            <div class="beam" aria-hidden="true"></div>
+
+            <div class="ln">
+              <span class="st"><span class="spin"><i></i></span><span class="chk"><span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></span></span>
+              <div class="tx">
+                <p class="main">מאתרים את פרטי העסק בגוגל<span class="dots"><i></i><i></i><i></i></span></p>
+                <p class="res">נמצאו 80 ביקורות ודירוג 4.9</p>
+              </div>
+            </div>
+
+            <div class="ln">
+              <span class="st"><span class="spin"><i></i></span><span class="chk"><span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></span></span>
+              <div class="tx">
+                <p class="main">קוראים את האתר<span class="dots"><i></i><i></i><i></i></span></p>
+                <p class="res">נסרקו 8 עמודים</p>
+              </div>
+            </div>
+
+            <div class="ln">
+              <span class="st"><span class="spin"><i></i></span><span class="chk"><span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></span></span>
+              <div class="tx">
+                <p class="main">בודקים מהירות טעינה במובייל<span class="dots"><i></i><i></i><i></i></span></p>
+                <p class="res">ציון ביצועים 46</p>
+              </div>
+            </div>
+
+            <div class="ln">
+              <span class="st"><span class="spin"><i></i></span><span class="chk"><span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></span></span>
+              <div class="tx">
+                <p class="main">מנתחים את הביקורות<span class="dots"><i></i><i></i><i></i></span></p>
+                <p class="res">נותחו 5 ביקורות</p>
+              </div>
+            </div>
+
+            <div class="ln">
+              <span class="st"><span class="spin"><i></i></span><span class="chk"><span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></span></span>
+              <div class="tx">
+                <p class="main">מחשבים ציונים ומודל עסק<span class="dots"><i></i><i></i><i></i></span></p>
+                <p class="res">ציון כולל 73/100</p>
+              </div>
+            </div>
+
+            <div class="ln">
+              <span class="st"><span class="spin"><i></i></span><span class="chk"><span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></span></span>
+              <div class="tx">
+                <p class="main">כותבים את הדוח<span class="dots"><i></i><i></i><i></i></span></p>
+                <p class="res"></p>
+              </div>
+            </div>
+
+            <div class="ln">
+              <span class="st"><span class="spin"><i></i></span><span class="chk"><span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></span></span>
+              <div class="tx">
+                <p class="main">שומרים את האבחון<span class="dots"><i></i><i></i><i></i></span></p>
+                <p class="res"></p>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="term-foot">
+            <span>7 בדיקות · מקורות: גוגל, האתר, PageSpeed</span>
+            <span class="num scan-step">בדיקה 1 מתוך 7</span>
+          </div>
         </div>
-        <div class="pbar"><i id="scanBar"></i></div>
+      </div>
+    </div>
+  </div>
 
-        <div class="term-body" id="scanBody">
-          <div class="beam" aria-hidden="true"></div>
+  <!-- scan layout 2: focal orb -->
+  <div class="alt" data-alt="2">
+    <div class="scan-wrap">
+      <div class="scan-head rv">
+        <span class="eyebrow"><span class="pulse"></span>סריקה פעילה</span>
+        <h2>סורקים את <b>אופטיקה בק בע"מ</b></h2>
+        <p>אפשר להישאר במסך - זה לוקח <b>פחות מדקה</b></p>
+      </div>
 
-          <div class="ln" data-i="0">
+      <div class="focal rv" style="transition-delay:.12s">
+        <div class="focal-orb">
+          <span class="glowbg" aria-hidden="true"></span>
+          <span class="ring1" aria-hidden="true"></span>
+          <span class="ring2" aria-hidden="true"></span>
+          <span class="ring3" aria-hidden="true"></span>
+          <div class="mid">
+            <span class="scan-pct num">0%</span>
+            <small>התקדמות</small>
+          </div>
+        </div>
+        <div class="scan-step num">בדיקה 1 מתוך 7</div>
+
+        <div class="focal-lines">
+          <div class="ln">
             <span class="st"><span class="spin"><i></i></span><span class="chk"><span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></span></span>
             <div class="tx">
               <p class="main">מאתרים את פרטי העסק בגוגל<span class="dots"><i></i><i></i><i></i></span></p>
               <p class="res">נמצאו 80 ביקורות ודירוג 4.9</p>
             </div>
           </div>
-
-          <div class="ln" data-i="1">
+          <div class="ln">
             <span class="st"><span class="spin"><i></i></span><span class="chk"><span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></span></span>
             <div class="tx">
               <p class="main">קוראים את האתר<span class="dots"><i></i><i></i><i></i></span></p>
               <p class="res">נסרקו 8 עמודים</p>
             </div>
           </div>
-
-          <div class="ln" data-i="2">
+          <div class="ln">
             <span class="st"><span class="spin"><i></i></span><span class="chk"><span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></span></span>
             <div class="tx">
               <p class="main">בודקים מהירות טעינה במובייל<span class="dots"><i></i><i></i><i></i></span></p>
               <p class="res">ציון ביצועים 46</p>
             </div>
           </div>
-
-          <div class="ln" data-i="3">
+          <div class="ln">
             <span class="st"><span class="spin"><i></i></span><span class="chk"><span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></span></span>
             <div class="tx">
               <p class="main">מנתחים את הביקורות<span class="dots"><i></i><i></i><i></i></span></p>
               <p class="res">נותחו 5 ביקורות</p>
             </div>
           </div>
-
-          <div class="ln" data-i="4">
+          <div class="ln">
             <span class="st"><span class="spin"><i></i></span><span class="chk"><span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></span></span>
             <div class="tx">
               <p class="main">מחשבים ציונים ומודל עסק<span class="dots"><i></i><i></i><i></i></span></p>
               <p class="res">ציון כולל 73/100</p>
             </div>
           </div>
-
-          <div class="ln" data-i="5">
+          <div class="ln">
             <span class="st"><span class="spin"><i></i></span><span class="chk"><span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></span></span>
             <div class="tx">
               <p class="main">כותבים את הדוח<span class="dots"><i></i><i></i><i></i></span></p>
               <p class="res"></p>
             </div>
           </div>
-
-          <div class="ln" data-i="6">
+          <div class="ln">
             <span class="st"><span class="spin"><i></i></span><span class="chk"><span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></span></span>
             <div class="tx">
               <p class="main">שומרים את האבחון<span class="dots"><i></i><i></i><i></i></span></p>
               <p class="res"></p>
             </div>
           </div>
-
         </div>
 
-        <div class="term-foot">
-          <span>7 בדיקות · מקורות: גוגל, האתר, PageSpeed</span>
-          <span class="num" id="scanStep">בדיקה 1 מתוך 7</span>
-        </div>
+        <div class="focal-foot">7 בדיקות · מקורות: גוגל, האתר, PageSpeed</div>
       </div>
     </div>
   </div>
 </section>
 
 <!-- ============ SCREEN 3: REPORT ============ -->
-<section class="screen" id="report" style="scroll-margin-top:40px">
-  <div class="sec-tag"><b>03</b> דוח אבחון</div>
+<section class="screen" id="report" style="scroll-margin-top:60px">
+  <div class="sec-head">
+    <div class="sec-tag"><b>03</b> דוח אבחון</div>
+    <div class="lay-ctl" data-sec="report">
+      <button class="lc-btn lc-prev" aria-label="פריסה קודמת">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+      <span class="lc-count">פריסה <b class="num">1</b> מתוך 3</span>
+      <button class="lc-btn lc-next" aria-label="פריסה הבאה">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+      </button>
+    </div>
+  </div>
 
-  <svg width="0" height="0" style="position:absolute">
-    <defs>
-      <linearGradient id="dialGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#a78bfa"/>
-        <stop offset="100%" stop-color="#34d399"/>
-      </linearGradient>
-    </defs>
-  </svg>
+  <!-- report layout 1: dashboard grid (current) -->
+  <div class="alt show" data-alt="1">
 
-  <!-- header -->
-  <div class="shell rep-head rv">
-    <div class="core">
-      <div class="rep-id">
+    <div class="shell rep-head rv">
+      <div class="core">
+        <div class="rep-id">
+          <span class="eyebrow">דוח אבחון ראשוני</span>
+          <h2>אופטיקה בק בע"מ</h2>
+          <div class="meta">
+            <span>עפולה</span>
+            <span>אופטיקה</span>
+            <span>14 באוגוסט 2026</span>
+            <span><b class="num">80</b> ביקורות</span>
+            <span>דירוג <b class="num">4.9</b></span>
+            <span><b class="num">8</b> עמודים נסרקו</span>
+          </div>
+        </div>
+        <div class="dial" data-score="73">
+          <svg viewBox="0 0 210 210">
+            <circle class="track" cx="105" cy="105" r="88"/>
+            <circle class="arc" cx="105" cy="105" r="88"/>
+          </svg>
+          <div class="mid">
+            <span class="big num dial-num">0</span>
+            <span class="of num">/ 100</span>
+            <span class="tag">בסיס טוב, יש פערים</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="shell narr rv" style="transition-delay:.08s">
+      <div class="core">
+        <h3>לאופטיקה בק מוניטין מצוין עם דירוג של 4.9, אך תשתיות דיגיטליות חלקיות מגבילות את הפוטנציאל</h3>
+        <p>העסק נהנה מ-80 ביקורות בדירוג 4.9 ומנוכחות דיגיטלית פעילה, אבל היעדר הזמנת תורים אונליין, פיקסל שיווקי ואתר איטי במובייל משאירים לקוחות ופניות על השולחן.</p>
+      </div>
+    </div>
+
+    <div class="rep-cols">
+      <div class="shell rv" style="transition-delay:.14s" data-anim>
+        <div class="core">
+          <div class="blk-title">
+            <span class="ic">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 19V10M10 19V5M16 19v-7M22 19H2"/></svg>
+            </span>
+            <div><h3>ציון לפי תחומים</h3><small>5 ממדים, כל אחד מ-100</small></div>
+          </div>
+
+          <div class="dim">
+            <span class="lb">נראות דיגיטלית</span>
+            <div class="bar"><i class="md" style="--w:65%"></i></div>
+            <span class="sc num">65</span>
+            <span class="chip full">מידע מלא</span>
+          </div>
+          <div class="dim">
+            <span class="lb">מוניטין וביקורות</span>
+            <div class="bar"><i class="hi" style="--w:100%"></i></div>
+            <span class="sc num">100</span>
+            <span class="chip full">מידע מלא</span>
+          </div>
+          <div class="dim">
+            <span class="lb">נגישות ללקוח</span>
+            <div class="bar"><i class="md" style="--w:70%"></i></div>
+            <span class="sc num">70</span>
+            <span class="chip full">מידע מלא</span>
+          </div>
+          <div class="dim">
+            <span class="lb">תשתית דיגיטלית</span>
+            <div class="bar"><i class="lo" style="--w:50%"></i></div>
+            <span class="sc num">50</span>
+            <span class="chip part">מידע חלקי</span>
+          </div>
+          <div class="dim">
+            <span class="lb">בשלות תהליכים</span>
+            <div class="bar empty"></div>
+            <span class="sc num">-</span>
+            <span class="chip none">אין מידע</span>
+          </div>
+
+          <details class="rules">
+            <summary>
+              <span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+              איך חושב הציון?
+            </summary>
+            <div class="rules-body">
+              <p class="rt">כל תחום מחושב מכללים גלויים. דוגמה: <b>נגישות ללקוח</b></p>
+              <div class="rrule"><span>וואטסאפ באתר</span><span class="pts plus">25+</span></div>
+              <div class="rrule"><span>טלפון קליקבילי</span><span class="pts plus">20+</span></div>
+              <div class="rrule"><span>טופס יצירת קשר</span><span class="pts plus">25+</span></div>
+              <div class="rrule"><span>קביעת תורים אונליין</span><span class="pts zero">0 מתוך 30</span></div>
+              <div class="rrule total"><span>סך הכל נגישות ללקוח</span><span class="pts">70 / 100</span></div>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <div class="shell rv" style="transition-delay:.2s">
+        <div class="core">
+          <div class="blk-title">
+            <span class="ic warn">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 16.5v.5"/><path d="M10.3 3.9L2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+            </span>
+            <div><h3>3 פערים שעולים כסף</h3><small>לפי סדר השפעה על העסק</small></div>
+          </div>
+
+          <div class="gap">
+            <span class="gic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18M10 15l4 4M14 15l-4 4"/></svg></span>
+            <div>
+              <b>אין קביעת תורים אונליין</b>
+              <p>עסק שחי על תורים מפסיד לקוחות שרוצים לקבוע <span class="num">ב-22:00</span> בלילה</p>
+            </div>
+          </div>
+
+          <div class="gap">
+            <span class="gic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg></span>
+            <div>
+              <b>אין פיקסל שיווקי</b>
+              <p>אי אפשר לעשות רימרקטינג למבקרים באתר</p>
+            </div>
+          </div>
+
+          <div class="gap">
+            <span class="gic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3.5 15a8.5 8.5 0 1 1 17 0"/><path d="M12 15l4-5.5"/><path d="M2 19h20"/></svg></span>
+            <div>
+              <b>האתר איטי במובייל</b>
+              <p>ציון ביצועים <span class="num">46</span>, טעינה <span class="num">12.7</span> שניות</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rep-cols" style="grid-template-columns:.9fr 1.1fr">
+      <div class="shell rv" style="transition-delay:.1s">
+        <div class="core">
+          <div class="blk-title">
+            <span class="ic good">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6L12 16.7 6.6 19.6l1.1-6L3.2 9.4l6.1-.8z"/></svg>
+            </span>
+            <div><h3>מה כבר עובד טוב</h3><small>נכסים קיימים לבנות עליהם</small></div>
+          </div>
+
+          <div class="stg">
+            <span class="sic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+            <p>דירוג מצוין: <span class="num">4.9</span> מ-<span class="num">80</span> ביקורות</p>
+          </div>
+          <div class="stg">
+            <span class="sic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+            <p>וואטסאפ, טלפון וטופס יצירת קשר זמינים באתר</p>
+          </div>
+          <div class="stg">
+            <span class="sic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+            <p>פרופיל גוגל פעיל ומלא</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="shell complete rv" style="transition-delay:.16s" data-anim>
+        <div class="core">
+          <div class="cring">
+            <svg viewBox="0 0 76 76">
+              <circle class="t" cx="38" cy="38" r="33"/>
+              <circle class="a" cx="38" cy="38" r="33"/>
+            </svg>
+            <span class="v">30%</span>
+          </div>
+          <div class="ct">
+            <b>שלמות המידע: 30% - אפשר לדייק את התמונה</b>
+            <p>ראיון קצר על טיפול בלידים ישלים את התמונה. הציון יתעדכן בהתאם.</p>
+          </div>
+          <button class="btn ghost">
+            להשלמת האבחון
+            <span class="cap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg>
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- report layout 2: single column narrative -->
+  <div class="alt" data-alt="2">
+    <div class="repB">
+
+      <div class="topper rv">
         <span class="eyebrow">דוח אבחון ראשוני</span>
         <h2>אופטיקה בק בע"מ</h2>
         <div class="meta">
@@ -717,177 +1349,317 @@
           <span>14 באוגוסט 2026</span>
           <span><b class="num">80</b> ביקורות</span>
           <span>דירוג <b class="num">4.9</b></span>
-          <span><b class="num">8</b> עמודים נסרקו</span>
         </div>
-      </div>
-      <div class="dial" id="dial">
-        <svg viewBox="0 0 210 210">
-          <circle class="track" cx="105" cy="105" r="88"/>
-          <circle class="arc" cx="105" cy="105" r="88"/>
-        </svg>
-        <div class="mid">
-          <span class="big num" id="dialNum">0</span>
-          <span class="of num">/ 100</span>
-          <span class="tag">בסיס טוב, יש פערים</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- narrative -->
-  <div class="shell narr rv" style="transition-delay:.08s">
-    <div class="core">
-      <h3>לאופטיקה בק מוניטין מצוין עם דירוג של 4.9, אך תשתיות דיגיטליות חלקיות מגבילות את הפוטנציאל</h3>
-      <p>העסק נהנה מ-80 ביקורות בדירוג 4.9 ומנוכחות דיגיטלית פעילה, אבל היעדר הזמנת תורים אונליין, פיקסל שיווקי ואתר איטי במובייל משאירים לקוחות ופניות על השולחן.</p>
-    </div>
-  </div>
-
-  <div class="rep-cols">
-    <!-- dimensions -->
-    <div class="shell rv" style="transition-delay:.14s" data-anim>
-      <div class="core">
-        <div class="blk-title">
-          <span class="ic">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 19V10M10 19V5M16 19v-7M22 19H2"/></svg>
-          </span>
-          <div><h3>ציון לפי תחומים</h3><small>5 ממדים, כל אחד מ-100</small></div>
-        </div>
-
-        <div class="dim">
-          <span class="lb">נראות דיגיטלית</span>
-          <div class="bar"><i class="md" style="--w:65%"></i></div>
-          <span class="sc num">65</span>
-          <span class="chip full">מידע מלא</span>
-        </div>
-        <div class="dim">
-          <span class="lb">מוניטין וביקורות</span>
-          <div class="bar"><i class="hi" style="--w:100%"></i></div>
-          <span class="sc num">100</span>
-          <span class="chip full">מידע מלא</span>
-        </div>
-        <div class="dim">
-          <span class="lb">נגישות ללקוח</span>
-          <div class="bar"><i class="md" style="--w:70%"></i></div>
-          <span class="sc num">70</span>
-          <span class="chip full">מידע מלא</span>
-        </div>
-        <div class="dim">
-          <span class="lb">תשתית דיגיטלית</span>
-          <div class="bar"><i class="lo" style="--w:50%"></i></div>
-          <span class="sc num">50</span>
-          <span class="chip part">מידע חלקי</span>
-        </div>
-        <div class="dim">
-          <span class="lb">בשלות תהליכים</span>
-          <div class="bar empty"></div>
-          <span class="sc num">-</span>
-          <span class="chip none">אין מידע</span>
-        </div>
-
-        <details class="rules">
-          <summary>
-            <span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
-            איך חושב הציון?
-          </summary>
-          <div class="rules-body">
-            <p class="rt">כל תחום מחושב מכללים גלויים. דוגמה: <b>נגישות ללקוח</b></p>
-            <div class="rrule"><span>וואטסאפ באתר</span><span class="pts plus">25+</span></div>
-            <div class="rrule"><span>טלפון קליקבילי</span><span class="pts plus">20+</span></div>
-            <div class="rrule"><span>טופס יצירת קשר</span><span class="pts plus">25+</span></div>
-            <div class="rrule"><span>קביעת תורים אונליין</span><span class="pts zero">0 מתוך 30</span></div>
-            <div class="rrule total"><span>סך הכל נגישות ללקוח</span><span class="pts">70 / 100</span></div>
-          </div>
-        </details>
-      </div>
-    </div>
-
-    <!-- gaps -->
-    <div class="shell rv" style="transition-delay:.2s">
-      <div class="core">
-        <div class="blk-title">
-          <span class="ic warn">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 16.5v.5"/><path d="M10.3 3.9L2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
-          </span>
-          <div><h3>3 פערים שעולים כסף</h3><small>לפי סדר השפעה על העסק</small></div>
-        </div>
-
-        <div class="gap">
-          <span class="gic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18M10 15l4 4M14 15l-4 4"/></svg></span>
-          <div>
-            <b>אין קביעת תורים אונליין</b>
-            <p>עסק שחי על תורים מפסיד לקוחות שרוצים לקבוע <span class="num">ב-22:00</span> בלילה</p>
-          </div>
-        </div>
-
-        <div class="gap">
-          <span class="gic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg></span>
-          <div>
-            <b>אין פיקסל שיווקי</b>
-            <p>אי אפשר לעשות רימרקטינג למבקרים באתר</p>
-          </div>
-        </div>
-
-        <div class="gap">
-          <span class="gic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3.5 15a8.5 8.5 0 1 1 17 0"/><path d="M12 15l4-5.5"/><path d="M2 19h20"/></svg></span>
-          <div>
-            <b>האתר איטי במובייל</b>
-            <p>ציון ביצועים <span class="num">46</span>, טעינה <span class="num">12.7</span> שניות</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="rep-cols" style="grid-template-columns:.9fr 1.1fr">
-    <!-- strengths -->
-    <div class="shell rv" style="transition-delay:.1s">
-      <div class="core">
-        <div class="blk-title">
-          <span class="ic good">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6L12 16.7 6.6 19.6l1.1-6L3.2 9.4l6.1-.8z"/></svg>
-          </span>
-          <div><h3>מה כבר עובד טוב</h3><small>נכסים קיימים לבנות עליהם</small></div>
-        </div>
-
-        <div class="stg">
-          <span class="sic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
-          <p>דירוג מצוין: <span class="num">4.9</span> מ-<span class="num">80</span> ביקורות</p>
-        </div>
-        <div class="stg">
-          <span class="sic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
-          <p>וואטסאפ, טלפון וטופס יצירת קשר זמינים באתר</p>
-        </div>
-        <div class="stg">
-          <span class="sic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
-          <p>פרופיל גוגל פעיל ומלא</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- completeness -->
-    <div class="shell complete rv" style="transition-delay:.16s" data-anim>
-      <div class="core">
-        <div class="cring">
-          <svg viewBox="0 0 76 76">
-            <circle class="t" cx="38" cy="38" r="33"/>
-            <circle class="a" cx="38" cy="38" r="33"/>
+        <div class="dial" data-score="73">
+          <svg viewBox="0 0 210 210">
+            <circle class="track" cx="105" cy="105" r="88"/>
+            <circle class="arc" cx="105" cy="105" r="88"/>
           </svg>
-          <span class="v">30%</span>
+          <div class="mid">
+            <span class="big num dial-num">0</span>
+            <span class="of num">/ 100</span>
+            <span class="tag">בסיס טוב, יש פערים</span>
+          </div>
         </div>
-        <div class="ct">
-          <b>שלמות המידע: 30% - אפשר לדייק את התמונה</b>
-          <p>ראיון קצר על טיפול בלידים ישלים את התמונה. הציון יתעדכן בהתאם.</p>
-        </div>
-        <button class="btn ghost">
-          להשלמת האבחון
-          <span class="cap">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg>
-          </span>
-        </button>
       </div>
+
+      <div class="lede rv" style="transition-delay:.08s">
+        <h3>לאופטיקה בק מוניטין מצוין עם דירוג של 4.9, אך תשתיות דיגיטליות חלקיות מגבילות את הפוטנציאל</h3>
+        <p>העסק נהנה מ-80 ביקורות בדירוג 4.9 ומנוכחות דיגיטלית פעילה, אבל היעדר הזמנת תורים אונליין, פיקסל שיווקי ואתר איטי במובייל משאירים לקוחות ופניות על השולחן.</p>
+      </div>
+
+      <div class="divide rv">ציון לפי תחומים</div>
+      <div class="shell rv" style="transition-delay:.06s" data-anim>
+        <div class="core">
+          <div class="dim">
+            <span class="lb">נראות דיגיטלית</span>
+            <div class="bar"><i class="md" style="--w:65%"></i></div>
+            <span class="sc num">65</span>
+            <span class="chip full">מידע מלא</span>
+          </div>
+          <div class="dim">
+            <span class="lb">מוניטין וביקורות</span>
+            <div class="bar"><i class="hi" style="--w:100%"></i></div>
+            <span class="sc num">100</span>
+            <span class="chip full">מידע מלא</span>
+          </div>
+          <div class="dim">
+            <span class="lb">נגישות ללקוח</span>
+            <div class="bar"><i class="md" style="--w:70%"></i></div>
+            <span class="sc num">70</span>
+            <span class="chip full">מידע מלא</span>
+          </div>
+          <div class="dim">
+            <span class="lb">תשתית דיגיטלית</span>
+            <div class="bar"><i class="lo" style="--w:50%"></i></div>
+            <span class="sc num">50</span>
+            <span class="chip part">מידע חלקי</span>
+          </div>
+          <div class="dim">
+            <span class="lb">בשלות תהליכים</span>
+            <div class="bar empty"></div>
+            <span class="sc num">-</span>
+            <span class="chip none">אין מידע</span>
+          </div>
+
+          <details class="rules">
+            <summary>
+              <span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+              איך חושב הציון?
+            </summary>
+            <div class="rules-body">
+              <p class="rt">כל תחום מחושב מכללים גלויים. דוגמה: <b>נגישות ללקוח</b></p>
+              <div class="rrule"><span>וואטסאפ באתר</span><span class="pts plus">25+</span></div>
+              <div class="rrule"><span>טלפון קליקבילי</span><span class="pts plus">20+</span></div>
+              <div class="rrule"><span>טופס יצירת קשר</span><span class="pts plus">25+</span></div>
+              <div class="rrule"><span>קביעת תורים אונליין</span><span class="pts zero">0 מתוך 30</span></div>
+              <div class="rrule total"><span>סך הכל נגישות ללקוח</span><span class="pts">70 / 100</span></div>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <div class="divide rv">פערים שעולים כסף</div>
+      <div class="shell rv" style="transition-delay:.06s">
+        <div class="core">
+          <div class="gap">
+            <span class="gic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18M10 15l4 4M14 15l-4 4"/></svg></span>
+            <div>
+              <b>אין קביעת תורים אונליין</b>
+              <p>עסק שחי על תורים מפסיד לקוחות שרוצים לקבוע <span class="num">ב-22:00</span> בלילה</p>
+            </div>
+          </div>
+          <div class="gap">
+            <span class="gic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg></span>
+            <div>
+              <b>אין פיקסל שיווקי</b>
+              <p>אי אפשר לעשות רימרקטינג למבקרים באתר</p>
+            </div>
+          </div>
+          <div class="gap">
+            <span class="gic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3.5 15a8.5 8.5 0 1 1 17 0"/><path d="M12 15l4-5.5"/><path d="M2 19h20"/></svg></span>
+            <div>
+              <b>האתר איטי במובייל</b>
+              <p>ציון ביצועים <span class="num">46</span>, טעינה <span class="num">12.7</span> שניות</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divide rv">מה כבר עובד טוב</div>
+      <div class="shell rv" style="transition-delay:.06s">
+        <div class="core">
+          <div class="stg">
+            <span class="sic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+            <p>דירוג מצוין: <span class="num">4.9</span> מ-<span class="num">80</span> ביקורות</p>
+          </div>
+          <div class="stg">
+            <span class="sic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+            <p>וואטסאפ, טלפון וטופס יצירת קשר זמינים באתר</p>
+          </div>
+          <div class="stg">
+            <span class="sic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+            <p>פרופיל גוגל פעיל ומלא</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="shell complete rv" style="transition-delay:.1s;margin-top:16px" data-anim>
+        <div class="core">
+          <div class="cring">
+            <svg viewBox="0 0 76 76">
+              <circle class="t" cx="38" cy="38" r="33"/>
+              <circle class="a" cx="38" cy="38" r="33"/>
+            </svg>
+            <span class="v">30%</span>
+          </div>
+          <div class="ct">
+            <b>שלמות המידע: 30% - אפשר לדייק את התמונה</b>
+            <p>ראיון קצר על טיפול בלידים ישלים את התמונה. הציון יתעדכן בהתאם.</p>
+          </div>
+          <button class="btn ghost">
+            להשלמת האבחון
+            <span class="cap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg>
+            </span>
+          </button>
+        </div>
+      </div>
+
     </div>
   </div>
 
+  <!-- report layout 3: sticky sidebar -->
+  <div class="alt" data-alt="3">
+    <div class="repC">
+
+      <aside class="side rv">
+        <div class="shell">
+          <div class="core">
+            <div class="who-h">
+              <b>אופטיקה בק בע"מ</b>
+              <i>עפולה · אופטיקה · 14 באוגוסט 2026</i>
+            </div>
+            <div class="dial sm" data-score="73">
+              <svg viewBox="0 0 210 210">
+                <circle class="track" cx="105" cy="105" r="88"/>
+                <circle class="arc" cx="105" cy="105" r="88"/>
+              </svg>
+              <div class="mid">
+                <span class="big num dial-num">0</span>
+                <span class="of num">/ 100</span>
+                <span class="tag">בסיס טוב, יש פערים</span>
+              </div>
+            </div>
+            <div class="mini-meta">
+              <span><b class="num">80</b> ביקורות</span>
+              <span>דירוג <b class="num">4.9</b></span>
+              <span><b class="num">8</b> עמודים</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="shell" data-anim>
+          <div class="core">
+            <h4>ציון לפי תחומים</h4>
+            <div class="dim slim">
+              <span class="lb">נראות דיגיטלית</span>
+              <div class="bar"><i class="md" style="--w:65%"></i></div>
+              <span class="sc num">65</span>
+            </div>
+            <div class="dim slim">
+              <span class="lb">מוניטין וביקורות</span>
+              <div class="bar"><i class="hi" style="--w:100%"></i></div>
+              <span class="sc num">100</span>
+            </div>
+            <div class="dim slim">
+              <span class="lb">נגישות ללקוח</span>
+              <div class="bar"><i class="md" style="--w:70%"></i></div>
+              <span class="sc num">70</span>
+            </div>
+            <div class="dim slim">
+              <span class="lb">תשתית דיגיטלית</span>
+              <div class="bar"><i class="lo" style="--w:50%"></i></div>
+              <span class="sc num">50</span>
+            </div>
+            <div class="dim slim">
+              <span class="lb">בשלות תהליכים</span>
+              <div class="bar empty"></div>
+              <span class="sc num">-</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="shell" data-anim>
+          <div class="core">
+            <div class="cfoot">
+              <div class="cring">
+                <svg viewBox="0 0 76 76">
+                  <circle class="t" cx="38" cy="38" r="33"/>
+                  <circle class="a" cx="38" cy="38" r="33"/>
+                </svg>
+                <span class="v" style="font-size:13px">30%</span>
+              </div>
+              <p><b>שלמות המידע: 30%.</b> ראיון קצר על טיפול בלידים ישלים את התמונה.</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <div class="main">
+        <div class="shell narr rv" style="transition-delay:.06s">
+          <div class="core">
+            <h3>לאופטיקה בק מוניטין מצוין עם דירוג של 4.9, אך תשתיות דיגיטליות חלקיות מגבילות את הפוטנציאל</h3>
+            <p>העסק נהנה מ-80 ביקורות בדירוג 4.9 ומנוכחות דיגיטלית פעילה, אבל היעדר הזמנת תורים אונליין, פיקסל שיווקי ואתר איטי במובייל משאירים לקוחות ופניות על השולחן.</p>
+          </div>
+        </div>
+
+        <div class="shell rv" style="transition-delay:.12s">
+          <div class="core">
+            <div class="blk-title">
+              <span class="ic warn">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 16.5v.5"/><path d="M10.3 3.9L2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+              </span>
+              <div><h3>3 פערים שעולים כסף</h3><small>לפי סדר השפעה על העסק</small></div>
+            </div>
+
+            <div class="gap">
+              <span class="gic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18M10 15l4 4M14 15l-4 4"/></svg></span>
+              <div>
+                <b>אין קביעת תורים אונליין</b>
+                <p>עסק שחי על תורים מפסיד לקוחות שרוצים לקבוע <span class="num">ב-22:00</span> בלילה</p>
+              </div>
+            </div>
+            <div class="gap">
+              <span class="gic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg></span>
+              <div>
+                <b>אין פיקסל שיווקי</b>
+                <p>אי אפשר לעשות רימרקטינג למבקרים באתר</p>
+              </div>
+            </div>
+            <div class="gap">
+              <span class="gic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3.5 15a8.5 8.5 0 1 1 17 0"/><path d="M12 15l4-5.5"/><path d="M2 19h20"/></svg></span>
+              <div>
+                <b>האתר איטי במובייל</b>
+                <p>ציון ביצועים <span class="num">46</span>, טעינה <span class="num">12.7</span> שניות</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="shell rv" style="transition-delay:.18s">
+          <div class="core">
+            <div class="blk-title">
+              <span class="ic good">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6L12 16.7 6.6 19.6l1.1-6L3.2 9.4l6.1-.8z"/></svg>
+              </span>
+              <div><h3>מה כבר עובד טוב</h3><small>נכסים קיימים לבנות עליהם</small></div>
+            </div>
+
+            <div class="stg">
+              <span class="sic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <p>דירוג מצוין: <span class="num">4.9</span> מ-<span class="num">80</span> ביקורות</p>
+            </div>
+            <div class="stg">
+              <span class="sic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <p>וואטסאפ, טלפון וטופס יצירת קשר זמינים באתר</p>
+            </div>
+            <div class="stg">
+              <span class="sic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <p>פרופיל גוגל פעיל ומלא</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="shell rv" style="transition-delay:.24s">
+          <div class="core">
+            <div class="blk-title">
+              <span class="ic">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 19V10M10 19V5M16 19v-7M22 19H2"/></svg>
+              </span>
+              <div><h3>איך חושב הציון?</h3><small>דוגמה: נגישות ללקוח</small></div>
+            </div>
+            <div class="rules-body" style="margin:0">
+              <div class="rrule"><span>וואטסאפ באתר</span><span class="pts plus">25+</span></div>
+              <div class="rrule"><span>טלפון קליקבילי</span><span class="pts plus">20+</span></div>
+              <div class="rrule"><span>טופס יצירת קשר</span><span class="pts plus">25+</span></div>
+              <div class="rrule"><span>קביעת תורים אונליין</span><span class="pts zero">0 מתוך 30</span></div>
+              <div class="rrule total"><span>סך הכל נגישות ללקוח</span><span class="pts">70 / 100</span></div>
+            </div>
+            <div style="margin-top:18px;display:flex;justify-content:flex-start">
+              <button class="btn ghost">
+                להשלמת האבחון
+                <span class="cap">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg>
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
 </section>
 </main>
 
@@ -900,7 +1672,121 @@
 (function(){
   'use strict';
 
-  /* reveal on scroll */
+  var KEY = 'ait:variant-dark:';
+  var root = document.documentElement;
+
+  /* ===== palette + font pickers ===== */
+  function setPalette(p){
+    root.setAttribute('data-palette', p);
+    document.querySelectorAll('.pal-dot').forEach(function(d){
+      d.classList.toggle('on', d.dataset.p === p);
+    });
+    try{ localStorage.setItem(KEY + 'palette', p); }catch(e){}
+  }
+  function setFont(f){
+    root.setAttribute('data-font', f);
+    document.querySelectorAll('.font-btn').forEach(function(b){
+      b.classList.toggle('on', b.dataset.f === f);
+    });
+    try{ localStorage.setItem(KEY + 'font', f); }catch(e){}
+  }
+  var savedP = null, savedF = null;
+  try{
+    savedP = localStorage.getItem(KEY + 'palette');
+    savedF = localStorage.getItem(KEY + 'font');
+  }catch(e){}
+  setPalette(/^p[123]$/.test(savedP || '') ? savedP : 'p1');
+  setFont(/^f[123]$/.test(savedF || '') ? savedF : 'f1');
+  document.querySelectorAll('.pal-dot').forEach(function(d){
+    d.addEventListener('click', function(){ setPalette(d.dataset.p); });
+  });
+  document.querySelectorAll('.font-btn').forEach(function(b){
+    b.addEventListener('click', function(){ setFont(b.dataset.f); });
+  });
+
+  /* ===== dial animation ===== */
+  function animateDial(d){
+    if(d.dataset.done) return;
+    d.dataset.done = '1';
+    var score = parseInt(d.dataset.score, 10) || 0;
+    var arc = d.querySelector('.arc');
+    var numEl = d.querySelector('.dial-num');
+    if(arc) arc.style.strokeDashoffset = String(552 * (1 - score / 100));
+    if(numEl){
+      var t0 = null;
+      function tick(ts){
+        if(!t0) t0 = ts;
+        var p = Math.min((ts - t0) / 1700, 1);
+        var eased = 1 - Math.pow(1 - p, 3);
+        numEl.textContent = Math.round(score * eased);
+        if(p < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+  }
+
+  /* ===== wake a newly shown layout ===== */
+  function wake(el){
+    el.querySelectorAll('.rv').forEach(function(r){ r.classList.add('on'); });
+    el.querySelectorAll('[data-anim]').forEach(function(r){ r.classList.add('on'); });
+    el.querySelectorAll('.dial[data-score]').forEach(animateDial);
+  }
+
+  /* ===== layout galleries ===== */
+  var LAY = { entry: 2, scan: 2, report: 3 };
+  var current = {};
+
+  function renderLayout(id, wakeIt){
+    var sec = document.getElementById(id);
+    var active = null;
+    sec.querySelectorAll(':scope > .alt').forEach(function(a){
+      var on = parseInt(a.dataset.alt, 10) === current[id];
+      a.classList.toggle('show', on);
+      if(on) active = a;
+    });
+    var cnt = sec.querySelector('.lc-count');
+    if(cnt) cnt.innerHTML = 'פריסה <b class="num">' + current[id] + '</b> מתוך ' + LAY[id];
+    if(wakeIt && active){
+      wake(active);
+      if(id === 'scan') restartScan();
+    }
+  }
+
+  function shiftLayout(id, d){
+    current[id] = ((current[id] - 1 + d) % LAY[id] + LAY[id]) % LAY[id] + 1;
+    try{ localStorage.setItem(KEY + 'lay-' + id, String(current[id])); }catch(e){}
+    renderLayout(id, true);
+  }
+
+  Object.keys(LAY).forEach(function(id){
+    var saved = NaN;
+    try{ saved = parseInt(localStorage.getItem(KEY + 'lay-' + id), 10); }catch(e){}
+    current[id] = (saved >= 1 && saved <= LAY[id]) ? saved : 1;
+    renderLayout(id, false);
+  });
+
+  document.querySelectorAll('.lay-ctl').forEach(function(ctl){
+    var id = ctl.dataset.sec;
+    ctl.querySelector('.lc-prev').addEventListener('click', function(){ shiftLayout(id, -1); });
+    ctl.querySelector('.lc-next').addEventListener('click', function(){ shiftLayout(id, 1); });
+  });
+
+  /* keyboard: arrows switch layout of hovered section */
+  var hovered = null;
+  Object.keys(LAY).forEach(function(id){
+    var sec = document.getElementById(id);
+    sec.addEventListener('mouseenter', function(){ hovered = id; });
+    sec.addEventListener('mouseleave', function(){ if(hovered === id) hovered = null; });
+  });
+  document.addEventListener('keydown', function(e){
+    if(!hovered) return;
+    var tag = (e.target && e.target.tagName) || '';
+    if(tag === 'INPUT' || tag === 'TEXTAREA') return;
+    if(e.key === 'ArrowLeft'){ e.preventDefault(); shiftLayout(hovered, 1); }
+    if(e.key === 'ArrowRight'){ e.preventDefault(); shiftLayout(hovered, -1); }
+  });
+
+  /* ===== reveal on scroll ===== */
   var io = new IntersectionObserver(function(entries){
     entries.forEach(function(e){
       if(e.isIntersecting){
@@ -909,28 +1795,18 @@
       }
     });
   },{threshold:.18});
-  document.querySelectorAll('.rv').forEach(function(el){io.observe(el)});
+  document.querySelectorAll('.rv').forEach(function(el){ io.observe(el); });
 
-  /* score dial + counter */
-  var dial = document.getElementById('dial');
-  var dialNum = document.getElementById('dialNum');
+  /* dials */
   var dio = new IntersectionObserver(function(entries){
     entries.forEach(function(e){
-      if(!e.isIntersecting) return;
-      dial.classList.add('on');
-      var t0 = null;
-      function tick(ts){
-        if(!t0) t0 = ts;
-        var p = Math.min((ts - t0) / 1700, 1);
-        var eased = 1 - Math.pow(1 - p, 3);
-        dialNum.textContent = Math.round(73 * eased);
-        if(p < 1) requestAnimationFrame(tick);
+      if(e.isIntersecting){
+        animateDial(e.target);
+        dio.unobserve(e.target);
       }
-      requestAnimationFrame(tick);
-      dio.unobserve(dial);
     });
   },{threshold:.4});
-  dio.observe(dial);
+  document.querySelectorAll('.dial[data-score]').forEach(function(d){ dio.observe(d); });
 
   /* bar + ring blocks */
   document.querySelectorAll('[data-anim]').forEach(function(el){
@@ -942,7 +1818,7 @@
     o.observe(el);
   });
 
-  /* nav highlight */
+  /* ===== nav highlight ===== */
   var navLinks = {};
   document.querySelectorAll('[data-nav]').forEach(function(a){ navLinks[a.dataset.nav] = a; });
   ['entry','scan','report'].forEach(function(id){
@@ -958,60 +1834,82 @@
     so.observe(sec);
   });
 
-  /* live scan loop */
-  var lines = Array.prototype.slice.call(document.querySelectorAll('#scanBody .ln'));
-  var bar = document.getElementById('scanBar');
-  var pct = document.getElementById('scanPct');
-  var stepEl = document.getElementById('scanStep');
-  var N = lines.length;
+  /* ===== live scan engine (runs on the visible scan layout) ===== */
+  var scanTimer = null;
+  var scanStarted = false;
   var STEP_MS = 1900;
   var HOLD_MS = 3200;
-  var idx = 0;
-  var running = false;
 
-  function setProgress(done){
-    var p = Math.round(done / N * 100);
-    bar.style.transform = 'scaleX(' + (done / N) + ')';
-    pct.textContent = p + '%';
-    stepEl.textContent = done >= N ? 'הסריקה הושלמה' : 'בדיקה ' + (done + 1) + ' מתוך ' + N;
+  function activeScanAlt(){
+    return document.querySelector('#scan > .alt.show');
   }
 
-  function resetScan(){
-    lines.forEach(function(l){ l.classList.remove('act','done'); });
-    bar.style.transition = 'none';
-    bar.style.transform = 'scaleX(0)';
-    void bar.offsetWidth;
-    bar.style.transition = '';
-    pct.textContent = '0%';
-    stepEl.textContent = 'בדיקה 1 מתוך ' + N;
-    idx = 0;
+  function runScan(box){
+    if(!box) return;
+    var lines = Array.prototype.slice.call(box.querySelectorAll('.ln'));
+    var bar = box.querySelector('.scan-bar');
+    var pcts = Array.prototype.slice.call(box.querySelectorAll('.scan-pct'));
+    var steps = Array.prototype.slice.call(box.querySelectorAll('.scan-step'));
+    var N = lines.length;
+    var idx = 0;
+
+    function setProgress(done){
+      var p = Math.round(done / N * 100);
+      if(bar) bar.style.transform = 'scaleX(' + (done / N) + ')';
+      pcts.forEach(function(el){ el.textContent = p + '%'; });
+      steps.forEach(function(el){
+        el.textContent = done >= N ? 'הסריקה הושלמה' : 'בדיקה ' + (done + 1) + ' מתוך ' + N;
+      });
+    }
+
+    function reset(){
+      lines.forEach(function(l){ l.classList.remove('act','done'); });
+      if(bar){
+        bar.style.transition = 'none';
+        bar.style.transform = 'scaleX(0)';
+        void bar.offsetWidth;
+        bar.style.transition = '';
+      }
+      pcts.forEach(function(el){ el.textContent = '0%'; });
+      steps.forEach(function(el){ el.textContent = 'בדיקה 1 מתוך ' + N; });
+      idx = 0;
+    }
+
+    function step(){
+      if(idx > 0){
+        lines[idx - 1].classList.remove('act');
+        lines[idx - 1].classList.add('done');
+      }
+      if(idx < N){
+        lines[idx].classList.add('act');
+        setProgress(idx);
+        idx++;
+        scanTimer = setTimeout(step, STEP_MS);
+      } else {
+        setProgress(N);
+        scanTimer = setTimeout(function(){
+          reset();
+          scanTimer = setTimeout(step, 700);
+        }, HOLD_MS);
+      }
+    }
+
+    reset();
+    scanTimer = setTimeout(step, 500);
   }
 
-  function step(){
-    if(idx > 0) {
-      lines[idx - 1].classList.remove('act');
-      lines[idx - 1].classList.add('done');
-    }
-    if(idx < N){
-      lines[idx].classList.add('act');
-      setProgress(idx);
-      idx++;
-      setTimeout(step, STEP_MS);
-    } else {
-      setProgress(N);
-      setTimeout(function(){
-        resetScan();
-        setTimeout(step, 700);
-      }, HOLD_MS);
-    }
+  function restartScan(){
+    if(!scanStarted) return;
+    clearTimeout(scanTimer);
+    runScan(activeScanAlt());
   }
 
   var scanSec = document.getElementById('scan');
   var sco = new IntersectionObserver(function(entries){
     entries.forEach(function(e){
-      if(e.isIntersecting && !running){
-        running = true;
-        setTimeout(step, 500);
+      if(e.isIntersecting && !scanStarted){
+        scanStarted = true;
+        runScan(activeScanAlt());
         sco.unobserve(scanSec);
       }
     });
