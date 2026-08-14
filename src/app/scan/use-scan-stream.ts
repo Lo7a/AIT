@@ -20,6 +20,10 @@ export interface ScanStreamState {
   lines: StepLine[];
   error: string | null;
   done: boolean;
+  // המנעול חסם את ה-mount הזה מלירות סריקה: כבר יש הרצה חיה של אותו יעד בטאב הזה (mount/רימאונט
+  // קודם באותו טעינת עמוד - למשל ניווט הלוך-חזור בלי F5). לא ה-blocked שקורה בעצם ה-effect
+  // הזה שרץ שוב עבור אותו mount (guardedRef) - זה נשאר no-op שקט, ראו הערה למטה.
+  blocked: boolean;
 }
 
 // הגנת אנטי-כפילות ברמת המודול - הגנה best-effort פר-טאב על עלות בפועל, לא reactStrictMode.
@@ -43,13 +47,25 @@ export function useScanStream(target: Target): ScanStreamState {
   const [steps, setSteps] = useState<StepLine[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [finished, setFinished] = useState(false);
+  const [blocked, setBlocked] = useState(false);
 
   useEffect(() => {
     // שער כפול: startedTargets (חוצה-רכיבים, שורד רימאונט) + guardedRef (מגן על ה-mount
     // הנוכחי מפני הרצה כפולה של אותו effect באותה מופע רכיב). guardedRef נשמר לפי מפתח
     // היעד עצמו (לא boolean גורף) - כך שניווט searchParams-בלבד לאותו מופע רכיב
     // (/scan?A -> /scan?B) לא חוסם בטעות את היעד החדש B.
-    if (startedTargets.has(key) || guardedRef.current === key) return;
+    //
+    // שני התנאים לא שקולים: startedTargets.has(key) בלי guardedRef שלנו על אותו key אומר שמישהו
+    // אחר (mount קודם באותו טעינת עמוד, למשל ניווט הלוך-חזור בלי F5) כבר מריץ את היעד הזה - זה
+    // אמור להיראות למשתמש (blocked=true, מסך המתנה עם קישור הביתה), לא להישאר תקוע על הכותרת
+    // הדיפולטית. guardedRef.current === key לבדו אומר שזה ה-effect של המופע שלנו-עצמנו שרץ שוב
+    // (למשל שינוי רפרנס של target באותו mount) - ה-cleanup הקודם כבר סימן cancelled, וההרצה
+    // הקודמת ממשיכה לנהל את המצב; אין כאן שום דבר לחסום למשתמש, no-op שקט כמו קודם.
+    if (startedTargets.has(key)) {
+      setBlocked(true);
+      return;
+    }
+    if (guardedRef.current === key) return;
     startedTargets.add(key);
     guardedRef.current = key;
 
@@ -143,5 +159,44 @@ export function useScanStream(target: Target): ScanStreamState {
     };
   }, [key, router, target]);
 
-  return { title, lines: steps, error, done: finished };
+  return { title, lines: steps, error, done: finished, blocked };
+}
+
+export interface AttachWaitState {
+  status: string | null;
+}
+
+// מצב "attach": מסך הסריקה יודע מראש (מ-page.tsx, לפני שהוא בכלל התרנדר) שכבר יש אבחון חי
+// ביעד הזה - כאן לא פותחים זרם חדש (=לא סריקה כפולה בתשלום) אלא רק שואלים כל 3 שניות מה
+// הסטטוס שלו, ובהגעה ל-report_ready מנווטים לדוח בדיוק כמו שה-stream החי היה עושה בסיום.
+export function useAttachWait(diagnosisId: string | null): AttachWaitState {
+  const router = useRouter();
+  const [status, setStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!diagnosisId) return;
+    let cancelled = false;
+
+    async function poll() {
+      try {
+        const res = await fetch(`/api/diagnose/status?id=${diagnosisId}`);
+        if (!res.ok) return; // 404/500 זמני - מנסים שוב בפעימה הבאה, לא הופכים לשגיאה קבועה
+        const data = (await res.json()) as { status?: string };
+        if (cancelled || !data.status) return;
+        setStatus(data.status);
+        if (data.status === "report_ready") router.replace(`/report/${diagnosisId}`);
+      } catch {
+        // כשל רשת חולף - הפעימה הבאה תנסה שוב
+      }
+    }
+
+    void poll(); // בדיקה מיידית - לא מחכים 3 שניות ריקות אם הדוח כבר מוכן
+    const interval = setInterval(poll, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [diagnosisId, router]);
+
+  return { status };
 }

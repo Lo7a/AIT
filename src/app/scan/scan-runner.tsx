@@ -1,6 +1,8 @@
 "use client";
 
-import { useScanStream, type StepLine, type Target } from "./use-scan-stream";
+import { useAttachWait, useScanStream, type StepLine, type Target } from "./use-scan-stream";
+
+export type ScanAttach = { diagnosisId: string; status: string };
 
 function CheckIcon() {
   return (
@@ -57,8 +59,58 @@ function StepIndicator({ step }: { step: StepLine }) {
   );
 }
 
-export function ScanRunner({ target }: { target: Target }) {
-  const { title, lines: steps, error } = useScanStream(target);
+// מסך המתנה משותף לשני המצבים שבהם לא פותחים זרם חדש: attach (יודעים מ-page.tsx מראש שיש
+// אבחון חי) וגם blocked (המנעול בצד לקוח תפס mount שני לאותו יעד באותו טעינת עמוד). בשני
+// המקרים אין הצדקה לסריקה נוספת בתשלום - רק מציגים שמשהו קורה ברקע.
+function WaitingScreen({
+  message, showHomeLink,
+}: {
+  message: string;
+  showHomeLink?: boolean;
+}) {
+  return (
+    <main className="mx-auto max-w-2xl px-4 py-16" aria-busy="true">
+      <h1 className="animate-fade-up font-[family-name:var(--font-frank)] text-3xl font-bold tracking-tight">
+        הסריקה כבר רצה ברקע
+      </h1>
+      <p className="mt-2 animate-fade-up text-[#6F6E6A]" style={{ animationDelay: "80ms" }}>
+        {message}
+      </p>
+      <div
+        role="status"
+        aria-live="polite"
+        className="mt-10 flex animate-fade-up items-center gap-3"
+        style={{ animationDelay: "160ms" }}
+      >
+        <span className="h-2 w-2 rounded-full bg-[#111111] animate-pulse" aria-hidden="true" />
+        <span className="text-sm text-[#6F6E6A]">בודקים כל כמה שניות אם הדוח מוכן</span>
+      </div>
+      {showHomeLink && (
+        <a
+          href="/"
+          className="mt-6 inline-block animate-fade-up text-[#111111] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
+          style={{ animationDelay: "240ms" }}
+        >
+          חזרה לעמוד הראשי
+        </a>
+      )}
+    </main>
+  );
+}
+
+// מצב attach: page.tsx כבר קבע (בצד שרת, לפני שהמסך הזה בכלל התרנדר) שיש אבחון חי ליעד -
+// לא פותחים POST /api/diagnose חדש בשום תנאי, רק שואלים כל 3 שניות אם הוא הגיע ל-report_ready.
+function AttachedScan({ diagnosisId }: { diagnosisId: string }) {
+  useAttachWait(diagnosisId);
+  return <WaitingScreen message="מתחברים אליה, הדוח ייפתח אוטומטית כשיהיה מוכן" />;
+}
+
+function LiveScan({ target }: { target: Target }) {
+  const { title, lines: steps, error, blocked } = useScanStream(target);
+
+  if (blocked) {
+    return <WaitingScreen message="סריקה לעסק הזה כבר רצה בחלון אחר" showHomeLink />;
+  }
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-16" aria-busy={error == null}>
@@ -109,4 +161,9 @@ export function ScanRunner({ target }: { target: Target }) {
       )}
     </main>
   );
+}
+
+export function ScanRunner({ target, attach }: { target: Target; attach?: ScanAttach }) {
+  if (attach) return <AttachedScan diagnosisId={attach.diagnosisId} />;
+  return <LiveScan target={target} />;
 }

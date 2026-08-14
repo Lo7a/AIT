@@ -1,6 +1,16 @@
+import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { prisma } from "../../server/db";
+import { findLatestDiagnosis } from "../../server/diagnosis-lookup";
 import { THEME_COOKIE, parseTheme } from "../theme";
 import { getVariant } from "../variants/registry";
+
+// טרי מספיק כדי לחבר במקום לירות סריקה חדשה, אבל לא נצחי: אבחון ישן שנתקע ב-scanning/scanned
+// (תקלה בעבר) לא אמור לנעול לצמיתות ניסיון חדש לאותו יעד
+const ATTACH_MAX_AGE_SECONDS = 180;
+// חלון קצר בהרבה לניתוב אוטומטי לדוח מוכן - רק "בדיוק סיימנו ורעננו" תופס; דוח ישן יותר לא
+// אמור לחטוף רענון-אחזור בלי שהמשתמש ביקש לסרוק שוב במפורש
+const REPORT_READY_MAX_AGE_SECONDS = 600;
 
 // searchParams ב-Next 15 הוא Promise; העמוד דינמי מטבעו
 export default async function ScanPage({
@@ -33,8 +43,26 @@ export default async function ScanPage({
   const target = hasUrl
     ? { url: params.url }
     : { placeId: params.placeId, name: params.name, city: params.city };
+
+  // מציאת עבודה קיימת ליעד הזה לפני שבכלל שוקלים לרנדר את הרצת הסריקה - כדי שרענון/כניסה
+  // חוזרת יתחברו לאבחון שכבר רץ או הסתיים במקום לירות סריקה כפולה בתשלום (עיקר התיקון הזה)
+  const latest = await findLatestDiagnosis(prisma, target).catch(() => null);
+
+  if (latest?.status === "report_ready" && latest.ageSeconds < REPORT_READY_MAX_AGE_SECONDS) {
+    redirect(`/report/${latest.diagnosisId}`);
+  }
+
   const cookieStore = await cookies();
   const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
   const { Scan } = getVariant(theme);
+
+  if (
+    latest
+    && (latest.status === "scanning" || latest.status === "scanned")
+    && latest.ageSeconds < ATTACH_MAX_AGE_SECONDS
+  ) {
+    return <Scan target={target} attach={{ diagnosisId: latest.diagnosisId, status: latest.status }} />;
+  }
+
   return <Scan target={target} />;
 }

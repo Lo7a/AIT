@@ -1,4 +1,4 @@
-// פייק Prisma מינימלי לבדיקות אופליין של runDiagnosis/diagnosis-repo — לא ה-client האמיתי, אז השדות
+// פייק Prisma מינימלי לבדיקות אופליין של runDiagnosis/diagnosis-repo - לא ה-client האמיתי, אז השדות
 // שעוברים דרכו (where/update/create/data) הם any בכוונה; הטיפוס האמיתי נבדק בקצוות (diagnosis-repo.ts
 // עצמו מוקלד מול PrismaClient אמיתי) לא כאן.
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -8,17 +8,17 @@ export interface FakeBizRow {
 }
 
 export interface FakeDbOptions {
-  // מעברי סטטוס ("from→to") שצריכים להיכשל (updateMany מחזיר count:0) כאילו הפסידו במרוץ —
+  // מעברי סטטוס ("from→to") שצריכים להיכשל (updateMany מחזיר count:0) כאילו הפסידו במרוץ -
   // משמש לבדיקת "גם ה-revert נכשל" (transitionDiagnosis זורק, לא רק לא-מצליח בשקט)
   failTransitions?: Set<string>;
 }
 
 export function makeFakeDb(opts: FakeDbOptions = {}) {
   const businesses: FakeBizRow[] = [];
-  const diagnoses: { id: string; businessId: string; status: string }[] = [];
+  const diagnoses: { id: string; businessId: string; status: string; createdAt: Date }[] = [];
   const scans: any[] = [];
   const models: any[] = [];
-  // "from→to" לפי סדר — לב האסרטים על מכונת המצבים. נרשמים רק מעברים שהצליחו בפועל (count:1);
+  // "from→to" לפי סדר - לב האסרטים על מכונת המצבים. נרשמים רק מעברים שהצליחו בפועל (count:1);
   // מעבר שנכשל (race מדומה דרך failTransitions, או סטטוס לא תואם) לא משאיר עקבות כאן
   const transitions: string[] = [];
   let nextId = 1;
@@ -44,10 +44,19 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
         Object.assign(b, data);
         return { ...b };
       },
+      // תמיכה מינימלית ל-diagnosis-lookup.ts: חיפוש עסק לפי placeId או websiteKey (select נבלע -
+      // הפייק תמיד מחזיר את השורה המלאה, כמו upsert/update למעלה)
+      findUnique: async ({ where }: any) => {
+        const found = businesses.find(
+          (b) => (where.placeId != null && b.placeId === where.placeId)
+            || (where.websiteKey != null && b.websiteKey === where.websiteKey),
+        );
+        return found ? { ...found } : null;
+      },
     },
     diagnosis: {
       create: async ({ data }: any) => {
-        const row = { id: genId("diag"), businessId: data.businessId, status: "created" };
+        const row = { id: genId("diag"), businessId: data.businessId, status: "created", createdAt: new Date() };
         diagnoses.push(row);
         return { ...row };
       },
@@ -55,6 +64,14 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
         const d = diagnoses.find((x) => x.id === where.id);
         if (!d) throw new Error("diagnosis not found");
         return { status: d.status };
+      },
+      // תמיכה מינימלית ל-diagnosis-lookup.ts: האבחון האחרון של עסק, ממוין לפי createdAt
+      findFirst: async ({ where, orderBy }: any) => {
+        let rows = diagnoses.filter((d) => d.businessId === where.businessId);
+        if (orderBy?.createdAt === "desc") {
+          rows = [...rows].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        }
+        return rows[0] ? { ...rows[0] } : null;
       },
       updateMany: async ({ where, data }: any) => {
         const key = `${where.status}→${data.status}`;
@@ -71,9 +88,9 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
       upsert: async ({ where, create }: any) => { models.push({ where, create }); return { id: genId("bm") }; },
     },
     // אזהרה: הפרומיסים במערך שמועבר כאן נבנים eager (הקריאות ל-.create/.upsert כבר רצות לפני
-    // שה-$transaction הזה בכלל נקרא — כך גם ה-Prisma האמיתי בונה אותן), אבל בניגוד ל-PrismaPromise
-    // האמיתי (lazy — לא שולח SQL עד שמתחילים לחכות עליו בתוך טרנזקציה) הפייק כאן פשוט מחכה למה
-    // שכבר רץ. במילים אחרות: אטומיות (all-or-nothing) אינה נצפית דרך הפייק הזה — אם רוצים לבדוק
+    // שה-$transaction הזה בכלל נקרא - כך גם ה-Prisma האמיתי בונה אותן), אבל בניגוד ל-PrismaPromise
+    // האמיתי (lazy - לא שולח SQL עד שמתחילים לחכות עליו בתוך טרנזקציה) הפייק כאן פשוט מחכה למה
+    // שכבר רץ. במילים אחרות: אטומיות (all-or-nothing) אינה נצפית דרך הפייק הזה - אם רוצים לבדוק
     // "כישלון חלקי לא משאיר שורה יתומה" צריך מוק ייעודי, לא makeFakeDb.
     $transaction: async (arr: Promise<unknown>[]) => Promise.all(arr),
   };

@@ -64,8 +64,13 @@ export function DefaultHome({ recent }: { recent: DiagnosisListItem[] }) {
   );
 }
 
-export function DefaultScan({ target }: { target: Target }) {
-  return <ScanRunner target={target} />;
+export function DefaultScan({
+  target, attach,
+}: {
+  target: Target;
+  attach?: { diagnosisId: string; status: string };
+}) {
+  return <ScanRunner target={target} attach={attach} />;
 }
 
 const TONE_TAG_CLASSES: Record<ScoreToneKind, string> = {
