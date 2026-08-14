@@ -64,11 +64,32 @@ describe("runInterviewTurn", () => {
       { content: "דנה עונה תוך שעה", questionKey: "lead_flow_intake", isFreeText: false },
       { complete: okComplete });
     expect(r.reply).toContain("דנה");
-    expect(r.nextQuestion?.key).toBe("lead_flow_lost");
+    // okComplete מחזיר עדכון לסקציית lead_flow - הסקציה מזוכה (קרדיט 1), אז pickNextQuestion
+    // מדלג עליה כולה וקופץ לסקציה החסרה הבאה בתור, לא לשאלה השנייה של lead_flow עצמה
+    expect(r.nextQuestion?.key).toBe("service_repeat");
     expect(r.completenessPct).toBeGreaterThan(0);
     expect(messages).toHaveLength(2);
     expect(models).toHaveLength(1);
     expect(r.done).toBe(false);
+  });
+
+  it("עקביות resume: השאלה הבאה שהתור מחזיר זהה למה ש-startInterview מחשב מיד אחר כך", async () => {
+    const { db, diagnoses, scans } = makeFakeDb() as any;
+    seed(diagnoses, scans, "interviewing");
+    const r = await runInterviewTurn(db, "d1",
+      { content: "דנה עונה תוך שעה", questionKey: "lead_flow_intake", isFreeText: false },
+      { complete: okComplete });
+    const resumed = await startInterview(db, "d1");
+    expect(resumed.nextQuestion?.key).toBe(r.nextQuestion?.key);
+  });
+
+  it("רזרבת עומק: תשובה שלא זיכתה את הסקציה מובילה לשאלה השנייה באותה סקציה", async () => {
+    const { db, diagnoses, scans } = makeFakeDb() as any;
+    seed(diagnoses, scans, "interviewing");
+    const r = await runInterviewTurn(db, "d1",
+      { content: "לא בטוח", questionKey: "lead_flow_intake", isFreeText: false },
+      { complete: async () => ({ data: { updates: [], reply: "לא הבנתי" }, usage: { inputTokens: 1, outputTokens: 1 } }) });
+    expect(r.nextQuestion?.key).toBe("lead_flow_lost");
   });
 
   it("סטטוס לא interviewing - זריקה, כלום לא נשמר", async () => {

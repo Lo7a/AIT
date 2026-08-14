@@ -93,12 +93,11 @@ export async function runInterviewTurn(
   const askedKeys = question && !state.askedKeys.includes(question.key)
     ? [...state.askedKeys, question.key]
     : state.askedKeys;
-  // חשוב: בוחרים את השאלה הבאה לפי הקרדיטים שלפני התור הנוכחי (state.model), לא אחרי המיזוג.
-  // merge.ts תמיד מעלה את קרדיט הסקציה שנענתה ל-1 (אבן דרך 3), ו-pickNextQuestion מדלג על סקציה
-  // בקרדיט מלא בלי קשר ל-askedKeys - אילו השתמשנו ב-updated, שאלה שנייה באותה סקציה (כמו
-  // lead_flow_lost אחרי lead_flow_intake) לעולם לא הייתה מוצעת בהמשך אותה שיחה. שימוש ב-state.model
-  // עדיין מכבד את askedKeys המעודכן, ומאפשר להשלים סקציה שיש בה כמה שאלות לפני שעוברים הלאה.
-  const next = pickNextQuestion(state.model, state.findings, askedKeys);
+  // בוחרים את השאלה הבאה לפי המודל המעודכן (אחרי המיזוג), לא לפי המצב שלפני התור - כך
+  // שהתוצאה זהה למה ש-resume (startInterview על אבחון שכבר interviewing) היה מחשב מהמצב השמור.
+  // כשהתשובה מזכה את הסקציה (קרדיט 1) עוברים לסקציה החסרה הבאה - שאלה שנייה באותה סקציה
+  // (כמו lead_flow_lost) היא רזרבת עומק שמופעלת רק כשהתשובה לא זיכתה את הסקציה.
+  const next = pickNextQuestion(updated, state.findings, askedKeys);
   return {
     reply: result.reply,
     usedFallback: result.usedFallback,
