@@ -67,4 +67,9 @@ describe("pickNextQuestion", () => {
     for (const k of Object.keys(model.credits)) model.credits[k as keyof typeof model.credits] = 1;
     expect(pickNextQuestion(model, richFindings, [])).toBeNull();
   });
+
+  it("התקרה הקשיחה עומדת בפני עצמה, גם כשהמפתחות שנשאלו אינם מהבנק", () => {
+    const asked = Array.from({ length: MAX_GUIDED_QUESTIONS }, (_, i) => `not_in_bank_${i}`);
+    expect(pickNextQuestion(deriveBusinessModel(richFindings), richFindings, asked)).toBeNull();
+  });
 });

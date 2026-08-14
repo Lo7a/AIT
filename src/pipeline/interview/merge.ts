@@ -1,5 +1,5 @@
 import {
-  completenessOf, type BusinessModel, type FieldSource, type ModelSection,
+  completenessOf, type BusinessModel, type FieldSource,
 } from "../model/business-model";
 import type { ExtractedUpdate } from "./extract";
 
@@ -10,21 +10,20 @@ export function applyInterviewUpdates(
   updates: ExtractedUpdate[],
   source: Extract<FieldSource, "interview" | "free_text">,
 ): BusinessModel {
-  const data = Object.fromEntries(
-    Object.entries(model.data).map(([k, v]) => [k, { ...v }]),
-  ) as BusinessModel["data"];
+  // structuredClone ולא Object.fromEntries רדוד - שדות שהם מערכים (כמו tools.detected)
+  // לא יישארו רפרנס משותף עם המודל המקורי
+  const data = structuredClone(model.data);
   const credits = { ...model.credits };
   const fieldSources: BusinessModel["fieldSources"] = Object.fromEntries(
     Object.entries(model.fieldSources).map(([k, v]) => [k, [...(v ?? [])]]),
   );
 
   for (const u of updates) {
-    const section = u.section as ModelSection;
-    data[section] = { ...data[section], ...u.fields };
-    credits[section] = 1;
-    const sources = fieldSources[section] ?? [];
+    data[u.section] = { ...data[u.section], ...u.fields };
+    credits[u.section] = 1;
+    const sources = fieldSources[u.section] ?? [];
     if (!sources.includes(source)) sources.push(source);
-    fieldSources[section] = sources;
+    fieldSources[u.section] = sources;
   }
 
   return { data, credits, fieldSources, completenessPct: completenessOf(credits) };

@@ -47,4 +47,16 @@ describe("applyInterviewUpdates", () => {
     expect(after).toEqual(before);
     expect(after).not.toBe(before);
   });
+
+  it("data מועתק עמוק - מערך כמו tools.detected לא משותף כרפרנס בין מודל ישן לחדש", () => {
+    const findingsWithTools: ScanFindings = {
+      ...findings,
+      websiteSignals: { ...findings.websiteSignals!, hasGoogleAnalytics: true },
+    };
+    const before = deriveBusinessModel(findingsWithTools);
+    expect(before.data.tools.detected).toEqual(["google_analytics"]);
+    const after = applyInterviewUpdates(before, [{ section: "billing", fields: { tool: "iCount" } }], "interview");
+    expect(after.data.tools.detected).toEqual(before.data.tools.detected);
+    expect(after.data.tools.detected).not.toBe(before.data.tools.detected);
+  });
 });

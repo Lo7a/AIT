@@ -22,7 +22,7 @@ export const QUESTION_BANK: GuidedQuestion[] = [
   {
     key: "lead_flow_intake", section: "lead_flow",
     text: (f) => f.websiteSignals?.hasContactForm
-      ? "ראיתי שיש טופס יצירת קשר באתר. מי מקבל את הפניות האלה, ותוך כמה זמן אתם חוזרים ללקוח בדרך כלל?"
+      ? "ראינו שיש טופס יצירת קשר באתר. מי מקבל את הפניות האלה, ותוך כמה זמן אתם חוזרים ללקוח בדרך כלל?"
       : "איך מגיעות אליכם פניות חדשות (טלפון, וואטסאפ, פייסבוק), ומי מטפל בהן?",
   },
   {
@@ -39,7 +39,7 @@ export const QUESTION_BANK: GuidedQuestion[] = [
   },
   {
     key: "billing_flow", section: "billing",
-    text: () => "איך אתם גובים תשלום היום, ויש חובות פתוחים שאתם רודפים אחריהם ידנית?",
+    text: () => "איך אתם גובים תשלום היום? ויש חובות פתוחים שאתם רודפים אחריהם ידנית?",
   },
   {
     key: "billing_tool", section: "billing",
@@ -56,14 +56,14 @@ export const QUESTION_BANK: GuidedQuestion[] = [
   {
     key: "channels_main", section: "channels",
     text: (f) => (f.business.reviewCount ?? 0) > 0
-      ? "רואים שיש לכם נוכחות בגוגל. מאיפה עוד מגיעים אליכם לקוחות, ובאיזה נפח בערך?"
+      ? "רואים שיש לכם נוכחות בגוגל. מאיפה עוד מגיעים אליכם לקוחות, וכמה מכל מקום בערך?"
       : "מאיפה מגיעים אליכם רוב הלקוחות היום?",
   },
   {
     key: "scheduling_how", section: "scheduling",
     text: (f) => f.websiteSignals?.hasOnlineBooking
       ? "יש לכם קביעת תורים אונליין באתר. כמה מהתורים באמת נקבעים דרכה, וכמה עדיין בטלפון?"
-      : "איך נקבעים אצלכם תורים או פגישות, וכמה זמן ביום הולך על תיאומים?",
+      : "אם אתם עובדים עם תורים או פגישות, איך הם נקבעים וכמה זמן ביום הולך על תיאומים?",
   },
   {
     key: "retention_contact", section: "retention",
@@ -73,9 +73,9 @@ export const QUESTION_BANK: GuidedQuestion[] = [
     key: "tools_used", section: "tools",
     text: (f, m) => {
       const detected = (m.data.tools?.detected as string[] | undefined) ?? [];
-      return detected.length > 0
-        ? "זיהינו באתר כמה כלים דיגיטליים. אילו עוד מערכות או אפליקציות משמשות אתכם ביומיום לניהול העסק?"
-        : "אילו מערכות או אפליקציות משמשות אתכם ביומיום לניהול העסק (יומן, אקסל, CRM)?";
+      if (detected.length > 1) return "זיהינו באתר כמה כלים דיגיטליים. אילו עוד מערכות או אפליקציות משמשות אתכם ביומיום לניהול העסק?";
+      if (detected.length === 1) return "זיהינו באתר כלי דיגיטלי אחד. אילו עוד מערכות או אפליקציות משמשות אתכם ביומיום לניהול העסק?";
+      return "אילו מערכות או אפליקציות משמשות אתכם ביומיום לניהול העסק (יומן, אקסל, CRM)?";
     },
   },
 ];
