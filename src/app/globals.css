@@ -1,22 +1,27 @@
 @import "tailwindcss";
 
 /*
-  שפת עיצוב סופית (מינימליזם עיתונאי, Hebrew-first): לא לוח-קרח גנרי של AI, לא "עוד סטארט-אפ טורקיז".
-  - קנבס: #F7F6F3 (עצם חם). כרטיסים: #FFFFFF. גבולות: hairline בלבד - border-black/[0.06].
-    בלי shadow, בלי border עבה.
-  - טקסט: #111111 לכותרות ולגוף עיקרי, #6F6E6A למשני (עומד ב-WCAG AA על קנבס #F7F6F3).
-    כותרות (h1 ושכותרות סקציה) בפונט serif עיתונאי (Frank Ruhl Libre, --font-serif) -
-    זה החתימה החזותית של AIT. שאר הטקסט
-    בפונט sans (Assistant, --font-sans).
-  - CTA ראשי: רקע אחיד #111111, טקסט לבן, rounded-md, hover #333333, active:scale-[0.98].
-    בלי צל. קישורים: טקסט ink (#111111) עם underline ב-hover בלבד - בלי כחול, בלי טורקיז.
-  - צבעי ציון (הצבעים היחידים בממשק מלבד ink/bone): good bg #EDF3EC text #346538,
-    mid bg #FBF3DB text #956400, low bg #FDEBEC text #9F2F2D, unknown bg #F1F0EE text #787774.
-  - רדיוס: rounded-lg (12px) מקסימום לכרטיסים, rounded-md לכפתורים/שדות קלט. rounded-full
-    רק לתגיות זעירות.
-  - מספרים (ציונים, מונים): תמיד עם tabular-nums.
-  - שימוש עתידי: כל מסך חדש ממשיך את הטוקנים האלה, לא ממציא פלטה חדשה.
+  יסודות גרסאות עיצוב (theme variants): שלוש גרסאות עצמאיות תחת src/app/variants/{modern,dark,vivid}/,
+  כל אחת בעלת רכיבי מסך משלה בלבד. לוגיקה משותפת (fetch, stream, state) חיה ב-hooks/dispatchers
+  ברמת src/app (use-scan-stream.ts, use-business-search.ts, variants/registry.tsx) ולא מוכפלת
+  בגרסאות. גופנים משותפים דרך משתני CSS --font-* שנטענים ב-layout.tsx; כל גרסה בוחרת אילו
+  משתנים להשתמש בהם.
 */
+
+html[data-theme="modern"] body {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+html[data-theme="dark"] body {
+  background: #050505;
+  color: #f5f5f4;
+}
+
+html[data-theme="vivid"] body {
+  background: #f6f7fb;
+  color: #101322;
+}
 
 @keyframes fade-up {
   from {

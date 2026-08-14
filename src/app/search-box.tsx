@@ -1,72 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { looksLikeUrl } from "./url-detect";
-import type { BusinessCandidate } from "../pipeline/types";
+import { useBusinessSearch } from "./use-business-search";
 
 export function SearchBox() {
-  const router = useRouter();
-  const [input, setInput] = useState("");
-  const [city, setCity] = useState("");
-  const [candidates, setCandidates] = useState<BusinessCandidate[] | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  function goToScan(params: URLSearchParams) {
-    router.push(`/scan?${params.toString()}`);
-  }
-
-  function chooseCandidate(c: BusinessCandidate) {
-    const params = new URLSearchParams({ placeId: c.placeId, name: c.name });
-    if (city.trim()) params.set("city", city.trim());
-    goToScan(params);
-  }
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setCandidates(null);
-    const trimmed = input.trim();
-    if (trimmed.length < 2) {
-      setError("יש להזין שם עסק או כתובת אתר");
-      return;
-    }
-    if (looksLikeUrl(trimmed)) {
-      goToScan(new URLSearchParams({ url: trimmed }));
-      return;
-    }
-    setBusy(true);
-    try {
-      const query = city.trim() ? `${trimmed} ${city.trim()}` : trimmed;
-      const res = await fetch("/api/search", {
-        method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ query }),
-        signal: AbortSignal.timeout(15000),
-      });
-      const data = (await res.json().catch(() => null)) as { candidates?: BusinessCandidate[]; error?: string } | null;
-      if (!res.ok || !data?.candidates) {
-        // מחרוזת שרת גולמית מוצגת רק כשמדובר ב-400 (שגיאות עברית שלנו); כל השאר גנרי -
-        // הודעת 502 הגולמית עוברת ללוג בצד שרת בלבד (ראו search-handler.ts)
-        setError(res.status === 400 && data?.error ? data.error : "החיפוש נכשל, נסו שוב");
-        return;
-      }
-      if (data.candidates.length === 0) {
-        setError("לא נמצא עסק מתאים. נסו לנסח אחרת או להוסיף עיר.");
-        return;
-      }
-      if (data.candidates.length === 1) {
-        chooseCandidate(data.candidates[0]);
-        return;
-      }
-      setCandidates(data.candidates);
-    } catch {
-      // כולל AbortError מ-AbortSignal.timeout - נופל לאותה הודעה גנרית, לא קורס
-      setError("החיפוש נכשל, נסו שוב");
-    } finally {
-      setBusy(false);
-    }
-  }
+  const { input, setInput, city, setCity, candidates, busy, error, submit, chooseCandidate } =
+    useBusinessSearch();
 
   return (
     <div className="mt-8 animate-fade-up" style={{ animationDelay: "160ms" }}>

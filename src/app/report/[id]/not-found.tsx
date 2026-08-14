@@ -3,7 +3,7 @@ import Link from "next/link";
 export default function ReportNotFound() {
   return (
     <main className="mx-auto max-w-2xl px-4 py-16">
-      <h1 className="animate-fade-up font-[family-name:var(--font-serif)] text-4xl font-bold tracking-tight">
+      <h1 className="animate-fade-up font-[family-name:var(--font-frank)] text-4xl font-bold tracking-tight">
         האבחון לא נמצא
       </h1>
       <p className="mt-3 animate-fade-up text-lg text-[#6F6E6A]" style={{ animationDelay: "80ms" }}>

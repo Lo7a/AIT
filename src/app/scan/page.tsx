@@ -1,4 +1,6 @@
-import { ScanRunner } from "./scan-runner";
+import { cookies } from "next/headers";
+import { THEME_COOKIE, parseTheme } from "../theme";
+import { getVariant } from "../variants/registry";
 
 // searchParams ב-Next 15 הוא Promise; העמוד דינמי מטבעו
 export default async function ScanPage({
@@ -12,7 +14,7 @@ export default async function ScanPage({
   if (!hasPlace && !hasUrl) {
     return (
       <main className="mx-auto max-w-xl px-4 py-16">
-        <h1 className="animate-fade-up font-[family-name:var(--font-serif)] text-3xl font-bold tracking-tight">
+        <h1 className="animate-fade-up font-[family-name:var(--font-frank)] text-3xl font-bold tracking-tight">
           חסר יעד לאבחון
         </h1>
         <p className="mt-2 animate-fade-up text-[#6F6E6A]" style={{ animationDelay: "80ms" }}>
@@ -31,5 +33,8 @@ export default async function ScanPage({
   const target = hasUrl
     ? { url: params.url }
     : { placeId: params.placeId, name: params.name, city: params.city };
-  return <ScanRunner target={target} />;
+  const cookieStore = await cookies();
+  const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
+  const { Scan } = getVariant(theme);
+  return <Scan target={target} />;
 }
