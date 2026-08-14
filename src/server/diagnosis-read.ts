@@ -55,7 +55,7 @@ export interface DiagnosisListItem {
   overall: number | null; // מהסריקה האחרונה, אם קיימת
 }
 
-function toFindings(json: unknown): ScanFindings {
+export function toFindings(json: unknown): ScanFindings {
   const obj = json as Record<string, unknown> | null;
   if (obj == null || typeof obj !== "object" || !Object.hasOwn(obj, "business") || !Object.hasOwn(obj, "meta")) {
     throw new Error("שורת scan פגומה: findings בלי business/meta");

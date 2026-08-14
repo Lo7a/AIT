@@ -32,6 +32,7 @@ describe("startInterview", () => {
     expect(transitions).toContain("report_ready→interviewing");
     expect(s.nextQuestion?.key).toBe("lead_flow_intake");
     expect(s.completenessPct).toBeGreaterThanOrEqual(0);
+    expect(s.credits).toBeDefined();
   });
 
   it("כבר interviewing - לא מנסה מעבר (resume שקט)", async () => {
@@ -71,6 +72,8 @@ describe("runInterviewTurn", () => {
     expect(messages).toHaveLength(2);
     expect(models).toHaveLength(1);
     expect(r.done).toBe(false);
+    expect(r.askedCount).toBe(1);
+    expect(r.credits.lead_flow).toBe(1);
   });
 
   it("עקביות resume: השאלה הבאה שהתור מחזיר זהה למה ש-startInterview מחשב מיד אחר כך", async () => {
@@ -147,5 +150,17 @@ describe("finishInterview", () => {
     seed(diagnoses, scans, "interviewing");
     await finishInterview(db, "d1");
     expect(transitions).toContain("interviewing→report_ready");
+  });
+
+  it("כבר report_ready - no-op שקט, בלי מעברים נרשמים", async () => {
+    const { db, diagnoses, scans, transitions } = makeFakeDb() as any;
+    seed(diagnoses, scans, "report_ready");
+    await finishInterview(db, "d1");
+    expect(transitions).toEqual([]);
+  });
+
+  it("אבחון לא קיים - זריקה עברית 404 (לא שגיאת Prisma)", async () => {
+    const { db } = makeFakeDb() as any;
+    await expect(finishInterview(db, "אין")).rejects.toThrow(/לא נמצא/);
   });
 });

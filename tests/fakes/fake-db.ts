@@ -25,7 +25,8 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
   let nextId = 1;
   const genId = (p: string) => `${p}-${nextId++}`;
   // סדר יציב להודעות ראיון: Date.now() לבדו עלול לחזור על עצמו בין שתי יצירות רצופות באותה
-  // מילישנייה (למשל שתי ההודעות של appendExchange) - מונה עולה מבטיח סדר כרונולוגי אמיתי
+  // מילישנייה - כשה-caller מעביר createdAt מפורש (כמו appendExchange האמיתי) הוא מכבד אותו;
+  // מונה עולה משמש רק כברירת מחדל כשלא הועבר createdAt
   let msgSeq = 0;
 
   const db = {
@@ -128,17 +129,33 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
           content: data.content,
           questionKey: data.questionKey ?? null,
           isFreeText: data.isFreeText ?? false,
-          createdAt: new Date(Date.now() + msgSeq++),
+          // createdAt מפורש (כמו appendExchange האמיתי) מכובד; בלעדיו - מונה עולה כברירת מחדל
+          createdAt: data.createdAt ?? new Date(Date.now() + msgSeq++),
         };
         messages.push(row);
         return { ...row };
       },
       findMany: async ({ where, orderBy }: any) => {
         let rows = messages.filter((m) => where?.diagnosisId == null || m.diagnosisId === where.diagnosisId);
-        if (orderBy?.createdAt === "asc") {
-          rows = [...rows].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-        } else if (orderBy?.createdAt === "desc") {
-          rows = [...rows].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        // orderBy יכול להיות אובייקט בודד או מערך (מפתח ראשי + שובר-שוויון) - כמו ה-Prisma האמיתי
+        const keys: any[] = Array.isArray(orderBy) ? orderBy : orderBy ? [orderBy] : [];
+        if (keys.length > 0) {
+          rows = [...rows].sort((a, b) => {
+            for (const key of keys) {
+              if (key.createdAt === "asc") {
+                const diff = a.createdAt.getTime() - b.createdAt.getTime();
+                if (diff !== 0) return diff;
+              } else if (key.createdAt === "desc") {
+                const diff = b.createdAt.getTime() - a.createdAt.getTime();
+                if (diff !== 0) return diff;
+              } else if (key.role === "asc") {
+                if (a.role !== b.role) return a.role < b.role ? -1 : 1;
+              } else if (key.role === "desc") {
+                if (a.role !== b.role) return a.role > b.role ? -1 : 1;
+              }
+            }
+            return 0;
+          });
         }
         return rows.map((m) => ({ ...m }));
       },

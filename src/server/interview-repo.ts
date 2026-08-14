@@ -1,7 +1,8 @@
 import type { PrismaClient, Prisma } from "@prisma/client";
 import type { ScanFindings } from "../pipeline/types";
-import { deriveBusinessModel, type BusinessModel } from "../pipeline/model/business-model";
+import { deriveBusinessModel, MODEL_SECTIONS, type BusinessModel, type ModelSection } from "../pipeline/model/business-model";
 import type { DiagnosisStatus } from "./status";
+import { toModelView, toFindings } from "./diagnosis-read";
 
 // שכבת השמירה של הראיון: כל חילופין (תשובה + אישור) נשמר מיידית ואטומית יחד עם המודל
 // המעודכן - יציאה באמצע לא מאבדת אף תשובה (אפיון 3.1)
@@ -29,21 +30,35 @@ export interface ExchangeInput {
   assistant: { content: string };
 }
 
+// שעון מונוטוני קל למקרא createdAt של חילופין: Date.now() לבדו יכול לחזור על עצמו בין שתי קריאות
+// סמוכות ל-appendExchange (רזולוציית שעון של מילישנייה מול ריצה בפועל מהירה ממנה - בעיקר בתורות
+// חופשיים בלי המתנה ל-LLM) - שומרים את הזמן האחרון שחולק ומוודאים שכל חילופין חדש מתחיל אחריו,
+// כדי שהמיון הכרונולוגי יהיה דטרמיניסטי גם בין חילופין נפרדים ולא רק בין שתי השורות שבתוך אחד
+let lastExchangeEnd = 0;
+
 export async function appendExchange(
   prisma: PrismaClient,
   diagnosisId: string,
   exchange: ExchangeInput,
   model: BusinessModel,
 ): Promise<void> {
+  const t = Math.max(Date.now(), lastExchangeEnd + 1);
+  lastExchangeEnd = t + 1;
+  // createdAt מפורש: בתוך טרנזקציה CURRENT_TIMESTAMP קופא, ושתי השורות היו מקבלות אותו זמן -
+  // המיון לפי createdAt היה לא-דטרמיניסטי מול Postgres אמיתי (ה-fake מסתיר את זה עם msgSeq)
   await prisma.$transaction([
     prisma.interviewMessage.create({
       data: {
         diagnosisId, role: "user", content: exchange.user.content,
         questionKey: exchange.user.questionKey ?? null, isFreeText: exchange.user.isFreeText,
+        createdAt: new Date(t),
       },
     }),
     prisma.interviewMessage.create({
-      data: { diagnosisId, role: "assistant", content: exchange.assistant.content, questionKey: null, isFreeText: false },
+      data: {
+        diagnosisId, role: "assistant", content: exchange.assistant.content, questionKey: null, isFreeText: false,
+        createdAt: new Date(t + 1),
+      },
     }),
     prisma.businessModelRow.upsert({
       where: { diagnosisId },
@@ -67,18 +82,16 @@ export async function getInterviewState(
   if (!d) return null;
   const scan = await prisma.scan.findFirst({ where: { diagnosisId }, orderBy: { createdAt: "desc" } });
   if (!scan) return null; // אין סריקה - אין על מה לראיין
-  const findings = scan.findings as unknown as ScanFindings;
+  const findings = toFindings(scan.findings);
   const modelRow = await prisma.businessModelRow.findUnique({ where: { diagnosisId } });
-  const model: BusinessModel = modelRow
-    ? {
-        data: modelRow.data as BusinessModel["data"],
-        fieldSources: modelRow.fieldSources as BusinessModel["fieldSources"],
-        credits: modelRow.credits as BusinessModel["credits"],
-        completenessPct: modelRow.completenessPct,
-      }
-    : deriveBusinessModel(findings);
+  const model: BusinessModel = modelRow ? toModelView(modelRow) : deriveBusinessModel(findings);
+  // קרדיטים חסרים (הרחבת MODEL_SECTIONS אחרי ששורת מודל ישנה כבר נשמרה) לא יהפכו לחור ב-completeness
+  // באמצע תור - ממלאים 0, בעותק (spread) כדי לא לגעת באובייקט שחזר מ-toModelView
+  const credits: Record<ModelSection, number> = { ...model.credits };
+  for (const s of MODEL_SECTIONS) if (typeof credits[s] !== "number") credits[s] = 0;
+  model.credits = credits;
   const rows = await prisma.interviewMessage.findMany({
-    where: { diagnosisId }, orderBy: { createdAt: "asc" },
+    where: { diagnosisId }, orderBy: [{ createdAt: "asc" }, { role: "desc" }],
   });
   const messages: InterviewMessageView[] = rows.map((m) => ({
     id: m.id, role: m.role as "user" | "assistant", content: m.content,

@@ -15,6 +15,7 @@ export interface InterviewSnapshot {
   askedCount: number;
   maxQuestions: number;
   completenessPct: number;
+  credits: Record<string, number>; // קרדיטים לפי סקציה - כדי שה-UI יציג התקדמות פר-סקציה, לא רק אחוז כולל
   nextQuestion: { key: string; section: string; text: string } | null;
   recommendFreeText: boolean; // שלמות נמוכה - עדיף לפתוח בסיפור חופשי (recommendNextStep)
 }
@@ -26,6 +27,7 @@ export interface TurnResult {
   usedFallback: boolean;
   nextQuestion: InterviewSnapshot["nextQuestion"];
   completenessPct: number;
+  credits: Record<string, number>; // ראו InterviewSnapshot.credits
   askedCount: number;
   done: boolean;
 }
@@ -38,6 +40,7 @@ export function snapshotOf(state: InterviewState): InterviewSnapshot {
     askedCount: state.askedKeys.length,
     maxQuestions: MAX_GUIDED_QUESTIONS,
     completenessPct: state.model.completenessPct,
+    credits: state.model.credits,
     nextQuestion: q ? { key: q.key, section: q.section, text: q.text(state.findings, state.model) } : null,
     recommendFreeText: recommendNextStep(state.model).action === "free_text",
   };
@@ -49,6 +52,9 @@ async function loadStateOrThrow(prisma: PrismaClient, diagnosisId: string): Prom
   return state;
 }
 
+// הערת concurrency למשימות 6/11: שני request מקבילים שקוראים ל-startInterview על אותו diagnosisId
+// מתחרים על אותו CAS ב-transitionDiagnosis; המפסיד מקבל "מעבר סטטוס נכשל" (409) ולא באמת שגיאה -
+// קליינטים צריכים להתייחס לזה כ"יש לרענן את המצב" (כנראה שהראיון כבר התחיל אצל הבקשה המקבילה)
 export async function startInterview(prisma: PrismaClient, diagnosisId: string): Promise<InterviewSnapshot> {
   const state = await loadStateOrThrow(prisma, diagnosisId);
   if (state.status === "interviewing") return snapshotOf(state); // resume שקט
@@ -105,11 +111,14 @@ export async function runInterviewTurn(
       ? { key: next.key, section: next.section, text: next.text(state.findings, updated) }
       : null,
     completenessPct: updated.completenessPct,
+    credits: updated.credits,
     askedCount: askedKeys.length,
     done: next == null,
   };
 }
 
 export async function finishInterview(prisma: PrismaClient, diagnosisId: string): Promise<void> {
-  await transitionDiagnosis(prisma, diagnosisId, "report_ready");
+  const state = await loadStateOrThrow(prisma, diagnosisId);
+  if (state.status === "report_ready") return; // כבר שם - no-op שקט, סימטרי ל-resume השקט של startInterview
+  await transitionDiagnosis(prisma, diagnosisId, "report_ready"); // interviewing עובר; כל סטטוס אחר יזרוק כאן
 }

@@ -29,6 +29,29 @@ describe("appendExchange", () => {
     expect(messages[1]).toMatchObject({ role: "assistant", questionKey: null });
     expect(models).toHaveLength(1);
   });
+
+  it("שני חילופין רצופים - התפקידים מתחלפים בקפדנות וה-createdAt של המשתמש קודם לזה של העוזר בכל זוג", async () => {
+    const { db, diagnoses, scans } = makeFakeDb() as any;
+    seedDiagnosis(diagnoses, scans);
+    const model = deriveBusinessModel(findings);
+    await appendExchange(db, "d1", {
+      user: { content: "דנה מטפלת", questionKey: "lead_flow_intake", isFreeText: false },
+      assistant: { content: "רשמתי" },
+    }, model);
+    await appendExchange(db, "d1", {
+      user: { content: "תוך שעה", questionKey: "lead_flow_lost", isFreeText: false },
+      assistant: { content: "מעולה" },
+    }, model);
+    const state = await getInterviewState(db, "d1");
+    const roles = state?.messages.map((m) => m.role);
+    expect(roles).toEqual(["user", "assistant", "user", "assistant"]);
+    const msgs = state?.messages ?? [];
+    for (let i = 0; i < msgs.length; i += 2) {
+      expect(msgs[i].role).toBe("user");
+      expect(msgs[i + 1].role).toBe("assistant");
+      expect(msgs[i].createdAt.getTime()).toBeLessThan(msgs[i + 1].createdAt.getTime());
+    }
+  });
 });
 
 describe("getInterviewState", () => {
