@@ -13,13 +13,13 @@ export default async function HomePage() {
       <h1 className="animate-fade-up font-[family-name:var(--font-serif)] text-4xl font-bold tracking-tight">
         כמה שווה הנוכחות הדיגיטלית של העסק שלך?
       </h1>
-      <p className="mt-3 animate-fade-up text-lg text-[#787774]" style={{ animationDelay: "80ms" }}>
+      <p className="mt-3 animate-fade-up text-lg text-[#6F6E6A]" style={{ animationDelay: "80ms" }}>
         מכניסים שם עסק או כתובת אתר. תוך דקה מקבלים תמונה אמיתית: מה עובד, מה חסר ומה כדאי לתקן קודם.
       </p>
       <SearchBox />
 
       {recent.length > 0 && (
-        <section className="mt-14 animate-fade-up" style={{ animationDelay: "160ms" }}>
+        <section className="mt-14 animate-fade-up" style={{ animationDelay: "240ms" }}>
           <h2 className="font-[family-name:var(--font-serif)] text-lg font-bold tracking-tight">
             אבחונים אחרונים
           </h2>
@@ -28,11 +28,11 @@ export default async function HomePage() {
               <li
                 key={d.id}
                 className="flex animate-fade-up items-center justify-between px-4 py-3"
-                style={{ animationDelay: `${200 + i * 80}ms` }}
+                style={{ animationDelay: `${240 + i * 80}ms` }}
               >
                 <span>
                   <span className="font-medium">{d.businessName}</span>
-                  <span className="mr-2 text-sm text-[#787774]">
+                  <span className="ms-2 text-sm text-[#6F6E6A]">
                     {DIAGNOSIS_STATUS_LABEL[d.status]}
                   </span>
                 </span>
@@ -43,7 +43,7 @@ export default async function HomePage() {
                   {d.status === "report_ready" && (
                     <Link
                       href={`/report/${d.id}`}
-                      className="text-sm font-medium text-[#111111] underline-offset-4 hover:underline"
+                      className="text-sm font-medium text-[#111111] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
                     >
                       לדוח
                     </Link>

@@ -27,6 +27,12 @@ describe("parseDiagnoseBody", () => {
     expect(parseDiagnoseBody({ url: "mailto:x@y.il" })).toMatchObject({ error: expect.stringContaining("כתובת") });
   });
 
+  it("url שגורם לשגיאת URL באנגלית (Invalid URL) - מוחלפת בהודעה עברית קבועה, לא הטקסט הגולמי", () => {
+    const result = parseDiagnoseBody({ url: "http://" });
+    expect(result).toMatchObject({ error: "כתובת האתר לא תקינה" });
+    if ("error" in result) expect(result.error).not.toMatch(/[a-zA-Z]/);
+  });
+
   it("גם וגם / לא כלום — שגיאה", () => {
     expect(parseDiagnoseBody({})).toHaveProperty("error");
     expect(parseDiagnoseBody({ placeId: "p", name: "x", url: "https://x.co.il" })).toHaveProperty("error");

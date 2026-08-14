@@ -5,5 +5,9 @@ export function normalizeSiteUrl(input: string): URL {
     throw new Error(`כתובת לא נתמכת (רק http/https): ${trimmed.slice(0, 80)}`);
   }
   const withProto = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-  return new URL(withProto); // URL לא-תקין זורק כאן — כישלון מוקדם וברור עדיף על סריקה של זבל
+  const u = new URL(withProto); // URL לא-תקין זורק כאן - כישלון מוקדם וברור עדיף על סריקה של זבל
+  // מסירים פרטי הזדהות (userinfo) - כתובת עם user:pass@ לא תגיע ל-fetch, שזורק עליה ב-Node
+  u.username = "";
+  u.password = "";
+  return u;
 }

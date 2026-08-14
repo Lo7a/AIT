@@ -37,7 +37,10 @@ export function parseDiagnoseBody(body: unknown): DiagnoseTarget | { error: stri
       if (isForbiddenHost(normalized.hostname)) return { error: "כתובת פנימית או מקומית אינה נתמכת" };
       return { kind: "url", url: normalized.href };
     } catch (err) {
-      return { error: `כתובת האתר לא תקינה: ${err instanceof Error ? err.message : String(err)}` };
+      const msg = err instanceof Error ? err.message : String(err);
+      // הודעות שלנו (למשל "כתובת לא נתמכת") כתובות בעברית ועוברות כלשונן; שגיאות URL
+      // מובנות של הפלטפורמה ("Invalid URL") הן באנגלית - מוחלפות בהודעה עברית קבועה
+      return { error: /[א-ת]/.test(msg) ? `כתובת האתר לא תקינה: ${msg}` : "כתובת האתר לא תקינה" };
     }
   }
   if (typeof b.name !== "string") return { error: "מסלול Places דורש גם name" };

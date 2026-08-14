@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { websiteKeyOf } from "../src/server/website-key";
+import { normalizeSiteUrl } from "../src/pipeline/site-url";
+
+describe("normalizeSiteUrl", () => {
+  it("מסיר פרטי הזדהות (userinfo) - לא יגיעו ל-fetch", () => {
+    const href = normalizeSiteUrl("https://someone@x.co.il").href;
+    expect(href).not.toContain("@");
+    expect(href).toBe("https://x.co.il/");
+  });
+});
 
 describe("websiteKeyOf", () => {
   it("מנרמל סכמה, www, רישיות וסלאש סופי לאותו מפתח", () => {

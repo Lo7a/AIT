@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { NdjsonParser } from "../ndjson";
 import type { DiagnoseEvent, DiagnoseStepKey } from "../../server/diagnose-events";
 
-type Target = { placeId?: string; name?: string; url?: string };
+type Target = { placeId?: string; name?: string; url?: string; city?: string };
 
 type StepLine = {
   key: DiagnoseStepKey;
@@ -15,9 +15,11 @@ type StepLine = {
   detail?: string;
 };
 
-// הגנת אנטי-כפילות ברמת המודול - זו ההגנה האמיתית על עלות בפועל, לא reactStrictMode.
+// הגנת אנטי-כפילות ברמת המודול - הגנה best-effort פר-טאב על עלות בפועל, לא reactStrictMode.
 // כל יעד (מזוהה לפי JSON.stringify) שכבר יש עבורו סריקה רצה מסומן כאן; ניסיון נוסף
 // לטעון את הרכיב עבור אותו יעד (למשל רינדור כפול, ניווט הלוך-חזור) לא יורה סריקה שנייה.
+// זו הגנה פר-טאב בלבד: שני טאבים פתוחים או רענון קשיח (F5) עדיין יכולים לירות פעמיים -
+// דה-דופליקציה בצד שרת היא פריט רשום לפריסה, לא חלק מהמנעול הזה.
 // reactStrictMode כבוי ב-next.config.ts כדי לצמצם רעש בפיתוח בלבד - הוא לא ההגנה עצמה,
 // כי בפרודקשן אין הכפלת אפקטים ממילא. המפתח משוחרר רק ב-done/error, כדי לאפשר בעתיד
 // אבחון חוזר של אותו עסק (למשל אחרי שהאתר שלו השתנה).
@@ -81,17 +83,19 @@ function StepIndicator({ step }: { step: StepLine }) {
 export function ScanRunner({ target }: { target: Target }) {
   const router = useRouter();
   const key = JSON.stringify(target);
-  const guardedRef = useRef(false);
+  const guardedRef = useRef<string | null>(null);
   const [title, setTitle] = useState("מתחילים את האבחון");
   const [steps, setSteps] = useState<StepLine[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // שער כפול: startedTargets (חוצה-רכיבים, שורד רימאונט) + guardedRef (מגן על ה-mount
-    // הנוכחי מפני הרצה כפולה של אותו effect באותה מופע רכיב)
-    if (startedTargets.has(key) || guardedRef.current) return;
+    // הנוכחי מפני הרצה כפולה של אותו effect באותה מופע רכיב). guardedRef נשמר לפי מפתח
+    // היעד עצמו (לא boolean גורף) - כך שניווט searchParams-בלבד לאותו מופע רכיב
+    // (/scan?A -> /scan?B) לא חוסם בטעות את היעד החדש B.
+    if (startedTargets.has(key) || guardedRef.current === key) return;
     startedTargets.add(key);
-    guardedRef.current = true;
+    guardedRef.current = key;
 
     let cancelled = false;
     const release = () => {
@@ -112,11 +116,9 @@ export function ScanRunner({ target }: { target: Target }) {
           );
           break;
         case "done":
-          release();
           router.replace(`/report/${e.diagnosisId}`);
           break;
         case "error":
-          release();
           setError(e.message);
           break;
       }
@@ -154,13 +156,18 @@ export function ScanRunner({ target }: { target: Target }) {
           if (done) break;
           const events = parser.push(decoder.decode(value, { stream: true }));
           for (const e of events) {
-            if (cancelled) return;
+            // אירועי סיום חייבים לשחרר את המנעול גם אחרי רימאונט (cancelled), אחרת היעד
+            // נשאר חסום למשך כל הסשן (מסך חסימה מדומה בניווט אחורה-קדימה). ה-setState
+            // עצמו כן מדולג כשמבוטל - הרכיב כבר לא מותקן.
+            if (e.type === "done" || e.type === "error") release();
+            if (cancelled) continue;
             applyEvent(e);
           }
         }
         const rest = parser.flush();
         for (const e of rest) {
-          if (cancelled) return;
+          if (e.type === "done" || e.type === "error") release();
+          if (cancelled) continue;
           applyEvent(e);
         }
       } catch {
@@ -175,29 +182,40 @@ export function ScanRunner({ target }: { target: Target }) {
 
     return () => {
       cancelled = true;
+      // לא מבטלים את ה-reader כאן בכוונה: הסריקה חייבת להסתיים בצד שרת גם אחרי רימאונט
     };
   }, [key, router, target]);
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-16">
+    <main className="mx-auto max-w-2xl px-4 py-16" aria-busy={error == null}>
       <h1 className="animate-fade-up font-[family-name:var(--font-serif)] text-3xl font-bold tracking-tight">
         {title}
       </h1>
-      <p className="mt-2 animate-fade-up text-[#787774]" style={{ animationDelay: "80ms" }}>
+      <p className="mt-2 animate-fade-up text-[#6F6E6A]" style={{ animationDelay: "80ms" }}>
         בדרך כלל זה לוקח פחות מדקה
       </p>
 
       {error && (
-        <div className="mt-8 animate-fade-up rounded-lg border border-black/[0.06] bg-[#FDEBEC] p-5 text-[#9F2F2D]">
+        <div
+          role="alert"
+          className="mt-8 animate-fade-up rounded-lg border border-black/[0.06] bg-[#FDEBEC] p-5 text-[#9F2F2D]"
+        >
           <p>{error}</p>
-          <a href="/" className="mt-2 inline-block text-[#111111] underline-offset-4 hover:underline">
+          <a
+            href="/"
+            className="mt-2 inline-block text-[#111111] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
+          >
             חזרה לעמוד הראשי
           </a>
         </div>
       )}
 
       {steps.length > 0 && (
-        <ul className="mt-10 divide-y divide-black/[0.06] border-t border-black/[0.06]">
+        <ul
+          role="status"
+          aria-live="polite"
+          className="mt-10 divide-y divide-black/[0.06] border-t border-black/[0.06]"
+        >
           {steps.map((s, i) => (
             <li
               key={s.key}
@@ -206,8 +224,10 @@ export function ScanRunner({ target }: { target: Target }) {
             >
               <StepIndicator step={s} />
               <div className="min-w-0 flex-1">
-                <p className="tabular-nums">{s.label}</p>
-                {s.done && s.detail && <p className="mt-0.5 text-sm text-[#787774]">{s.detail}</p>}
+                <p>{s.label}</p>
+                {s.done && s.detail && (
+                  <p className="mt-0.5 text-sm tabular-nums text-[#6F6E6A]">{s.detail}</p>
+                )}
               </div>
             </li>
           ))}

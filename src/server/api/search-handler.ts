@@ -23,10 +23,10 @@ export function makeSearchHandler(search: (q: string) => Promise<BusinessCandida
       const found = (await search(query)).slice(0, MAX_CANDIDATES);
       return Response.json({ candidates: found });
     } catch (err) {
-      return Response.json(
-        { error: err instanceof Error ? err.message : "החיפוש נכשל" },
-        { status: 502 },
-      );
+      // טקסט שגיאת upstream הגולמי (עלול לכלול פרטי תשתית) נשמר בלוג בצד שרת בלבד;
+      // ללקוח חוזרת הודעה גנרית (תואם את התבנית ב-diagnose-stream.ts)
+      console.error("⚠️ חיפוש נכשל (פרטים בצד שרת בלבד):", err);
+      return Response.json({ error: "החיפוש נכשל, נסו שוב בעוד רגע" }, { status: 502 });
     }
   };
 }

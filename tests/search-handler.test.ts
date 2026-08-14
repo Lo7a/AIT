@@ -54,10 +54,12 @@ describe("makeSearchHandler", () => {
     expect(called).toBe(false);
   });
 
-  it("כשל Places — 502 עם ההודעה", async () => {
+  it("כשל Places - 502 עם הודעה גנרית עברית, לא הטקסט הגולמי", async () => {
     const handler = makeSearchHandler(async () => { throw new Error("quota"); });
     const res = await handler(req({ query: "מאפייה תל אביב" }));
     expect(res.status).toBe(502);
-    expect((await res.json()).error).toBe("quota");
+    const body = await res.json();
+    expect(body.error).toBe("החיפוש נכשל, נסו שוב בעוד רגע");
+    expect(body.error).not.toContain("quota");
   });
 });
