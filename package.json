@@ -9,6 +9,7 @@
   "scripts": {
     "scan": "tsx src/cli.ts",
     "diagnose": "tsx src/cli-diagnose.ts",
+    "interview": "tsx src/cli-interview.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "postinstall": "prisma generate",
