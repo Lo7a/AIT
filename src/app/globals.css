@@ -1,10 +1,33 @@
 @import "tailwindcss";
 
 /*
-  שפת עיצוב (עדכון מסך 2ב): נייר חם ולא לוח-קרח של AI.
-  - רקע: #faf8f4 (נייר חם). כרטיסים: לבן, border-stone-200, rounded-lg, shadow-sm בלבד.
-  - הדגשה (כפתורים/קישורים/פוקוס): teal-700 (#0f766e), hover teal-800. לא כחול.
-  - טקסט: stone-900 לכותרות, stone-600 למשני. כותרות עם tracking-tight.
-  - צבעי ציון (emerald/amber/red) נשארים כפי שהם בכל מקום שהם כבר בשימוש.
+  שפת עיצוב סופית (מינימליזם עיתונאי, Hebrew-first): לא לוח-קרח גנרי של AI, לא "עוד סטארט-אפ טורקיז".
+  - קנבס: #F7F6F3 (עצם חם). כרטיסים: #FFFFFF. גבולות: hairline בלבד - border-black/[0.06].
+    בלי shadow, בלי border עבה.
+  - טקסט: #111111 לכותרות ולגוף עיקרי, #787774 למשני. כותרות (h1 ושכותרות סקציה) בפונט
+    serif עיתונאי (Frank Ruhl Libre, --font-serif) - זה החתימה החזותית של AIT. שאר הטקסט
+    בפונט sans (Assistant, --font-sans).
+  - CTA ראשי: רקע אחיד #111111, טקסט לבן, rounded-md, hover #333333, active:scale-[0.98].
+    בלי צל. קישורים: טקסט ink (#111111) עם underline ב-hover בלבד - בלי כחול, בלי טורקיז.
+  - צבעי ציון (הצבעים היחידים בממשק מלבד ink/bone): good bg #EDF3EC text #346538,
+    mid bg #FBF3DB text #956400, low bg #FDEBEC text #9F2F2D, unknown bg #F1F0EE text #787774.
+  - רדיוס: rounded-lg (12px) מקסימום לכרטיסים, rounded-md לכפתורים/שדות קלט. rounded-full
+    רק לתגיות זעירות.
+  - מספרים (ציונים, מונים): תמיד עם tabular-nums.
   - שימוש עתידי: כל מסך חדש ממשיך את הטוקנים האלה, לא ממציא פלטה חדשה.
 */
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}

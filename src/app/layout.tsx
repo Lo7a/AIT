@@ -1,8 +1,19 @@
 import type { Metadata } from "next";
-import { Heebo } from "next/font/google";
+import { Frank_Ruhl_Libre, Assistant } from "next/font/google";
 import "./globals.css";
 
-const heebo = Heebo({ subsets: ["hebrew", "latin"], display: "swap" });
+const frankRuhl = Frank_Ruhl_Libre({
+  subsets: ["hebrew", "latin"],
+  weight: ["500", "700", "900"],
+  variable: "--font-serif",
+  display: "swap",
+});
+const assistant = Assistant({
+  subsets: ["hebrew", "latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-sans",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "AIT | אבחון דיגיטלי לעסק",
@@ -12,7 +23,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="he" dir="rtl">
-      <body className={`${heebo.className} min-h-screen bg-[#faf8f4] text-stone-900 antialiased`}>{children}</body>
+      <body
+        className={`${assistant.variable} ${frankRuhl.variable} font-[family-name:var(--font-sans)] min-h-screen bg-[#F7F6F3] text-[#111111] antialiased`}
+      >
+        {children}
+      </body>
     </html>
   );
 }
