@@ -1039,7 +1039,9 @@ git commit -m "feat(3-5): interview orchestrator - start with resume, atomic tur
 
 ---
 
-### משימה 6: מסלולי ה-API של הראיון
+> **As-built משימות 6-8 (6257ea9 + 00f8b9e + f845d2e):** ארבעת המסלולים חוברו בתבנית ה-factory ועברו עשן חי (snapshot אמיתי 200 + מסלול 404 עברי מלא); נוסח שגיאת ה-CAS ב-diagnosis-repo התגלה עם מקף (אחרי הסוויפ) והבדיקות יושרו למציאות. קישור "לדוח" נשאר גלוי בזמן interviewing; כפתור הראיון בדוח פעיל ומקשר ל-/interview/[id] (404 עד משימה 11 - צפוי). CLI ראיון: npm run interview -- <diagnosisId>. סקירת משימה 6 שולבה במודע בסקירה הסופית שלפני השער (תבנית handlers שהועתקה מ-2ב הסקורה).
+
+### משימה 6: מסלולי ה-API של הראיון ✅
 
 תבנית ה-factory הקיימת (search-handler/diagnose-stream): לוגיקה ב-src/server/api, חיווט דק ב-src/app/api. תשובות JSON רגילות (תורי ראיון קצרים - אין צורך בזרם). שגיאות: העבריות שלנו עוברות, כל השאר גנרית + לוג שרת (הדפוס מ-2ב).
 
