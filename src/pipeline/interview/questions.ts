@@ -12,11 +12,21 @@ export interface GuidedQuestion {
 }
 
 // סדר עדיפות הסקציות לראיון - מיושר עם INTERVIEW_PRIORITY של recommendNextStep
-// (ארבע הראשונות זהות), ואחריהן שאר הסקציות שהסריקה משאירה חסרות
-const SECTION_ORDER: ModelSection[] = [
-  "lead_flow", "service", "billing", "manual_tasks",
-  "profile", "channels", "scheduling", "retention", "tools",
+// (ארבע הראשונות זהות), ואחריהן שאר הסקציות שהסריקה משאירה חסרות. מקור אמת יחיד: גם הסדר
+// (SECTION_ORDER) וגם התוויות בעברית לתצוגת ה-UI (משימה 11 - התקדמות פר-סקציה במסך הראיון)
+// נגזרים מכאן, כדי שלא יהיו שתי רשימות שיכולות להתפצל.
+export const INTERVIEW_SECTIONS: { key: ModelSection; label: string }[] = [
+  { key: "lead_flow", label: "טיפול בפניות" },
+  { key: "service", label: "שירות ותפעול" },
+  { key: "billing", label: "גבייה וחשבוניות" },
+  { key: "manual_tasks", label: "עבודה ידנית" },
+  { key: "profile", label: "פרופיל העסק" },
+  { key: "channels", label: "ערוצי שיווק" },
+  { key: "scheduling", label: "יומן ותורים" },
+  { key: "retention", label: "שימור לקוחות" },
+  { key: "tools", label: "כלים ומערכות" },
 ];
+const SECTION_ORDER: ModelSection[] = INTERVIEW_SECTIONS.map((s) => s.key);
 
 export const QUESTION_BANK: GuidedQuestion[] = [
   {

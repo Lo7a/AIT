@@ -14,6 +14,7 @@ export interface VariantScreens {
     attach?: { diagnosisId: string; status: string };
   }>;
   Report: ComponentType<{ report: NonNullable<Awaited<ReturnType<typeof import("../../server/diagnosis-read").getReport>>> }>;
+  Interview: ComponentType<{ diagnosisId: string; initial: import("../../server/run-interview").InterviewSnapshot }>;
 }
 
 const REGISTRY: Record<ThemeId, VariantScreens> = { modern, dark, vivid };
