@@ -110,6 +110,7 @@ export function matchOpportunities(report: ScoreReport, model: BusinessModel | n
 
 **Files:** Create: `src/pipeline/roadmap/opportunity-score.ts`; Test: `tests/opportunity-score.test.ts`
 
+- [ ] **החלטת מייסד (15.8): הכאב של הבעלים מוביל את הדירוג** - "הכי קל למכור מה שהוא כבר רוצה". תוספת ה-painQuote היא הרכיב הדומיננטי בנוסחה.
 - [ ] נוסחה דטרמיניסטית (0-100, שקופה - תתועד בקוד):
 ```ts
 // בסיס: אחוז הנקודות המשוקללות האבודות שהפריט סוגר, מנורמל מול הפריט המקסימלי ברשימה (0-60)
@@ -162,9 +163,9 @@ export function phaseOf(match: OpportunityMatch): "quick_wins" | "automation" | 
 - [ ] בדיקות: תבנית מלאה מנתוני אופטיקה בק fixture, אפס ספרות שלא מהקטלוג, transport מוזרק נקרא, sentAt מתעדכן רק בהצלחה.
 - [ ] Commit: `feat(4-7): project brief - deterministic template, pluggable email transport`
 
-### משימה 8: מסך 5 - Business Map + Roadmap (מותנה בבחירת העיצוב)
+### משימה 8: מסך 5 - Business Map + Roadmap (בעיצוב הזמני)
 
-**עצירה: לוודא שלהב בחר עיצוב (design/index.html או חיצוני). אם בחר - קודם משימת ההמרה של העיצוב לכל 4 המסכים הקיימים (התוכנית תיכתב אז), ומסך 5 נבנה ישר בעיצוב הנבחר. אם עדיין לא - המסך נבנה בעיצוב הזמני באותו דפוס (לוגיקה ב-hook, תצוגה דקה) והוחלף אחר כך.**
+**עדכון החלטת מייסד (15.8 ערב): נקודת העצירה לעיצוב בוטלה.** להב: "להמשיך בעיצוב הזמני עד הסוף... המסכים הנוכחיים נטו לבדיקות שלנו". המסך נבנה בעיצוב הזמני באותו דפוס (לוגיקה ב-hook, תצוגה דקה). עיצוב אמיתי + פלואו לפי סוגי משתמשים = שלב ב (יחד עם משתמשים, הרשאות, ניווט שלבים בראיון במקום דלג - ראו זיכרון product-phase2-users). גלריית העיצובים נשארת נכס לשלב ההוא.
 
 **Files:** Create: `src/app/roadmap/[id]/page.tsx` (RSC), `src/app/roadmap/use-roadmap.ts` (hook), רכיב תצוגה בהתאם לעיצוב; Modify: registry אם עדיין בדפוס variants; קישור מהדוח ("דלג ל-Roadmap" הופך פעיל).
 
@@ -178,6 +179,7 @@ export function phaseOf(match: OpportunityMatch): "quick_wins" | "automation" | 
 - [ ] Roadmap בלי ראיון (קמפאי אחרי סריקה חוזרת): confidence נמוך יותר, תגי דיוק, עדיין שימושי.
 - [ ] חזרה לראיון מ-roadmap_ready ו-Roadmap מחודש אחרי (סעיף המצבים באפיון).
 - [ ] Brief נוצר, נשמר, ותוכנו עובר בדיקת תווים אסורים + אפס מספרים מומצאים.
+- [ ] נרטיב מול ציונים מרועננים (ממצא סקירת משימה 1): אחרי ראיון, topGaps יכולים להשתנות (lead_handling הוא החוק הכבד במערכת - 8.0 נקודות impact) בעוד הנרטיב השמור טוען את השלושה הישנים - לוודא בשער שהדוח לא סותר את עצמו, ואם כן לרענן נרטיב בסיום ראיון או לסמן לשלב ב.
 - [ ] `npm test` + typecheck + build; docs/milestone-4-gate.md בתבנית הקיימת + סעיף "מוכנות לפריסה" (רשימת החוסמים המרוכזת).
 - [ ] Commit: `docs(4-9): milestone 4 exit gate`
 
