@@ -47,18 +47,37 @@ async function loadStateOrThrow(prisma: PrismaClient, diagnosisId: string): Prom
   };
 }
 
-// עוטף את transitionDiagnosis: כישלון CAS (בקשה מקבילה שכבר הזיזה את הסטטוס) הופך ל-
-// InterviewError("conflict") - אותו דפוס בדיוק כמו transitionOrConflict ב-run-interview.ts,
-// כדי ששכבת ה-API (משימה 6) תמפה אותו ל-409 בלי היוריסטיקה על תוכן ההודעה
-async function transitionOrConflict(prisma: PrismaClient, diagnosisId: string, to: DiagnosisStatus): Promise<void> {
+// שתי הצורות שכשל מעבר סטטוס לובש ב-transitionDiagnosis (diagnosis-repo.ts): "מעבר סטטוס נכשל"
+// (ה-CAS הפסיד למרוץ) ו"מעבר סטטוס לא חוקי" (הסטטוס הנוכחי כבר לא מאפשר את המעבר). שתיהן
+// מסמנות כאן את אותו דבר - מישהו הזיז את הסטטוס מתחתינו
+const STATUS_RACE_RE = /^מעבר סטטוס (נכשל|לא חוקי)/;
+
+// המעבר ל-roadmap_ready אחרי שה-Roadmap כבר נשמר. state.status נקרא לפני קריאת ה-LLM (שניות),
+// ולכן הוא עלול להתיישן: בקשה מקבילה שסיימה קודם כבר העבירה ל-roadmap_ready, ו-
+// roadmap_ready -> roadmap_ready אינו מעבר חוקי במכונת המצבים (status.ts) - transitionDiagnosis
+// זורק שם שגיאה גולמית שהייתה יוצאת 500 ללקוח (נתפס בסקירה) למרות שה-Roadmap שלו נשמר בהצלחה
+// והאבחון כבר במצב היעד. לכן: כל כשל מעבר נבדק מול הסטטוס בפועל - היעד הושג (לא משנה מי הגיע
+// לשם) = הצלחה שקטה; הסטטוס במקום אחר לגמרי = InterviewError("conflict") -> 409 בשכבת ה-API
+// (אותו דפוס תיוג כמו transitionOrConflict ב-run-interview.ts, בלי היוריסטיקה על תוכן ההודעה)
+async function reachStatusOrConflict(prisma: PrismaClient, diagnosisId: string, to: DiagnosisStatus): Promise<void> {
   try {
     await transitionDiagnosis(prisma, diagnosisId, to);
   } catch (err) {
-    if (err instanceof Error && err.message.includes("מעבר סטטוס נכשל")) {
-      throw new InterviewError(err.message, "conflict");
-    }
-    throw err;
+    if (!(err instanceof Error) || !STATUS_RACE_RE.test(err.message)) throw err;
+    const current = await prisma.diagnosis.findUnique({ where: { id: diagnosisId }, select: { status: true } });
+    if (current?.status === to) return;
+    throw new InterviewError(err.message, "conflict");
   }
+}
+
+// conditions היא עמודת Json (schema.prisma) בלי אכיפת צורה ב-DB, ו-matching.ts מסתמך על
+// gapKeys כמערך. קאסט עיוור הפך שורת קטלוג פגומה אחת (conditions ריק/בלי gapKeys - הוזנה ידנית,
+// או נוספה לפני שהוגדרו לה מפתחות) לכשל TypeError שהפיל את בניית ה-Roadmap של כל האבחונים
+// במערכת. הנרמול כאן שומר על רדיוס הנזק בגודל הפריט: שורה פגומה מקבלת gapKeys ריק, ולכן פשוט
+// לא מתאימה לשום פער ולא נכנסת ל-Roadmap, בעוד כל השאר ממשיכים כרגיל
+function gapKeysOf(conditions: unknown): string[] {
+  const keys = (conditions as { gapKeys?: unknown } | null)?.gapKeys;
+  return Array.isArray(keys) ? keys.filter((k): k is string => typeof k === "string") : [];
 }
 
 async function loadCatalog(prisma: PrismaClient): Promise<CatalogRowLite[]> {
@@ -73,7 +92,7 @@ async function loadCatalog(prisma: PrismaClient): Promise<CatalogRowLite[]> {
     name: r.name,
     problem: r.problem,
     solution: r.solution,
-    conditions: r.conditions as { gapKeys: string[] },
+    conditions: { gapKeys: gapKeysOf(r.conditions) },
     costRange: r.costRange,
     savingRange: r.savingRange,
     complexity: r.complexity,
@@ -148,8 +167,9 @@ export async function buildRoadmap(
 
   // roadmap_ready -> roadmap_ready אינו מעבר חוקי במכונת המצבים (status.ts) - חישוב מחדש
   // מ-roadmap_ready נשאר שם בלי ניסיון מעבר; רק report_ready/interviewing דורשים CAS אמיתי
+  // (וגם שם הסטטוס עלול להשתנות תוך כדי - ראו reachStatusOrConflict)
   if (state.status !== "roadmap_ready") {
-    await transitionOrConflict(prisma, diagnosisId, "roadmap_ready");
+    await reachStatusOrConflict(prisma, diagnosisId, "roadmap_ready");
   }
 
   return { roadmapId, usage: reasoning.usage };

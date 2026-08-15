@@ -87,6 +87,21 @@ describe("scoreOpportunity", () => {
     expect(maxedResult.score).toBeGreaterThanOrEqual(0);
   });
 
+  // הקליפ התחתון הוא זה שחי בפועל: הסכום המקסימלי האפשרי הוא 60+20+10=90, אבל הסכום המינימלי
+  // (בסיס אפס, בלי כאב, עם unknownKeys, מורכבות גבוהה) הוא -20 - בלי הקליפ היה נכתב ציון שלילי
+  // לעמודת score. בלי הבדיקה הזו אפשר להסיר את הקליפ לגמרי ואף בדיקה לא נופלת
+  it("clamps a negative raw score to 0 (weakest possible match: no points, unknowns, high complexity)", () => {
+    const weakest = match({
+      catalog: catalogItem({ complexity: "high" }),
+      evidence: [evidenceItem(0)],
+      unknownKeys: ["fb_pixel", "analytics"],
+      painQuotes: [],
+    });
+    const result = scoreOpportunity(weakest, 100);
+    expect(result.score).toBe(0);
+    expect(Object.is(result.score, -0)).toBe(false);
+  });
+
   it("gives confidence=low for a pain-only match (empty evidence)", () => {
     const painOnly = match({ evidence: [], painQuotes: ["כואב לי שהתורים לא מנוהלים"] });
     const result = scoreOpportunity(painOnly, 100);
@@ -157,6 +172,13 @@ describe("phaseOf", () => {
     const whatsapp = match({ catalog: catalogItem({ name: "חיבור וואטסאפ לאתר" }) });
     expect(phaseOf(gbp)).toBe("quick_wins");
     expect(phaseOf(whatsapp)).toBe("quick_wins");
+  });
+
+  // ברירת המחדל השמרנית (as-built משימה 3): פריט קטלוג עתידי שעוד לא מופה כאן מקבל automation
+  // ולא נופל/זורק - הפונקציה טוטאלית, וההתחייבות ל-ai/quick_wins דורשת החלטה מפורשת בקובץ
+  it("falls back to automation for a catalog row that is not in the static map", () => {
+    const unmapped = match({ catalog: catalogItem({ name: "פריט קטלוג עתידי שעוד לא מופה" }) });
+    expect(phaseOf(unmapped)).toBe("automation");
   });
 
   it("never assigns transformation to any current catalog item (reserved for future rows)", () => {

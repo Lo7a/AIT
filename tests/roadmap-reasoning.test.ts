@@ -76,6 +76,50 @@ describe("fallbackSentence", () => {
     expect(s).not.toMatch(/\d/);
     expect(s).toBe("בעיה כללית.");
   });
+
+  // הבדיקה למעלה ("solution לעולם לא נכנס") משתמשת ב-solution עם ספרות, ולכן רשת הביטחון
+  // הסופית מכסה עליה גם אם solution כן היה נכנס לתבנית. כאן ה-solution נקי מספרות לגמרי, אז
+  // ההיעדר שלו מהמשפט הוא הטענה היחידה שנבדקת - בדיוק ההחלטה של משימה 5 (התבנית מעוגנת
+  // ב-problem ובראיה, לא בהבטחת הפתרון שעוד לא יושם)
+  it("solution נטול ספרות גם הוא לא נכנס לתבנית - התבנית מתארת את המצב, לא את ההבטחה", () => {
+    const digitFreeSolution: ReasoningItemInput = {
+      problem: "שאלות חוזרות מעמיסות על הטלפון",
+      solution: "בוט וואטסאפ שעונה על השאלות הנפוצות ומעביר שיחות מורכבות לצוות",
+      evidenceTexts: ["אין קישור וואטסאפ באתר"],
+      painQuotes: [],
+    };
+    const s = fallbackSentence(digitFreeSolution);
+    expect(s).toBe("שאלות חוזרות מעמיסות על הטלפון. אין קישור וואטסאפ באתר");
+    expect(s).not.toContain("בוט וואטסאפ שעונה");
+  });
+
+  // רשת הביטחון האחרונה: גם problem (מקור קטלוג, אמור להיות נקי) שמכיל ספרה לא יכול להוציא
+  // משפט עם ספרה - זה החוזה הקשיח, לא רק המקרה הנפוץ. בלי הבדיקה הזו אפשר להסיר את הרשת
+  // ואף בדיקה לא נופלת (מוטציה ששרדה בסקירה)
+  it("problem עם ספרה (שורת קטלוג עתידית פגומה) - נופל לתבנית הגנרית, לא מדליף את הספרה", () => {
+    const digitProblem: ReasoningItemInput = {
+      problem: "האתר נטען מעל 4 שניות",
+      solution: "פתרון כללי",
+      evidenceTexts: ["ראיה נקייה בלי ספרות"],
+      painQuotes: [],
+    };
+    const s = fallbackSentence(digitProblem);
+    expect(s).not.toMatch(/\p{N}/u);
+    expect(s).not.toContain("האתר נטען מעל");
+  });
+
+  // ספרה בציטוט כאב במסלול "כאב בלבד" - גם הוא חייב לצאת נקי (הציטוט נפסל, לא מנוקה חלקית)
+  it("כאב-בלבד עם ספרה בציטוט - המשפט לא מצטט אותו בכלל", () => {
+    const digitQuote: ReasoningItemInput = {
+      problem: "בעיה",
+      solution: "פתרון",
+      evidenceTexts: [],
+      painQuotes: ["איבדתי 10 לקוחות החודש"],
+    };
+    const s = fallbackSentence(digitQuote);
+    expect(s).not.toMatch(/\p{N}/u);
+    expect(s).not.toContain("לקוחות החודש");
+  });
 });
 
 describe("buildReasoning", () => {
@@ -87,6 +131,24 @@ describe("buildReasoning", () => {
     const { sentences } = await buildReasoning(complete, [evidenceItem, painOnlyItem]);
     expect(sentences[0]).toBe(fallbackSentence(evidenceItem));
     expect(sentences[1]).toBe("משפט תקין בלי שום ספרה");
+  });
+
+  // ספרות שאינן 0-9 של ASCII: הבטחת "אפס מספרים מומצאים" חייבת להחזיק בכל כתב וכל צורה
+  // שהמודל עלול להפיק - ספרות ערביות-הודיות, ספרות רוחב-מלא, וגם צורות מספר שאינן בקטגוריית
+  // Nd (מעריך, שבר וולגרי, ספרה מוקפת, ספרה רומית) שנראות למשתמש בדיוק כמו מספר
+  it.each([
+    ["ערבית-הודית", "העסק מפסיד ٣٠ אחוז מהפניות"],
+    ["רוחב מלא", "העסק מפסיד ３０ אחוז מהפניות"],
+    ["דוונגרי", "העסק מפסיד ३० אחוז מהפניות"],
+    ["ספרה דבוקה למילה", "כדאי לשקול בוט24 לשירות"],
+    ["מעריך", "ההמרה גדולה פי² מהיום"],
+    ["שבר וולגרי", "חוסך ½ מזמן העבודה"],
+    ["ספרה מוקפת", "שלב ① בתהליך"],
+    ["ספרה רומית", "שלב Ⅳ בתהליך"],
+  ])("מספר בצורת %s בפלט ה-LLM נפסל ונופל ל-fallback", async (_label, sentence) => {
+    const complete = async () => ({ data: { sentences: [sentence] }, usage: { inputTokens: 1, outputTokens: 1 } });
+    const { sentences } = await buildReasoning(complete, [evidenceItem]);
+    expect(sentences[0]).toBe(fallbackSentence(evidenceItem));
   });
 
   it("JSON תקין מבנית אך לא בצורה הצפויה (בלי sentences) - כל הפריטים נופלים ל-fallback", async () => {

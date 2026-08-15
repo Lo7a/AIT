@@ -84,6 +84,17 @@ export async function createRoadmap(
   });
 }
 
+// אותו סדר בדיוק שהקורא חישב וכתב (run-roadmap.ts, compareByScoreThenName): score יורד ואז שם
+// הקטלוג. השוואת מחרוזות רגילה (לא localeCompare עם לוקאל) בכוונה - התוצאה זהה בכל סביבת ריצה
+function sortItems(items: RoadmapItemView[]): RoadmapItemView[] {
+  return [...items].sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    if (a.name < b.name) return -1;
+    if (a.name > b.name) return 1;
+    return 0;
+  });
+}
+
 // תצוגת ה-Roadmap האחרון לאבחון נתון: הכי חדש לפי createdAt, כל פריט מצורף לשורת הקטלוג שלו
 // (שמות/טווחים/מורכבות/זמן התקנה כלשונם) ולכל הבנצ'מרקים ששייכים לאותו פריט קטלוג. הזיקה בין
 // Benchmark ל-RoadmapItem אינה ישירה - Benchmark מצביע על catalogId בלבד (OpportunityCatalog),
@@ -97,8 +108,12 @@ export async function getRoadmapView(prisma: PrismaClient, diagnosisId: string):
   });
   if (!roadmap) return null;
 
-  // סדר קריאה דטרמיניסטי ומפורש: score יורד (כפי שהקורא חישב), ואז id כשובר שוויון יציב - אין
-  // עמודת rank/order ב-RoadmapItem בסכמה, אז לא נסמכים על סדר ההוספה בטבלה עצמה
+  // סדר קריאה דטרמיניסטי ומפורש: score יורד (כפי שהקורא חישב), ואז id - אין עמודת rank/order
+  // ב-RoadmapItem בסכמה, אז לא נסמכים על סדר ההוספה בטבלה עצמה. ה-id בסכמה הוא uuid אקראי
+  // (@default(uuid())), ולכן הוא שובר שוויון יציב אך שרירותי - שני פריטים באותו ציון היו
+  // מתקבלים בסדר אקראי לכל Roadmap ולא בסדר שהקורא חישב (סקירה: אומת על uuid-ים אמיתיים).
+  // המיון הסופי לפי שם הקטלוג נעשה בזיכרון למטה, ולא כאן ב-SQL, כדי לא להיות תלוי בקולציית
+  // ה-DB לעברית - אותה השוואת מחרוזות בדיוק כמו בצד הכתיבה (run-roadmap.ts)
   const items = await prisma.roadmapItem.findMany({
     where: { roadmapId: roadmap.id },
     orderBy: [{ score: "desc" }, { id: "asc" }],
@@ -118,7 +133,7 @@ export async function getRoadmapView(prisma: PrismaClient, diagnosisId: string):
     id: roadmap.id,
     diagnosisId: roadmap.diagnosisId,
     createdAt: roadmap.createdAt,
-    items: items.map((it) => ({
+    items: sortItems(items.map((it) => ({
       id: it.id,
       catalogId: it.catalogId,
       score: it.score,
@@ -136,6 +151,6 @@ export async function getRoadmapView(prisma: PrismaClient, diagnosisId: string):
       benchmarks: it.catalog.benchmarks.map((b) => ({
         id: b.id, metric: b.metric, range: b.range, source: b.source, verifiedAt: b.verifiedAt,
       })),
-    })),
+    }))),
   };
 }

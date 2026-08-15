@@ -1,17 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { makeBuildHandler, makeViewHandler } from "../src/server/api/roadmap-handlers";
+import type { RoadmapView } from "../src/server/roadmap-repo";
 import { InterviewError } from "../src/pipeline/interview/contract";
 
 // כל המבחנים כאן אופליין לגמרי - ה-handlers מקבלים פונקציות מוזרקות (build/getView), בלי DB
 // אמיתי ובלי LLM אמיתי. אותו סגנון בדיוק כמו tests/interview-handlers.test.ts.
 
-const view = {
+// מוקלד כ-RoadmapView (ולא as never באתר הקריאה) כדי שסטייה בין צורת התצוגה שהמסך מקבל לבין
+// מה שה-repo באמת מחזיר תיפול ב-typecheck - הפיקסצ'ר הקודם הכריז phase: "quick_win" שאינו
+// ערך חוקי של Phase, ואף אחד לא ראה את זה
+const view: RoadmapView = {
   id: "rm1",
   diagnosisId: "d1",
   createdAt: new Date("2026-08-15T00:00:00Z"),
   items: [
     {
-      id: "it1", catalogId: "cat1", score: 80, confidence: "high", phase: "quick_win",
+      id: "it1", catalogId: "cat1", score: 80, confidence: "high", phase: "quick_wins",
       status: "proposed", name: "קביעת תורים אונליין", problem: "בעיה", solution: "פתרון",
       costRange: "100-500 בחודש", savingRange: "2-5 שעות בשבוע", complexity: "low",
       installTime: "עד שבוע", reasoning: "נימוק", benchmarks: [],
@@ -89,13 +93,20 @@ describe("makeBuildHandler", () => {
 
 describe("makeViewHandler", () => {
   it("נמצא - 200 עם ה-view המלא", async () => {
-    const h = makeViewHandler(async () => view as never);
+    const h = makeViewHandler(async () => view);
     const res = await h(new Request("http://t"), "d1");
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.id).toBe("rm1");
     expect(body.items).toHaveLength(1);
     expect(body.items[0].name).toBe("קביעת תורים אונליין");
+    // הצורה שהמסך יצרוך (משימה 8) עוברת שלמה דרך ה-handler, כולל השדות שמניעים תגי ביטחון
+    // וקיבוץ לפי שלב - Response.json ממיר Date למחרוזת ISO, וזה מה שהלקוח מקבל בפועל
+    expect(body.items[0]).toMatchObject({
+      score: 80, confidence: "high", phase: "quick_wins", status: "proposed",
+      costRange: "100-500 בחודש", savingRange: "2-5 שעות בשבוע", reasoning: "נימוק",
+    });
+    expect(body.createdAt).toBe("2026-08-15T00:00:00.000Z");
   });
 
   it("אין Roadmap - 404 (not_found)", async () => {

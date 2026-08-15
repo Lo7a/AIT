@@ -159,4 +159,29 @@ describe("getRoadmapView", () => {
     const view2 = await getRoadmapView(db, "d1");
     expect(view2?.items.map((it) => it.catalogId)).toEqual(view?.items.map((it) => it.catalogId));
   });
+
+  // שוויון ציון: RoadmapItem.id בסכמה הוא uuid אקראי (@default(uuid())), אז "id כשובר שוויון"
+  // יציב אך שרירותי - שני פריטים באותו ציון היו מתקבלים בסדר אקראי לכל Roadmap, ולא בסדר
+  // שהקורא חישב (score יורד ואז שם הקטלוג - run-roadmap.ts). כאן סדר ההוספה הפוך לסדר השמות
+  // בכוונה, כדי שהבדיקה תיפול אם הקריאה תיסמך על סדר ההוספה/ה-id במקום על השם
+  it("שוויון בציון נשבר לפי שם הקטלוג, לא לפי סדר ההוספה או ה-id", async () => {
+    const { db, catalogs, diagnoses } = makeFakeDb() as any;
+    seedDiagnosis(diagnoses);
+    seedCatalog(catalogs, { id: "cat-b", name: "בוט וואטסאפ לשירות לקוחות" });
+    seedCatalog(catalogs, { id: "cat-a", name: "איסוף ביקורות אוטומטי" });
+    seedCatalog(catalogs, { id: "cat-top", name: "קביעת תורים אונליין" });
+
+    await createRoadmap(db, "d1", [
+      { catalogId: "cat-top", score: 80, confidence: "high", phase: "automation", reasoning: null },
+      { catalogId: "cat-b", score: 60, confidence: "high", phase: "ai", reasoning: null },
+      { catalogId: "cat-a", score: 60, confidence: "low", phase: "automation", reasoning: null },
+    ]);
+
+    const view = await getRoadmapView(db, "d1");
+    expect(view?.items.map((it) => it.name)).toEqual([
+      "קביעת תורים אונליין",
+      "איסוף ביקורות אוטומטי",
+      "בוט וואטסאפ לשירות לקוחות",
+    ]);
+  });
 });

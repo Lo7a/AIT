@@ -142,6 +142,9 @@ describe("buildRoadmap - מסלול מלא", () => {
     const view = await getRoadmapView(db, "d1");
     expect(view?.items).toHaveLength(2);
     expect(view?.items.every((it) => typeof it.reasoning === "string" && it.reasoning!.length > 0)).toBe(true);
+    // הציונים הטריים מחושבים בזיכרון בלבד - עמודת scan.scores היא באחריות finishInterview
+    // (אבן דרך 4, משימה 1) ו-buildRoadmap לא נוגע בה
+    expect(scans[0].scores).toBeUndefined();
   });
 
   it("חישוב מחדש מ-roadmap_ready יוצר Roadmap שני ונשאר roadmap_ready (בלי מעבר סטטוס נוסף)", async () => {
@@ -213,6 +216,26 @@ describe("buildRoadmap - מסלול מלא", () => {
     expect(botItem.reasoning).not.toMatch(/\d/);
   });
 
+  // conditions היא עמודת Json בסכמה, בלי אכיפת צורה ב-DB. שורה אחת פגומה (הוזנה ידנית, או
+  // נוספה לקטלוג לפני שהוגדרו לה gapKeys) הפילה את בניית ה-Roadmap של כל האבחונים - רדיוס
+  // הנזק הוא כלל-מערכתי, לא הפריט הבודד. הפריט הפגום פשוט לא מתאים לכלום, השאר ממשיכים
+  it.each([
+    ["conditions = null", null],
+    ["conditions בלי gapKeys", { note: "טרם הוגדר" }],
+    ["gapKeys שאינו מערך", { gapKeys: "online_booking" }],
+  ])("שורת קטלוג פגומה (%s) לא מפילה את כל ה-Roadmap", async (_label, conditions) => {
+    const { db, diagnoses, scans, catalogs, roadmapItems } = makeFakeDb() as any;
+    seedDiagnosis(diagnoses, "d1", "report_ready");
+    seedScan(scans, "d1");
+    const booking = seedBookingCatalog(catalogs);
+    catalogs.push({ ...booking, id: "cat-broken", name: "פריט קטלוג פגום", conditions });
+
+    const result = await buildRoadmap(db, echoComplete, "d1");
+
+    expect(result.roadmapId).toBeTruthy();
+    expect(roadmapItems.map((it: any) => it.catalogId)).toEqual([booking.id]);
+  });
+
   it("אין התאמות (עסק חזק, אין פערים) - Roadmap ריק, בכל זאת נוצר ומעביר סטטוס", async () => {
     const { db, diagnoses, scans, catalogs, roadmaps, roadmapItems, transitions } = makeFakeDb() as any;
     seedDiagnosis(diagnoses, "d1", "report_ready");
@@ -235,18 +258,65 @@ describe("buildRoadmap - שגיאות", () => {
   it("אבחון לא קיים - InterviewError not_found", async () => {
     const { db } = makeFakeDb() as any;
     await expect(buildRoadmap(db, echoComplete, "אין-כזה")).rejects.toThrow(/לא נמצא/);
+    await expect(buildRoadmap(db, echoComplete, "אין-כזה")).rejects.toMatchObject({ kind: "not_found" });
   });
 
   it("אבחון קיים בלי אף סריקה - InterviewError invalid", async () => {
     const { db, diagnoses } = makeFakeDb() as any;
     seedDiagnosis(diagnoses, "d1", "report_ready");
     await expect(buildRoadmap(db, echoComplete, "d1")).rejects.toThrow(/סריקה/);
+    await expect(buildRoadmap(db, echoComplete, "d1")).rejects.toMatchObject({ kind: "invalid" });
   });
 
-  it("סטטוס שלא מאפשר Roadmap (scanning) - InterviewError invalid", async () => {
-    const { db, diagnoses, scans } = makeFakeDb() as any;
-    seedDiagnosis(diagnoses, "d1", "scanning");
+  // כל שלושת הסטטוסים שלפני הדוח, ולא רק אחד מהם. האסרט הוא על ה-kind ועל "כלום לא נכתב" -
+  // בלי זה אפשר להסיר את בדיקת ALLOWED_STATUSES לגמרי והבדיקה עדיין עוברת (מכונת המצבים זורקת
+  // בהמשך שגיאה גולמית אחרת, שהייתה מתמפה ל-500 במקום ל-400)
+  it.each(["created", "scanning", "scanned"])(
+    "סטטוס %s לא מאפשר Roadmap - InterviewError invalid, ושום דבר לא נשמר",
+    async (status) => {
+      const { db, diagnoses, scans, catalogs, roadmaps, roadmapItems } = makeFakeDb() as any;
+      seedDiagnosis(diagnoses, "d1", status);
+      seedScan(scans, "d1");
+      seedBookingCatalog(catalogs);
+
+      await expect(buildRoadmap(db, echoComplete, "d1")).rejects.toMatchObject({
+        kind: "invalid",
+        message: expect.stringContaining("במצב הנוכחי"),
+      });
+      expect(roadmaps).toHaveLength(0);
+      expect(roadmapItems).toHaveLength(0);
+    },
+  );
+
+  it("כשל CAS במעבר הסטטוס (בקשה מקבילה ניצחה) - InterviewError conflict, לא שגיאה גולמית", async () => {
+    const { db, diagnoses, scans, catalogs } = makeFakeDb({
+      failTransitions: new Set(["report_ready→roadmap_ready"]),
+    }) as any;
+    seedDiagnosis(diagnoses, "d1", "report_ready");
     seedScan(scans, "d1");
-    await expect(buildRoadmap(db, echoComplete, "d1")).rejects.toThrow();
+    seedBookingCatalog(catalogs);
+
+    await expect(buildRoadmap(db, echoComplete, "d1")).rejects.toMatchObject({ kind: "conflict" });
+  });
+
+  // המרוץ האמיתי: state.status נקרא לפני קריאת ה-LLM (שניות), ובקשה מקבילה יכולה להשלים
+  // ולהעביר ל-roadmap_ready בזמן הזה. אז transitionDiagnosis רואה roadmap_ready->roadmap_ready
+  // שאינו מעבר חוקי וזורק שגיאה גולמית - בלי טיפול היא הייתה יוצאת 500 ללקוח למרות שה-Roadmap
+  // שלו נשמר בהצלחה והאבחון כבר במצב הנכון
+  it("הסטטוס הגיע ל-roadmap_ready תוך כדי הריצה (בקשה מקבילה) - הצלחה, לא 500", async () => {
+    const { db, diagnoses, scans, catalogs, roadmaps } = makeFakeDb() as any;
+    seedDiagnosis(diagnoses, "d1", "report_ready");
+    seedScan(scans, "d1");
+    seedBookingCatalog(catalogs);
+    const racingComplete: CompleteFn = async (prompt) => {
+      diagnoses.find((d: any) => d.id === "d1").status = "roadmap_ready"; // הבקשה המקבילה סיימה
+      return echoComplete(prompt);
+    };
+
+    const result = await buildRoadmap(db, racingComplete, "d1");
+
+    expect(result.roadmapId).toBeTruthy();
+    expect(roadmaps).toHaveLength(1);
+    expect(diagnoses.find((d: any) => d.id === "d1").status).toBe("roadmap_ready");
   });
 });
