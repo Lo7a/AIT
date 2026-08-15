@@ -49,7 +49,18 @@ async function attemptPageSpeed(
   const apiKey = opts.apiKey ?? process.env.GOOGLE_API_KEY;
   const fetchImpl: FetchLike = opts.fetchImpl ?? defaultFetch;
 
-  const params = new URLSearchParams({ url, strategy: "mobile" });
+  // דומיין בעל תווים לא-לטיניים (למשל סבא-אדוארד.ישראל) חייב להישלח ל-PSI בצורת
+  // ה-ASCII שלו (punycode) - Lighthouse מחזיר INVALID_URL על התצורה היוניקודית.
+  // new URL() מנרמל את ה-host אוטומטית; כתובת שלא נפרסת נשלחת כפי שהיא והכשל
+  // המקורי של PSI ידווח כרגיל בהערות האיסוף
+  let normalizedUrl = url;
+  try {
+    normalizedUrl = new URL(url).href;
+  } catch {
+    /* נשלח כמו שהוא */
+  }
+
+  const params = new URLSearchParams({ url: normalizedUrl, strategy: "mobile" });
   params.append("category", "PERFORMANCE");
   params.append("category", "SEO");
   // המפתח בכותרת x-goog-api-key ולעולם לא ב-URL (מדיניות docs/llm.md: מפתח ב-URL מודלף ללוגים),

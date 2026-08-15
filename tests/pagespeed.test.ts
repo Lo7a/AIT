@@ -82,6 +82,15 @@ describe("runPageSpeed", () => {
     vi.unstubAllEnvs();
   });
 
+  it("דומיין עברי (IDN) נשלח ל-PSI בצורת punycode - לא ביוניקוד", async () => {
+    const fetchImpl = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) => psiResponse({}));
+    await runPageSpeed("https://www.סבא-אדוארד.ישראל/", { apiKey: "k", fetchImpl });
+    const calledUrl = fetchImpl.mock.calls[0][0] as string;
+    // new URL מנרמל את ה-host ל-xn-- (המקרה החי: PSI החזיר INVALID_URL על הצורה היוניקודית)
+    expect(calledUrl).toContain("xn--");
+    expect(calledUrl).not.toContain(encodeURIComponent("סבא"));
+  });
+
   it("keeps score 0 as 0 and maps null scores to undefined", async () => {
     const fetchImpl = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
       psiResponse({
