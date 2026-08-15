@@ -216,6 +216,26 @@ describe("social presence as website (אבן דרך 4, משימה 0)", () => {
     expect(rule.text).toBe("לעסק אין אתר עצמאי משלו");
   });
 
+  it("chat_widget: כשיש כפתור וואטסאפ הפער מכיר בו במקום להישמע טועה (ממצא מייסד - סבא אדוארד)", () => {
+    const f = structuredClone(RICH);
+    f.websiteSignals!.hasChatWidget = false;
+    f.websiteSignals!.hasWhatsappLink = true;
+    const rule = scoreFindings(DIMENSIONS, f).dimensions
+      .find((d) => d.key === "infrastructure")!.rules.find((r) => r.key === "chat_widget")!;
+    expect(rule.known).toBe(true);
+    expect(rule.earned).toBe(false);
+    expect(rule.text).toContain("וואטסאפ");
+  });
+
+  it("chat_widget: בלי וואטסאפ בכלל - הנוסח המקורי", () => {
+    const f = structuredClone(RICH);
+    f.websiteSignals!.hasChatWidget = false;
+    f.websiteSignals!.hasWhatsappLink = false;
+    const rule = scoreFindings(DIMENSIONS, f).dimensions
+      .find((d) => d.key === "infrastructure")!.rules.find((r) => r.key === "chat_widget")!;
+    expect(rule.text).toBe("אין צ'אט באתר, פניות מחוץ לשעות הפעילות אובדות");
+  });
+
   it("own_website: אתר מת (crawl+PSI נכשלו) לא זוכה רק כי הוא לא חברתי (תיקון סקירת קוד C2)", () => {
     const f: ScanFindings = {
       business: { placeId: "p12", name: "עסק", website: "https://dead.co.il", rating: 4.5, reviewCount: 30 },

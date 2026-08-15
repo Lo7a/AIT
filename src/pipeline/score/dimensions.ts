@@ -339,7 +339,12 @@ export const DIMENSIONS: DimensionDef[] = [
         key: "chat_widget", points: 20,
         known: (f) => crawlUsable(f) || !!f.websiteSignals?.hasChatWidget,
         earned: (f) => !!f.websiteSignals?.hasChatWidget,
-        gapText: () => "אין צ'אט באתר, פניות מחוץ לשעות הפעילות אובדות",
+        // כשיש כפתור וואטסאפ הבעלים רואה "צ'אט" באתר שלו - הניסוח חייב להכיר בזה,
+        // אחרת הדוח נשמע טועה (ממצא מייסד על פיצה סבא אדוארד: בועת וואטסאפ נראית כמו צ'אט)
+        gapText: (f) =>
+          f.websiteSignals?.hasWhatsappLink
+            ? "אין צ'אט חי באתר - כפתור הוואטסאפ עוזר, אבל בלי מענה אוטומטי פניות מחוץ לשעות הפעילות מחכות"
+            : "אין צ'אט באתר, פניות מחוץ לשעות הפעילות אובדות",
         okText: () => "יש צ'אט באתר",
       },
       {
