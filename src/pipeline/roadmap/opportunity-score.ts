@@ -1,0 +1,95 @@
+import type { OpportunityMatch } from "./matching";
+
+// דירוג הזדמנות + שיוך שלב (אבן דרך 4, משימה 3): טהור לחלוטין - בלי I/O, בלי Date/random, בלי
+// תלות בשרת. סוגר על OpportunityMatch (משימה 2) ומחזיר ציון שקוף ודטרמיניסטי. אותו קלט = אותו
+// פלט, תמיד.
+
+// --- נוסחת הציון (0-100) ---
+// החלטת מייסד נעולה: כאב הבעלים מוביל את הדירוג - "הכי קל למכור את מה שהבעלים כבר רוצה". בונוס
+// הכאב הוא רכיב התנודה הדומיננטי בנוסחה, לא תוספת שולית.
+//
+// בסיס (0-60): החלק היחסי מסך נקודות המשקל האבודות שהפריט הזה סוגר, מנורמל מול הפריט החזק
+//   ביותר ברשימה שהתקבלה: 60 * (סכום lostWeightedPoints של הראיות) / maxLostPoints.
+//   maxLostPoints הוא הסכום המקסימלי על פני כל הרשימה המותאמת - מחושב ומועבר ע"י הקורא (יודע
+//   את כל הרשימה, לא רק את הפריט הבודד). אם maxLostPoints=0 (כל ההתאמות הן כאב-בלבד, בלי שום
+//   ראיה כמותית) - הבסיס 0, בלי חלוקה באפס.
+// כאב בעלים (+20 כש-painQuotes לא ריק): בעל העסק אמר את זה במילים שלו - שווה יותר מכל היוריסטיקה.
+// ודאות (0 / -10): 0 כשהראיות מלאות (אין unknownKeys), -10 כשיש מפתחות לא-ידועים - חוסר מידע
+//   מוריד בדירוג, לעולם לא ממציא נתון שלא קיים.
+// מורכבות הטמעה (לפי catalog.complexity): נמוכה +10, בינונית 0, גבוהה -10 - עקרון "ניצחונות
+//   מהירים": קל-להטמיע מדורג גבוה יותר, בכל שאר התנאים שווים. מחרוזת מורכבות לא-מוכרת (הגנתי,
+//   לא אמור לקרות מול הקטלוג האמיתי) מתייחסת כמו "בינונית" (0) - בלי הטיה לכיוון כלשהו.
+// קליפ סופי ל-0-100, עיגול ל-Math.round (עיגול "חצי למעלה" הסטנדרטי של JS - עקבי ופשוט, אין
+//   צורך בהתנהגות עיגול מיוחדת לכיוון אחד כאן).
+
+const BASE_MAX_POINTS = 60;
+const PAIN_BONUS = 20;
+const UNKNOWN_PENALTY = -10;
+
+const COMPLEXITY_ADJUSTMENT: Record<string, number> = {
+  low: 10,
+  medium: 0,
+  high: -10,
+};
+
+export type Confidence = "high" | "medium" | "low";
+
+export function scoreOpportunity(
+  match: OpportunityMatch,
+  maxLostPoints: number,
+): { score: number; confidence: Confidence } {
+  const lostPoints = match.evidence.reduce((sum, e) => sum + e.lostWeightedPoints, 0);
+  const base = maxLostPoints > 0 ? (BASE_MAX_POINTS * lostPoints) / maxLostPoints : 0;
+
+  const painBonus = match.painQuotes.length > 0 ? PAIN_BONUS : 0;
+  const certaintyPenalty = match.unknownKeys.length > 0 ? UNKNOWN_PENALTY : 0;
+  const complexityAdjustment = COMPLEXITY_ADJUSTMENT[match.catalog.complexity] ?? 0;
+
+  const raw = base + painBonus + certaintyPenalty + complexityAdjustment;
+  const score = Math.min(100, Math.max(0, Math.round(raw)));
+
+  // high: אין שום פער לא-ידוע, ויש לפחות ראיה כמותית אחת. medium: יש ראיה אבל גם חוסר מידע.
+  // low: אין שום ראיה כמותית - הפריט נכנס רק על כאב הבעלים (ראו matching.ts, כלל הכניסה).
+  const confidence: Confidence =
+    match.evidence.length === 0 ? "low" : match.unknownKeys.length > 0 ? "medium" : "high";
+
+  return { score, confidence };
+}
+
+// --- שיוך לשלב מפה (Roadmap) ---
+export type Phase = "quick_wins" | "automation" | "ai" | "transformation";
+
+// מיפוי סטטי וגלוי לפי שם פריט הקטלוג (ראו prisma/seed.ts, מערך CATALOG) - name הוא המפתח
+// היציב היחיד שהזרע מספק: אין id יציב (מיוצר ע"י פריזמה בזמן ריצה, לא קיים בזרע עצמו) ואין שדה
+// קטגוריה; ה-upsert בזרע עצמו מבוסס על name (where: { name }), כך שזה גם המפתח העסקי בפועל.
+//
+// כלל עסקי (הוסכם עם המייסד):
+//   ai          - סוכן/בוט שיחה אוטונומי שעונה ללקוח ישירות (סוכן הלידים, בוט הוואטסאפ).
+//   automation  - הקמת מערכת/אינטגרציה מתמשכת שמפחיתה עבודה ידנית לאורך זמן: CRM, מדידה
+//                 (Analytics/פיקסל), תורים אונליין, איסוף ביקורות, ניהול ומענה לביקורות, ומהירות
+//                 אתר (תשתית טכנית מתמשכת) - כולם דורשים הטמעה שאינה "לחיצת כפתור" חד-פעמית.
+//   quick_wins  - פעולה חד-פעמית פשוטה, מורכבות נמוכה, בלי מערכת מתמשכת מאחוריה (פרופיל Google
+//                 Business, כפתור וואטסאפ באתר) - "ניצחון מהיר" אמיתי, לא רק זול.
+//   transformation - שמור לעתיד. אף אחד מ-10 פריטי הקטלוג הנוכחיים לא ממופה לשם.
+//
+// כשנכנס פריט קטלוג חדש - יש להוסיף אותו כאן במפורש (בדיוק כמו PAIN_KEYWORD_RULES ב-matching.ts).
+// עד אז, פריט לא-ממופה נופל ל-"automation" כברירת מחדל שמרנית (לא מזהיר, לא מתחייב ל-ai/quick_win
+// בלי החלטה מפורשת) - אבל 10 הפריטים האמיתיים תמיד מקבלים את ההתאמה המפורשת שלהם, לא את ברירת המחדל.
+const PHASE_BY_CATALOG_NAME: Record<string, Phase> = {
+  "סוכן AI לטיפול בלידים": "ai",
+  "בוט וואטסאפ לשירות לקוחות": "ai",
+  "קביעת תורים אונליין": "automation",
+  "הקמת פרופיל Google Business": "quick_wins",
+  "איסוף ביקורות אוטומטי": "automation",
+  "ניהול ומענה לביקורות": "automation",
+  "שיפור מהירות האתר": "automation",
+  "חיבור וואטסאפ לאתר": "quick_wins",
+  "התקנת מדידה (Analytics + פיקסל)": "automation",
+  "חיבור לידים ל-CRM והתראות": "automation",
+};
+
+const DEFAULT_PHASE: Phase = "automation";
+
+export function phaseOf(match: OpportunityMatch): Phase {
+  return PHASE_BY_CATALOG_NAME[match.catalog.name] ?? DEFAULT_PHASE;
+}

@@ -125,7 +125,9 @@ export function phaseOf(match: OpportunityMatch): "quick_wins" | "automation" | 
 - [ ] confidence: high = כל ה-gapKeys ידועים והסקציות הרלוונטיות במודל עם credit>=1 היכן שנדרש; medium = יש ראיות אבל גם unknownKeys; low = pains בלבד. תג "דיוק ישתפר עם עוד מידע" במסך נגזר מ-confidence != high (האפיון, מסך 5).
 - [ ] phaseOf לפי הקטלוג הקיים: complexity low + עלות חד-פעמית = quick_wins; חיבורי CRM/מדידה/תורים = automation; פריטי סוכן/בוט AI = ai; transformation שמור לעתיד (לא בקטלוג הנוכחי). מיפוי לפי שם קטגוריה בקובץ - גלוי וניתן לבדיקה.
 - [ ] בדיקות: מונוטוניות (יותר נקודות אבודות = ציון גבוה יותר), painQuote מרים, unknown מוריד, גבולות 0-100, כל פריטי הקטלוג האמיתיים מקבלים phase.
-- [ ] Commit: `feat(4-3): deterministic opportunity score and phasing - zero invented numbers`
+- [x] Commit: `feat(4-3): deterministic opportunity score and phasing - zero invented numbers`
+
+**As-built (15.8):** מפתח הזיהוי לשלב הוא catalog.name (אין id סטטי ואין שדה category ב-seed - זה אותו מפתח שה-seed עצמו משתמש בו ל-upsert). המיפוי: ai = סוכן לידים + בוט וואטסאפ; quick_wins = פרופיל GBP + חיבור וואטסאפ לאתר; automation = השאר (תורים, ביקורות x2, מהירות, מדידה, CRM); transformation ריק במכוון (בדיקה מפורשת). ברירת מחדל automation לפריט עתידי לא ממופה (הפונקציה טוטאלית, לא זורקת). confidence: low בכל evidence ריק, בלי תלות ב-unknownKeys. 12 בדיקות.
 
 ### משימה 4: roadmap-repo - שמירה אטומית וקריאה
 
