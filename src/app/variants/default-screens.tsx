@@ -52,6 +52,16 @@ export function DefaultHome({ recent }: { recent: DiagnosisListItem[] }) {
                   {d.overall != null && (
                     <span className="tabular-nums text-sm font-semibold">{d.overall}/100</span>
                   )}
+                  {/* ראיון שהתחיל ולא הסתיים - קיצור ישיר להמשכתו; מסך הראיון כבר יודע
+                      להתחדש מהנקודה שבה עצרו, כאן רק הכניסה */}
+                  {d.status === "interviewing" && (
+                    <Link
+                      href={`/interview/${d.id}`}
+                      className="rounded-md bg-[#111111] px-3 py-1 text-sm font-medium text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
+                    >
+                      להשלמת הראיון
+                    </Link>
+                  )}
                   {HAS_REPORT.includes(d.status) && (
                     <Link
                       href={`/report/${d.id}`}

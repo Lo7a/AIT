@@ -1,0 +1,135 @@
+import { describe, it, expect } from "vitest";
+import { matchOpportunities, type CatalogRowLite } from "../src/pipeline/roadmap/matching";
+import type { DimensionScore, RuleResult, ScoreReport } from "../src/pipeline/score/types";
+import type { BusinessModel } from "../src/pipeline/model/business-model";
+
+// עוזרים לבניית ScoreReport סינתטי - matching.ts לא קורא score/dataStatus, אז ערכים קבועים מספיקים
+function rule(key: string, points: number, known: boolean, earned: boolean, text: string): RuleResult {
+  return { key, points, known, earned, text: known ? text : "" };
+}
+
+function dim(key: DimensionScore["key"], weight: number, rules: RuleResult[]): DimensionScore {
+  return { key, label: key, weight, score: null, dataStatus: "full", rules };
+}
+
+function catalogItem(id: string, name: string, gapKeys: string[]): CatalogRowLite {
+  return {
+    id,
+    name,
+    problem: `בעיה עבור ${name}`,
+    solution: `פתרון עבור ${name}`,
+    conditions: { gapKeys },
+    costRange: "₪100-1000",
+    savingRange: "שעה בשבוע",
+    complexity: "low",
+    installTime: "שבוע",
+  };
+}
+
+const EMPTY_SECTIONS = [
+  "profile", "channels", "lead_flow", "scheduling", "service", "billing", "retention", "tools", "manual_tasks",
+] as const;
+
+// מודל עסק עם רק סקציית pains ממולאת - שאר הסקציות ריקות (לא רלוונטיות למבחני התאמה)
+function modelWithPains(painsData: Record<string, unknown>): BusinessModel {
+  const data = Object.fromEntries(EMPTY_SECTIONS.map((s) => [s, {}])) as BusinessModel["data"];
+  const credits = Object.fromEntries(
+    [...EMPTY_SECTIONS, "pains"].map((s) => [s, s === "pains" ? 1 : 0]),
+  ) as BusinessModel["credits"];
+  return { data: { ...data, pains: painsData }, fieldSources: {}, credits, completenessPct: 10 };
+}
+
+// דוח סינתטי בסגנון קמפאי (אבן דרך 4): פערים ב-analytics/fb_pixel/online_booking, שאר החוקים תקינים
+const REPORT_KAMPAI: ScoreReport = {
+  overall: 50,
+  dimensions: [
+    dim("infrastructure", 0.15, [
+      rule("analytics", 35, true, false, "אין Google Analytics, העסק עיוור לתנועה באתר שלו"),
+      rule("fb_pixel", 30, true, false, "אין פיקסל פייסבוק, אי אפשר לעשות רימרקטינג למבקרים"),
+      rule("chat_widget", 20, true, true, "יש צאט באתר"),
+    ]),
+    dim("accessibility", 0.25, [
+      rule("online_booking", 30, true, false, "אין קביעת תור אונליין"),
+      rule("whatsapp", 25, true, true, "וואטסאפ זמין באתר"),
+      rule("email_link", 15, false, false, ""), // ידוע=false בכוונה - לבדיקת unknownKeys
+    ]),
+    dim("reputation", 0.2, [
+      rule("has_reviews", 20, true, true, "80 ביקורות בגוגל"),
+      rule("review_volume", 15, true, true, "מאגר ביקורות מכובד"),
+    ]),
+  ],
+  topGaps: [],
+  topStrengths: [],
+};
+
+const ANALYTICS_ITEM = catalogItem("c1", "התקנת מדידה", ["analytics", "fb_pixel"]);
+const BOOKING_ITEM = catalogItem("c2", "קביעת תורים אונליין", ["online_booking"]);
+const WHATSAPP_ITEM = catalogItem("c3", "בוט וואטסאפ", ["whatsapp", "chat_widget"]); // שני המפתחות earned - אין פער
+const REVIEWS_ITEM = catalogItem("c4", "איסוף ביקורות אוטומטי", ["has_reviews", "review_volume"]); // שני המפתחות earned - אין פער
+const UNKNOWN_ITEM = catalogItem("c5", "פריט עם מפתחות לא-ידועים", ["online_booking", "email_link", "seo"]);
+
+describe("matchOpportunities", () => {
+  it("matches the right catalog items to a Kampai-style gap set with correct evidence and lostWeightedPoints", () => {
+    const result = matchOpportunities(REPORT_KAMPAI, null, [ANALYTICS_ITEM, BOOKING_ITEM, WHATSAPP_ITEM, REVIEWS_ITEM]);
+
+    expect(result.map((m) => m.catalog.id)).toEqual(["c1", "c2"]);
+
+    const analytics = result.find((m) => m.catalog.id === "c1")!;
+    expect(analytics.evidence).toEqual([
+      { ruleKey: "analytics", dimension: "infrastructure", text: "אין Google Analytics, העסק עיוור לתנועה באתר שלו", lostWeightedPoints: 35 * 0.15 },
+      { ruleKey: "fb_pixel", dimension: "infrastructure", text: "אין פיקסל פייסבוק, אי אפשר לעשות רימרקטינג למבקרים", lostWeightedPoints: 30 * 0.15 },
+    ]);
+    expect(analytics.unknownKeys).toEqual([]);
+    expect(analytics.painQuotes).toEqual([]);
+
+    const booking = result.find((m) => m.catalog.id === "c2")!;
+    expect(booking.evidence).toEqual([
+      { ruleKey: "online_booking", dimension: "accessibility", text: "אין קביעת תור אונליין", lostWeightedPoints: 30 * 0.25 },
+    ]);
+  });
+
+  it("does not include an item with no evidence and no pain quotes", () => {
+    const result = matchOpportunities(REPORT_KAMPAI, null, [WHATSAPP_ITEM]);
+    expect(result).toEqual([]);
+  });
+
+  it("includes a pains-only item (all gapKeys earned) with empty evidence and the matching quote attached", () => {
+    const quote = "הרבה לקוחות לא חוזרים אחרי הפעם הראשונה";
+    const model = modelWithPains({ ownerNotes: quote });
+    const result = matchOpportunities(REPORT_KAMPAI, model, [REVIEWS_ITEM]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].catalog.id).toBe("c4");
+    expect(result[0].evidence).toEqual([]);
+    expect(result[0].painQuotes).toEqual([quote]);
+  });
+
+  it("keeps a stable order (ties break by name) and recomputing gives deep-equal output", () => {
+    const alpha = catalogItem("c-alpha", "אלפא", ["online_booking"]);
+    const beta = catalogItem("c-beta", "בטא", ["online_booking"]);
+
+    const first = matchOpportunities(REPORT_KAMPAI, null, [beta, alpha]);
+    expect(first.map((m) => m.catalog.id)).toEqual(["c-alpha", "c-beta"]);
+
+    const second = matchOpportunities(REPORT_KAMPAI, null, [beta, alpha]);
+    expect(second).toEqual(first);
+  });
+
+  it("model=null yields no pain quotes anywhere, matching still works from report gaps alone", () => {
+    const result = matchOpportunities(REPORT_KAMPAI, null, [ANALYTICS_ITEM, BOOKING_ITEM]);
+    expect(result.every((m) => m.painQuotes.length === 0)).toBe(true);
+  });
+
+  it("ignores non-string pains values (e.g. scan-derived arrays) - no invented quotes", () => {
+    const model = modelWithPains({ fromReviews: ["מחירים גבוהים", "לא חוזרים"] });
+    const result = matchOpportunities(REPORT_KAMPAI, model, [REVIEWS_ITEM]);
+    expect(result).toEqual([]); // אין evidence (earned) ואין ציטוט (הערך הוא מערך, לא string)
+  });
+
+  it("populates unknownKeys for known=false rules and for gap keys absent from the report", () => {
+    const result = matchOpportunities(REPORT_KAMPAI, null, [UNKNOWN_ITEM]);
+    expect(result).toHaveLength(1);
+    expect(result[0].unknownKeys).toEqual(["email_link", "seo"]);
+    expect(result[0].evidence.map((e) => e.ruleKey)).toEqual(["online_booking"]);
+  });
+});
