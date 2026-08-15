@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { makeBuildHandler, makeViewHandler } from "../src/server/api/roadmap-handlers";
+import { makeBriefHandler, makeBuildHandler, makeViewHandler } from "../src/server/api/roadmap-handlers";
 import type { RoadmapView } from "../src/server/roadmap-repo";
 import { InterviewError } from "../src/pipeline/interview/contract";
 
@@ -122,6 +122,56 @@ describe("makeViewHandler", () => {
     expect(res.status).toBe(500);
     const body = await res.json();
     expect(body.error).not.toContain("ECONNRESET");
+    expect(body.error).toMatch(/[א-ת]/);
+  });
+});
+
+// אבן דרך 4, משימה 7: POST /api/brief/[itemId]. אותו דפוס בדיוק כמו makeBuildHandler למעלה -
+// sendBrief מוזרקת (run-brief.ts), ה-handler רק מעביר הלאה ומתרגם שגיאות. כל המבחנים כאן
+// אופליין - בלי fake-db, בלי prisma אמיתי (בדיקות האינטגרציה עם fake-db נמצאות ב-roadmap-brief.test.ts)
+describe("makeBriefHandler", () => {
+  it("הצלחה - 200 עם { ok: true, sent }", async () => {
+    const h = makeBriefHandler(async () => ({ ok: true, sent: true }));
+    const res = await h(post(), "it1");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, sent: true });
+  });
+
+  it("שליחה נכשלה בפועל - עדיין 200 עם sent:false (הבקשה עצמה הצליחה)", async () => {
+    const h = makeBriefHandler(async () => ({ ok: true, sent: false }));
+    const res = await h(post(), "it1");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, sent: false });
+  });
+
+  it("גוף הבקשה מתעלם ממנו לגמרי", async () => {
+    let received: string | null = "לא נקרא";
+    const h = makeBriefHandler(async (itemId) => {
+      received = itemId;
+      return { ok: true, sent: true };
+    });
+
+    const res1 = await h(post({ some: "junk" }), "it1");
+    expect(res1.status).toBe(200);
+    expect(received).toBe("it1");
+
+    const res2 = await h(post("זבל שאינו json {{{"), "it1");
+    expect(res2.status).toBe(200);
+  });
+
+  it("InterviewError('not_found') - 404 (הפריט לא קיים)", async () => {
+    const h = makeBriefHandler(async () => { throw new InterviewError("הפריט לא נמצא", "not_found"); });
+    const res = await h(post(), "אין");
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe("הפריט לא נמצא");
+  });
+
+  it("שגיאה לא-InterviewError - 500 גנרי בלי דליפת פרטים", async () => {
+    const h = makeBriefHandler(async () => { throw new Error("Unique constraint failed on briefs"); });
+    const res = await h(post(), "it1");
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error).not.toContain("Unique constraint");
     expect(body.error).toMatch(/[א-ת]/);
   });
 });

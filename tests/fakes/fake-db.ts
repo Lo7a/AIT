@@ -11,6 +11,10 @@ export interface FakeDbOptions {
   // מעברי סטטוס ("from→to") שצריכים להיכשל (updateMany מחזיר count:0) כאילו הפסידו במרוץ -
   // משמש לבדיקת "גם ה-revert נכשל" (transitionDiagnosis זורק, לא רק לא-מצליח בשקט)
   failTransitions?: Set<string>;
+  // מדמה כשל DB בזמן יצירת Brief (אבן דרך 4, משימה 7) - כדי לבדוק שהטרנזקציה של
+  // createBriefAndRequestItem (run-brief.ts) מתגלגלת אחורה במלואה: אם ה-brief לא נוצר, גם
+  // עדכון סטטוס הפריט ל-"requested" לא אמור להישאר
+  failBriefCreate?: boolean;
 }
 
 export function makeFakeDb(opts: FakeDbOptions = {}) {
@@ -246,17 +250,59 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
           return { ...it, catalog: catalog ? { ...catalog, benchmarks: itemBenchmarks.map((b) => ({ ...b })) } : null };
         });
       },
+      // תמיכה מינימלית ל-run-brief.ts: פריט Roadmap בודד לפי id, מצורף לכל השרשרת שהתבנית
+      // (brief.ts) צריכה - catalog+benchmarks, ולמעלה roadmap->diagnosis->business/businessModel.
+      // כל היחסים האלה FK רגילים בסכמה (schema.prisma), אז זו שאילתת include מקוננת תקנית
+      // לגמרי אצל Prisma האמיתי - select/include נבלע כאן כמו בכל מקום אחר בפייק הזה
+      findUnique: async ({ where }: any) => {
+        const it = roadmapItems.find((x) => x.id === where.id);
+        if (!it) return null;
+        const catalog = catalogs.find((c) => c.id === it.catalogId);
+        const itemBenchmarks = benchmarks.filter((b) => b.catalogId === it.catalogId);
+        const roadmap = roadmaps.find((r) => r.id === it.roadmapId);
+        const diagnosis = roadmap ? diagnoses.find((d) => d.id === roadmap.diagnosisId) : undefined;
+        const business = diagnosis ? businesses.find((b) => b.id === diagnosis.businessId) : undefined;
+        const modelEntry = diagnosis ? [...models].reverse().find((m) => m.where.diagnosisId === diagnosis.id) : undefined;
+        return {
+          ...it,
+          catalog: catalog ? { ...catalog, benchmarks: itemBenchmarks.map((b) => ({ ...b })) } : null,
+          roadmap: roadmap ? {
+            ...roadmap,
+            diagnosis: diagnosis ? {
+              ...diagnosis,
+              business: business ? { ...business } : null,
+              businessModel: modelEntry ? { id: genId("bm"), diagnosisId: diagnosis.id, ...modelEntry.payload } : null,
+            } : null,
+          } : null,
+        };
+      },
+      // תמיכה מינימלית ל-run-brief.ts: עדכון status (proposed -> requested כשנוצר Brief)
+      update: async ({ where, data }: any) => {
+        const it = roadmapItems.find((x) => x.id === where.id);
+        if (!it) throw new Error("roadmapItem not found");
+        Object.assign(it, data);
+        return { ...it };
+      },
     },
-    // תמיכה מינימלית ל-Brief (משימה 7, עוד לא נצרך כאן) - נוספה עכשיו כדי שהמודל יהיה זמין בלי
-    // לגעת בפייק שוב כשה-repo של ה-Brief ייכתב
     brief: {
       create: async ({ data }: any) => {
+        // מדמה כשל DB מדומה בזמן יצירת Brief (FakeDbOptions.failBriefCreate) - מנגנון ההזרקה
+        // לבדיקת אטומיות createBriefAndRequestItem: כשל כאן חייב לגלגל אחורה גם עדכון status
+        // שקרה (או עומד לקרות) באותה טרנזקציה, בדיוק כמו כשל catalogId ב-roadmapItem.create
+        if (opts.failBriefCreate) throw new Error("brief.create: כשל DB מדומה");
         const row = {
           id: genId("brief"), roadmapItemId: data.roadmapItemId, content: data.content,
           sentAt: data.sentAt ?? null, createdAt: new Date(), updatedAt: new Date(),
         };
         briefs.push(row);
         return { ...row };
+      },
+      // תמיכה מינימלית ל-run-brief.ts: עדכון sentAt אחרי שליחה מוצלחת (transport.send)
+      update: async ({ where, data }: any) => {
+        const b = briefs.find((x) => x.id === where.id);
+        if (!b) throw new Error("brief not found");
+        Object.assign(b, data);
+        return { ...b };
       },
     },
     // שתי הצורות של $transaction נתמכות:
@@ -268,10 +314,17 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
     //    ש"כישלון מעבר הסטטוס לא משאיר שורת סריקה יתומה" (saveScanResult, diagnosis-repo.ts)
     $transaction: async (arg: any) => {
       if (typeof arg !== "function") return Promise.all(arg);
+      // שכפול per-row (לא רק [...array]) לכל מודל שיש לו update במקום (Object.assign) - scan.update
+      // (רענון scores, אבן דרך 4 משימה 1) ו-roadmapItem.update (מעבר status, משימה 7): מערך
+      // מועתק ברמת המערך בלבד עדיין מצביע על אותם אובייקטים חיים, אז Object.assign בתוך
+      // הטרנזקציה משנה גם את "before" עצמו - ה-splice בהמשך "משחזר" את הגרסה כבר-משונה ולא
+      // עושה כלום בפועל. roadmaps/models/briefs נשכפלים כאן גם הם לעקביות/הגנה, גם שהיום הם
+      // create-only בתוך טרנזקציה (לא Object.assign) - נתפס בסקירה על בדיקת האטומיות של הפייק
       const before = {
-        scans: [...scans], models: [...models], transitions: [...transitions],
+        scans: scans.map((s) => ({ ...s })), models: [...models], transitions: [...transitions],
         statuses: new Map(diagnoses.map((d) => [d.id, d.status])),
-        roadmaps: [...roadmaps], roadmapItems: [...roadmapItems], briefs: [...briefs],
+        roadmaps: roadmaps.map((r) => ({ ...r })), roadmapItems: roadmapItems.map((it) => ({ ...it })),
+        briefs: briefs.map((b) => ({ ...b })),
       };
       try {
         return await arg(db);

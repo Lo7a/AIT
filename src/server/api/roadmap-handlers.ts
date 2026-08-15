@@ -48,3 +48,17 @@ export function makeViewHandler(getView: (id: string) => Promise<RoadmapView>) {
     }
   };
 }
+
+// POST /api/brief/[itemId] - יצירת בקשת הטמעה (Project Brief) על פריט Roadmap בודד (אבן דרך 4,
+// משימה 7). אותו דפוס בדיוק כמו makeBuildHandler: גוף הבקשה מתעלם ממנו לגמרי, הפעולה תלויה רק
+// ב-itemId שבנתיב. sendBrief (run-brief.ts) כבר עוטפת את כל הלוגיקה (טעינה + יצירה אטומית +
+// ניסיון שליחה) - ה-handler כאן רק מעביר הלאה ומתרגם שגיאות, בלי לדעת כלום על prisma/transport.
+export function makeBriefHandler(sendBrief: (itemId: string) => Promise<{ ok: true; sent: boolean }>) {
+  return async function handle(_req: Request, itemId: string): Promise<Response> {
+    try {
+      return Response.json(await sendBrief(itemId));
+    } catch (err) {
+      return errorResponse(err);
+    }
+  };
+}

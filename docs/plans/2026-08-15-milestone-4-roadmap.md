@@ -171,7 +171,9 @@ export function phaseOf(match: OpportunityMatch): "quick_wins" | "automation" | 
 - [ ] שליחה: `export interface BriefTransport { send(to: string, subject: string, body: string): Promise<void> }` - ברירת מחדל dev: כתיבה ללוג השרת + שמירת Brief עם sentAt=null; כשיהיה ספק מייל (Resend - פריט רק-להב: פתיחת חשבון ומפתח ב-env) מחליפים מימוש בלי לגעת בשאר. POST `/api/brief/[itemId]` יוצר Brief, מנסה לשלוח ל-BRIEF_EMAIL מ-env (ברירת מחדל lahavk@raion.co.il), מעדכן sentAt בהצלחה, ומחזיר {ok, sent}.
 - [ ] status של RoadmapItem עובר ל-"requested" כשנוצר Brief (זה ה"אני רוצה להטמיע את זה").
 - [ ] בדיקות: תבנית מלאה מנתוני אופטיקה בק fixture, אפס ספרות שלא מהקטלוג, transport מוזרק נקרא, sentAt מתעדכן רק בהצלחה.
-- [ ] Commit: `feat(4-7): project brief - deterministic template, pluggable email transport`
+- [x] Commit: `feat(4-7): project brief - deterministic template, pluggable email transport`
+
+**As-built (15.8):** brief.ts טהור לחלוטין; BriefTransport + consoleBriefTransport + sendBrief באורקסטרטור נפרד run-brief.ts (אותה חלוקה כמו matching/run-roadmap). תקציר המודל בסעיף 1 מבני בלבד (תוויות סקציות, לא טקסט חופשי - חוזה אפס-הספרות ניתן להוכחה טריוויאלית). סעיף מערכות קיימות מציג מחרוזות בעלים כלשונן - שמות כלים אמיתיים יכולים להכיל ספרות (Bitrix24), מתועד כמקובל. status כבר requested = מותר, נוצר Brief נוסף. סדר הטרנזקציה: update לפני create כדי שבדיקת ה-rollback תבדוק באמת. תוקן באגר rollback סמוי ב-fake-db (snapshot רדוד מול מוטציית Object.assign). שאלות פתוחות סטטיות לכל שלב כולל transformation (לא בשימוש היום). BRIEF_EMAIL מתועד ב-env.example.
 
 ### משימה 8: מסך 5 - Business Map + Roadmap (בעיצוב הזמני)
 
