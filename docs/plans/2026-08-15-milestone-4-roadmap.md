@@ -104,7 +104,9 @@ export function matchOpportunities(report: ScoreReport, model: BusinessModel | n
 - [ ] כללים: פריט נכנס אם יש לפחות ראיה אחת (evidence לא ריק) **או** painQuote רלוונטי; lostWeightedPoints = points * weight של הממד; אין המצאות - painQuotes נלקחים אך ורק מ-model.data.pains (ערכי string), התאמה במילות מפתח פשוטות לפי הפריט (מיפוי סטטי בקובץ: לדוגמה "תור" ל-online_booking, "טלפון/עומס" לבוט וואטסאפ, "לא חוזרים/שימור" לאיסוף ביקורות וכד' - המיפוי גלוי וקבוע, לא LLM).
 - [ ] דטרמיניזם מלא: אותו קלט = אותו פלט, סדר יציב (לפי סכום lostWeightedPoints יורד ואז שם).
 - [ ] בדיקות: התאמה על ScoreReport סינתטי של קמפאי (פערי analytics/fb_pixel/online_booking) - נבחרים הפריטים הנכונים; פריט בלי אף ראיה לא נכנס; pains בלבד מכניס פריט עם evidence ריק; יציבות סדר.
-- [ ] Commit: `feat(4-2): pure opportunity matching - gap evidence + owner pain quotes`
+- [x] Commit: `feat(4-2): pure opportunity matching - gap evidence + owner pain quotes`
+
+**As-built (15.8):** המימוש נחת בתוך 53df428 (מרוץ אינדקס-גיט עם קומיט מסך הבית - התוכן נכון, ההודעה משותפת; מאז: סוכנים לא מריצים גיט, הבקר מבצע קומיטים). סבב הסקירה היחיד תפס ותיקן: נרמול אותיות סופיות (תיאומים/תיאום), גבולות מילים בעברית עם קידומות דבוקות (רגקס, לא includes - "בתור בעל עסק" כבר לא נקשר לתורים), ניתוב מפתחות למה שהקטלוג באמת מכריז (ידני/אקסל -> lead_handling; מוניטין שלילי -> no_problem_themes), דדופ ציטוטים, והגנה על מודל ישן בלי סקציית pains (toModelView לא ממלא data). 14 בדיקות. פערים ללא מיפוי כאב מכוון (gbp_exists/perf/analytics ועוד - נכנסים דרך ראיות ממילא). הערה למשימות 3+5: התאמה יכולה להיכנס על כאב בלבד עם אפס ראיות - הניסוח בנימוק אסור שיישמע "חסר לך X" על משהו שקיים.
 
 ### משימה 3: Opportunity Score + שלביות - opportunity-score.ts
 

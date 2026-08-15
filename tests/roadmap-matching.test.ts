@@ -67,6 +67,9 @@ const BOOKING_ITEM = catalogItem("c2", "קביעת תורים אונליין", [
 const WHATSAPP_ITEM = catalogItem("c3", "בוט וואטסאפ", ["whatsapp", "chat_widget"]); // שני המפתחות earned - אין פער
 const REVIEWS_ITEM = catalogItem("c4", "איסוף ביקורות אוטומטי", ["has_reviews", "review_volume"]); // שני המפתחות earned - אין פער
 const UNKNOWN_ITEM = catalogItem("c5", "פריט עם מפתחות לא-ידועים", ["online_booking", "email_link", "seo"]);
+// שני פריטי קטלוג אמיתיים שכל מפתחותיהם חסרים מהדוח הסינתטי - נכנסים רק דרך כאב בעלים
+const CRM_ITEM = catalogItem("c6", "חיבור לידים ל-CRM והתראות", ["contact_form", "lead_handling", "email_link"]);
+const REPLY_ITEM = catalogItem("c7", "ניהול ומענה לביקורות", ["no_problem_themes"]);
 
 describe("matchOpportunities", () => {
   it("matches the right catalog items to a Kampai-style gap set with correct evidence and lostWeightedPoints", () => {
@@ -131,5 +134,75 @@ describe("matchOpportunities", () => {
     expect(result).toHaveLength(1);
     expect(result[0].unknownKeys).toEqual(["email_link", "seo"]);
     expect(result[0].evidence.map((e) => e.ruleKey)).toEqual(["online_booking"]);
+  });
+
+  it("returns an empty list for an empty catalog", () => {
+    const model = modelWithPains({ ownerNotes: "כל התורים מנוהלים ביומן נייר" });
+    expect(matchOpportunities(REPORT_KAMPAI, model, [])).toEqual([]);
+  });
+
+  // אותיות סופיות: "תיאומים"/"טלפונים" לא מכילים כתת-מחרוזת את "תיאום"/"טלפון" - בלי נרמול
+  // הצורות האלה (הנפוצות בדיבור של בעל עסק) לא היו מתאימות לשום פריט
+  it("matches inflected Hebrew forms (final letters, plurals, attached prefixes)", () => {
+    const cases: [string, string][] = [
+      ["רוב התיאומים מגיעים אליי בטלפון", "c2"],
+      ["והתורים מנוהלים ביומן נייר", "c2"],
+      ["כל תיאום דורש שיחה", "c2"],
+    ];
+    for (const [quote, expectedId] of cases) {
+      const result = matchOpportunities(REPORT_KAMPAI, modelWithPains({ ownerNotes: quote }), [BOOKING_ITEM]);
+      expect(result[0].catalog.id).toBe(expectedId);
+      expect(result[0].painQuotes).toEqual([quote]);
+    }
+
+    const phone = matchOpportunities(
+      REPORT_KAMPAI, modelWithPains({ ownerNotes: "יש יותר מדי טלפונים במהלך היום" }), [WHATSAPP_ITEM],
+    );
+    expect(phone).toHaveLength(1); // נכנס על הכאב בלבד (שני המפתחות earned)
+    expect(phone[0].painQuotes).toEqual(["יש יותר מדי טלפונים במהלך היום"]);
+  });
+
+  // גבול מילה עברי: "בתור בעל עסק" הוא "בתפקיד", ו"תורנות" היא מילה אחרת לגמרי
+  it("does not attach a quote where the keyword is only a lookalike substring", () => {
+    for (const quote of ["בתור בעל עסק קטן אין לי זמן לשיווק", "אני עובד לבד בלי תורנות"]) {
+      const result = matchOpportunities(REPORT_KAMPAI, modelWithPains({ ownerNotes: quote }), [BOOKING_ITEM]);
+      expect(result[0].painQuotes).toEqual([]); // נכנס על הפער בלבד
+    }
+  });
+
+  it("does not attach a quote whose keyword maps to rule keys the item does not ask for", () => {
+    const model = modelWithPains({ ownerNotes: "לתאם תור לוקח נצח" }); // מצביע על online_booking בלבד
+    expect(matchOpportunities(REPORT_KAMPAI, model, [WHATSAPP_ITEM])).toEqual([]);
+  });
+
+  it("reports the same quote once even when it was stored in two pains fields", () => {
+    const quote = "יש עומס בטלפון כל היום";
+    const model = modelWithPains({ ownerNotes: quote, freeText: quote });
+    const result = matchOpportunities(REPORT_KAMPAI, model, [WHATSAPP_ITEM]);
+    expect(result[0].painQuotes).toEqual([quote]);
+  });
+
+  // מפתח חוק שאף פריט קטלוג לא מבקש לא יכול לצרף ציטוט לכלום - כאב על עבודה ידנית חייב לנחות
+  // על פריט אמיתי (חיבור הלידים ל-CRM), וכאב על ביקורות שליליות על פריט המענה לביקורות
+  it("routes owner pains to catalog items that actually ask for the mapped rule keys", () => {
+    const manual = matchOpportunities(
+      REPORT_KAMPAI, modelWithPains({ ownerNotes: "אני מקליד הכול ידנית לאקסל" }), [CRM_ITEM],
+    );
+    expect(manual).toHaveLength(1);
+    expect(manual[0].painQuotes).toEqual(["אני מקליד הכול ידנית לאקסל"]);
+    expect(manual[0].evidence).toEqual([]);
+    expect(manual[0].unknownKeys).toEqual(["contact_form", "lead_handling", "email_link"]);
+
+    const negative = matchOpportunities(
+      REPORT_KAMPAI, modelWithPains({ ownerNotes: "יש ביקורות שליליות שאף אחד לא עונה עליהן" }),
+      [REPLY_ITEM, REVIEWS_ITEM],
+    );
+    expect(negative.map((m) => m.catalog.id).sort()).toEqual(["c4", "c7"]);
+  });
+
+  it("survives a stored model row that has no pains section at all", () => {
+    const legacy = { data: { profile: {} }, fieldSources: {}, credits: {}, completenessPct: 0 } as unknown as BusinessModel;
+    const result = matchOpportunities(REPORT_KAMPAI, legacy, [ANALYTICS_ITEM, REVIEWS_ITEM]);
+    expect(result.map((m) => m.catalog.id)).toEqual(["c1"]); // הפער נשאר, פשוט אין ציטוטים
   });
 });

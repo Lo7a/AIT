@@ -34,22 +34,54 @@ export interface OpportunityMatch {
 
 // --- מיפוי מילות מפתח לכאבי בעלים -> מפתחות חוקים ---
 // גלוי, קבוע וסטטי בקובץ הזה בלבד - לא LLM, לא נלמד מנתונים. פספוס (כאב אמיתי בניסוח לא-מוכר)
-// קביל; אין כאן שום ניחוש/הסקה - רק חיפוש תת-מחרוזת פשוט על הטקסט שבעל העסק כתב במילים שלו.
+// קביל; אין כאן שום ניחוש/הסקה - רק חיפוש מילות מפתח בטקסט שבעל העסק כתב במילים שלו.
+// מפתחות החוקים שנרשמים כאן הם רק כאלה שפריט קטלוג באמת מבקש ב-gapKeys - מפתח שאף פריט לא
+// מבקש (manual_tasks/internal_tools של ממד התהליכים, למשל) לא יכול לצרף ציטוט לאף פריט, ולכן
+// כאב על עבודה ידנית מנותב ל-lead_handling (פריט חיבור הלידים ל-CRM, שהוא התשובה המוצרית שלו).
+// כשייכנס לקטלוג פריט שמצהיר על מפתח כזה - מוסיפים אותו כאן.
 interface PainKeywordRule { keywords: string[]; ruleKeys: string[]; }
 
 const PAIN_KEYWORD_RULES: PainKeywordRule[] = [
-  { keywords: ["תור", "תיאום"], ruleKeys: ["online_booking"] },
+  { keywords: ["תור", "תיאום", "לתאם"], ruleKeys: ["online_booking"] },
   { keywords: ["טלפון", "עומס"], ruleKeys: ["whatsapp", "chat_widget"] },
-  { keywords: ["לא חוזרים", "לא חוזרות", "שימור", "ביקורות"], ruleKeys: ["has_reviews", "review_volume"] },
-  { keywords: ["ידני", "אקסל"], ruleKeys: ["manual_tasks", "internal_tools"] },
-  { keywords: ["פניות", "נופל", "נופלת", "נופלים", "נופלות"], ruleKeys: ["lead_handling"] },
+  { keywords: ["לא חוזר", "שימור", "ביקורת", "ביקורות"], ruleKeys: ["has_reviews", "review_volume"] },
+  // ביקורת שלילית שעומדת בלי מענה היא כאב אחר מ"אין מספיק ביקורות" - הפריט שעונה עליו הוא
+  // ניהול ומענה לביקורות (no_problem_themes), לא איסוף ביקורות
+  { keywords: ["ביקורת שלילית", "ביקורות שליליות", "ביקורות רעות", "תלונה", "תלונות", "מוניטין"], ruleKeys: ["no_problem_themes"] },
+  { keywords: ["ידני", "ידנית", "ידניות", "אקסל"], ruleKeys: ["lead_handling"] },
+  { keywords: ["פניות", "פנייה", "נופל", "נופלת"], ruleKeys: ["lead_handling"] },
 ];
+
+// עברית: אות סופית שוברת חיפוש גזע - "תיאומים" לא מכיל את "תיאום" ו"טלפונים" לא מכיל את
+// "טלפון" (מ' סופית ונ' סופית הן תווים אחרים). ממירים כל אות סופית לצורתה הרגילה בשני הצדדים.
+const FINAL_LETTERS: Record<string, string> = { "ך": "כ", "ם": "מ", "ן": "נ", "ף": "פ", "ץ": "צ" };
+const normalizeFinals = (s: string): string => s.replace(/[ךםןףץ]/g, (c) => FINAL_LETTERS[c]);
+
+// "בתור" הוא כמעט תמיד "בתפקיד" ("בתור בעל עסק קטן...") ולא תור לתיאום - מוחקים את המילה הזאת
+// בלבד לפני החיפוש. מחיקה ולא פסילת המשפט כולו: "בתור בעל עסק אני מנהל את התורים ביומן" עדיין
+// מתאים דרך "התורים". אותו עיקרון של רשימה שחורה מפורשת כמו ב-score/dimensions.ts
+const AS_ROLE_RE = /בתור/g;
+
+// גבול מילה עברי: ה-\b של JS מכיר רק תווי ASCII ולכן חסר תועלת כאן, אז בונים גבול ידנית -
+// לפני הגזע מותרות תחיליות נצמדות (ו/ה/ב/כ/ל/מ/ש, עד שתיים: "והתורים", "מהטלפון") ואחריו רק
+// סיומת ריבוי. בלי הגבול הזה "תורנות" ו"תורה" היו נספרים כ"תור" ומצרפים ציטוט לא רלוונטי.
+const HEBREW_PREFIXES = "[והבכלמש]{0,2}";
+const PLURAL_SUFFIX = "(?:ימ|ות)?"; // אחרי נרמול הסופיות צורת הרבים של "תור" היא "תורימ"
+const compileKeyword = (keyword: string): RegExp =>
+  new RegExp(`(?<![א-ת])${HEBREW_PREFIXES}${normalizeFinals(keyword)}${PLURAL_SUFFIX}(?![א-ת])`);
+
+// קומפילציה פעם אחת בטעינת המודול - בלי דגל g (הוא היה שומר lastIndex בין קריאות ל-test
+// והופך את ההתאמה ללא-דטרמיניסטית)
+const COMPILED_PAIN_RULES: { patterns: RegExp[]; ruleKeys: string[] }[] = PAIN_KEYWORD_RULES.map(
+  (rule) => ({ patterns: rule.keywords.map(compileKeyword), ruleKeys: rule.ruleKeys }),
+);
 
 // מפתחות החוקים שכאב נתון "מצביע" עליהם - איחוד כל הרשומות שאחת ממילות המפתח שלהן מופיעה בציטוט
 function ruleKeysOfPain(quote: string): Set<string> {
+  const text = normalizeFinals(quote).replace(AS_ROLE_RE, " ");
   const keys = new Set<string>();
-  for (const rule of PAIN_KEYWORD_RULES) {
-    if (rule.keywords.some((kw) => quote.includes(kw))) {
+  for (const rule of COMPILED_PAIN_RULES) {
+    if (rule.patterns.some((re) => re.test(text))) {
       for (const key of rule.ruleKeys) keys.add(key);
     }
   }
@@ -58,12 +90,15 @@ function ruleKeysOfPain(quote: string): Set<string> {
 
 // כל ציטוטי הכאב בפועל מהמודל - אך ורק מסקציית pains, ואך ורק ערכי מחרוזת. ערכים ממקור סריקה
 // (כמו fromReviews שהוא מערך תמות, לא ציטוט בעלים) לא נספרים - אין המצאת ציטוט שלא נאמר במילים.
-// model=null (אין ראיון בכלל) -> אין ציטוטים.
+// model=null (אין ראיון בכלל) -> אין ציטוטים. `?? {}` מגן על שורת מודל שנשמרה לפני שהסקציה
+// הזאת הייתה קיימת (toModelView מחזיר את ה-JSON מה-DB כמו שהוא, ראו diagnosis-read.ts).
+// Set: אותו משפט יכול להישמר בשני שדות (ראיון + טקסט חופשי) - ציטוט אחד בפועל, פעם אחת בפלט.
 function painQuotesOf(model: BusinessModel | null): string[] {
   if (!model) return [];
-  return Object.values(model.data.pains).filter(
+  const quotes = Object.values(model.data.pains ?? {}).filter(
     (v): v is string => typeof v === "string" && v.trim().length > 0,
   );
+  return [...new Set(quotes)];
 }
 
 // אינדקס מהיר של הדוח לפי מפתח חוק - כל gapKey בקטלוג נבדק מולו פעם אחת בזמן קבוע
@@ -99,7 +134,8 @@ export function matchOpportunities(
   catalog: CatalogRowLite[],
 ): OpportunityMatch[] {
   const ruleIndex = indexReport(report);
-  const pains = painQuotesOf(model);
+  // מפתחות החוקים של כל ציטוט מחושבים פעם אחת לכל הקטלוג, לא מחדש לכל פריט
+  const pains = painQuotesOf(model).map((quote) => ({ quote, ruleKeys: ruleKeysOfPain(quote) }));
 
   const matches: OpportunityMatch[] = [];
   for (const item of catalog) {
@@ -124,10 +160,9 @@ export function matchOpportunities(
       // known && earned - לא פער ולא לא-ידוע, פשוט לא נכנס לשום רשימה
     }
 
-    const painQuotes = pains.filter((quote) => {
-      const quoteRuleKeys = ruleKeysOfPain(quote);
-      return item.conditions.gapKeys.some((key) => quoteRuleKeys.has(key));
-    });
+    const painQuotes = pains
+      .filter((pain) => item.conditions.gapKeys.some((key) => pain.ruleKeys.has(key)))
+      .map((pain) => pain.quote);
 
     if (evidence.length === 0 && painQuotes.length === 0) continue; // כלל הכניסה: ראיה או כאב רלוונטי
 
