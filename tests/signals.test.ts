@@ -108,6 +108,19 @@ describe("extractSignals", () => {
     expect(extractSignals(html, BASE).hasContactForm).toBe(false);
   });
 
+  it("detects a hand-rolled chat widget by structural class/function names (סבא אדוארד live case)", () => {
+    const html = `<!-- CHAT -->
+      <div class="chat-fab" onclick="toggleChat()"><i class="fa-solid fa-comments"></i><div class="chat-pulse"></div></div>
+      <div class="chat-window" id="chatWindow"></div>`;
+    expect(extractSignals(html, BASE).hasChatWidget).toBe(true);
+  });
+
+  it("free-text mentions of chat are not a chat widget", () => {
+    expect(extractSignals(`<p>Talk to us via chat or WhatsApp anytime.</p>`, BASE).hasChatWidget).toBe(false);
+    expect(extractSignals(`<a href="https://chat.openai.com">ChatGPT</a>`, BASE).hasChatWidget).toBe(false);
+    expect(extractSignals(`<p>דברו איתנו בצ'אט</p>`, BASE).hasChatWidget).toBe(false);
+  });
+
   it("detects shopify, and wordpress wins when multiple platform markers exist", () => {
     expect(extractSignals(`<script src="https://cdn.shopify.com/x.js"></script>`, BASE).platform).toBe("shopify");
     const mixed = `<link href="/wp-content/a.css"/><script src="https://static.wixstatic.com/x.js"></script>`;

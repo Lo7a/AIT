@@ -13,6 +13,9 @@ const WHATSAPP_RE = /wa\.me\/|(?:api|web)\.whatsapp\.com|whatsapp:\/\/send/;
 // שקיבלה "אין הזמנה אונליין"). התבנית order\. תופסת סאב-דומיין הזמנות גנרי של ספק
 const BOOKING_RE = /calendly|vcita|setmore|simplybook|booking-calendar|bookly|amelia[-a-z]*booking|appointment-booking|tabit|ontopo|bitetech|tenbis|10bis\.co\.il|mishloha|wolt\.com|myvisit|easytable|order\.[a-z0-9-]+\.(?:co\.il|com|il)/;
 const CHAT_RE = /tawk\.to|tidio(?:chat)?\.(?:co|com)|intercom(?:cdn)?\.(?:io|com)|crisp\.chat|zdassets|zopim|jivosite|smartsuppchat|xfbml\.customerchat/;
+// צ'אט תוצרת-בית (המקרה החי: סבא אדוארד - .chat-fab/.chat-window/togglechat() בקוד התבנית עצמו,
+// בלי ספק). זיהוי מבני לפי שמות מחלקות/פונקציות של רכיב צ'אט - לא מילים חופשיות בטקסט
+const CUSTOM_CHAT_RE = /chat-(?:fab|window|widget|box|popup|container|launcher|bubble)\b|togglechat\s*\(|openchat\s*\(/;
 const FB_PIXEL_RE = /fbq\(|fbevents\.js/;
 const GA_RE = /gtag\(|googletagmanager|google-analytics/;
 // טפסים שאינם יצירת קשר: חיפוש, ניוזלטר, התחברות, עגלה, תגובות בלוג
@@ -86,7 +89,7 @@ export function extractSignals(html: string, baseUrl: string): PageSignals {
     hasPhoneLink: $('a[href^="tel:" i]').length > 0,
     hasEmailLink: $('a[href^="mailto:" i]').length > 0,
     hasOnlineBooking: BOOKING_RE.test(lowerHtml),
-    hasChatWidget: CHAT_RE.test(lowerHtml),
+    hasChatWidget: CHAT_RE.test(lowerHtml) || CUSTOM_CHAT_RE.test(lowerHtml),
     hasFacebookPixel: FB_PIXEL_RE.test(lowerHtml),
     hasGoogleAnalytics: GA_RE.test(lowerHtml),
     platform,
