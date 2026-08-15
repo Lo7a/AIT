@@ -42,6 +42,18 @@
 - [ ] בדיקות: זיהוי כל פלטפורמה; מפתח עם path לשני עסקי פייסבוק שונים = מפתחות שונים; pipeline מדלג על crawl/PSI ב-socialOnly; חוק "אתר עצמאי" earned לאתר רגיל, פער ל-socialOnly, לא ידוע כשאין אתר כלל.
 - [ ] Commit: `feat(4-0): social page as website - honest detection, per-page identity, no garbage crawl`
 
+### משימה 0.5: בחירת סניף - קומבו-בוקס עם הקלדה, וכתובת שמפעילה גם חיפוש מפות
+
+**הרקע (דרישת מייסד, 15.8):** (א) הקלדת כתובת אתר (gentleman.co.il) עוקפת היום את גוגל מפות בשקט ומייצרת דוח no_gbp לעסק שכן קיים במפות - משתמש אמיתי מקליד מה שיש לו ביד. (ב) לרשת עם כמה סניפים להב רוצה רשימת תוצאות עם שדה הקלדה והשלמה כדי למצוא את הסניף הרלוונטי ולקבל עליו דוח.
+
+**Files:** Modify: `src/app/use-business-search.ts` (כל הלוגיקה - מנדט logic-in-hook), `src/app/search-box.tsx` (תצוגה דקה), `src/server/api/search-handler.ts` אם נדרש; Create: `src/app/candidate-filter.ts` (סינון טהור, נבדק); Test: `tests/candidate-filter.test.ts`, הרחבת `tests/search-handler.test.ts`
+
+- [ ] **כתובת אתר מפעילה גם מפות:** כשמזוהה URL בשדה, לפני ניווט לסריקה - קריאה אחת ל-/api/search עם הדומיין כשאילתה. יש תוצאות: מציגים את הרשימה עם כותרת "מצאנו את העסק גם בגוגל מפות" + אופציה מפורשת "סריקת האתר בלבד" (המסלול הקיים). אין תוצאות: ממשיכים ישר לסריקת אתר כהיום. עלות: קריאת Places אחת להקלדת URL - זהה לחיפוש שם רגיל.
+- [ ] **קומבו-בוקס סניפים:** כשחוזרות כמה תוצאות - שדה טקסט מעל הרשימה שמסנן אותה חי (התאמת תת-מחרוזת על שם + כתובת, פונקציה טהורה ב-candidate-filter.ts); Enter על סינון שלא הותיר תוצאות או כפתור "חפשו שוב עם הטקסט הזה" מריץ חיפוש Places מחודש עם הטקסט המורחב (למשל "ג'נטלמן דיזנגוף"). בחירת סניף = אבחון מלא על ה-placeId שלו, כהיום.
+- [ ] נגישות: דפוס combobox (role, aria-expanded, aria-activedescendant, ניווט חצים בין תוצאות, Escape סוגר); הרשימה כבר aria-live.
+- [ ] בדיקות: הסינון הטהור (שם, כתובת, ריק, אין התאמות); הזרימה URL->search (הוק - החלקים הטהורים; ה-JSX בשער); search-handler לא נשבר.
+- [ ] Commit: `feat(4-0.5): branch picker combobox and URL input that also searches Maps`
+
 ### משימה 1: ממד בשלות תהליכים אמיתי + רענון ציונים אחרי ראיון
 
 **Files:** Modify: `src/pipeline/score/dimensions.ts`, `src/pipeline/score/engine.ts`, `src/server/run-interview.ts`; Test: `tests/score-engine.test.ts`, `tests/dimensions.test.ts`, `tests/run-interview.test.ts`
