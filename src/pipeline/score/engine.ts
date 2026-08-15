@@ -2,6 +2,8 @@ import type { ScanFindings } from "../types";
 import type {
   DimensionDef, DimensionScore, Highlight, RuleResult, ScoreReport,
 } from "./types";
+import { buildDimensions } from "./dimensions";
+import type { BusinessModel } from "../model/business-model";
 
 const TOP_COUNT = 3;
 // מתחת ל-75% מהנקודות ידועות — הממד מסומן "מידע חלקי" (אפיון 6: לא מענישים על חוסר דאטה)
@@ -61,4 +63,10 @@ export function scoreFindings(defs: DimensionDef[], f: ScanFindings): ScoreRepor
     topGaps: highlights((r) => r.known && !r.earned),
     topStrengths: highlights((r) => r.earned),
   };
+}
+
+// נוחות: ניקוד עם ממד process קשור למודל העסק (אבן דרך 4, משימה 1) - model=null מייצר בדיוק
+// את DIMENSIONS (ה-stub של process, זהה להתנהגות שלפני המשימה הזו) - ראו buildDimensions ב-dimensions.ts
+export function scoreWithModel(f: ScanFindings, model: BusinessModel | null): ScoreReport {
+  return scoreFindings(buildDimensions(model), f);
 }

@@ -16,7 +16,7 @@ const findings: ScanFindings = {
 
 function seed(diagnoses: any[], scans: any[], status = "report_ready") {
   diagnoses.push({ id: "d1", businessId: "b1", status });
-  scans.push({ diagnosisId: "d1", findings, createdAt: new Date() });
+  scans.push({ id: "s1", diagnosisId: "d1", findings, createdAt: new Date() });
 }
 
 const okComplete = async () => ({
@@ -172,5 +172,87 @@ describe("finishInterview", () => {
     seed(diagnoses, scans, "roadmap_ready");
     await finishInterview(db, "d1");
     expect(transitions).toEqual([]);
+  });
+});
+
+describe("finishInterview - רענון scores (אבן דרך 4, משימה 1)", () => {
+  it("סוגר ראיון שהזכה lead_flow - מחשב מחדש scores ושומר על שורת הסריקה", async () => {
+    const { db, diagnoses, scans } = makeFakeDb() as any;
+    seed(diagnoses, scans, "interviewing");
+    await runInterviewTurn(db, "d1",
+      { content: "אני עונה תוך שעה", questionKey: "lead_flow_intake", isFreeText: false },
+      {
+        complete: async () => ({
+          data: {
+            updates: [{ section: "lead_flow", fields: { whoHandles: "בעל העסק", responseTime: "תוך שעה" } }],
+            reply: "רשמתי",
+          },
+          usage: { inputTokens: 1, outputTokens: 1 },
+        }),
+      });
+    await finishInterview(db, "d1");
+    const scan = scans.find((s: any) => s.id === "s1");
+    expect(scan.scores).toBeDefined();
+    const process = scan.scores.dimensions.find((d: any) => d.key === "process");
+    expect(process.score).not.toBeNull();
+    const leadRule = process.rules.find((r: any) => r.key === "lead_handling");
+    expect(leadRule.known).toBe(true);
+    expect(leadRule.earned).toBe(true);
+  });
+
+  it("no-op מ-report_ready - לא נוגע ב-scores", async () => {
+    const { db, diagnoses, scans } = makeFakeDb() as any;
+    seed(diagnoses, scans, "report_ready");
+    await finishInterview(db, "d1");
+    const scan = scans.find((s: any) => s.id === "s1");
+    expect(scan.scores).toBeUndefined();
+  });
+
+  it("no-op מ-roadmap_ready - לא נוגע ב-scores", async () => {
+    const { db, diagnoses, scans } = makeFakeDb() as any;
+    seed(diagnoses, scans, "roadmap_ready");
+    await finishInterview(db, "d1");
+    const scan = scans.find((s: any) => s.id === "s1");
+    expect(scan.scores).toBeUndefined();
+  });
+
+  it("ראיון מלא בסגנון אופטיקה בק (lead_flow/service/billing/manual_tasks) - בשלות תהליכים מקבלת ציון אמיתי בדוח המרוענן", async () => {
+    const { db, diagnoses, scans } = makeFakeDb() as any;
+    seed(diagnoses, scans, "interviewing");
+    const turn = (content: string, questionKey: string, data: unknown) =>
+      runInterviewTurn(db, "d1", { content, questionKey, isFreeText: false }, {
+        complete: async () => ({ data, usage: { inputTokens: 1, outputTokens: 1 } }),
+      });
+    await turn("אשתי עונה כשהיא בחנות ואני עונה בערב, תוך שעה בערך", "lead_flow_intake", {
+      updates: [{
+        section: "lead_flow",
+        fields: { whoHandles: "האישה עונה בחנות, בעל העסק עונה בערב", responseTime: "עד שעה" },
+      }],
+      reply: "רשמתי, תודה",
+    });
+    await turn("שואלים על מחיר בדיקה וביטוחים", "service_repeat", {
+      updates: [{ section: "service", fields: { recurringQuestions: "מחיר בדיקה, ביטוחים" } }],
+      reply: "הבנתי",
+    });
+    await turn("חשבוניות אני מוציא בחשבשבת", "billing_tool", {
+      updates: [{ section: "billing", fields: { invoiceTool: "חשבשבת" } }],
+      reply: "רשמתי",
+    });
+    await turn("רישום ביומן ידני, שיחות כשמוכן, תזכורות ידניות", "manual_tasks_top", {
+      updates: [{ section: "manual_tasks", fields: { manualTasks: "רישום ביומן ידני, שיחות כשמוכן, תזכורות ידניות" } }],
+      reply: "רשמתי",
+    });
+    await finishInterview(db, "d1");
+    const scan = scans.find((s: any) => s.id === "s1");
+    const process = scan.scores.dimensions.find((d: any) => d.key === "process");
+    expect(process.score).not.toBeNull();
+    expect(process.dataStatus).not.toBe("none");
+    const leadRule = process.rules.find((r: any) => r.key === "lead_handling");
+    const manualRule = process.rules.find((r: any) => r.key === "manual_tasks");
+    expect(leadRule.known).toBe(true);
+    expect(leadRule.earned).toBe(true);
+    expect(manualRule.known).toBe(true);
+    expect(manualRule.earned).toBe(false); // יש עבודה ידנית מדווחת - פער אמיתי, לא "אין מידע"
+    expect(manualRule.text).toContain("רישום ביומן ידני");
   });
 });

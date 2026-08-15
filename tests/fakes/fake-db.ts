@@ -94,7 +94,11 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
       },
     },
     scan: {
-      create: async ({ data }: any) => { scans.push(data); return { id: genId("scan"), ...data }; },
+      create: async ({ data }: any) => {
+        const row = { id: genId("scan"), ...data };
+        scans.push(row);
+        return { ...row };
+      },
       // תמיכה מינימלית ל-interview-repo.ts: הסריקה האחרונה של אבחון, ממוין לפי createdAt
       findFirst: async ({ where, orderBy }: any) => {
         let rows = scans.filter((s) => where?.diagnosisId == null || s.diagnosisId === where.diagnosisId);
@@ -102,6 +106,13 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
           rows = [...rows].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
         }
         return rows[0] ? { ...rows[0] } : null;
+      },
+      // תמיכה מינימלית ל-run-interview.ts: רענון scores על שורת סריקה קיימת לפי id (אבן דרך 4, משימה 1)
+      update: async ({ where, data }: any) => {
+        const s = scans.find((x) => x.id === where.id);
+        if (!s) throw new Error("scan not found");
+        Object.assign(s, data);
+        return { ...s };
       },
     },
     businessModelRow: {

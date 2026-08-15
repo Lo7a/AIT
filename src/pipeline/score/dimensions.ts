@@ -1,7 +1,8 @@
 import type { ScanFindings } from "../types";
-import type { DimensionDef } from "./types";
+import type { DimensionDef, RuleDef } from "./types";
 import { noGbp, crawlUsable, reviewsAnalyzed } from "../evidence";
 import { SOCIAL_PLATFORM_LABEL_HE, socialPresenceOf } from "../social-hosts";
+import type { BusinessModel, ModelSection } from "../model/business-model";
 
 // עזר "ידוע" מקומי לממד הזה בלבד — לא משותף (רק accessibility צריך אותו)
 const phoneFound = (f: ScanFindings) => !!f.business.phone || !!f.websiteSignals?.hasPhoneLink;
@@ -25,6 +26,86 @@ const hasWebsiteEarned = (f: ScanFindings) =>
 const socialPlatformOf = (f: ScanFindings): string | undefined =>
   f.socialOnly?.platform ?? socialPresenceOf(f.business.website ?? "")?.platform;
 const isSocialPresence = (f: ScanFindings) => socialPlatformOf(f) != null;
+
+// ------- ממד "בשלות תהליכים" (אבן דרך 4, משימה 1): נגזר ממודל העסק (הראיון), לא מ-ScanFindings -------
+// RuleDef.known/earned/gapText/okText מקבלים רק ScanFindings (חוזה המנוע לא השתנה) - חוקי
+// process סוגרים על model דרך processRules(model) ומתעלמים מהפרמטר שהם כן מקבלים
+
+const sectionCredit = (model: BusinessModel | null, section: ModelSection): number => model?.credits[section] ?? 0;
+
+const modelStr = (model: BusinessModel | null, section: ModelSection, field: string): string => {
+  const v = model?.data[section]?.[field];
+  return typeof v === "string" ? v.trim() : "";
+};
+
+const QUOTE_TRUNCATE_LEN = 80;
+const truncateQuote = (s: string): string => (s.length > QUOTE_TRUNCATE_LEN ? `${s.slice(0, QUOTE_TRUNCATE_LEN).trim()}...` : s);
+
+// זיהוי "כלי ניהול מעבר לחשבוניות" (CRM/יומן מנוהל) - מילות מפתח קבועות וגלויות, לא LLM (אותו
+// עיקרון כמו socialPresenceOf למעלה). "אין CRM"/"רק אקסל" שוללים גם כשהמילה CRM כן מופיעה בתשובה
+// (בשלילה) - בלי זה "אין CRM, אקסל" היה נספר בטעות כהוכחה לכלי ניהול
+const HAS_MANAGEMENT_TOOL_RE = /CRM|יומן מנוהל|מערכת ניהול|תוכנת ניהול|ניהול לקוחות/i;
+const NO_MANAGEMENT_TOOL_RE = /אין CRM|בלי CRM|לא CRM|רק אקסל|אקסל בלבד|בלי מערכת ניהול|אין מערכת ניהול/i;
+
+// שדות סקציית tools מעבר לשניים שמגיעים מהסריקה (platform/detected, ראו deriveBusinessModel) -
+// שם השדה שה-LLM בוחר בזמן החילוץ חופשי (כמו billing.invoiceTool בראיון האמיתי), אז סורקים את
+// כל הערכים המדווחים במקום להסתמך על שם שדה קבוע אחד
+const toolsReportedText = (model: BusinessModel | null): string => {
+  const data = model?.data.tools ?? {};
+  return Object.entries(data)
+    .filter(([k]) => k !== "platform" && k !== "detected")
+    .map(([, v]) => (typeof v === "string" ? v : ""))
+    .filter((s) => s.length > 0)
+    .join(" ");
+};
+
+export function processRules(model: BusinessModel | null): RuleDef[] {
+  return [
+    {
+      key: "lead_handling", points: 40,
+      known: () => sectionCredit(model, "lead_flow") >= 1,
+      earned: () => {
+        const who = modelStr(model, "lead_flow", "whoHandles");
+        const responseTime = modelStr(model, "lead_flow", "responseTime");
+        const drop = modelStr(model, "lead_flow", "leadDrop");
+        return who.length > 0 && responseTime.length > 0 && drop.length === 0;
+      },
+      gapText: () => {
+        const drop = modelStr(model, "lead_flow", "leadDrop");
+        return drop.length > 0
+          ? `פניות נופלות: ${truncateQuote(drop)}`
+          : "אין תמונה מסודרת על מי מטפל בפניות ותוך כמה זמן, פניות עלולות ליפול בין הכיסאות";
+      },
+      okText: () => {
+        const who = modelStr(model, "lead_flow", "whoHandles");
+        const responseTime = modelStr(model, "lead_flow", "responseTime");
+        return `הטיפול בפניות מסודר - ${who}, תוך ${responseTime}`;
+      },
+    },
+    {
+      key: "manual_tasks", points: 30,
+      known: () => sectionCredit(model, "manual_tasks") >= 1,
+      earned: () => modelStr(model, "manual_tasks", "manualTasks").length === 0,
+      gapText: () => `יש עדיין עבודה ידנית חוזרת: ${truncateQuote(modelStr(model, "manual_tasks", "manualTasks"))}`,
+      okText: () => "מעט עבודה ידנית חוזרת, רוב התהליכים כבר לא נשענים על הקלדה ידנית",
+    },
+    {
+      key: "internal_tools", points: 30,
+      known: () => sectionCredit(model, "tools") >= 1,
+      earned: () => {
+        const text = toolsReportedText(model);
+        return HAS_MANAGEMENT_TOOL_RE.test(text) && !NO_MANAGEMENT_TOOL_RE.test(text);
+      },
+      gapText: () => {
+        const text = toolsReportedText(model);
+        return text.length > 0
+          ? `הניהול הפנימי נשען על כלים בסיסיים: ${truncateQuote(text)}`
+          : "אין מערכת ניהול פנימית (CRM/יומן מנוהל) מעבר לחשבוניות";
+      },
+      okText: () => `יש כלי ניהול פנימי מעבר לחשבוניות: ${truncateQuote(toolsReportedText(model))}`,
+    },
+  ];
+}
 
 export const DIMENSIONS: DimensionDef[] = [
   {
@@ -224,23 +305,15 @@ export const DIMENSIONS: DimensionDef[] = [
   },
   {
     key: "process", label: "בשלות תהליכים", weight: 0.2,
-    // ימולא מהראיון (אבן דרך 3) — עד אז "אין מידע", לא משוקלל ולא מעניש
-    rules: [
-      {
-        key: "lead_handling", points: 40,
-        known: () => false, earned: () => false,
-        gapText: () => "אין מידע על טיפול בלידים", okText: () => "טיפול בלידים מסודר",
-      },
-      {
-        key: "manual_tasks", points: 30,
-        known: () => false, earned: () => false,
-        gapText: () => "אין מידע על משימות ידניות", okText: () => "מעט עבודה ידנית חוזרת",
-      },
-      {
-        key: "internal_tools", points: 30,
-        known: () => false, earned: () => false,
-        gapText: () => "אין מידע על כלים פנימיים", okText: () => "כלים פנימיים מסודרים",
-      },
-    ],
+    // מבוסס על מודל העסק מהראיון (אבן דרך 4, משימה 1) - processRules(null) שומר בדיוק על
+    // ה"stub" שהיה כאן עד עכשיו (known תמיד false, "אין מידע") לכל קריאה שלא מעבירה מודל
+    // (scan-time scoring הקיים, run-diagnosis.ts, לא זז בכלל)
+    rules: processRules(null),
   },
 ];
+
+// buildDimensions(model): DIMENSIONS עם ממד process קשור למודל נתון - כל שאר הממדים זהים
+// (אותם אובייקטים, ScanFindings-בלבד). model חסר/null => בדיוק DIMENSIONS (ראו scoreWithModel ב-engine.ts)
+export function buildDimensions(model?: BusinessModel | null): DimensionDef[] {
+  return DIMENSIONS.map((d) => (d.key === "process" ? { ...d, rules: processRules(model ?? null) } : d));
+}

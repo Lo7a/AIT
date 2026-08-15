@@ -4,6 +4,7 @@ import { extractAnswer, type ExtractOptions } from "../pipeline/interview/extrac
 import { applyInterviewUpdates } from "../pipeline/interview/merge";
 import { InterviewError, NOT_ACTIVE_MESSAGE } from "../pipeline/interview/contract";
 import { recommendNextStep } from "../pipeline/model/business-model";
+import { scoreWithModel } from "../pipeline/score/engine";
 import { transitionDiagnosis } from "./diagnosis-repo";
 import { appendExchange, getInterviewState, type InterviewState } from "./interview-repo";
 import type { DiagnosisStatus } from "./status";
@@ -142,7 +143,20 @@ export async function finishInterview(prisma: PrismaClient, diagnosisId: string)
   // report_ready - כבר שם, no-op שקט, סימטרי ל-resume השקט של startInterview.
   // roadmap_ready - הראיון כבר נסגר בעבר וה-Roadmap כבר חושב ממנו; roadmap_ready->report_ready
   // אינו מעבר חוקי במכונת המצבים (ראו status.ts), אז בלי הבדיקה הזו finish היה נכשל שם ב-409
-  // מזויף במקום להתנהג בדיוק כמו report_ready - שניהם "הראיון כבר סגור, אין מה לעשות"
+  // מזויף במקום להתנהג בדיוק כמו report_ready - שניהם "הראיון כבר סגור, אין מה לעשות". שני
+  // המסלולים האלה לא מרעננים scores - אין ראיון פעיל שנסגר, אין מה לחשב מחדש (אבן דרך 4, משימה 1)
   if (state.status === "report_ready" || state.status === "roadmap_ready") return;
   await transitionOrConflict(prisma, diagnosisId, "report_ready"); // interviewing עובר; כל סטטוס אחר יזרוק כאן
+
+  // רענון ציונים (אבן דרך 4, משימה 1): ממד process דורש את מודל העסק המעודכן - state.model כבר
+  // כולל את כל תורי הראיון (כל תור שומר אותו מיידית ב-appendExchange), אז מספיק לחשב מחדש כאן
+  // מה-findings של אותה סריקה עצמה (state.scanId) בלי לחזור ולסרוק.
+  // בכוונה לא בתוך אותה טרנזקציה של transitionDiagnosis: ה-CAS הפנימי שלו (קריאת סטטוס נוכחי
+  // ואז updateMany מותנה בו) לא נועד להתארח בתוך $transaction חיצוני עם כתיבה לא-קשורה בלי
+  // לפרק אותו לשני חלקים ולסבך כל קורא אחר שלו (transitionOrConflict, startInterview) לשם משימה
+  // אחת. העדפנו רצף פשוט אחרי הצלחה: אם התהליך קורס בדיוק בין שני הכתובים, הסטטוס כבר עבר
+  // ל-report_ready אבל scores עדיין ישנים עד לרענון הבא - לא אי-עקביות מבנית, רק "עוד לא
+  // התרענן" (בדיוק כמו שהיה קורה גם לפני המשימה הזו, בין סוף ראיון לרינדור הדוח הבא)
+  const scores = scoreWithModel(state.findings, state.model);
+  await prisma.scan.update({ where: { id: state.scanId }, data: { scores: scores as unknown as object } });
 }

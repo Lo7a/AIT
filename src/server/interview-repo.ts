@@ -23,6 +23,7 @@ export interface InterviewState {
   askedKeys: string[]; // מפתחות השאלות שכבר נענו (מהודעות המשתמש), ייחודיים
   model: BusinessModel;
   findings: ScanFindings;
+  scanId: string; // מזהה שורת הסריקה שממנה נגזרו findings/model - לרענון scores בסיום ראיון (אבן דרך 4, משימה 1)
 }
 
 export interface ExchangeInput {
@@ -100,5 +101,5 @@ export async function getInterviewState(
   const askedKeys = [...new Set(
     messages.filter((m) => m.role === "user" && m.questionKey != null).map((m) => m.questionKey as string),
   )];
-  return { diagnosisId: d.id, status: d.status as DiagnosisStatus, messages, askedKeys, model, findings };
+  return { diagnosisId: d.id, status: d.status as DiagnosisStatus, messages, askedKeys, model, findings, scanId: scan.id };
 }

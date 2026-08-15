@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { DIMENSIONS } from "../src/pipeline/score/dimensions";
-import { scoreFindings } from "../src/pipeline/score/engine";
+import { DIMENSIONS, processRules, buildDimensions } from "../src/pipeline/score/dimensions";
+import { scoreFindings, scoreWithModel } from "../src/pipeline/score/engine";
+import { MODEL_SECTIONS, type BusinessModel, type ModelSection } from "../src/pipeline/model/business-model";
 import type { ScanFindings } from "../src/pipeline/types";
 
 const META = { startedAt: "", durationMs: 0, placesCalls: 0, llmInputTokens: 0, llmOutputTokens: 0, estCostUsd: 0 };
@@ -297,5 +298,160 @@ describe("score invariants after the own_website review fixes (סקירת קוד
     const vis = report.dimensions.find((d) => d.key === "visibility")!;
     expect(vis.rules.find((r) => r.key === "has_website")!.earned).toBe(false);
     expect(report.topGaps.map((g) => g.ruleKey)).toContain("own_website");
+  });
+});
+
+// ------- ממד "בשלות תהליכים" (אבן דרך 4, משימה 1) - נגזר ממודל העסק, לא מ-ScanFindings -------
+
+function makeModel(
+  data: Partial<Record<ModelSection, Record<string, unknown>>> = {},
+  credits: Partial<Record<ModelSection, number>> = {},
+): BusinessModel {
+  return {
+    data: Object.fromEntries(MODEL_SECTIONS.map((s) => [s, data[s] ?? {}])) as BusinessModel["data"],
+    fieldSources: {},
+    credits: Object.fromEntries(MODEL_SECTIONS.map((s) => [s, credits[s] ?? 0])) as BusinessModel["credits"],
+    completenessPct: 0,
+  };
+}
+
+describe("process dimension (אבן דרך 4, משימה 1)", () => {
+  it("model=null: זהה לחלוטין להתנהגות שלפני המשימה (רגרסיה - חתימת ה-stub)", () => {
+    for (const findings of [RICH, THIN, NO_GBP]) {
+      expect(scoreWithModel(findings, null)).toEqual(scoreFindings(DIMENSIONS, findings));
+      expect(scoreFindings(buildDimensions(null), findings)).toEqual(scoreFindings(DIMENSIONS, findings));
+      expect(scoreFindings(buildDimensions(), findings)).toEqual(scoreFindings(DIMENSIONS, findings));
+    }
+    const process = scoreWithModel(RICH, null).dimensions.find((d) => d.key === "process")!;
+    expect(process.score).toBeNull();
+    expect(process.dataStatus).toBe("none");
+    for (const r of process.rules) {
+      expect(r.known).toBe(false);
+      expect(r.earned).toBe(false);
+      expect(r.text).toBe("");
+    }
+  });
+
+  describe("lead_handling", () => {
+    it("earned: מי מטפל וזמן תגובה, בלי נפילות - בסגנון אופטיקה בק", () => {
+      const model = makeModel(
+        { lead_flow: { whoHandles: "האישה עונה בחנות, בעל העסק עונה בערב", responseTime: "עד שעה" } },
+        { lead_flow: 1 },
+      );
+      const rule = processRules(model).find((r) => r.key === "lead_handling")!;
+      expect(rule.known(RICH)).toBe(true);
+      expect(rule.earned(RICH)).toBe(true);
+      expect(rule.okText(RICH)).toContain("האישה עונה בחנות");
+    });
+
+    it("gap: יש פניות נופלות - הטקסט מצטט את מה שסופר", () => {
+      const model = makeModel(
+        {
+          lead_flow: {
+            whoHandles: "בעל העסק", responseTime: "תוך יום",
+            leadDrop: "פניות בפייסבוק לפעמים נשארות בלי מענה כמה ימים",
+          },
+        },
+        { lead_flow: 1 },
+      );
+      const rule = processRules(model).find((r) => r.key === "lead_handling")!;
+      expect(rule.known(RICH)).toBe(true);
+      expect(rule.earned(RICH)).toBe(false);
+      expect(rule.gapText(RICH)).toContain("פניות בפייסבוק לפעמים נשארות בלי מענה");
+    });
+
+    it("gap: אין leadDrop אבל גם אין whoHandles/responseTime מלאים - הודעה כללית ברורה", () => {
+      const model = makeModel({ lead_flow: { whoHandles: "בעל העסק" } }, { lead_flow: 1 });
+      const rule = processRules(model).find((r) => r.key === "lead_handling")!;
+      expect(rule.known(RICH)).toBe(true);
+      expect(rule.earned(RICH)).toBe(false);
+      expect(rule.gapText(RICH).length).toBeGreaterThan(0);
+    });
+
+    it("unknown: קרדיט lead_flow מתחת ל-1 (רק מהסריקה)", () => {
+      const model = makeModel({ lead_flow: { hasContactForm: true } }, { lead_flow: 0.5 });
+      const rule = processRules(model).find((r) => r.key === "lead_handling")!;
+      expect(rule.known(RICH)).toBe(false);
+    });
+  });
+
+  describe("manual_tasks", () => {
+    it("earned: קרדיט מלא ואין משימות ידניות מדווחות", () => {
+      const model = makeModel({ manual_tasks: {} }, { manual_tasks: 1 });
+      const rule = processRules(model).find((r) => r.key === "manual_tasks")!;
+      expect(rule.known(RICH)).toBe(true);
+      expect(rule.earned(RICH)).toBe(true);
+    });
+
+    it("gap: משימות ידניות מדווחות - מצוטטות (בסגנון אופטיקה בק)", () => {
+      const model = makeModel(
+        { manual_tasks: { manualTasks: "רישום ביומן ידני, שיחות כשמוכן, תזכורות ידניות" } },
+        { manual_tasks: 1 },
+      );
+      const rule = processRules(model).find((r) => r.key === "manual_tasks")!;
+      expect(rule.known(RICH)).toBe(true);
+      expect(rule.earned(RICH)).toBe(false);
+      expect(rule.gapText(RICH)).toContain("רישום ביומן ידני");
+    });
+
+    it("gap: ציטוט ארוך נחתך לכ-80 תווים", () => {
+      const longQuote = "משימה ידנית חוזרת ומייגעת שדורשת המון זמן כל שבוע ולא נגמרת אף פעם, ממש עומס גדול על הצוות הקטן שלנו";
+      const model = makeModel({ manual_tasks: { manualTasks: longQuote } }, { manual_tasks: 1 });
+      const rule = processRules(model).find((r) => r.key === "manual_tasks")!;
+      const gap = rule.gapText(RICH);
+      expect(gap).toContain("...");
+      expect(gap).not.toContain(longQuote);
+    });
+
+    it("unknown: קרדיט manual_tasks 0 (הסריקה לבדה אף פעם לא מזכה סקציה זו)", () => {
+      const model = makeModel();
+      const rule = processRules(model).find((r) => r.key === "manual_tasks")!;
+      expect(rule.known(RICH)).toBe(false);
+    });
+  });
+
+  describe("internal_tools", () => {
+    it("earned: יש CRM מדווח מעבר לחשבוניות", () => {
+      const model = makeModel(
+        { tools: { platform: "wordpress", detected: ["google_analytics"], managementTool: "יש לנו CRM לניהול לקוחות" } },
+        { tools: 1 },
+      );
+      const rule = processRules(model).find((r) => r.key === "internal_tools")!;
+      expect(rule.known(RICH)).toBe(true);
+      expect(rule.earned(RICH)).toBe(true);
+    });
+
+    it("gap: אין CRM, רק אקסל", () => {
+      const model = makeModel({ tools: { managementTool: "אין CRM, מנהלים הכל באקסל" } }, { tools: 1 });
+      const rule = processRules(model).find((r) => r.key === "internal_tools")!;
+      expect(rule.known(RICH)).toBe(true);
+      expect(rule.earned(RICH)).toBe(false);
+      expect(rule.gapText(RICH)).toContain("אקסל");
+    });
+
+    it("gap: שום שדה מדווח מעבר ל-platform/detected - הודעה כללית", () => {
+      const model = makeModel({ tools: { platform: "wix", detected: ["facebook_pixel"] } }, { tools: 1 });
+      const rule = processRules(model).find((r) => r.key === "internal_tools")!;
+      expect(rule.known(RICH)).toBe(true);
+      expect(rule.earned(RICH)).toBe(false);
+      expect(rule.gapText(RICH)).toContain("אין מערכת ניהול פנימית");
+    });
+
+    it("unknown: קרדיט tools 0.5 בלבד (זוהה בסריקה, לא אושר בראיון)", () => {
+      const model = makeModel({ tools: { platform: "wix", detected: [] } }, { tools: 0.5 });
+      const rule = processRules(model).find((r) => r.key === "internal_tools")!;
+      expect(rule.known(RICH)).toBe(false);
+    });
+  });
+
+  it("buildDimensions(model): שאר הממדים זהים ל-DIMENSIONS (רק process מוחלף)", () => {
+    const model = makeModel({ lead_flow: { whoHandles: "א", responseTime: "ב" } }, { lead_flow: 1 });
+    const report = scoreWithModel(RICH, model);
+    const legacy = scoreFindings(DIMENSIONS, RICH);
+    for (const key of ["visibility", "reputation", "accessibility", "infrastructure"] as const) {
+      expect(report.dimensions.find((d) => d.key === key)).toEqual(legacy.dimensions.find((d) => d.key === key));
+    }
+    const process = report.dimensions.find((d) => d.key === "process")!;
+    expect(process.score).not.toBeNull();
   });
 });
