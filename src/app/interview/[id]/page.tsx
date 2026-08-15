@@ -10,8 +10,8 @@ import { getVariant } from "../../variants/registry";
 export const dynamic = "force-dynamic";
 
 // המסך רלוונטי רק כשיש דוח שאפשר לראיין עליו (report_ready), הראיון כבר פעיל (interviewing)
-// או שכבר הופק ממנו roadmap (roadmap_ready - עדיין אפשר לחזור ולהעשיר). כל סטטוס אחר (queued/
-// scanning/failed) אומר שאין עדיין מודל עסקי לבנות עליו ראיון - start היה נכשל בכל מקרה,
+// או שכבר הופק ממנו roadmap (roadmap_ready - עדיין אפשר לחזור ולהעשיר). כל סטטוס אחר (created/
+// scanning/scanned) אומר שאין עדיין מודל עסקי לבנות עליו ראיון - start היה נכשל בכל מקרה,
 // אז עדיף 404 נקי מאשר מסך שמתחיל להיטען ואז נתקע חצי-מופעל
 const INTERVIEWABLE: DiagnosisStatus[] = ["report_ready", "interviewing", "roadmap_ready"];
 

@@ -282,6 +282,29 @@ describe("chatReducer - snapshot (נתיב פישור 409 / רענון אחרי 
     expect(visibleNext(next.next, next.skippedKeys)).toBeNull();
   });
 
+  it("recommendFreeText=true בשאלה גלויה ולא-דולגה => freeText=true (נתיב start, לא רק resume)", () => {
+    const state = initialChatState(makeSnapshot({ nextQuestion: Q1, recommendFreeText: false }));
+    expect(state.freeText).toBe(false);
+    const next = chatReducer(state, {
+      type: "snapshot",
+      payload: makeSnapshot({ nextQuestion: Q1, recommendFreeText: true }),
+    });
+    expect(next.freeText).toBe(true);
+  });
+
+  it("freeTextIntent דביק נשמר גם דרך snapshot - לא נמחק ברענון", () => {
+    const intentOn = chatReducer(initialChatState(makeSnapshot({ nextQuestion: Q1 })), {
+      type: "setFreeText", value: true,
+    });
+    expect(intentOn.freeTextIntent).toBe(true);
+
+    const next = chatReducer(intentOn, {
+      type: "snapshot",
+      payload: makeSnapshot({ nextQuestion: Q2, recommendFreeText: false }),
+    });
+    expect(next.freeText).toBe(true);
+  });
+
   it("keepError=true משמר שגיאה קיימת (למשל הודעת \"הראיון כבר נסגר\"); בלי הדגל - מנקה", () => {
     const sent = chatReducer({ ...initialChatState(makeSnapshot()), input: "משהו" }, { type: "send" });
     const failed = chatReducer(sent, { type: "turnFail", error: "הראיון כבר נסגר. לחיצה על סיום הראיון תעביר לדוח המעודכן." });

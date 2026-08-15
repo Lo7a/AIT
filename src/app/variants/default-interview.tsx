@@ -100,7 +100,9 @@ export function DefaultInterview({
   // ניהול פוקוס: focus() על תיבת טקסט מנוטרלת (disabled) הוא no-op בדפדפן, ובזמן ש-inputDisabled
   // הוא true הפוקוס כבר "נפל" ל-body. לכן לא מספיק לקרוא focus() מיד אחרי dispatch (זה בדיוק
   // הבאג שהיה כאן) - צריך effect שרץ אחרי שהרינדור בפועל הפך את השדה בחזרה לפעיל, ותופס במפורש
-  // את המעבר true -> false (לא כל רינדור - אחרת גם טעינה ראשונית הייתה גונבת פוקוס מהמשתמש)
+  // את המעבר true -> false. בנתיב resume (הראיון כבר interviewing) inputDisabled false כל הזמן
+  // אז אין מעבר ואין פוקוס-גניבה בטעינה; בנתיב start טרי הוא true בהתחלה (starting) והופך ל-false
+  // רק אחרי שה-POST /start חוזר - זה כן מעבר אמיתי, וזה בכוונה: מיד כשאפשר להקליד, הפוקוס שם
   const wasDisabledRef = useRef(inputDisabled);
   useEffect(() => {
     if (wasDisabledRef.current && !inputDisabled) {
