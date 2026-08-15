@@ -2,3 +2,4 @@
 // מחליף כאן את ארבעת הרכיבים במימוש עצמאי משלו, בלי לגעת בקבצים משותפים אחרים.
 export { DefaultHome as Home, DefaultScan as Scan, DefaultReport as Report } from "../default-screens";
 export { DefaultInterview as Interview } from "../default-interview";
+export { DefaultRoadmap as Roadmap } from "../default-roadmap";

@@ -89,14 +89,16 @@ export function DefaultScan({
   return <ScanRunner target={target} attach={attach} />;
 }
 
-const TONE_TAG_CLASSES: Record<ScoreToneKind, string> = {
+// מיוצא (גם ל-default-roadmap.tsx - שם הסטטוסים תקין/חלש/חסר/אין מידע של ה-Business Map
+// מתורגמים לאותה שפת צבע good/mid/low/unknown, כדי שכל המסכים ידברו את אותו קוד צבעים)
+export const TONE_TAG_CLASSES: Record<ScoreToneKind, string> = {
   good: "bg-[#EDF3EC] text-[#346538]",
   mid: "bg-[#FBF3DB] text-[#956400]",
   low: "bg-[#FDEBEC] text-[#9F2F2D]",
   unknown: "bg-[#F1F0EE] text-[#6F6E6A]",
 };
 
-const TONE_TEXT_CLASSES: Record<ScoreToneKind, string> = {
+export const TONE_TEXT_CLASSES: Record<ScoreToneKind, string> = {
   good: "text-[#346538]",
   mid: "text-[#956400]",
   low: "text-[#9F2F2D]",
@@ -374,13 +376,16 @@ export function DefaultReport({ report }: { report: ReportView }) {
             >
               רוצה דיוק גבוה יותר? ראיון של 5 דקות
             </Link>
-            <button
-              type="button"
-              disabled
-              className="cursor-not-allowed rounded-md border border-black/[0.06] px-5 py-2.5 opacity-40"
+            {/* היה כפתור מנוטרל "בקרוב" עד משימה 8 - עכשיו קישור פעיל, לכל סטטוס שממנו מותר
+                לבנות/לצפות ב-Roadmap (report_ready/interviewing/roadmap_ready - ראו status.ts).
+                כשכבר יש Roadmap קיים (roadmap_ready) הניסוח משתנה כדי לא להטעות כאילו זו הפעלה
+                ראשונה - בעל העסק חוזר לראות מה שכבר חושב לו, לא "מדלג" לשום מקום חדש */}
+            <Link
+              href={`/roadmap/${report.id}`}
+              className="rounded-md border border-black/[0.06] px-5 py-2.5 text-[#111111] hover:bg-[#F1F0EE] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
             >
-              דלג ל-Roadmap (בקרוב)
-            </button>
+              {report.status === "roadmap_ready" ? "לצפייה ב-Roadmap" : "דלג ל-Roadmap"}
+            </Link>
           </div>
         </section>
       )}

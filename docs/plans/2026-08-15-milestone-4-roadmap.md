@@ -183,7 +183,9 @@ export function phaseOf(match: OpportunityMatch): "quick_wins" | "automation" | 
 
 - [ ] Business Map: שישה שלבי שרשרת ערך עם סטטוס תקין/חלש/חסר/אין מידע (נגזר מציוני הממדים + credits), הזדמנויות לפי שלבים (quick_wins/automation/ai) עם כרטיס לכל פריט: שם, בעיה, נימוק, score, טווחי עלות/חיסכון כלשונם מהקטלוג, תג ביטחון, כפתור "אני רוצה להטמיע את זה" => POST brief => אישור.
 - [ ] מד שלמות + קישור "שפר את הדיוק" חזרה לראיון (roadmap_ready -> interviewing מותר).
-- [ ] Commit: `feat(4-8): roadmap screen - business map, phased opportunities, brief request`
+- [x] Commit: `feat(4-8): roadmap screen - business map, phased opportunities, brief request`
+
+**As-built (15.8):** business-map.ts טהור - כל שלב שואב אותות שהם RuleResult אמיתיים מהמנוע או credit של סקציה (0/0.5/1): שיווק=נראות+analytics/pixel; ליד=נגישות+lead_handling; מכירה=internal_tools+scheduling credit; שירות=chat_widget+service credit; גבייה=billing credit בלבד (אין חוק סריקה - "אין מידע" כן לפני ראיון); שימור=מוניטין+retention credit+אות כאב "לא חוזרים". ספים כמו scoreTone (75/50). roadmap-logic.ts reducer טהור בדפוס chat-logic. RSC טוען report+roadmap במקביל; אין roadmap = מצב בנייה עם POST אוטומטי שמור מכפילות, 409 = refetch שקט. כרטיס עם כפתור brief שהופך ל"קיבלנו - ניצור קשר בהקדם"; פריט requested מתחיל שם. כפתור הדוח: "דלג ל-Roadmap" פעיל, הופך ל"לצפייה ב-Roadmap" ב-roadmap_ready. 31 בדיקות חדשות (16+15).
 
 ### משימה 9: שער יציאה אבן 4
 
