@@ -210,3 +210,31 @@ describe("crawlWebsite", () => {
     expect(signals.jsRendered).toBe(false);
   });
 });
+
+describe("homepage timeout retry", () => {
+  const timeoutError = () => new DOMException("The operation was aborted due to timeout", "TimeoutError");
+
+  it("retries the homepage once with a longer timeout after a timeout (Kampai case)", async () => {
+    const fetchImpl = vi.fn()
+      .mockRejectedValueOnce(timeoutError())
+      .mockResolvedValue(htmlResponse(CONTACT));
+    const signals = await crawlWebsite("https://slow.co.il", { fetchImpl, timeoutMs: 1000 });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(signals.pagesCrawled).toBe(1);
+    expect(signals.hasWhatsappLink).toBe(true); // האותות נאספו למרות שהניסיון הראשון קרס
+  });
+
+  it("does not retry a non-timeout homepage failure", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: false, status: 500, url: "", headers: { get: () => null }, text: async () => "",
+    } as unknown as Response);
+    await expect(crawlWebsite("https://down.co.il", { fetchImpl })).rejects.toThrow("HTTP 500");
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("gives up when the patient retry also times out", async () => {
+    const fetchImpl = vi.fn().mockRejectedValue(timeoutError());
+    await expect(crawlWebsite("https://dead.co.il", { fetchImpl })).rejects.toThrow("timeout");
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+});

@@ -11,6 +11,10 @@ export interface CrawlOptions {
 
 const DEFAULT_MAX_PAGES = 8;
 const DEFAULT_TIMEOUT_MS = 10_000;
+// מכפיל הניסיון השני לעמוד הבית: אתרים אמיתיים איטיים במיוחד (מקרה קמפאי - LCP של 40 שניות)
+// מפילים את ה-fetch הראשון על timeout, ובלי עמוד הבית כל אותות האתר אובדים. ניסיון שני
+// סבלני אחד (פי 3, ברירת מחדל 30 שניות) עדיף על ויתור מלא; עמודים פנימיים לא מקבלים retry.
+const HOME_RETRY_MULTIPLIER = 3;
 // עמודים שנכשלים לא מקדמים את מונה ההצלחות — לכן חוסמים גם את מספר הניסיונות הכולל
 const EXTRA_ATTEMPTS = 4;
 
@@ -73,8 +77,15 @@ export async function crawlWebsite(
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const deadline = Date.now() + (opts.budgetMs ?? 40_000); // תקציב זמן כולל לסריקה — יעד ה-KPI הוא אבחון שלם מתחת ל-90 שניות
 
-  // עמוד הבית חייב להצליח — בלעדיו אין סריקת אתר
-  const homePage = await fetchPage(siteUrl, fetchImpl, timeoutMs);
+  // עמוד הבית חייב להצליח — בלעדיו אין סריקת אתר. timeout (ורק timeout - לא שגיאות HTTP
+  // או תוכן) מקבל ניסיון שני סבלני לפני שמוותרים על האתר כולו
+  let homePage: FetchedPage;
+  try {
+    homePage = await fetchPage(siteUrl, fetchImpl, timeoutMs);
+  } catch (err) {
+    if (!(err instanceof DOMException && err.name === "TimeoutError")) throw err;
+    homePage = await fetchPage(siteUrl, fetchImpl, timeoutMs * HOME_RETRY_MULTIPLIER);
+  }
   // עובדים עם הכתובת הסופית (אחרי redirect) — אחרת בדיקת same-origin פוסלת את כל הקישורים
   const homeUrl = homePage.finalUrl;
   const home = extractSignals(homePage.html, homeUrl);
