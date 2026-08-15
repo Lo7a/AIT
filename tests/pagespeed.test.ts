@@ -41,8 +41,11 @@ describe("runPageSpeed", () => {
     expect(calledUrl).toContain("category=PERFORMANCE");
     expect(calledUrl).toContain("category=SEO");
     expect(calledUrl).toContain(encodeURIComponent("https://example.co.il"));
-    expect(calledUrl).toContain("key=test-secret-key");
+    // המפתח בכותרת ולא ב-URL (מדיניות docs/llm.md) - נבדק חי מול PSI: 200 עם נתוני Lighthouse מלאים
+    expect(calledUrl).not.toContain("key=");
+    expect(calledUrl).not.toContain("test-secret-key");
     const init = fetchImpl.mock.calls[0][1] as RequestInit;
+    expect((init.headers as Record<string, string>)["x-goog-api-key"]).toBe("test-secret-key");
     expect(init.signal).toBeInstanceOf(AbortSignal);
   });
 
@@ -74,6 +77,8 @@ describe("runPageSpeed", () => {
     await runPageSpeed("https://example.co.il", { fetchImpl });
     const calledUrl = fetchImpl.mock.calls[0][0] as string;
     expect(calledUrl).not.toContain("key=");
+    const init = fetchImpl.mock.calls[0][1] as RequestInit;
+    expect(init.headers as Record<string, string>).not.toHaveProperty("x-goog-api-key");
     vi.unstubAllEnvs();
   });
 

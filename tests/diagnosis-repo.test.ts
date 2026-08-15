@@ -168,25 +168,51 @@ describe("createDiagnosisForBusiness", () => {
   });
 });
 
+const MODEL_HALF: BusinessModel = {
+  data: Object.fromEntries(MODEL_SECTIONS.map((k) => [k, {}])) as BusinessModel["data"],
+  fieldSources: {},
+  credits: Object.fromEntries(MODEL_SECTIONS.map((k) => [k, 0.5])) as BusinessModel["credits"],
+  completenessPct: 50,
+};
+
+// פייק לטרנזקציה אינטראקטיבית עם rollback אמיתי: כתיבות שנעשו בתוך ה-callback נמחקות אם
+// ה-callback זרק. בלי זה אי אפשר לבדוק את הדרישה המרכזית - "כישלון מעבר הסטטוס לא משאיר
+// שורת סריקה יתומה" (הבאג: saveScanResult ואז transitionDiagnosis כשני עגולי DB נפרדים)
+function fakeTxPrisma(opts: { status?: string; statusUpdateCount?: number } = {}) {
+  const scans: unknown[] = [];
+  const models: unknown[] = [];
+  const tx = {
+    scan: { create: vi.fn(async (args: unknown) => { scans.push(args); return { id: "s1" }; }) },
+    businessModelRow: { upsert: vi.fn(async (args: unknown) => { models.push(args); return { id: "bm1" }; }) },
+    diagnosis: { updateMany: vi.fn().mockResolvedValue({ count: opts.statusUpdateCount ?? 1 }) },
+  };
+  const prisma = {
+    diagnosis: {
+      findUniqueOrThrow: vi.fn().mockResolvedValue({ status: opts.status ?? "scanned" }),
+    },
+    $transaction: vi.fn(async (fn: (t: typeof tx) => Promise<unknown>) => {
+      try {
+        return await fn(tx);
+      } catch (err) {
+        scans.length = 0;
+        models.length = 0;
+        throw err;
+      }
+    }),
+  };
+  return { prisma, tx, scans, models };
+}
+
 describe("saveScanResult", () => {
   it("writes the scan and the business model atomically, with credits in both upsert branches", async () => {
-    const prisma = {
-      scan: { create: vi.fn().mockResolvedValue({ id: "s1" }) },
-      businessModelRow: { upsert: vi.fn().mockResolvedValue({ id: "bm1" }) },
-      $transaction: vi.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
-    };
+    const { prisma, tx, scans } = fakeTxPrisma();
     const row = toScanRow(FINDINGS, { overall: 70 } as never, NARRATIVE_RESULT);
-    const model: BusinessModel = {
-      data: Object.fromEntries(MODEL_SECTIONS.map((k) => [k, {}])) as BusinessModel["data"],
-      fieldSources: {},
-      credits: Object.fromEntries(MODEL_SECTIONS.map((k) => [k, 0.5])) as BusinessModel["credits"],
-      completenessPct: 50,
-    };
 
-    await saveScanResult(prisma as never, "d1", row, model);
+    await saveScanResult(prisma as never, "d1", row, MODEL_HALF);
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
-    expect(prisma.scan.create).toHaveBeenCalledWith({
+    expect(scans).toHaveLength(1);
+    expect(tx.scan.create).toHaveBeenCalledWith({
       data: {
         diagnosisId: "d1",
         findings: row.findings,
@@ -197,32 +223,48 @@ describe("saveScanResult", () => {
         durationMs: row.durationMs,
       },
     });
-    const upsertCall = prisma.businessModelRow.upsert.mock.calls[0][0] as {
+    const upsertCall = tx.businessModelRow.upsert.mock.calls[0][0] as {
       update: { credits: unknown }; create: { credits: unknown };
     };
-    expect(upsertCall.update.credits).toEqual(model.credits);
-    expect(upsertCall.create.credits).toEqual(model.credits);
+    expect(upsertCall.update.credits).toEqual(MODEL_HALF.credits);
+    expect(upsertCall.create.credits).toEqual(MODEL_HALF.credits);
   });
 
   it("writes findings.raw to the scan row's raw column (payload גולמי, אבן דרך 4 משימה 0.7)", async () => {
-    const prisma = {
-      scan: { create: vi.fn().mockResolvedValue({ id: "s1" }) },
-      businessModelRow: { upsert: vi.fn().mockResolvedValue({ id: "bm1" }) },
-      $transaction: vi.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
-    };
+    const { prisma, tx } = fakeTxPrisma();
     const withRaw: ScanFindings = { ...FINDINGS, raw: { placeDetails: { id: "p1" } } };
     const row = toScanRow(withRaw, null, null);
-    const model: BusinessModel = {
-      data: Object.fromEntries(MODEL_SECTIONS.map((k) => [k, {}])) as BusinessModel["data"],
-      fieldSources: {},
-      credits: Object.fromEntries(MODEL_SECTIONS.map((k) => [k, 0])) as BusinessModel["credits"],
-      completenessPct: 0,
-    };
 
-    await saveScanResult(prisma as never, "d1", row, model);
+    await saveScanResult(prisma as never, "d1", row, { ...MODEL_HALF, completenessPct: 0 });
 
-    const createCall = prisma.scan.create.mock.calls[0][0] as { data: { raw: unknown } };
+    const createCall = tx.scan.create.mock.calls[0][0] as { data: { raw: unknown } };
     expect(createCall.data.raw).toEqual({ placeDetails: { id: "p1" } });
+  });
+
+  it("מעביר את הסטטוס ל-report_ready בתוך אותה טרנזקציה, עם שומר-מרוץ על scanned", async () => {
+    const { prisma, tx } = fakeTxPrisma();
+    await saveScanResult(prisma as never, "d1", toScanRow(FINDINGS, null, null), MODEL_HALF);
+    expect(tx.diagnosis.updateMany).toHaveBeenCalledWith({
+      where: { id: "d1", status: "scanned" },
+      data: { status: "report_ready" },
+    });
+  });
+
+  it("כשל המעבר (count 0 = הפסד במרוץ) מגלגל אחורה גם את שורת הסריקה ואת מודל העסק", async () => {
+    const { prisma, scans, models } = fakeTxPrisma({ statusUpdateCount: 0 });
+    await expect(
+      saveScanResult(prisma as never, "d1", toScanRow(FINDINGS, null, null), MODEL_HALF),
+    ).rejects.toThrow(/במקביל/);
+    expect(scans).toHaveLength(0);
+    expect(models).toHaveLength(0);
+  });
+
+  it("סטטוס נוכחי שאינו scanned - נזרק לפני כל כתיבה (מכונת המצבים נשמרת)", async () => {
+    const { prisma } = fakeTxPrisma({ status: "created" });
+    await expect(
+      saveScanResult(prisma as never, "d1", toScanRow(FINDINGS, null, null), MODEL_HALF),
+    ).rejects.toThrow(/לא חוקי/);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 });
 

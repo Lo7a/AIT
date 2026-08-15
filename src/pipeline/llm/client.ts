@@ -19,6 +19,14 @@ export interface LlmOptions {
 
 const BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 
+// מסיר תווי תיחום מתוכן לא-מהימן לפני שהוא נכנס לבלוק <<<...>>> בפרומפט. בלי זה ביקורת
+// גוגל עוינת (או שם עסק עוין) שמכילה <<<END>>> סוגרת את בלוק הנתונים והשאר שלה יושב במיקום
+// הוראה. מקור אמת יחיד: כל שלוש נקודות הכניסה (analyze/reviews, report/narrative,
+// interview/extract) חייבות להשתמש בו, אחרת המשטר מתפצל בשקט
+export function stripFenceMarkers(text: string): string {
+  return text.replace(/<<<|>>>/g, "");
+}
+
 // נקודת ההחלפה היחידה של ספק ה-LLM. כל הצנרת קוראת רק לפונקציה הזו.
 export async function completeJSON<T>(
   prompt: string,

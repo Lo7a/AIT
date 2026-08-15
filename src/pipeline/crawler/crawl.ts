@@ -110,12 +110,19 @@ export async function crawlWebsite(
     attempts++;
     try {
       const page = await fetchPage(url, fetchImpl, timeoutMs);
+      const finalUrl = page.finalUrl || url; // res.url ריק במוקים של המבחנים
+      // דדופ על הכתובת הסופית ולא רק על כתובת התור: כשכמה נתיבים מפנים (redirect) לאותו עמוד,
+      // הם עמוד אחד ולא כמה. בלי זה /about,/contact,/services שכולם מפנים לעמוד הבית נספרו
+      // כארבעה עמודים והזכו את האתר בחוק "אתר רב-עמודי" (multi_page, דורש 4+) שלא הורווח.
+      // התנאי finalUrl !== url הכרחי: כתובת התור עצמה נוספה ל-visited לפני ה-fetch, אז בלעדיו
+      // כל עמוד שלא הופנה בכלל היה נפסל. הניסיון כבר נספר ב-attempts, אז חסם הבקשות נשמר
+      if (finalUrl !== url && visited.has(finalUrl)) continue;
+      visited.add(finalUrl);
       // baseUrl = הכתובת הסופית של העמוד הנוכחי, לפי החוזה של extractSignals
-      const signals = extractSignals(page.html, page.finalUrl);
+      const signals = extractSignals(page.html, finalUrl);
       for (const key of BOOL_KEYS) merged[key] = merged[key] || signals[key];
       merged.platform = merged.platform ?? signals.platform;
-      visited.add(page.finalUrl);
-      crawledUrls.push(page.finalUrl || url);
+      crawledUrls.push(finalUrl);
     } catch {
       // עמוד פנימי שנפל לא מפיל את הסריקה
     }

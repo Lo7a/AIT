@@ -51,10 +51,13 @@ async function attemptPageSpeed(
   const params = new URLSearchParams({ url, strategy: "mobile" });
   params.append("category", "PERFORMANCE");
   params.append("category", "SEO");
-  // ב-API הזה המפתח עובר ב-query — זו הדרך היחידה ש-PSI תומך בה; בלי מפתח יש מכסה נמוכה
-  if (apiKey) params.set("key", apiKey);
+  // המפתח בכותרת x-goog-api-key ולעולם לא ב-URL (מדיניות docs/llm.md: מפתח ב-URL מודלף ללוגים),
+  // בדיוק כמו places.ts ו-llm/client.ts. נבדק חי מול PSI ב-2026-08-15: קריאה עם המפתח בכותרת
+  // בלבד החזירה 200 עם עץ Lighthouse מלא. בלי מפתח הקריאה עדיין עובדת אבל במכסה נמוכה
+  const headers: Record<string, string> = apiKey ? { "x-goog-api-key": apiKey } : {};
 
   const res = await fetchImpl(`${PSI_URL}?${params.toString()}`, {
+    headers,
     signal: AbortSignal.timeout(timeoutMs),
   });
   if (!res.ok) throw new Error(`PageSpeed HTTP ${res.status}: ${await readErrorBody(res)}`);

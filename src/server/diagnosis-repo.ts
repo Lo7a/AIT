@@ -115,16 +115,25 @@ export async function transitionDiagnosis(
   }
 }
 
+// שמירת תוצאת הסריקה + המעבר ל-report_ready באותה טרנזקציה. הבאג שתוקן: השמירה והמעבר היו
+// שני עגולי DB נפרדים (saveScanResult ואז transitionDiagnosis), וקריסה ביניהם השאירה את הסריקה
+// והמודל שמורים בעוד האבחון תקוע ב-scanned לנצח - שום מסלול לא מרים מחדש אבחון במצב הזה.
+// הקריאה המקדימה (findUniqueOrThrow + assertTransition) נשארת מחוץ לטרנזקציה כדי לשמור על
+// הודעת השגיאה העברית של מכונת המצבים; שומר-המרוץ עצמו (CAS) עבר פנימה
 export async function saveScanResult(
   prisma: PrismaClient,
   diagnosisId: string,
   row: ScanRow,
   model: BusinessModel,
 ): Promise<void> {
-  // $transaction (מערך) — שני הכתובים (scan + business_model) חייבים להצליח יחד או לא בכלל;
-  // הפרומיסים בונים את שאילתות ה-SQL באופן eager אבל Prisma שולח אותן רק בתוך ה-transaction, בסדר שנשמר
-  await prisma.$transaction([
-    prisma.scan.create({
+  const current = await prisma.diagnosis.findUniqueOrThrow({
+    where: { id: diagnosisId }, select: { status: true },
+  });
+  assertTransition(current.status as DiagnosisStatus, "report_ready");
+
+  // טרנזקציה אינטראקטיבית (ולא מערך) - צריך לזרוק מתוכה כשה-CAS נכשל, כדי שהסריקה תתגלגל אחורה
+  await prisma.$transaction(async (tx) => {
+    await tx.scan.create({
       data: {
         diagnosisId,
         findings: row.findings as object,
@@ -135,8 +144,8 @@ export async function saveScanResult(
         durationMs: row.durationMs,
         raw: (row.raw ?? undefined) as object | undefined,
       },
-    }),
-    prisma.businessModelRow.upsert({
+    });
+    await tx.businessModelRow.upsert({
       where: { diagnosisId },
       update: {
         data: model.data as Prisma.InputJsonValue, fieldSources: model.fieldSources, credits: model.credits,
@@ -146,8 +155,17 @@ export async function saveScanResult(
         diagnosisId, data: model.data as Prisma.InputJsonValue, fieldSources: model.fieldSources, credits: model.credits,
         completenessPct: model.completenessPct,
       },
-    }),
-  ]);
+    });
+    // אותו compare-and-set של transitionDiagnosis: מתעדכן רק אם הסטטוס עדיין scanned.
+    // count 0 = ריצה מקבילה הקדימה אותנו - זריקה כאן מגלגלת אחורה גם את שני הכתובים למעלה
+    const moved = await tx.diagnosis.updateMany({
+      where: { id: diagnosisId, status: "scanned" },
+      data: { status: "report_ready" },
+    });
+    if (moved.count === 0) {
+      throw new Error("מעבר סטטוס נכשל - הסטטוס השתנה במקביל (scanned → report_ready)");
+    }
+  });
 }
 
 export interface BusinessContactFindings {

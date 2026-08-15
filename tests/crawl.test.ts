@@ -81,6 +81,18 @@ describe("crawlWebsite", () => {
     expect(signals.hasWhatsappLink).toBe(true);
   });
 
+  it("does not count redirect duplicates: three inner paths that all land on the homepage = 1 page", async () => {
+    // באג מאומת: הדדופ היה על כתובת התור בלבד, וההוספה ל-crawledUrls הייתה על finalUrl -
+    // שלושה נתיבים שמפנים לעמוד הבית נספרו כארבעה עמודים וזיכו בחוק multi_page (דורש 4+)
+    const home = `<html><body><a href="/about">אודות</a><a href="/contact">צור קשר</a>
+      <a href="/services">שירותים</a></body></html>`;
+    const fetchImpl = vi.fn(async () => htmlResponse(home, "https://example.co.il/"));
+    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 8 });
+    expect(signals.pagesCrawled).toBe(1);
+    expect(signals.crawledUrls).toEqual(["https://example.co.il/"]);
+    expect(new Set(signals.crawledUrls).size).toBe(signals.crawledUrls.length);
+  });
+
   it("bounds total fetch attempts even when many pages fail", async () => {
     const links = Array.from({ length: 40 }, (_, i) => `<a href="/p${i}">עמוד</a>`).join("");
     const fetchImpl = vi.fn(async (url: RequestInfo | URL) => {

@@ -71,6 +71,20 @@ describe("parseDiagnoseBody", () => {
   it("SSRF guard: כתובת ציבורית תקינה לא נחסמת", () => {
     expect(parseDiagnoseBody({ url: "https://x.co.il" })).toEqual({ kind: "url", url: "https://x.co.il/" });
   });
+
+  it("SSRF guard: דומיין ציבורי שמתחיל ב-fc/fd אינו IPv6 ולא נחסם", () => {
+    // הבדיקות של unique-local (fc00::/7) חלות רק על ליטרל IPv6 - שם דומיין רגיל שמתחיל
+    // באותן שתי אותיות הוא אתר לקוח לגיטימי לכל דבר
+    for (const good of ["https://fcbarcelona.com", "https://fdny.org", "https://fe80shop.co.il"]) {
+      expect(parseDiagnoseBody({ url: good })).not.toHaveProperty("error");
+    }
+  });
+
+  it("SSRF guard: ליטרל IPv6 פנימי עדיין נחסם (fd00/fc00/fe80/::1)", () => {
+    for (const bad of ["http://[fd00::1]", "http://[fc00::1]", "http://[fe80::1]", "http://[::1]"]) {
+      expect(parseDiagnoseBody({ url: bad })).toMatchObject({ error: expect.stringContaining("פנימית") });
+    }
+  });
 });
 
 describe("makeDiagnoseHandler", () => {

@@ -184,11 +184,12 @@ export async function runDiagnosis(
     () => generateNarrative(findings, score, opts.narrativeOptions),
     (n) => n.usedFallback ? "נרטיב תבנית (LLM לא אושר)" : "הנרטיב מוכן");
 
-  // שלב 4: שמירה אטומית ומעבר ל-report_ready
-  await step(emit, "save", "שומרים את האבחון", async () => {
-    await saveScanResult(prisma, created.diagnosisId, toScanRow(findings, score, narrative), model);
-    await transitionDiagnosis(prisma, created.diagnosisId, "report_ready");
-  }, () => "האבחון נשמר", "השמירה נכשלה");
+  // שלב 4: שמירה אטומית - הסריקה, מודל העסק והמעבר ל-report_ready באותה טרנזקציה
+  // (saveScanResult מבצע את המעבר בפנים; קודם היו שני עגולי DB וקריסה ביניהם השאירה
+  // אבחון תקוע ב-scanned עם סריקה שמורה)
+  await step(emit, "save", "שומרים את האבחון",
+    () => saveScanResult(prisma, created.diagnosisId, toScanRow(findings, score, narrative), model),
+    () => "האבחון נשמר", "השמירה נכשלה");
 
   // שלב 5: backfill האתר שהתגלה — קוסמטי, אחרי report_ready, כשל לא מפיל אבחון ששולם.
   // רק במסלול Places (ב-url האתר נשמר כבר ביצירה).

@@ -1,4 +1,4 @@
-import { completeJSON, type LlmUsage } from "../llm/client";
+import { completeJSON, stripFenceMarkers, type LlmUsage } from "../llm/client";
 import { MODEL_SECTIONS, type BusinessModel, type ModelSection } from "../model/business-model";
 import type { ScanFindings } from "../types";
 
@@ -119,9 +119,12 @@ function buildPrompt(
     : "בעל העסק כתב בכתיבה חופשית (בלי שאלה מנחה).";
   const confirmed = MODEL_SECTIONS.filter((s) => model.credits[s] >= 1);
   // מסירים תווי תיחום פוטנציאליים מהתשובה עצמה - כדי שתשובה שמכילה שורת >>> לא תוכל
-  // "לברוח" מהתחימה ולהיכנס למיקום הוראה (אותו משטר כמו analyze/reviews)
-  const safe = answer.replace(/<<<|>>>/g, "");
-  return `אתה מראיין עסקי של AIT. בעל עסק בשם ${JSON.stringify(findings.business.name)} ענה לך, ותפקידך לחלץ מהתשובה עובדות למודל העסק ולהשיב באישור קצר וחם.
+  // "לברוח" מהתחימה ולהיכנס למיקום הוראה (אותו משטר כמו analyze/reviews ו-report/narrative,
+  // דרך אותה פונקציה משותפת)
+  const safe = stripFenceMarkers(answer);
+  // גם שם העסק מגיע ממקור חיצוני (Places) ונכנס לפרומפט - JSON.stringify מגן על מרכאות, לא על תוחמים
+  const safeName = stripFenceMarkers(findings.business.name);
+  return `אתה מראיין עסקי של AIT. בעל עסק בשם ${JSON.stringify(safeName)} ענה לך, ותפקידך לחלץ מהתשובה עובדות למודל העסק ולהשיב באישור קצר וחם.
 
 ${context}
 

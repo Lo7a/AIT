@@ -29,7 +29,9 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
   // מונה עולה משמש רק כברירת מחדל כשלא הועבר createdAt
   let msgSeq = 0;
 
-  const db = {
+  // any מפורש: הפייק מפנה לעצמו מתוך $transaction (הצורה האינטראקטיבית מקבלת את אותו client),
+  // ובלי ההערה TypeScript היה נופל על הסקה מעגלית
+  const db: any = {
     business: {
       upsert: async ({ where, update, create }: any) => {
         const found = businesses.find(
@@ -172,12 +174,32 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
         return rows.map((m) => ({ ...m }));
       },
     },
-    // אזהרה: הפרומיסים במערך שמועבר כאן נבנים eager (הקריאות ל-.create/.upsert כבר רצות לפני
-    // שה-$transaction הזה בכלל נקרא - כך גם ה-Prisma האמיתי בונה אותן), אבל בניגוד ל-PrismaPromise
-    // האמיתי (lazy - לא שולח SQL עד שמתחילים לחכות עליו בתוך טרנזקציה) הפייק כאן פשוט מחכה למה
-    // שכבר רץ. במילים אחרות: אטומיות (all-or-nothing) אינה נצפית דרך הפייק הזה - אם רוצים לבדוק
-    // "כישלון חלקי לא משאיר שורה יתומה" צריך מוק ייעודי, לא makeFakeDb.
-    $transaction: async (arr: Promise<unknown>[]) => Promise.all(arr),
+    // שתי הצורות של $transaction נתמכות:
+    // 1. מערך פרומיסים - הפרומיסים נבנים eager (הקריאות ל-.create/.upsert כבר רצות לפני
+    //    שה-$transaction בכלל נקרא), ובניגוד ל-PrismaPromise האמיתי (lazy) הפייק רק מחכה למה
+    //    שכבר רץ. אטומיות אינה נצפית בצורה הזו.
+    // 2. callback אינטראקטיבי - כאן הפייק כן מדמה rollback אמיתי: זריקה מתוך ה-callback מחזירה
+    //    את scans/models, את סטטוסי האבחון ואת יומן המעברים למצב שלפני. זה מה שמאפשר לבדוק
+    //    ש"כישלון מעבר הסטטוס לא משאיר שורת סריקה יתומה" (saveScanResult, diagnosis-repo.ts)
+    $transaction: async (arg: any) => {
+      if (typeof arg !== "function") return Promise.all(arg);
+      const before = {
+        scans: [...scans], models: [...models], transitions: [...transitions],
+        statuses: new Map(diagnoses.map((d) => [d.id, d.status])),
+      };
+      try {
+        return await arg(db);
+      } catch (err) {
+        scans.splice(0, scans.length, ...before.scans);
+        models.splice(0, models.length, ...before.models);
+        transitions.splice(0, transitions.length, ...before.transitions);
+        for (const d of diagnoses) {
+          const prev = before.statuses.get(d.id);
+          if (prev != null) d.status = prev;
+        }
+        throw err;
+      }
+    },
   };
 
   return { db: db as any, businesses, diagnoses, scans, models, messages, transitions };

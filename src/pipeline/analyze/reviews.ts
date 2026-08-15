@@ -1,5 +1,7 @@
 import type { Review, ReviewInsights, Theme } from "../types";
-import { completeJSON, type LlmJsonResult, type LlmOptions, type LlmUsage } from "../llm/client";
+import {
+  completeJSON, stripFenceMarkers, type LlmJsonResult, type LlmOptions, type LlmUsage,
+} from "../llm/client";
 
 interface RawThemes {
   positiveThemes?: unknown;
@@ -49,8 +51,10 @@ export async function analyzeReviews(
     };
   }
 
+  // טקסט הביקורת עובר ניקוי תווי תיחום לפני הכניסה לבלוק <<<REVIEWS>>> - ביקורת שמכילה
+  // <<<END>>> הייתה סוגרת את בלוק הנתונים והשאר שלה היה יושב במיקום הוראה (הזרקת פרומפט)
   const reviewLines = withText
-    .map((r, i) => `${i + 1}. ${r.rating >= 1 ? `[${r.rating}/5] ` : ""}${r.text}`)
+    .map((r, i) => `${i + 1}. ${r.rating >= 1 ? `[${r.rating}/5] ` : ""}${stripFenceMarkers(r.text)}`)
     .join("\n");
 
   const prompt = `אתה מנתח ביקורות של עסק ישראלי. לפניך ${withText.length} ביקורות מ-Google.

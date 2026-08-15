@@ -12,13 +12,20 @@ export type DiagnoseRunner = (
 // חסימת SSRF בסיסית בשכבת ה-API: מארחים פנימיים/מקומיים נדחים. מבוסס-שם בלבד —
 // הקשחת DNS-resolution נדרשת לפני deploy ציבורי (רשום בתוכנית כחסם-deploy)
 function isForbiddenHost(hostname: string): boolean {
+  const lower = hostname.toLowerCase();
   // URL.hostname שומר על הסוגריים המרובעים סביב כתובות IPv6 (נבדק אמפירית: new
-  // URL("http://[::1]").hostname === "[::1]") — מסירים אותם לפני ההשוואה
-  const h = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  // URL("http://[::1]").hostname === "[::1]") - הסוגריים הם הסימן שזו כתובת IPv6 ולא שם דומיין.
+  // מזהים לפניהם, ורק אז מסירים אותם לצורך ההשוואה
+  const isIpv6Literal = lower.startsWith("[") && lower.endsWith("]");
+  const h = isIpv6Literal ? lower.slice(1, -1) : lower;
   if (h === "localhost" || h.endsWith(".local") || h.endsWith(".internal")) return true;
   if (/^127\.|^10\.|^0\.|^169\.254\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(h)) return true;
-  // IPv6: לופבק, link-local, unique-local (בצורת ה-hostname של URL — בלי הסוגריים)
-  if (h === "::1" || h.startsWith("fe80:") || h.startsWith("fc") || h.startsWith("fd")) return true;
+  // IPv6: לופבק, link-local, unique-local. הבדיקות האלה חלות אך ורק על ליטרל IPv6 אמיתי -
+  // בלי התנאי הזה כל דומיין ציבורי שמתחיל ב-fc/fd נחסם בטעות (fcbarcelona.com, fdny.org).
+  // הזיהוי כפול בכוונה: סוגריים מרובעים (הצורה של URL.hostname) או נקודתיים (ליטרל חשוף)
+  if (isIpv6Literal || h.includes(":")) {
+    if (h === "::1" || h.startsWith("fe80:") || h.startsWith("fc") || h.startsWith("fd")) return true;
+  }
   return false;
 }
 

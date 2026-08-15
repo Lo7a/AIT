@@ -1,6 +1,6 @@
 import type { ScanFindings } from "../types";
 import type { ScoreReport } from "../score/types";
-import { completeJSON, type LlmUsage } from "../llm/client";
+import { completeJSON, stripFenceMarkers, type LlmUsage } from "../llm/client";
 
 export interface GapExplanation { ruleKey: string; explanation: string; }
 export interface ReportNarrative {
@@ -25,47 +25,49 @@ export function extractNumbers(s: string): string[] {
   return s.match(/\d+(?:[.,]\d+)?/g) ?? [];
 }
 
-// עוזר: מוסיף למאגר המותרים את כל הצורות המקבילות של מספר —
-// נקודה/פסיק עשרוני, ניקוי פסיקי אלפים ("1,500"→"1500", כך שגם אם הנתון המקורי כתוב עם פסיק
-// אלפים המודל שמצטט אותו בלי פסיק לא יידחה), ושני חלקי המספר בנפרד (כך ש-"12.7" מתיר גם "12" וגם "7")
+// עוזר: מוסיף למאגר המותרים את הצורות המקבילות של אותו מספר - נקודה/פסיק עשרוני וניקוי
+// פסיקי אלפים ("1,500"→"1500", כך שגם אם הנתון המקורי כתוב עם פסיק אלפים המודל שמצטט אותו
+// בלי פסיק לא יידחה). בכוונה בלי פיצול לחלקי המספר: "4.2" אינו מכשיר "4" ערום ו-"12.7" אינו
+// מכשיר "7" - הפיצול הזה היה חצי מהחור שדרכו עברו מספרים מומצאים
 function addNumberVariants(n: string, allowed: Set<string>): void {
   allowed.add(n);
   allowed.add(n.replace(".", ","));
   allowed.add(n.replace(/,/g, ""));
-  for (const part of n.split(/[.,]/)) allowed.add(part);
 }
 
-// המספרים המותרים: על-קבוצה של כל מה שהפרומפט עצמו מציג/מבקש מהמודל להסביר, פחות מנגנונים פנימיים.
-// כולל: הממצאים (בלי meta — טלמטריה פנימית כמו durationMs/עלות, לא נתון עסקי, ראו סקירה), הציונים המוצגים,
-// טקסטי topGaps/topStrengths (המודל מתבקש להסביר בדיוק אותם — המספרים בהם לגיטימיים),
-// קנה המידה הקבוע "100" (ניסוח קנוני "ציון X מתוך 100"), וזמן טעינת ה-LCP בשניות (תצוגת real data נפוצה).
-// בכוונה לא כל ה-ScoreReport — הוא מכיל points/weights של חוקים שהיו מכשירים מספרים מומצאים (אזהרת סקירה קודמת)
+// המספרים המותרים נבנים מרשימה מפורשת של הערכים שבאמת מוצגים למשתמש בדוח, ולא מסריאליזציה
+// גורפת של הממצאים. הבאג שתוקן: JSON.stringify(findings) הכניס למאגר כל רצף ספרות שמופיע
+// בכתובות שנסרקו (crawledUrls), וכתובת כמו /blog/2019/promo-8500 הכשירה גם "8500 שקלים"
+// וגם "2019" מומצאים לגמרי.
+// הרשימה: הציון הכולל וציון כל ממד, הדירוג בצורתו המוצגת ("4.2"), מספר הביקורות, ציוני PSI,
+// LCP במילישניות ובשניות (הצורה ש-sec() ב-dimensions.ts מציג), מספר העמודים שנסרקו, ספרות
+// שבתוך שם העסק (מוצג כלשונו בכותרת הדוח ובתבנית ה-fallback), וקנה המידה הקבוע 100.
+// בנוסף - טקסטי topGaps/topStrengths, שהם בדיוק המשפטים שהדוח מציג והמודל מתבקש להסביר
+// (הספים שבתוכם, כמו "היעד של 70" או "רף האמון של 4.2", לגיטימיים לציטוט).
+// meta (טלמטריה: durationMs/עלות) ו-points/weights של חוקים אינם ברשימה - לא נתון עסקי,
+// והפעם זה נכון מעצם הבנייה ולא בזכות סינון בדיעבד
 function allowedNumbers(f: ScanFindings, score: ScoreReport): Set<string> {
-  const displayedScores = [
+  const displayed: (number | string | null | undefined)[] = [
     score.overall,
     ...score.dimensions.map((d) => d.score),
-  ].filter((n): n is number => n != null);
-
-  const findingsWithoutMeta = { ...f, meta: undefined }; // meta מכיל טלמטריה פנימית — לא נתון עסקי שמותר לצטט
-  const highlightTexts = [...score.topGaps, ...score.topStrengths].map((h) => h.text).join(" ");
-
-  const source = [
-    JSON.stringify(findingsWithoutMeta),
-    displayedScores.join(" "),
-    highlightTexts,
-  ].join(" ");
+    f.business.name,
+    f.business.rating,
+    f.business.reviewCount,
+    f.pageSpeed?.performanceScore,
+    f.pageSpeed?.seoScore,
+    f.pageSpeed?.lcpMs,
+    f.pageSpeed?.lcpMs != null ? (f.pageSpeed.lcpMs / 1000).toFixed(1) : undefined,
+    f.websiteSignals?.pagesCrawled,
+    100,
+    // המשפטים שהדוח מציג כלשונם והמודל מתבקש להסביר בדיוק אותם
+    [...score.topGaps, ...score.topStrengths].map((h) => h.text).join(" "),
+  ];
 
   const allowed = new Set<string>();
-  for (const n of extractNumbers(source)) addNumberVariants(n, allowed);
-
-  allowed.add("100"); // קנה המידה — "ציון X מתוך 100" הוא ניסוח קנוני, לא מספר מומצא
-
-  if (f.pageSpeed?.lcpMs != null) {
-    // צורת התצוגה של LCP בשניות (ראו sec() ב-dimensions.ts) — real data גם כשהחוק הזה לא בין topGaps/topStrengths
-    const lcpSeconds = (f.pageSpeed.lcpMs / 1000).toFixed(1);
-    for (const n of extractNumbers(lcpSeconds)) addNumberVariants(n, allowed);
+  for (const value of displayed) {
+    if (value == null) continue;
+    for (const n of extractNumbers(String(value))) addNumberVariants(n, allowed);
   }
-
   return allowed;
 }
 
@@ -116,6 +118,10 @@ function buildPrompt(f: ScanFindings, score: ScoreReport, stern: boolean): strin
     const { dimension, ruleKey, text } = h;
     return { dimension, ruleKey, text };
   };
+  // שם העסק מגיע מ-Places (מקור חיצוני) - מסירים ממנו תווי תיחום לפני שהוא נכנס לבלוק הנתונים.
+  // JSON.stringify מגן על מרכאות אבל לא על <<<END>>>, ובלי הניקוי שם עסק עוין היה סוגר את הבלוק
+  // והשאר שלו היה יושב במיקום הוראה (אותו משטר כמו analyze/reviews ו-interview/extract)
+  const safeName = stripFenceMarkers(f.business.name);
   // אזהרה לעריכה עתידית: כל שורת נתונים חדשה שתתווסף לבלוק <<<DATA>>>...<<<END>>> למטה וכוללת מספר —
   // חייבת להיות מכוסה גם ב-allowedNumbers למעלה, אחרת השומר ידחה מספר שהפרומפט עצמו הציג למודל,
   // והדוח ייפול בשקט לתבנית (usedFallback: true) בלי שום שגיאה גלויה.
@@ -133,7 +139,7 @@ ${sternLine}
 ${gapsInstruction}
 
 <<<DATA>>>
-עסק: ${JSON.stringify({ name: f.business.name, rating: f.business.rating, reviewCount: f.business.reviewCount })}
+עסק: ${JSON.stringify({ name: safeName, rating: f.business.rating, reviewCount: f.business.reviewCount })}
 ציונים: ${JSON.stringify(score.dimensions.map((d) => ({ key: d.key, label: d.label, score: d.score, dataStatus: d.dataStatus })))}
 ציון כולל: ${score.overall}
 פערים מובילים: ${JSON.stringify(score.topGaps.map(stripPoints))}

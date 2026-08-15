@@ -122,6 +122,27 @@ describe("runDiagnosis — מסלול URL", () => {
   });
 });
 
+describe("runDiagnosis — שמירה ומעבר סטטוס אטומיים", () => {
+  it("כשל המעבר scanned→report_ready מגלגל אחורה את שורת הסריקה (אין scan יתום)", async () => {
+    const { db, transitions, scans, models, diagnoses } = makeFakeDb({
+      failTransitions: new Set(["scanned→report_ready"]),
+    });
+    const { events, onEvent } = collect();
+    await expect(runDiagnosis(db, { kind: "places", placeId: "p1", name: "עסק בדיקה" }, {
+      onEvent, scanDeps: happyScanDeps, narrativeOptions: { complete: fakeComplete },
+    })).rejects.toThrow(/במקביל/);
+
+    // הבאג: הסריקה נשמרה בעגול DB אחד והמעבר בעגול שני - כישלון ביניהם השאיר scan שמור
+    // ואבחון תקוע ב-scanned לנצח. עכשיו שניהם באותה טרנזקציה
+    expect(scans).toHaveLength(0);
+    expect(models).toHaveLength(0);
+    expect(transitions).toEqual(["created→scanning", "scanning→scanned"]);
+    expect(diagnoses[0].status).toBe("scanned");
+    const saveDone = events.find((e) => e.type === "step_done" && e.key === "save");
+    expect(saveDone).toMatchObject({ ok: false, detail: "השמירה נכשלה" });
+  });
+});
+
 describe("runDiagnosis — עמידות בפני onEvent שזורק", () => {
   it("onEvent שזורק על כל קריאה לא משבש נתונים — מגיע ל-report_ready בלי דגלי כישלון שקריים", async () => {
     const { db, transitions, scans } = makeFakeDb();
