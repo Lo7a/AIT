@@ -6,9 +6,10 @@
 - **Branch:** `main`
 - **Commit reviewed:** `7360f0a877c90528b684a3238cc7f8be97996f7a`
 - **Re-verified at:** `06d81ed` (2026-08-15) — **still reproduces.** `crawler/crawl.ts`, where the
-  defect lives, is unchanged; lines 108, 118 and 125 remain accurate. The consumer moved:
-  `score/dimensions.ts` grew by 162 lines in milestone 4 task 0/1, so the `multi_page` rule is now
-  at **`dimensions.ts:299-302`** (was 183-187). Its logic is unchanged —
+  defect lives, is unchanged; lines 108, 118 and 125 remain accurate. The consumer has moved
+  twice and is still moving — `score/dimensions.ts` is under active development in milestone 4
+  (183-187 at review, 299-302 at `06d81ed`, 346-348 at `4ea57c1`). **Locate the `multi_page` rule
+  by its key, not by line number.** Its logic is unchanged throughout:
   `earned: (f) => (f.websiteSignals?.pagesCrawled ?? 0) >= 4`, still 15 points.
 - **Evidence standard:** Verified by execution
 
