@@ -1,6 +1,6 @@
 "use client";
 
-import { useAttachWait, useScanStream, type StepLine, type Target } from "./use-scan-stream";
+import { useAttachWait, useBlockedWait, useScanStream, type StepLine, type Target } from "./use-scan-stream";
 
 export type ScanAttach = { diagnosisId: string; status: string };
 
@@ -105,11 +105,18 @@ function AttachedScan({ diagnosisId }: { diagnosisId: string }) {
   return <WaitingScreen message="מתחברים אליה, הדוח ייפתח אוטומטית כשיהיה מוכן" />;
 }
 
+// המסך החסום מנוטר לפי היעד (אין לו diagnosisId): ברגע שהסריקה שרצה ברקע מסיימת - מנווטים
+// לדוח, בדיוק כמו attach. בלי זה המסך היה נשאר תקוע לנצח גם כשהדוח כבר מוכן (באג קמפאי 15.8)
+function BlockedScan({ target }: { target: Target }) {
+  useBlockedWait(target);
+  return <WaitingScreen message="סריקה לעסק הזה כבר רצה בחלון אחר" showHomeLink />;
+}
+
 function LiveScan({ target }: { target: Target }) {
   const { title, lines: steps, error, blocked } = useScanStream(target);
 
   if (blocked) {
-    return <WaitingScreen message="סריקה לעסק הזה כבר רצה בחלון אחר" showHomeLink />;
+    return <BlockedScan target={target} />;
   }
 
   return (

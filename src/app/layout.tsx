@@ -67,8 +67,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="he" dir="rtl" data-theme={theme}>
+      {/* suppressHydrationWarning על body בלבד: תוספי דפדפן (Grammarly וכד') מזריקים תכונות
+          ל-body לפני ש-React נטען ומייצרים אזהרת hydration מדומה בפיתוח; אזהרות אמיתיות בעומק
+          העץ לא מושתקות */}
       <body
         className={`${FONT_VARIABLES} font-[family-name:var(--font-assistant)] min-h-screen antialiased`}
+        suppressHydrationWarning
       >
         {children}
         <ThemeSwitcher active={theme} />

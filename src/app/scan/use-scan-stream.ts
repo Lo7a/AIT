@@ -166,6 +166,42 @@ export interface AttachWaitState {
   status: string | null;
 }
 
+// מצב "blocked": מנעול הטאב תפס mount שני לאותו יעד, והמסך הזה לא מכיר diagnosisId - רק את
+// היעד. בלי הפולינג הזה המסך היה שקר סטטי ("בודקים כל כמה שניות") שלא מנווט לעולם, גם אחרי
+// שהסריקה שרצה ברקע סיימה (באג קמפאי 15.8). שואלים לפי היעד ומנווטים כשהדוח מוכן.
+export function useBlockedWait(target: Target): void {
+  const router = useRouter();
+  const query = target.placeId
+    ? `placeId=${encodeURIComponent(target.placeId)}`
+    : target.url
+      ? `url=${encodeURIComponent(target.url)}`
+      : null;
+
+  useEffect(() => {
+    if (!query) return; // יעד בלי מזהה בר-חיפוש - נשארים במסך הסטטי עם הקישור הביתה
+    let cancelled = false;
+
+    async function poll() {
+      try {
+        const res = await fetch(`/api/diagnose/status?${query}`);
+        if (!res.ok) return;
+        const data = (await res.json().catch(() => null)) as { status?: string; id?: string } | null;
+        if (cancelled || !data?.status || !data.id) return;
+        if (data.status === "report_ready") router.replace(`/report/${data.id}`);
+      } catch {
+        // כשל רשת חולף - הפעימה הבאה תנסה שוב
+      }
+    }
+
+    void poll();
+    const interval = setInterval(poll, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [query, router]);
+}
+
 // מצב "attach": מסך הסריקה יודע מראש (מ-page.tsx, לפני שהוא בכלל התרנדר) שכבר יש אבחון חי
 // ביעד הזה - כאן לא פותחים זרם חדש (=לא סריקה כפולה בתשלום) אלא רק שואלים כל 3 שניות מה
 // הסטטוס שלו, ובהגעה ל-report_ready מנווטים לדוח בדיוק כמו שה-stream החי היה עושה בסיום.
