@@ -1,0 +1,43 @@
+import { prisma } from "../../../../server/db";
+import { completeJSON } from "../../../../pipeline/llm/client";
+import type { CompleteFn } from "../../../../pipeline/roadmap/reasoning";
+import { buildRoadmap } from "../../../../server/run-roadmap";
+import { getRoadmapView } from "../../../../server/roadmap-repo";
+import { InterviewError } from "../../../../pipeline/interview/contract";
+import { makeBuildHandler, makeViewHandler } from "../../../../server/api/roadmap-handlers";
+
+// עוטף את completeJSON כ-CompleteFn - אותו דפוס בדיוק כמו ברירת המחדל הפנימית ב-extract.ts/
+// narrative.ts (opts.complete ?? completeJSON), רק שכאן זה חובה: buildRoadmap מקבל complete
+// כפרמטר חיוני (לא אופציונלי) כי אין לו נקודת קריאה נוספת שמזריקה ברירת מחדל בעצמה
+const complete: CompleteFn = async (prompt) => {
+  const r = await completeJSON<unknown>(prompt);
+  return { data: r.data, usage: r.usage };
+};
+
+// { roadmapId } בלבד בתשובה - buildRoadmap מחזיר גם usage (למטרות מדידה פנימיות), אבל הצורה
+// הציבורית של ה-API מצומצמת בכוונה (ראו האפיון של המשימה); ה-destructuring כאן הוא נקודת החיתוך
+const buildHandler = makeBuildHandler(async (id) => {
+  const { roadmapId } = await buildRoadmap(prisma, complete, id);
+  return { roadmapId };
+});
+
+// getRoadmapView מחזיר null כש"אין עדיין Roadmap" (זה לא מצב שגיאה מבחינתה - ראו roadmap-repo.ts),
+// וה-route הוא שממיר את זה ל-InterviewError("not_found") כדי לקבל 404 עקבי עם שאר ה-API. שונה
+// במכוון מ-interview/[id]/route.ts (זורק שם Error רגיל, שמתמפה ל-500) - שם "אין state" הוא תקלה
+// בלתי צפויה (לכל אבחון עם סריקה יש תמיד snapshot), בעוד ש"אין עדיין Roadmap" הוא מצב לגיטימי
+// וצפוי (לפני החישוב הראשון) שדורש 404 אמיתי, לא 500
+const viewHandler = makeViewHandler(async (id) => {
+  const view = await getRoadmapView(prisma, id);
+  if (!view) throw new InterviewError("אין Roadmap לאבחון הזה", "not_found");
+  return view;
+});
+
+export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const { id } = await ctx.params;
+  return buildHandler(req, id);
+}
+
+export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const { id } = await ctx.params;
+  return viewHandler(req, id);
+}

@@ -161,6 +161,8 @@ export function phaseOf(match: OpportunityMatch): "quick_wins" | "automation" | 
 - [ ] **סקירה מאוחדת אחת** (ספק+איכות) על משימות 2-6 יחד - זה הסבב היחיד; ממצאים מתוקנים ואין סקירה חוזרת אלא אם נמצא Critical.
 - [ ] Commit: `feat(4-6): roadmap API routes with tagged-error mapping`
 
+**As-built API (15.8):** POST+GET באותו route file (בניגוד לפיצול של הראיון - שני verbs על אותו path). ה-route מפרק את usage מהתשובה (הלקוח מקבל roadmapId בלבד); GET ממיר null מ-getRoadmapView ל-InterviewError not_found לפני ה-handler (404 לפי הספק, לא 500 כמו ראיון-GET). complete נבנה ב-route מ-completeJSON באותו closure כמו ברירת המחדל של extract/narrative. 9 בדיקות handlers.
+
 ### משימה 7: Project Brief - מחולל + שליחה
 
 **Files:** Create: `src/pipeline/roadmap/brief.ts`, `src/app/api/brief/[itemId]/route.ts` (+handlers באותו קובץ roadmap-handlers); Test: `tests/roadmap-brief.test.ts`
