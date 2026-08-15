@@ -255,4 +255,33 @@ describe("finishInterview - רענון scores (אבן דרך 4, משימה 1)", 
     expect(manualRule.earned).toBe(false); // יש עבודה ידנית מדווחת - פער אמיתי, לא "אין מידע"
     expect(manualRule.text).toContain("רישום ביומן ידני");
   });
+
+  // סקירת קוד (סבב 2, M4): המעבר ל-report_ready כבר הצליח למעלה כשהכתיבה הזו נכשלת - שגיאה
+  // כאן חייבת להיבלע (כמו step 5/5ב ב-run-diagnosis.ts), אחרת ה-caller חושב שהראיון לא נסגר
+  // כשבפועל הוא כן נסגר, וניסיון חוזר לא מתקן כלום (finishInterview על report_ready הוא no-op)
+  it("כשל בכתיבת scores אחרי סיום - לא מפיל את finishInterview (המעבר כבר הצליח, זה קוסמטי)", async () => {
+    const { db, diagnoses, scans, transitions } = makeFakeDb() as any;
+    seed(diagnoses, scans, "interviewing");
+    db.scan.update = async () => { throw new Error("scan update boom"); };
+    await expect(finishInterview(db, "d1")).resolves.toBeUndefined();
+    expect(transitions.some((t: string) => t.startsWith("interviewing") && t.endsWith("report_ready"))).toBe(true);
+    const scan = scans.find((s: any) => s.id === "s1");
+    expect(scan.scores).toBeUndefined(); // הכתיבה נכשלה - לא נשאר עם scores חלקיים/פגומים
+  });
+
+  // סקירת קוד (סבב 2, M5): מוטציה שהופכת orderBy desc ל-asc ב-scan.findFirst הייתה שורדת בלי
+  // בדיקה עם סריקה בודדת לכל אבחון - שתי סריקות עם createdAt שונה חושפות את זה
+  it("שתי סריקות לאותו אבחון - הרענון כותב לשורה החדשה ביותר בלבד", async () => {
+    const { db, diagnoses, scans } = makeFakeDb() as any;
+    diagnoses.push({ id: "d1", businessId: "b1", status: "interviewing" });
+    const oldFindings: ScanFindings = { ...findings, business: { ...findings.business, name: "עסק ישן" } };
+    const newFindings: ScanFindings = { ...findings, business: { ...findings.business, name: "עסק חדש" } };
+    scans.push({ id: "s-old", diagnosisId: "d1", findings: oldFindings, createdAt: new Date("2026-01-01") });
+    scans.push({ id: "s-new", diagnosisId: "d1", findings: newFindings, createdAt: new Date("2026-02-01") });
+    await finishInterview(db, "d1");
+    const oldScan = scans.find((s: any) => s.id === "s-old");
+    const newScan = scans.find((s: any) => s.id === "s-new");
+    expect(oldScan.scores).toBeUndefined();
+    expect(newScan.scores).toBeDefined();
+  });
 });

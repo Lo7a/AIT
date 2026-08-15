@@ -30,6 +30,12 @@ const isSocialPresence = (f: ScanFindings) => socialPlatformOf(f) != null;
 // ------- ממד "בשלות תהליכים" (אבן דרך 4, משימה 1): נגזר ממודל העסק (הראיון), לא מ-ScanFindings -------
 // RuleDef.known/earned/gapText/okText מקבלים רק ScanFindings (חוזה המנוע לא השתנה) - חוקי
 // process סוגרים על model דרך processRules(model) ומתעלמים מהפרמטר שהם כן מקבלים
+//
+// סקירת קוד (סבב 2): הגרסה הראשונה של lead_handling/manual_tasks קראה שדה בודד בשם קבוע
+// (whoHandles/manualTasks) והתייחסה להיעדרו כעובדה חיובית - אבל extract.ts נותן ל-LLM שם שדה
+// חופשי (וה-fallback שומר ownerNotes בכלל), אז תשובה אמיתית עם תלונה מפורשת יכלה "להיעלם"
+// (שדה בשם אחר) ולקבל שבח בטעות. התיקון: כל שלושת החוקים קוראים את כל הטקסט המדווח בסקציה
+// (reportedText, אותה גישה כמו internal_tools כבר עשה) ומחפשים מילות מפתח - לא שם שדה קבוע
 
 const sectionCredit = (model: BusinessModel | null, section: ModelSection): number => model?.credits[section] ?? 0;
 
@@ -41,23 +47,54 @@ const modelStr = (model: BusinessModel | null, section: ModelSection, field: str
 const QUOTE_TRUNCATE_LEN = 80;
 const truncateQuote = (s: string): string => (s.length > QUOTE_TRUNCATE_LEN ? `${s.slice(0, QUOTE_TRUNCATE_LEN).trim()}...` : s);
 
-// זיהוי "כלי ניהול מעבר לחשבוניות" (CRM/יומן מנוהל) - מילות מפתח קבועות וגלויות, לא LLM (אותו
-// עיקרון כמו socialPresenceOf למעלה). "אין CRM"/"רק אקסל" שוללים גם כשהמילה CRM כן מופיעה בתשובה
-// (בשלילה) - בלי זה "אין CRM, אקסל" היה נספר בטעות כהוכחה לכלי ניהול
-const HAS_MANAGEMENT_TOOL_RE = /CRM|יומן מנוהל|מערכת ניהול|תוכנת ניהול|ניהול לקוחות/i;
-const NO_MANAGEMENT_TOOL_RE = /אין CRM|בלי CRM|לא CRM|רק אקסל|אקסל בלבד|בלי מערכת ניהול|אין מערכת ניהול/i;
+// מצטט חלון סביב ההתאמה הראשונה של re בתוך text (לא תמיד תחילת הטקסט) - כדי שהציטוט בפער
+// יכיל בפועל את מילת המפתח שהובילה לפער, גם כשהיא לא בהתחלה
+const quoteMatch = (text: string, re: RegExp): string => {
+  const m = re.exec(text);
+  if (!m) return truncateQuote(text);
+  const half = Math.floor(QUOTE_TRUNCATE_LEN / 2);
+  const start = Math.max(0, m.index - half);
+  const end = Math.min(text.length, start + QUOTE_TRUNCATE_LEN);
+  const clipped = text.slice(start, end).trim();
+  return `${start > 0 ? "..." : ""}${clipped}${end < text.length ? "..." : ""}`;
+};
 
-// שדות סקציית tools מעבר לשניים שמגיעים מהסריקה (platform/detected, ראו deriveBusinessModel) -
-// שם השדה שה-LLM בוחר בזמן החילוץ חופשי (כמו billing.invoiceTool בראיון האמיתי), אז סורקים את
-// כל הערכים המדווחים במקום להסתמך על שם שדה קבוע אחד
-const toolsReportedText = (model: BusinessModel | null): string => {
-  const data = model?.data.tools ?? {};
+// שדות שמקורם בסריקה (deriveBusinessModel), לא בדיווח בעל העסק - לא נכנסים לטקסט המדווח.
+// הערה: hasContactForm (lead_flow) הוא boolean ולכן כבר מסונן על ידי typeof v === "string" למטה;
+// רשום כאן בפירוש בכל זאת כדי שהכוונה תהיה גלויה גם אם שדה עתידי מאותו מקור יהיה string
+const SCAN_DERIVED_KEYS: Partial<Record<ModelSection, readonly string[]>> = {
+  lead_flow: ["hasContactForm"],
+  tools: ["platform", "detected"],
+};
+
+// כל הטקסט שדווח בסקציה (כל הערכים המחרוזתיים, מעבר לשדות שמקורם בסריקה) - שם השדה שה-LLM בוחר
+// בזמן החילוץ חופשי (כמו billing.invoiceTool בראיון האמיתי, וה-fallback שומר ownerNotes), אז
+// סורקים את כל הערכים המדווחים במקום להסתמך על שם שדה קבוע אחד (סקירת קוד, ראו למעלה)
+const reportedText = (model: BusinessModel | null, section: ModelSection): string => {
+  const data = model?.data[section] ?? {};
+  const excluded = SCAN_DERIVED_KEYS[section] ?? [];
   return Object.entries(data)
-    .filter(([k]) => k !== "platform" && k !== "detected")
-    .map(([, v]) => (typeof v === "string" ? v : ""))
+    .filter(([k, v]) => !excluded.includes(k) && typeof v === "string")
+    .map(([, v]) => v as string)
     .filter((s) => s.length > 0)
     .join(" ");
 };
+
+// מילות מפתח לנפילת פניות - מופיעות בטקסט המדווח בכל שם שדה (לא רק leadDrop)
+const LEAD_DROP_RE = /מתפספס|מתפספסת|מתפספסים|נופל|נופלת|נופלות|נופלים|הולך לאיבוד|הולכת לאיבוד|הולכים לאיבוד|הולכות לאיבוד|לא חוזרים|לא חוזרות|מפספס|מפספסת|מפספסים/i;
+
+// "אין עבודה ידנית" מפורש - שלילה מפורשת, לא רק היעדר טקסט
+const NO_MANUAL_TASKS_RE = /אין משימות ידניות|אין עבודה ידנית|אין עבודה ידנית חוזרת|הכל אוטומטי|הכל אוטומטית|בלי עבודה ידנית|בלי משימות ידניות/i;
+
+// זיהוי "כלי ניהול מעבר לחשבוניות" (CRM/יומן מנוהל) - מילות מפתח קבועות וגלויות, לא LLM (אותו
+// עיקרון כמו socialPresenceOf למעלה). היוריסטיקה גלויה ומתועדת - פספוס (gap כשבאמת יש כלי בשם
+// לא-מוכר) קביל, היפוך (earned כשבפועל אין) לא - לכן הרשימה השחורה רחבה מהרשימה הלבנה בכוונה:
+// "לא משתמשים"/"ביטלנו"/"בעתיד"/"חשבנו ל"/"אין לנו" שוללים גם כשהמילה CRM כן מופיעה בתשובה,
+// ו"אין CRM, אקסל" לא נספר בטעות כהוכחה לכלי ניהול
+const HAS_MANAGEMENT_TOOL_RE = /CRM|יומן מנוהל|מערכת ניהול|תוכנת ניהול|ניהול לקוחות|monday|מאנדיי|priority|פריוריטי|zoho|זוהו|hubspot|האבספוט|salesforce|סיילספורס/i;
+const NO_MANAGEMENT_TOOL_RE = /אין CRM|בלי CRM|לא CRM|רק אקסל|אקסל בלבד|בלי מערכת ניהול|אין מערכת ניהול|לא משתמשים|ביטלנו|בעתיד|חשבנו ל|אין לנו/i;
+
+const GENERIC_LEAD_OK = "הטיפול בפניות מסודר, אין סימני נפילה בתשובות שנאספו";
 
 export function processRules(model: BusinessModel | null): RuleDef[] {
   return [
@@ -65,44 +102,54 @@ export function processRules(model: BusinessModel | null): RuleDef[] {
       key: "lead_handling", points: 40,
       known: () => sectionCredit(model, "lead_flow") >= 1,
       earned: () => {
-        const who = modelStr(model, "lead_flow", "whoHandles");
-        const responseTime = modelStr(model, "lead_flow", "responseTime");
-        const drop = modelStr(model, "lead_flow", "leadDrop");
-        return who.length > 0 && responseTime.length > 0 && drop.length === 0;
+        const text = reportedText(model, "lead_flow");
+        return text.length > 0 && !LEAD_DROP_RE.test(text);
       },
       gapText: () => {
-        const drop = modelStr(model, "lead_flow", "leadDrop");
-        return drop.length > 0
-          ? `פניות נופלות: ${truncateQuote(drop)}`
+        const text = reportedText(model, "lead_flow");
+        return LEAD_DROP_RE.test(text)
+          ? `פניות נופלות: ${quoteMatch(text, LEAD_DROP_RE)}`
           : "אין תמונה מסודרת על מי מטפל בפניות ותוך כמה זמן, פניות עלולות ליפול בין הכיסאות";
       },
+      // whoHandles/responseTime משמשים כאן לניסוח בלבד (לא לקביעת earned/known) - כשהם לא
+      // קיימים בשם הזה בדיוק (LLM בחר שם אחר) חוזרים לניסוח כללי במקום להרכיב משפט שבור
       okText: () => {
         const who = modelStr(model, "lead_flow", "whoHandles");
         const responseTime = modelStr(model, "lead_flow", "responseTime");
-        return `הטיפול בפניות מסודר - ${who}, תוך ${responseTime}`;
+        if (who.length === 0 && responseTime.length === 0) return GENERIC_LEAD_OK;
+        if (who.length > 0 && responseTime.length > 0) {
+          return `הטיפול בפניות מסודר - ${truncateQuote(who)}. זמן תגובה: ${truncateQuote(responseTime)}`;
+        }
+        if (who.length > 0) return `הטיפול בפניות מסודר - ${truncateQuote(who)}`;
+        return `הטיפול בפניות מסודר, זמן תגובה: ${truncateQuote(responseTime)}`;
       },
     },
     {
       key: "manual_tasks", points: 30,
       known: () => sectionCredit(model, "manual_tasks") >= 1,
-      earned: () => modelStr(model, "manual_tasks", "manualTasks").length === 0,
-      gapText: () => `יש עדיין עבודה ידנית חוזרת: ${truncateQuote(modelStr(model, "manual_tasks", "manualTasks"))}`,
+      // אין טקסט מדווח בכלל, או שלילה מפורשת ("אין עבודה ידנית") - שתי הדרכים היחידות ל-earned;
+      // כל טקסט אחר (כולל fallback ownerNotes) הוא תיאור בפועל של עבודה ידנית = פער
+      earned: () => {
+        const text = reportedText(model, "manual_tasks");
+        return text.length === 0 || NO_MANUAL_TASKS_RE.test(text);
+      },
+      gapText: () => `יש עדיין עבודה ידנית חוזרת: ${truncateQuote(reportedText(model, "manual_tasks"))}`,
       okText: () => "מעט עבודה ידנית חוזרת, רוב התהליכים כבר לא נשענים על הקלדה ידנית",
     },
     {
       key: "internal_tools", points: 30,
       known: () => sectionCredit(model, "tools") >= 1,
       earned: () => {
-        const text = toolsReportedText(model);
+        const text = reportedText(model, "tools");
         return HAS_MANAGEMENT_TOOL_RE.test(text) && !NO_MANAGEMENT_TOOL_RE.test(text);
       },
       gapText: () => {
-        const text = toolsReportedText(model);
+        const text = reportedText(model, "tools");
         return text.length > 0
           ? `הניהול הפנימי נשען על כלים בסיסיים: ${truncateQuote(text)}`
           : "אין מערכת ניהול פנימית (CRM/יומן מנוהל) מעבר לחשבוניות";
       },
-      okText: () => `יש כלי ניהול פנימי מעבר לחשבוניות: ${truncateQuote(toolsReportedText(model))}`,
+      okText: () => `יש כלי ניהול פנימי מעבר לחשבוניות: ${truncateQuote(reportedText(model, "tools"))}`,
     },
   ];
 }

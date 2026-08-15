@@ -157,6 +157,17 @@ export async function finishInterview(prisma: PrismaClient, diagnosisId: string)
   // אחת. העדפנו רצף פשוט אחרי הצלחה: אם התהליך קורס בדיוק בין שני הכתובים, הסטטוס כבר עבר
   // ל-report_ready אבל scores עדיין ישנים עד לרענון הבא - לא אי-עקביות מבנית, רק "עוד לא
   // התרענן" (בדיוק כמו שהיה קורה גם לפני המשימה הזו, בין סוף ראיון לרינדור הדוח הבא)
-  const scores = scoreWithModel(state.findings, state.model);
-  await prisma.scan.update({ where: { id: state.scanId }, data: { scores: scores as unknown as object } });
+  //
+  // סקירת קוד (סבב 2): הכתיבה הזו עטופה ב-try/catch (בדפוס step 5/5ב של run-diagnosis.ts -
+  // backfill קוסמטי אחרי שהעיקר כבר הצליח) - המעבר ל-report_ready כבר קרה למעלה, אז שגיאה כאן
+  // לא יכולה בלי העטיפה להיזרק החוצה ולגרום ל-caller לחשוב שהראיון לא נסגר, כשבפועל הוא כן
+  // נסגר. וזריקה כאן גם הייתה הופכת לתקלה קבועה: finishInterview על סטטוס report_ready הוא
+  // no-op שקט (ראו למעלה), אז ניסיון חוזר לא היה מרענן שוב - הכשל היה נצרב לצמיתות במקום להתאושש
+  // ברענון הבא (למשל אחרי ראיון עתידי, או ריצת backfill ייעודית)
+  try {
+    const scores = scoreWithModel(state.findings, state.model);
+    await prisma.scan.update({ where: { id: state.scanId }, data: { scores: scores as unknown as object } });
+  } catch (err) {
+    console.error("רענון scores אחרי סיום ראיון נכשל (לא קריטי - הראיון כבר נסגר, יתעדכן ברענון הבא):", err instanceof Error ? err.message : err);
+  }
 }

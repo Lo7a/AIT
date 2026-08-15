@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export interface FakeBizRow {
   id: string; name: string; placeId: string | null; websiteKey: string | null;
-  website: string | null; city: string | null;
+  website: string | null; phone: string | null; address: string | null; city: string | null;
 }
 
 export interface FakeDbOptions {
@@ -38,7 +38,8 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
         );
         if (found) { Object.assign(found, update); return { ...found }; }
         const row: FakeBizRow = {
-          id: genId("biz"), placeId: null, websiteKey: null, website: null, city: null, ...create,
+          id: genId("biz"), placeId: null, websiteKey: null, website: null, phone: null, address: null,
+          city: null, ...create,
         };
         businesses.push(row);
         return { ...row };

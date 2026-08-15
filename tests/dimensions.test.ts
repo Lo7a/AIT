@@ -344,12 +344,26 @@ describe("process dimension (אבן דרך 4, משימה 1)", () => {
       expect(rule.okText(RICH)).toContain("האישה עונה בחנות");
     });
 
-    it("gap: יש פניות נופלות - הטקסט מצטט את מה שסופר", () => {
+    // סקירת קוד (סבב 2, H1): כשה-LLM בוחר שם שדה אחר מ-whoHandles/responseTime (מותר לו,
+    // extract.ts לא כופה סכימה) - העדר השם הקבוע לא אמור להפוך תשובה תקינה לפער
+    it("earned: טקסט מדווח בשם שדה אחר (לא whoHandles/responseTime) בלי סימני נפילה - עדיין earned", () => {
+      const model = makeModel(
+        { lead_flow: { intakeSummary: "מגיעות בעיקר בטלפון ובוואטסאפ, עונים באותו יום" } },
+        { lead_flow: 1 },
+      );
+      const rule = processRules(model).find((r) => r.key === "lead_handling")!;
+      expect(rule.known(RICH)).toBe(true);
+      expect(rule.earned(RICH)).toBe(true);
+      // אין whoHandles/responseTime בשם הזה - okText נופל לניסוח כללי, לא משפט שבור
+      expect(rule.okText(RICH)).toBe("הטיפול בפניות מסודר, אין סימני נפילה בתשובות שנאספו");
+    });
+
+    it("gap: מילת מפתח לנפילה מופיעה בטקסט המדווח (בכל שם שדה) - מצוטטת", () => {
       const model = makeModel(
         {
           lead_flow: {
             whoHandles: "בעל העסק", responseTime: "תוך יום",
-            leadDrop: "פניות בפייסבוק לפעמים נשארות בלי מענה כמה ימים",
+            leadDrop: "פניות בפייסבוק לפעמים נופלות ולא עונים בזמן",
           },
         },
         { lead_flow: 1 },
@@ -357,15 +371,24 @@ describe("process dimension (אבן דרך 4, משימה 1)", () => {
       const rule = processRules(model).find((r) => r.key === "lead_handling")!;
       expect(rule.known(RICH)).toBe(true);
       expect(rule.earned(RICH)).toBe(false);
-      expect(rule.gapText(RICH)).toContain("פניות בפייסבוק לפעמים נשארות בלי מענה");
+      expect(rule.gapText(RICH)).toContain("נופלות");
     });
 
-    it("gap: אין leadDrop אבל גם אין whoHandles/responseTime מלאים - הודעה כללית ברורה", () => {
-      const model = makeModel({ lead_flow: { whoHandles: "בעל העסק" } }, { lead_flow: 1 });
+    it("gap: קרדיט מלא אבל שום טקסט מדווח (רק שדה boolean) - הודעה כללית", () => {
+      const model = makeModel({ lead_flow: { hasContactForm: true } }, { lead_flow: 1 });
       const rule = processRules(model).find((r) => r.key === "lead_handling")!;
       expect(rule.known(RICH)).toBe(true);
       expect(rule.earned(RICH)).toBe(false);
-      expect(rule.gapText(RICH).length).toBeGreaterThan(0);
+      expect(rule.gapText(RICH)).toBe("אין תמונה מסודרת על מי מטפל בפניות ותוך כמה זמן, פניות עלולות ליפול בין הכיסאות");
+    });
+
+    it("ערכים לא-מחרוזתיים (boolean) לא הופכים דבר - רק מחרוזות נספרות", () => {
+      const model = makeModel(
+        { lead_flow: { whoHandles: "בעל העסק", urgentFlag: true } },
+        { lead_flow: 1 },
+      );
+      const rule = processRules(model).find((r) => r.key === "lead_handling")!;
+      expect(rule.earned(RICH)).toBe(true);
     });
 
     it("unknown: קרדיט lead_flow מתחת ל-1 (רק מהסריקה)", () => {
@@ -373,11 +396,34 @@ describe("process dimension (אבן דרך 4, משימה 1)", () => {
       const rule = processRules(model).find((r) => r.key === "lead_handling")!;
       expect(rule.known(RICH)).toBe(false);
     });
+
+    // סקירת קוד (סבב 2, M1): responseTime הוא לרוב משפט מלא, לא משך זמן - "תוך ${responseTime}"
+    // הפיק עברית שבורה ("תוך משתדלים לחזור באותו יום")
+    it("okText לא מפיק עברית שבורה כש-responseTime הוא משפט מלא", () => {
+      const model = makeModel(
+        { lead_flow: { whoHandles: "המזכירה", responseTime: "משתדלים לחזור באותו יום" } },
+        { lead_flow: 1 },
+      );
+      const rule = processRules(model).find((r) => r.key === "lead_handling")!;
+      const ok = rule.okText(RICH);
+      expect(ok).not.toContain("תוך משתדלים");
+      expect(ok).toBe("הטיפול בפניות מסודר - המזכירה. זמן תגובה: משתדלים לחזור באותו יום");
+    });
   });
 
   describe("manual_tasks", () => {
-    it("earned: קרדיט מלא ואין משימות ידניות מדווחות", () => {
+    it("earned: קרדיט מלא ואין שום טקסט מדווח", () => {
       const model = makeModel({ manual_tasks: {} }, { manual_tasks: 1 });
+      const rule = processRules(model).find((r) => r.key === "manual_tasks")!;
+      expect(rule.known(RICH)).toBe(true);
+      expect(rule.earned(RICH)).toBe(true);
+    });
+
+    it("earned: שלילה מפורשת ('אין עבודה ידנית') נחשבת earned גם כשהטקסט לא ריק", () => {
+      const model = makeModel(
+        { manual_tasks: { manualTasks: "אין עבודה ידנית, הכל עובר דרך המערכת" } },
+        { manual_tasks: 1 },
+      );
       const rule = processRules(model).find((r) => r.key === "manual_tasks")!;
       expect(rule.known(RICH)).toBe(true);
       expect(rule.earned(RICH)).toBe(true);
@@ -386,6 +432,20 @@ describe("process dimension (אבן דרך 4, משימה 1)", () => {
     it("gap: משימות ידניות מדווחות - מצוטטות (בסגנון אופטיקה בק)", () => {
       const model = makeModel(
         { manual_tasks: { manualTasks: "רישום ביומן ידני, שיחות כשמוכן, תזכורות ידניות" } },
+        { manual_tasks: 1 },
+      );
+      const rule = processRules(model).find((r) => r.key === "manual_tasks")!;
+      expect(rule.known(RICH)).toBe(true);
+      expect(rule.earned(RICH)).toBe(false);
+      expect(rule.gapText(RICH)).toContain("רישום ביומן ידני");
+    });
+
+    // סקירת קוד (סבב 2, H2 - תרחיש הסקירה המדויק): מסלול ה-fallback ב-extract.ts שומר
+    // ownerNotes כששם השדה לא whoHandles/manualTasks - קרדיט 1 בכל זאת (הסקציה נענתה),
+    // אבל הטקסט עצמו מתאר עבודה ידנית מפורשת. חייב להיות פער, לא שבח
+    it("gap: מסלול fallback שומר ownerNotes (לא manualTasks) - עדיין פער, לא שבח שגוי", () => {
+      const model = makeModel(
+        { manual_tasks: { ownerNotes: "רישום ביומן ידני, שיחות כשמוכן, תזכורות ידניות" } },
         { manual_tasks: 1 },
       );
       const rule = processRules(model).find((r) => r.key === "manual_tasks")!;
@@ -421,12 +481,31 @@ describe("process dimension (אבן דרך 4, משימה 1)", () => {
       expect(rule.earned(RICH)).toBe(true);
     });
 
+    it("earned: שמות כלי ניהול מוכרים (מאנדיי/פריוריטי)", () => {
+      const model = makeModel({ tools: { managementTool: "עובדים עם מאנדיי ופריוריטי" } }, { tools: 1 });
+      const rule = processRules(model).find((r) => r.key === "internal_tools")!;
+      expect(rule.known(RICH)).toBe(true);
+      expect(rule.earned(RICH)).toBe(true);
+    });
+
     it("gap: אין CRM, רק אקסל", () => {
       const model = makeModel({ tools: { managementTool: "אין CRM, מנהלים הכל באקסל" } }, { tools: 1 });
       const rule = processRules(model).find((r) => r.key === "internal_tools")!;
       expect(rule.known(RICH)).toBe(true);
       expect(rule.earned(RICH)).toBe(false);
       expect(rule.gapText(RICH)).toContain("אקסל");
+    });
+
+    // סקירת קוד (סבב 2, M2) - ארבעת תרחישי השלילה שהשומר המקורי פספס
+    it.each([
+      ["אנחנו לא משתמשים ב-CRM"],
+      ["ביטלנו את ה-CRM לפני שנה"],
+      ["חשבנו לקנות CRM בעתיד"],
+      ["אין לנו CRM, רק וורד"],
+    ])("gap: שלילה מורחבת - %s", (text) => {
+      const model = makeModel({ tools: { managementTool: text } }, { tools: 1 });
+      const rule = processRules(model).find((r) => r.key === "internal_tools")!;
+      expect(rule.earned(RICH)).toBe(false);
     });
 
     it("gap: שום שדה מדווח מעבר ל-platform/detected - הודעה כללית", () => {
