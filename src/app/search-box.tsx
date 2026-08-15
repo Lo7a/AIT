@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useBusinessSearch } from "./use-business-search";
 
 const LISTBOX_ID = "candidate-listbox";
@@ -10,8 +10,12 @@ export function SearchBox() {
   const {
     input, setInput, city, setCity, candidates, busy, error, submit, chooseCandidate,
     filterText, setFilterText, visibleCandidates, researchWithFilter,
-    siteOnlyTarget, scanSiteOnly,
+    siteOnlyTarget, scanSiteOnly, socialHint,
   } = useBusinessSearch();
+
+  // מוקד לשדה השם הראשי - כשההוק מציג socialHint, כפתור "אכתוב את שם העסק" מחזיר את המשתמש
+  // לשדה הזה בפועל (פוקוס הוא DOM גרידא, נשאר בתצוגה בכוונה, ראו ההערה למטה)
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   // ניהול הפוקוס/הדגשה בתוך הרשימה הוא תלוי-DOM גרידא (איזו שורה מודגשת בזמן ניווט בחצים) -
   // נשאר בתצוגה בכוונה, כמו ב-use-interview-chat.ts. כל שאר ההחלטות (מה מסונן, מתי מחפשים
@@ -64,6 +68,7 @@ export function SearchBox() {
     <div className="mt-8 animate-fade-up" style={{ animationDelay: "160ms" }}>
       <form onSubmit={submit} className="flex flex-col gap-3 sm:flex-row">
         <input
+          ref={nameInputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="שם העסק או כתובת האתר"
@@ -169,6 +174,31 @@ export function SearchBox() {
               סריקת האתר בלבד
             </button>
           )}
+        </div>
+      )}
+
+      {socialHint && (
+        <div className="mt-4 rounded-lg border border-black/[0.06] bg-white p-4">
+          <p className="text-[#6F6E6A]">{socialHint.message}</p>
+          <div className="mt-3 flex flex-wrap gap-4">
+            <button
+              type="button"
+              onClick={() => {
+                setInput("");
+                nameInputRef.current?.focus();
+              }}
+              className="text-sm font-medium text-[#111111] underline decoration-black/20 underline-offset-2 hover:decoration-black/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
+            >
+              אכתוב את שם העסק
+            </button>
+            <button
+              type="button"
+              onClick={scanSiteOnly}
+              className="text-sm text-[#6F6E6A] underline decoration-black/10 underline-offset-2 hover:text-[#111111] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
+            >
+              סריקת האתר בלבד
+            </button>
+          </div>
         </div>
       )}
     </div>

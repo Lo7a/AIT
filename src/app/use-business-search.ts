@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { looksLikeUrl } from "./url-detect";
 import { filterCandidates } from "./candidate-filter";
+import { socialSearchQueryOf } from "./social-search-query";
+import { socialPresenceOf, SOCIAL_PLATFORM_LABEL_HE } from "../pipeline/social-hosts";
 import type { BusinessCandidate } from "../pipeline/types";
 
 export interface BusinessSearchState {
@@ -27,20 +29,32 @@ export interface BusinessSearchState {
   // הערך הוא ה-URL המקורי כמו שהוקלד, כדי שאפשר תמיד לחזור למסלול "סריקת האתר בלבד" הישן
   siteOnlyTarget: string | null;
   scanSiteOnly: () => void;
+  // לא-null כשהוקלד קישור לרשת חברתית בלי שם עסק קריא בנתיב (profile.php?id=, pages/<מספר>,
+  // דומיין חשוף, טלפון וואטסאפ) - לא נשלחה קריאת Places בכלל (היא הייתה רק רעש), במקום זה
+  // מציגים למשתמש בקשה כנה לשם + עדיין מציעים "סריקת האתר בלבד" (siteOnlyTarget זהה ל-url כאן)
+  socialHint: { platform: string; url: string; message: string } | null;
 }
 
 const TOO_SHORT_ERROR = "יש להזין שם עסק או כתובת אתר";
 const SEARCH_FAILED_ERROR = "החיפוש נכשל, נסו שוב";
 const NO_MATCH_ERROR = "לא נמצא עסק מתאים. נסו לנסח אחרת או להוסיף עיר.";
 
-// שאילתת מפות מתוך URL: מסירים פרוטוקול, www. ואת כל מה שאחרי ה-host (נתיב/שאילתה/עוגן) -
-// נשאר רק הדומיין עצמו, זו שאילתת החיפוש הכי סבירה. לדוגמה "https://www.gentleman.co.il/store"
-// -> "gentleman.co.il"
+// שאילתת מפות מתוך URL רגיל (לא-חברתי): מסירים פרוטוקול, www. ואת כל מה שאחרי ה-host
+// (נתיב/שאילתה/עוגן) - נשאר רק הדומיין עצמו, זו שאילתת החיפוש הכי סבירה. לדוגמה
+// "https://www.gentleman.co.il/store" -> "gentleman.co.il". לקישור חברתי יש דרך נפרדת -
+// ראו socialSearchQueryOf - כי "facebook.com" הגולמי כשאילתה מחזיר רעש (לא שם עסק)
 function domainQueryOf(url: string): string {
   return url.trim()
     .replace(/^https?:\/\//i, "")
     .replace(/^www\./i, "")
     .split(/[/?#]/)[0];
+}
+
+// טקסט ההודעה הכן לקישור חברתי בלי שם: "אינסטגרם"/"פייסבוק" וכו' לפי הפלטפורמה בפועל, מפתח
+// אחיד אחד (SOCIAL_PLATFORM_LABEL_HE) כמו בכל שאר הטקסטים שמצטטים פלטפורמה בקוד
+function socialHintMessage(platform: string): string {
+  const label = SOCIAL_PLATFORM_LABEL_HE[platform] ?? platform;
+  return `זה קישור לעמוד ${label} בלי שם העסק. כתבו את שם העסק כדי לקבל אבחון מלא, או סרקו את הקישור בלבד.`;
 }
 
 type SearchResult =
@@ -59,6 +73,7 @@ export function useBusinessSearch(): BusinessSearchState {
   const [error, setError] = useState<string | null>(null);
   const [filterText, setFilterText] = useState("");
   const [siteOnlyTarget, setSiteOnlyTarget] = useState<string | null>(null);
+  const [socialHint, setSocialHint] = useState<{ platform: string; url: string; message: string } | null>(null);
 
   function goToScan(params: URLSearchParams) {
     router.push(`/scan?${params.toString()}`);
@@ -116,13 +131,13 @@ export function useBusinessSearch(): BusinessSearchState {
     setFilterText("");
   }
 
-  // דרישת מייסד (א): הקלדת URL כבר לא עוקפת מפות בשקט - קודם בודקים אם העסק קיים שם, ורק
-  // אם אין תוצאות (או שהבדיקה עצמה נכשלה) חוזרים למסלול הישן של סריקת אתר ישירה. הבדיקה הזו
-  // לעולם לא חוסמת את המשתמש בשגיאה משלה - כשל כאן שקוף לגמרי, ה-fallback הוא הניווט הרגיל
-  async function searchFromUrl(url: string) {
+  // בדיקת מפות משותפת לכל מסלולי ה-URL (רגיל וגם חברתי-עם-שם): יש תוצאות => מציגים רשימה +
+  // מפעילים את "סריקת האתר בלבד"; אין תוצאות/הבדיקה נכשלה => נופלים חזרה למסלול הישן (ניווט
+  // ישיר לסריקת אתר) בלי להציג למשתמש שגיאה משלו - הבדיקה הזו לעולם לא חוסמת
+  async function probeMapsForUrl(url: string, query: string) {
     setBusy(true);
     try {
-      const result = await fetchCandidates(domainQueryOf(url));
+      const result = await fetchCandidates(query);
       if (result.ok && result.candidates.length > 0) {
         setSiteOnlyTarget(url);
         setCandidates(result.candidates);
@@ -135,11 +150,36 @@ export function useBusinessSearch(): BusinessSearchState {
     }
   }
 
+  // דרישת מייסד (א): הקלדת URL כבר לא עוקפת מפות בשקט - קודם בודקים אם העסק קיים שם, ורק
+  // אם אין תוצאות (או שהבדיקה עצמה נכשלה) חוזרים למסלול הישן של סריקת אתר ישירה.
+  //
+  // תיקון חי (מייסד תפס באמת בשימוש, דקות אחרי המיזוג הקודם): קישור חברתי (פייסבוק/אינסטגרם
+  // וכד') הוא מקרה מיוחד. "facebook.com" כשאילתה ל-Places לא אומר כלום על העסק - זה מחזיר
+  // רשימת עסקים מקריים ולא קשורים (בדיוק מה שקרה). אם יש שם-חנייה קריא בנתיב (facebook.com/
+  // CafeGreg) הוא כן שם עסק סביר וממשיכים לחפש בו; אם אין (profile.php?id=..., pages/<מספר>,
+  // דומיין חשוף, טלפון וואטסאפ) - לא שולחים קריאת Places בכלל (זה בזבוז שמייצר רק רעש), ובמקום
+  // זה מבקשים מהמשתמש בכנות את שם העסק, עם "סריקת האתר בלבד" תמיד זמין כברירת מחדל
+  async function searchFromUrl(url: string) {
+    const presence = socialPresenceOf(url);
+    if (presence) {
+      const socialQuery = socialSearchQueryOf(url);
+      if (!socialQuery) {
+        setSiteOnlyTarget(url);
+        setSocialHint({ platform: presence.platform, url, message: socialHintMessage(presence.platform) });
+        return;
+      }
+      await probeMapsForUrl(url, socialQuery);
+      return;
+    }
+    await probeMapsForUrl(url, domainQueryOf(url));
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setCandidates(null);
     setSiteOnlyTarget(null);
+    setSocialHint(null);
     setFilterText("");
     const trimmed = input.trim();
     if (trimmed.length < 2) {
@@ -181,6 +221,6 @@ export function useBusinessSearch(): BusinessSearchState {
   return {
     input, setInput, city, setCity, candidates, busy, error, submit, chooseCandidate,
     filterText, setFilterText, visibleCandidates, researchWithFilter,
-    siteOnlyTarget, scanSiteOnly,
+    siteOnlyTarget, scanSiteOnly, socialHint,
   };
 }
