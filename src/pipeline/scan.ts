@@ -1,13 +1,14 @@
 import {
   JS_RENDERED_DETAIL,
   type PageSpeedResult, type PartialFlag, type PlaceDetails, type Review, type ReviewInsights,
-  type ScanFindings, type WebsiteSignals,
+  type ScanFindings, type SocialOnly, type WebsiteSignals,
 } from "./types";
 import type { LlmUsage } from "./llm/client";
 import { getPlaceDetails } from "./google/places";
 import { runPageSpeed } from "./google/pagespeed";
 import { crawlWebsite } from "./crawler/crawl";
 import { analyzeReviews } from "./analyze/reviews";
+import { socialPresenceOf, socialOnlyDetail } from "./social-hosts";
 
 export interface ScanDeps {
   details: (placeId: string) => Promise<PlaceDetails>;
@@ -54,12 +55,18 @@ export async function runScan(
   let websiteSignals: WebsiteSignals | undefined;
   let pageSpeed: PageSpeedResult | undefined;
   let reviewInsights: ReviewInsights | undefined;
+  let socialOnly: SocialOnly | undefined;
 
-  // שלושת הצעדים האיטיים רצים במקביל; כל כישלון הופך לדגל partial במקום להפיל את הסריקה
-  const crawlPromise: Promise<WebsiteSignals | undefined> = details.website
+  // "אתר" שהוא בעצם עמוד ברשת חברתית (ממצא מייסד, אבן דרך 4 משימה 0): מזוהה לפני שמריצים כלום -
+  // crawl היה מייצר shell זבל (חומת התחברות) ו-PSI נחסם עליו (429), אז לא שווה בכלל לנסות
+  const social = details.website ? socialPresenceOf(details.website) : null;
+
+  // שלושת הצעדים האיטיים רצים במקביל; כל כישלון הופך לדגל partial במקום להפיל את הסריקה.
+  // אתר חברתי מדלג על crawl+PSI לגמרי - אין עלות, אין 429, אין אותות זבל
+  const crawlPromise: Promise<WebsiteSignals | undefined> = details.website && !social
     ? deps.crawl(details.website)
     : Promise.resolve(undefined);
-  const psiPromise: Promise<PageSpeedResult | undefined> = details.website
+  const psiPromise: Promise<PageSpeedResult | undefined> = details.website && !social
     ? deps.pagespeed(details.website)
     : Promise.resolve(undefined);
   const reviewsPromise = deps.analyzeReviews(details.reviews);
@@ -70,6 +77,10 @@ export async function runScan(
 
   if (!details.website) {
     partial.push("no_website");
+  } else if (social) {
+    socialOnly = { platform: social.platform, url: details.website };
+    partial.push("social_only");
+    partialDetails.social_only = socialOnlyDetail(social.platform);
   } else {
     if (crawlResult.status === "fulfilled" && crawlResult.value) {
       websiteSignals = crawlResult.value;
@@ -116,6 +127,7 @@ export async function runScan(
     websiteSignals,
     pageSpeed,
     reviewInsights,
+    socialOnly,
     partial,
     partialDetails: Object.keys(partialDetails).length > 0 ? partialDetails : undefined,
     meta: {

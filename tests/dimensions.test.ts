@@ -156,3 +156,59 @@ describe("real dimensions", () => {
     expect(rule.text).toContain("לא הצלחנו לטעון");
   });
 });
+
+// עסק שה"אתר" שלו הוא בעצם עמוד פייסבוק (ממצא מייסד, אבן דרך 4 משימה 0) - בסגנון בית קפה שכונתי
+const SOCIAL: ScanFindings = {
+  business: {
+    placeId: "p10", name: "בית קפה", phone: "03-0000000",
+    website: "https://www.facebook.com/business-social", rating: 4.6, reviewCount: 40,
+  },
+  socialOnly: { platform: "facebook", url: "https://www.facebook.com/business-social" },
+  partial: ["social_only"],
+  meta: META,
+};
+
+describe("social presence as website (אבן דרך 4, משימה 0)", () => {
+  it("socialOnly: כל חוקי האתר שתלויים ב-crawl/PageSpeed נשארים לא ידועים - אין ניחוש מהיעדר מידע", () => {
+    const websiteDerivedKeys = [
+      "perf", "lcp", "seo", "whatsapp", "contact_form", "online_booking", "email_link",
+      "analytics", "fb_pixel", "chat_widget", "multi_page",
+    ];
+    const report = scoreFindings(DIMENSIONS, SOCIAL);
+    for (const dim of report.dimensions) {
+      for (const rule of dim.rules.filter((r) => websiteDerivedKeys.includes(r.key))) {
+        expect(rule.known, `${dim.key}/${rule.key}`).toBe(false);
+      }
+    }
+  });
+
+  it("has_website לא מושפע - יש כתובת רשומה שלא נכשלה, זה עדיין 'יש אתר' לפי ההגדרה שלו", () => {
+    const rule = scoreFindings(DIMENSIONS, SOCIAL).dimensions
+      .find((d) => d.key === "visibility")!.rules.find((r) => r.key === "has_website")!;
+    expect(rule.known).toBe(true);
+    expect(rule.earned).toBe(true);
+    expect(rule.points).toBe(15);
+  });
+
+  it("own_website: אתר עצמאי רגיל - ידוע והושג", () => {
+    const rule = scoreFindings(DIMENSIONS, RICH).dimensions
+      .find((d) => d.key === "visibility")!.rules.find((r) => r.key === "own_website")!;
+    expect(rule.known).toBe(true);
+    expect(rule.earned).toBe(true);
+    expect(rule.text).toContain("אתר עצמאי");
+  });
+
+  it("own_website: socialOnly - ידוע אבל לא הושג, gapText מזכיר את הפלטפורמה בעברית", () => {
+    const rule = scoreFindings(DIMENSIONS, SOCIAL).dimensions
+      .find((d) => d.key === "visibility")!.rules.find((r) => r.key === "own_website")!;
+    expect(rule.known).toBe(true);
+    expect(rule.earned).toBe(false);
+    expect(rule.text).toContain("פייסבוק");
+  });
+
+  it("own_website: אין שום נוכחות דיגיטלית (לא website ולא socialOnly) - לא ידוע, לא כפל-ספירה עם has_website", () => {
+    const rule = scoreFindings(DIMENSIONS, THIN).dimensions
+      .find((d) => d.key === "visibility")!.rules.find((r) => r.key === "own_website")!;
+    expect(rule.known).toBe(false);
+  });
+});

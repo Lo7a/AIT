@@ -1,10 +1,11 @@
 import {
   JS_RENDERED_DETAIL,
-  type PageSpeedResult, type PartialFlag, type ScanFindings, type WebsiteSignals,
+  type PageSpeedResult, type PartialFlag, type ScanFindings, type SocialOnly, type WebsiteSignals,
 } from "./types";
 import { crawlWebsite } from "./crawler/crawl";
 import { runPageSpeed } from "./google/pagespeed";
 import { normalizeSiteUrl } from "./site-url";
+import { socialPresenceOf, socialOnlyDetail } from "./social-hosts";
 
 // נשמר לתאימות לאחור — כל היבואנים הקיימים (כולל מבחנים) ממשיכים לעבוד בלי שינוי.
 // המימוש עצמו עבר ל-site-url.ts, מודול-עלה בלי תלות ב-crawler/cheerio (ראו website-key.ts)
@@ -37,27 +38,37 @@ export async function scanWebsiteOnly(
 
   let websiteSignals: WebsiteSignals | undefined;
   let pageSpeed: PageSpeedResult | undefined;
+  let socialOnly: SocialOnly | undefined;
 
-  const [crawlResult, psiResult] = await Promise.allSettled([
-    deps.crawl(url.href),
-    deps.pagespeed(url.href),
-  ]);
-
-  if (crawlResult.status === "fulfilled") {
-    websiteSignals = crawlResult.value;
-    if (websiteSignals.jsRendered) {
-      partial.push("js_rendered");
-      partialDetails.js_rendered = JS_RENDERED_DETAIL;
-    }
+  // "האתר" שהוזן הוא בעצם עמוד ברשת חברתית (ממצא מייסד, אבן דרך 4 משימה 0) - מדלגים על crawl+PSI
+  // לגמרי (shell זבל, PSI נחסם) במקום לנסות ולתעד כישלון שקרי
+  const social = socialPresenceOf(url.href);
+  if (social) {
+    socialOnly = { platform: social.platform, url: url.href };
+    partial.push("social_only");
+    partialDetails.social_only = socialOnlyDetail(social.platform);
   } else {
-    partial.push("crawl_failed");
-    partialDetails.crawl_failed = reasonOf(crawlResult);
-  }
+    const [crawlResult, psiResult] = await Promise.allSettled([
+      deps.crawl(url.href),
+      deps.pagespeed(url.href),
+    ]);
 
-  if (psiResult.status === "fulfilled") pageSpeed = psiResult.value;
-  else {
-    partial.push("pagespeed_failed");
-    partialDetails.pagespeed_failed = reasonOf(psiResult);
+    if (crawlResult.status === "fulfilled") {
+      websiteSignals = crawlResult.value;
+      if (websiteSignals.jsRendered) {
+        partial.push("js_rendered");
+        partialDetails.js_rendered = JS_RENDERED_DETAIL;
+      }
+    } else {
+      partial.push("crawl_failed");
+      partialDetails.crawl_failed = reasonOf(crawlResult);
+    }
+
+    if (psiResult.status === "fulfilled") pageSpeed = psiResult.value;
+    else {
+      partial.push("pagespeed_failed");
+      partialDetails.pagespeed_failed = reasonOf(psiResult);
+    }
   }
 
   return {
@@ -69,6 +80,7 @@ export async function scanWebsiteOnly(
     websiteSignals,
     pageSpeed,
     reviewInsights: undefined,
+    socialOnly,
     partial,
     partialDetails: Object.keys(partialDetails).length > 0 ? partialDetails : undefined,
     meta: {

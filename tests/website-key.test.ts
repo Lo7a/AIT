@@ -33,4 +33,28 @@ describe("websiteKeyOf", () => {
   it("סכמה לא נתמכת נדחית (מהנרמול המשותף)", () => {
     expect(() => websiteKeyOf("mailto:a@b.co.il")).toThrow();
   });
+
+  it("דומיין חברתי כולל את מקטע ה-path הראשון במפתח - שני עסקים שונים = מפתחות שונים (אבן דרך 4)", () => {
+    const keyOne = websiteKeyOf("https://www.facebook.com/business-one");
+    const keyTwo = websiteKeyOf("https://www.facebook.com/business-two");
+    expect(keyOne).toBe("facebook.com/business-one");
+    expect(keyTwo).toBe("facebook.com/business-two");
+    expect(keyOne).not.toBe(keyTwo);
+  });
+
+  it("דומיין חברתי מנרמל רישיות ו-www באותו אופן כמו דומיין רגיל", () => {
+    expect(websiteKeyOf("https://FACEBOOK.com/MyBusiness")).toBe("facebook.com/mybusiness");
+    expect(websiteKeyOf("https://www.facebook.com/MyBusiness")).toBe("facebook.com/mybusiness");
+  });
+
+  it("תת-דומיין חברתי (m.facebook.com) מזוהה כחברתי וכולל path, אבל נשאר מפתח נפרד - כמו כל תת-דומיין (עקבי עם המדיניות הקיימת)", () => {
+    expect(websiteKeyOf("https://m.facebook.com/mybusiness")).toBe("m.facebook.com/mybusiness");
+    expect(websiteKeyOf("https://m.facebook.com/mybusiness"))
+      .not.toBe(websiteKeyOf("https://www.facebook.com/mybusiness"));
+  });
+
+  it("דומיין חברתי חשוף בלי path נשאר כמו היום - חשוף לדומיין בלבד", () => {
+    expect(websiteKeyOf("https://www.facebook.com")).toBe("facebook.com");
+    expect(websiteKeyOf("https://www.facebook.com/")).toBe("facebook.com");
+  });
 });

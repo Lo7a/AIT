@@ -73,10 +73,18 @@ export type PartialFlag =
   | "pagespeed_failed"
   | "review_analysis_failed"
   | "js_rendered"
-  | "no_gbp";
+  | "no_gbp"
+  | "social_only";
 
 // הסבר דגל js_rendered — משותף ל-runScan ול-scanWebsiteOnly (משימה 3)
 export const JS_RENDERED_DETAIL = "האתר מרונדר ב-JavaScript - אותות ה-HTML חלקיים";
+
+// "האתר" של העסק הוא בעצם עמוד ברשת חברתית (ממצא מייסד, אבן דרך 4 משימה 0) - ראו social-hosts.ts.
+// זו עדיין עובדה אמיתית על העסק (ערוץ אמיתי), לא "אין נוכחות דיגיטלית"; פשוט אין אתר עצמאי לסרוק
+export interface SocialOnly {
+  platform: string;
+  url: string;
+}
 
 export interface ScanFindings {
   business: {
@@ -90,6 +98,7 @@ export interface ScanFindings {
   websiteSignals?: WebsiteSignals;
   pageSpeed?: PageSpeedResult;
   reviewInsights?: ReviewInsights;
+  socialOnly?: SocialOnly;
   partial: PartialFlag[]; // איחוד הדגלים האפשריים — ראו PartialFlag
   partialDetails?: Partial<Record<PartialFlag, string>>; // דגל → סיבת הכישלון (לעולם בלי טקסט ביקורות)
   meta: ScanMeta;

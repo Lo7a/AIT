@@ -14,6 +14,7 @@ import type { ScanFindings } from "../pipeline/types";
 import type { ScoreReport } from "../pipeline/score/types";
 import { createDiagnosisForBusiness, transitionDiagnosis, saveScanResult, toScanRow } from "./diagnosis-repo";
 import { websiteKeyOf } from "./website-key";
+import { socialPresenceOf, socialOnlyDetail } from "../pipeline/social-hosts";
 import type { DiagnoseEvent, DiagnoseStepKey } from "./diagnose-events";
 
 // האורקסטרציה המלאה של אבחון — חולצה מ-cli-diagnose.ts כדי שה-CLI ומסך הסריקה החיה
@@ -68,20 +69,27 @@ async function step<T>(
   return result;
 }
 
+// פולט את זוג האירועים (step + step_done ok:false) עבור crawl ו-pagespeed גם יחד - משותף לכל מסלולי
+// ה"אין מה לסרוק" (בלי אתר / אתר חברתי) כדי שמסך הסריקה החיה לא ייתקע על "קוראים את האתר" בלי סוף
+function emitSkippedCrawlPsi(emit: Emit, detail: string): void {
+  emit({ type: "step", key: "crawl", label: "קוראים את האתר" });
+  emit({ type: "step_done", key: "crawl", ok: false, detail });
+  emit({ type: "step", key: "pagespeed", label: "בודקים מהירות טעינה במובייל" });
+  emit({ type: "step_done", key: "pagespeed", ok: false, detail });
+}
+
 function wrapScanDeps(base: ScanDeps, emit: Emit): ScanDeps {
   return {
     details: async (placeId) => {
       const details = await step(emit, "details", "מאתרים את פרטי העסק בגוגל", () => base.details(placeId),
         (d) => d.reviewCount != null ? `נמצאו ${d.reviewCount} ביקורות ודירוג ${d.rating ?? "ללא"}` : "פרטי העסק התקבלו",
         "איתור העסק נכשל");
-      // לעסק אין אתר — runScan לא יקרא בכלל ל-crawl/pagespeed (ראו scan.ts). בלי האירועים האלה מסך
-      // הסריקה החיה היה נתקע על "קוראים את האתר…" בלי סוף; פולטים skipped מפורש כדי שהפלח העיקרי
-      // של המוצר (עסקים בלי אתר) יראה הסבר קצר ולא רשימה תלויה
-      if (!details.website) {
-        emit({ type: "step", key: "crawl", label: "קוראים את האתר" });
-        emit({ type: "step_done", key: "crawl", ok: false, detail: "לעסק אין אתר" });
-        emit({ type: "step", key: "pagespeed", label: "בודקים מהירות טעינה במובייל" });
-        emit({ type: "step_done", key: "pagespeed", ok: false, detail: "לעסק אין אתר" });
+      // לעסק אין אתר, או שהאתר הרשום הוא בעצם עמוד ברשת חברתית (ממצא מייסד) - בשני המקרים runScan
+      // לא יקרא בכלל ל-crawl/pagespeed (ראו scan.ts). פולטים skipped מפורש כדי שהפלח הזה יראה הסבר
+      // קצר ולא רשימה תלויה
+      const social = details.website ? socialPresenceOf(details.website) : null;
+      if (!details.website || social) {
+        emitSkippedCrawlPsi(emit, social ? socialOnlyDetail(social.platform) : "לעסק אין אתר");
       }
       return details;
     },
@@ -119,13 +127,18 @@ export async function runDiagnosis(
 
   // נרמול URL לפני כל כתיבה ל-DB — כתובת פסולה נכשלת מוקדם ונקי
   const siteUrl = target.kind === "url" ? normalizeSiteUrl(target.url) : undefined;
+  // אתר חברתי (ממצא מייסד, אבן דרך 4 משימה 0): מזוהה כאן כדי שגם ה-website שנשמר וגם אירועי
+  // הסריקה החיה יתייחסו אליו נכון, לפני שמגיעים בכלל ל-scanWebsiteOnly
+  const urlSocial = target.kind === "url" ? socialPresenceOf(siteUrl!.href) : null;
 
-  // שלב 1: יצירת עסק + אבחון (created). מסלול URL: שם = מפתח הדומיין, website = origin יציב (משימה 3)
+  // שלב 1: יצירת עסק + אבחון (created). מסלול URL: שם = מפתח הדומיין, website = origin יציב (משימה 3) -
+  // חוץ מדומיין חברתי: origin לבדו (facebook.com) מאבד את מקטע ה-path שמזהה את העמוד הספציפי,
+  // בדיוק הבאג שמשימה 0 מתקנת ב-websiteKeyOf; לכן שם נשמר ה-href המלא כדי שהמפתח בהמשך יהיה נכון
   // הענפים נבדקים ישירות על target.kind (לא על siteUrl הנגזר) כדי שה-union יצטמצם בלי אף cast —
   // הוספת סוג שלישי ל-DiagnoseTarget תיכשל בקומפילציה כאן, לא תפיק undefined בשקט
   const businessName = target.kind === "url" ? websiteKeyOf(siteUrl!.href) : target.name;
   const created = await createDiagnosisForBusiness(prisma, target.kind === "url"
-    ? { name: businessName, website: siteUrl!.origin }
+    ? { name: businessName, website: urlSocial ? siteUrl!.href : siteUrl!.origin }
     : { name: businessName, placeId: target.placeId, city: target.city });
   emit({ type: "created", diagnosisId: created.diagnosisId, businessName });
 
@@ -133,6 +146,10 @@ export async function runDiagnosis(
   await transitionDiagnosis(prisma, created.diagnosisId, "scanning");
   let findings: ScanFindings;
   try {
+    // אתר חברתי במסלול URL: scanWebsiteOnly ידלג בעצמו על crawl/pagespeed (ראו scan-website.ts),
+    // אבל בלי הפולט הזה מסך הסריקה החיה לא היה מקבל בכלל אירועי crawl/pagespeed (שני ה-deps
+    // הנחוצים ל-wrapWebsiteDeps כדי לפלוט אותם פשוט לא נקראים)
+    if (urlSocial) emitSkippedCrawlPsi(emit, socialOnlyDetail(urlSocial.platform));
     findings = target.kind === "url"
       ? await scanWebsiteOnly(siteUrl!.href, wrapWebsiteDeps(opts.websiteDeps ?? defaultWebsiteOnlyDeps, emit))
       : await runScan(target.placeId, wrapScanDeps(opts.scanDeps ?? defaultDeps, emit), { priorPlacesCalls: 1 });

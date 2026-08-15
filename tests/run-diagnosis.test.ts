@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { runDiagnosis, DiagnoseFailed } from "../src/server/run-diagnosis";
 import type { DiagnoseEvent } from "../src/server/diagnose-events";
 import type { ScanDeps } from "../src/pipeline/scan";
@@ -184,5 +184,73 @@ describe("runDiagnosis — עסק בלי אתר", () => {
     // "אין אתר" הוא ידוע-מראש, לא כישלון dep בפועל — לא דגלי crawl_failed/pagespeed_failed
     expect(outcome.findings.partial).not.toContain("crawl_failed");
     expect(outcome.findings.partial).not.toContain("pagespeed_failed");
+  });
+});
+
+describe("runDiagnosis - נוכחות חברתית כ'אתר' (אבן דרך 4, משימה 0)", () => {
+  const explodingWebsiteDeps: WebsiteOnlyDeps = {
+    crawl: async () => { throw new Error("crawl לא אמור להיקרא בכלל על עמוד חברתי"); },
+    pagespeed: async () => { throw new Error("pagespeed לא אמור להיקרא בכלל על עמוד חברתי"); },
+  };
+
+  it("מסלול Places: ה-website הרשום בגוגל הוא עמוד פייסבוק - מדלגים על crawl+PSI לגמרי, socialOnly נכנס ל-findings", async () => {
+    const { db } = makeFakeDb();
+    const { events, onEvent } = collect();
+    const crawl = vi.fn(happyScanDeps.crawl);
+    const pagespeed = vi.fn(happyScanDeps.pagespeed);
+    const deps: ScanDeps = {
+      ...happyScanDeps,
+      details: async () => ({
+        placeId: "p1", name: "בית קפה", website: "https://www.facebook.com/business-social",
+        phone: "03-0000000", rating: 4.6, reviewCount: 40,
+        reviews: [{ rating: 5, text: "מעולה" }],
+      }),
+      crawl, pagespeed,
+    };
+    const outcome = await runDiagnosis(db, { kind: "places", placeId: "p1", name: "בית קפה" }, {
+      onEvent, scanDeps: deps, narrativeOptions: { complete: fakeComplete },
+    });
+
+    expect(crawl).not.toHaveBeenCalled();
+    expect(pagespeed).not.toHaveBeenCalled();
+    expect(outcome.findings.socialOnly).toEqual({ platform: "facebook", url: "https://www.facebook.com/business-social" });
+    expect(outcome.findings.partial).toContain("social_only");
+    expect(outcome.findings.partial).not.toContain("crawl_failed");
+    expect(outcome.findings.partial).not.toContain("pagespeed_failed");
+
+    const crawlDone = events.find((e) => e.type === "step_done" && e.key === "crawl");
+    const pagespeedDone = events.find((e) => e.type === "step_done" && e.key === "pagespeed");
+    expect(crawlDone).toMatchObject({ ok: false });
+    expect(pagespeedDone).toMatchObject({ ok: false });
+  });
+
+  it("מסלול URL: הכתובת שהוזנה היא עצמה עמוד פייסבוק - מדלגים על crawl+PSI, socialOnly נכנס ל-findings", async () => {
+    const { db } = makeFakeDb();
+    const { events, onEvent } = collect();
+    const outcome = await runDiagnosis(db, { kind: "url", url: "https://www.facebook.com/business-social" }, {
+      onEvent, websiteDeps: explodingWebsiteDeps, narrativeOptions: { complete: fakeComplete },
+    });
+
+    expect(outcome.findings.socialOnly).toEqual({ platform: "facebook", url: "https://www.facebook.com/business-social" });
+    expect(outcome.findings.partial).toContain("social_only");
+    const crawlDone = events.find((e) => e.type === "step_done" && e.key === "crawl");
+    const pagespeedDone = events.find((e) => e.type === "step_done" && e.key === "pagespeed");
+    expect(crawlDone).toMatchObject({ ok: false });
+    expect(pagespeedDone).toMatchObject({ ok: false });
+  });
+
+  it("מסלול URL: שני עמודי פייסבוק שונים יוצרים שני עסקים עם websiteKey שונה (באג הזהות שתוקן)", async () => {
+    const { db, businesses } = makeFakeDb();
+    await runDiagnosis(db, { kind: "url", url: "https://www.facebook.com/business-one" }, {
+      websiteDeps: explodingWebsiteDeps, narrativeOptions: { complete: fakeComplete },
+    });
+    await runDiagnosis(db, { kind: "url", url: "https://www.facebook.com/business-two" }, {
+      websiteDeps: explodingWebsiteDeps, narrativeOptions: { complete: fakeComplete },
+    });
+
+    expect(businesses).toHaveLength(2);
+    expect(businesses[0].websiteKey).toBe("facebook.com/business-one");
+    expect(businesses[1].websiteKey).toBe("facebook.com/business-two");
+    expect(businesses[0].websiteKey).not.toBe(businesses[1].websiteKey);
   });
 });

@@ -1,6 +1,7 @@
 import type { ScanFindings } from "../types";
 import type { DimensionDef } from "./types";
 import { noGbp, crawlUsable, reviewsAnalyzed } from "../evidence";
+import { SOCIAL_PLATFORM_LABEL_HE } from "../social-hosts";
 
 // עזר "ידוע" מקומי לממד הזה בלבד — לא משותף (רק accessibility צריך אותו)
 const phoneFound = (f: ScanFindings) => !!f.business.phone || !!f.websiteSignals?.hasPhoneLink;
@@ -21,7 +22,7 @@ export const DIMENSIONS: DimensionDef[] = [
         okText: () => "לעסק פרופיל פעיל בגוגל",
       },
       {
-        key: "has_website", points: 20,
+        key: "has_website", points: 15,
         known: () => true,
         // אתר רשום שה-crawl וה-PageSpeed שניהם נכשלו בו הוא ככל הנראה לא זמין גם ללקוח —
         // לא ראוי "לפרגן" עליו כאילו הוא תקין
@@ -33,6 +34,20 @@ export const DIMENSIONS: DimensionDef[] = [
             ? "לא הצלחנו לטעון את האתר, ייתכן שהוא לא זמין גם ללקוחות"
             : "האתר רשום בגוגל אך לא הצלחנו לטעון אותו, ייתכן שהוא לא זמין גם ללקוחות",
         okText: () => "לעסק יש אתר",
+      },
+      {
+        key: "own_website", points: 5,
+        // "אתר עצמאי" (אבן דרך 4, משימה 0): נפרד מ-has_website בכוונה - has_website שואל "האם
+        // האתר עובד", זה שואל "האם זו בכלל כתובת שהעסק שולט בה, או רק עמוד ברשת חברתית". עסק בלי
+        // שום נוכחות דיגיטלית (לא website ולא socialOnly) לא ידוע כאן - זה כבר הפער של has_website,
+        // אין טעם לכפול-ספור אותו פער תחת שני חוקים
+        known: (f) => !!f.business.website || !!f.socialOnly,
+        earned: (f) => !!f.business.website && !f.socialOnly,
+        gapText: (f) => {
+          const label = f.socialOnly ? (SOCIAL_PLATFORM_LABEL_HE[f.socialOnly.platform] ?? f.socialOnly.platform) : "חברתי";
+          return `הנוכחות הדיגיטלית של העסק היא עמוד ${label} ולא אתר עצמאי, אין דף שהעסק שולט בו ויכול להציג בו מחירים ולסגור ממנו לידים`;
+        },
+        okText: () => "לעסק אתר עצמאי משלו, לא רק עמוד ברשת חברתית",
       },
       {
         key: "perf", points: 20,

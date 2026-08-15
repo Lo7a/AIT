@@ -76,10 +76,13 @@ export function deriveBusinessModel(f: ScanFindings): BusinessModel {
       credit: 0.5, // שם ודומיין תמיד ידועים מהסריקה; תחום/גודל/ותק — מהראיון
     },
     channels: {
-      data: noGbp
-        ? {}
-        : { google: true, ...(f.business.reviewCount != null ? { reviewCount: f.business.reviewCount } : {}) },
-      credit: noGbp ? 0 : 0.5,
+      // עמוד ברשת חברתית (אבן דרך 4, משימה 0) הוא ערוץ אמיתי של העסק - נכנס לצד google, לא במקומו
+      // (עסק יכול להימצא גם בגוגל וגם להפנות משם לעמוד פייסבוק בלבד)
+      data: {
+        ...(noGbp ? {} : { google: true, ...(f.business.reviewCount != null ? { reviewCount: f.business.reviewCount } : {}) }),
+        ...(f.socialOnly ? { social: { platform: f.socialOnly.platform, url: f.socialOnly.url } } : {}),
+      },
+      credit: (noGbp && !f.socialOnly) ? 0 : 0.5,
     },
     lead_flow: {
       // בניגוד ל-scheduling/tools למטה: העדר טופס יצירת קשר לא נספר כידע גם כשה-crawl אמין —

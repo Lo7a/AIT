@@ -104,6 +104,42 @@ describe("deriveBusinessModel", () => {
   });
 });
 
+// עסק שה"אתר" שלו הוא בעצם עמוד פייסבוק (ממצא מייסד, אבן דרך 4 משימה 0), עם ופרופיל גוגל תקין
+const SOCIAL: ScanFindings = {
+  business: {
+    placeId: "p6", name: "בית קפה", phone: "03-0000000",
+    website: "https://www.facebook.com/business-social", rating: 4.6, reviewCount: 40,
+  },
+  socialOnly: { platform: "facebook", url: "https://www.facebook.com/business-social" },
+  partial: ["social_only"],
+  meta: META,
+};
+
+describe("deriveBusinessModel - נוכחות חברתית כ'אתר' (אבן דרך 4, משימה 0)", () => {
+  it("channels מתעד את עמוד הפייסבוק כערוץ אמיתי, לצד ה-GBP", () => {
+    const m = deriveBusinessModel(SOCIAL);
+    expect(m.data.channels).toEqual({
+      google: true,
+      reviewCount: 40,
+      social: { platform: "facebook", url: "https://www.facebook.com/business-social" },
+    });
+    expect(m.credits.channels).toBe(0.5);
+    expect(m.fieldSources.channels).toEqual(["scan"]);
+  });
+
+  it("channels נותן קרדיט גם בלי GBP, כל עוד יש עמוד חברתי - זה עדיין ערוץ ידוע", () => {
+    const socialNoGbp: ScanFindings = {
+      business: { placeId: "", name: "facebook.com", website: "https://www.facebook.com/business-social" },
+      socialOnly: { platform: "facebook", url: "https://www.facebook.com/business-social" },
+      partial: ["no_gbp", "social_only"],
+      meta: META,
+    };
+    const m = deriveBusinessModel(socialNoGbp);
+    expect(m.data.channels).toEqual({ social: { platform: "facebook", url: "https://www.facebook.com/business-social" } });
+    expect(m.credits.channels).toBe(0.5);
+  });
+});
+
 describe("recommendNextStep", () => {
   it("recommends the interview for a business with scan data, naming the emptiest section", () => {
     const m = deriveBusinessModel(RICH);

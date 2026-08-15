@@ -35,6 +35,7 @@ export const PARTIAL_FLAG_LABEL: Record<PartialFlag, string> = {
   review_analysis_failed: "ניתוח הביקורות נכשל",
   js_rendered: "האתר מרונדר ב-JavaScript - אותות חלקיים",
   no_gbp: "העסק לא נמצא בגוגל מפות",
+  social_only: "הנוכחות הדיגיטלית היא עמוד ברשת חברתית, לא אתר עצמאי",
 };
 
 export type ScoreToneKind = "good" | "mid" | "low" | "unknown";
