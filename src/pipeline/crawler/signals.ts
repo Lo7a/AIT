@@ -9,13 +9,14 @@ export interface PageSignals extends Omit<WebsiteSignals, "pagesCrawled" | "craw
 
 // זיהוי לפי דומיינים/קבצים של ספקים — לא לפי מילים בטקסט חופשי, כדי למנוע התרעות שווא
 const WHATSAPP_RE = /wa\.me\/|(?:api|web)\.whatsapp\.com|whatsapp:\/\/send/;
-// TODO לפני שער אבן דרך 1: להוסיף פלטפורמות תורים ישראליות נפוצות
-const BOOKING_RE = /calendly|vcita|setmore|simplybook|booking-calendar|bookly|amelia[-a-z]*booking|appointment-booking/;
+// פלטפורמות תורים/הזמנות: בינלאומיות + ישראליות (המקרה החי: פיצרייה עם order.bitetech.co.il
+// שקיבלה "אין הזמנה אונליין"). התבנית order\. תופסת סאב-דומיין הזמנות גנרי של ספק
+const BOOKING_RE = /calendly|vcita|setmore|simplybook|booking-calendar|bookly|amelia[-a-z]*booking|appointment-booking|tabit|ontopo|bitetech|tenbis|10bis\.co\.il|mishloha|wolt\.com|myvisit|easytable|order\.[a-z0-9-]+\.(?:co\.il|com|il)/;
 const CHAT_RE = /tawk\.to|tidio(?:chat)?\.(?:co|com)|intercom(?:cdn)?\.(?:io|com)|crisp\.chat|zdassets|zopim|jivosite|smartsuppchat|xfbml\.customerchat/;
 const FB_PIXEL_RE = /fbq\(|fbevents\.js/;
 const GA_RE = /gtag\(|googletagmanager|google-analytics/;
-// טפסים שאינם יצירת קשר: חיפוש, ניוזלטר, התחברות, עגלה
-const NON_CONTACT_FORM_RE = /(?:^|[^a-z])(search|newsletter|subscribe|mc4wp|login|register|cart|coupon)/;
+// טפסים שאינם יצירת קשר: חיפוש, ניוזלטר, התחברות, עגלה, תגובות בלוג
+const NON_CONTACT_FORM_RE = /(?:^|[^a-z])(search|newsletter|subscribe|mc4wp|login|register|cart|coupon|comment)/;
 // קישורים לקבצים — לא עמודים, לא נכנסים לתור הסריקה
 const ASSET_EXT_RE = /\.(jpe?g|png|gif|webp|svg|avif|pdf|docx?|xlsx?|pptx?|zip|rar|mp4|mp3|csv)$/i;
 
@@ -62,6 +63,17 @@ export function extractSignals(html: string, baseUrl: string): PageSignals {
     ).length;
     if (realFields >= 2) hasContactForm = true;
   });
+
+  // בוני טפסים מודרניים (Elementor ודומיו) מרנדרים שדות בלי תגית form עוטפת - שליחה ב-JS.
+  // המקרה החי: עמוד צור-קשר עם textarea ושדות אמיתיים ואפס תגיות form קיבל "אין טופס".
+  // fallback שמרני: תיבת הודעה + שדה email/tel מחוץ לכל form = טופס יצירת קשר
+  if (!hasContactForm) {
+    const looseTextarea = $("textarea").filter((_i, el) => $(el).closest("form").length === 0).length;
+    const looseContactInput = $('input[type=email i], input[type=tel i]').filter(
+      (_i, el) => $(el).closest("form").length === 0,
+    ).length;
+    if (looseTextarea > 0 && looseContactInput > 0) hasContactForm = true;
+  }
 
   let platform: string | undefined;
   if (lowerHtml.includes("wp-content") || lowerHtml.includes("wp-includes")) platform = "wordpress";

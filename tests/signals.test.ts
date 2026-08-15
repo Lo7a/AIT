@@ -74,6 +74,40 @@ describe("extractSignals", () => {
     expect(s.platform).toBe("wix");
   });
 
+  // המקרה החי (פיצה סבא אדוארד): מערכת הזמנות ישראלית + טופס Elementor בלי תגית form
+  it("detects Israeli ordering platforms as online booking", () => {
+    expect(extractSignals(`<a href="https://order.bitetech.co.il/#/617/home">להזמנות</a>`, BASE).hasOnlineBooking).toBe(true);
+    expect(extractSignals(`<a href="https://www.tabit.cloud/somebiz">הזמינו שולחן</a>`, BASE).hasOnlineBooking).toBe(true);
+    expect(extractSignals(`<a href="https://wolt.com/he/isr/beer-sheva/restaurant/x">וולט</a>`, BASE).hasOnlineBooking).toBe(true);
+    expect(extractSignals(`<a href="https://order.some-pizza.co.il/menu">תפריט</a>`, BASE).hasOnlineBooking).toBe(true);
+  });
+
+  it("plain English prose with the word order is not online booking", () => {
+    const html = `<p>In order to visit us, call ahead.</p>`;
+    expect(extractSignals(html, BASE).hasOnlineBooking).toBe(false);
+  });
+
+  it("detects a formless (JS-submitted) contact form: textarea plus email/tel input outside any form tag", () => {
+    const html = `<div class="elementor-widget">
+      <input type="text" name="fullname"/>
+      <input type="tel" name="phone"/>
+      <textarea name="message"></textarea>
+      <button>שליחה</button>
+    </div>`;
+    expect(extractSignals(html, BASE).hasContactForm).toBe(true);
+  });
+
+  it("a lone loose textarea without contact inputs is not a contact form", () => {
+    expect(extractSignals(`<textarea name="notes"></textarea>`, BASE).hasContactForm).toBe(false);
+  });
+
+  it("a blog comment form is not a contact form", () => {
+    const html = `<form id="commentform" action="/wp-comments-post.php">
+      <input name="author"/><input type="email" name="email"/><textarea name="comment"></textarea>
+    </form>`;
+    expect(extractSignals(html, BASE).hasContactForm).toBe(false);
+  });
+
   it("detects shopify, and wordpress wins when multiple platform markers exist", () => {
     expect(extractSignals(`<script src="https://cdn.shopify.com/x.js"></script>`, BASE).platform).toBe("shopify");
     const mixed = `<link href="/wp-content/a.css"/><script src="https://static.wixstatic.com/x.js"></script>`;
