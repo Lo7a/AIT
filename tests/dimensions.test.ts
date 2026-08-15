@@ -182,12 +182,13 @@ describe("social presence as website (אבן דרך 4, משימה 0)", () => {
     }
   });
 
-  it("has_website לא מושפע - יש כתובת רשומה שלא נכשלה, זה עדיין 'יש אתר' לפי ההגדרה שלו", () => {
+  it("has_website לא הושג על עמוד חברתי - עמוד פייסבוק הוא לא 'יש אתר' (תיקון סקירת קוד M3)", () => {
     const rule = scoreFindings(DIMENSIONS, SOCIAL).dimensions
       .find((d) => d.key === "visibility")!.rules.find((r) => r.key === "has_website")!;
     expect(rule.known).toBe(true);
-    expect(rule.earned).toBe(true);
-    expect(rule.points).toBe(15);
+    expect(rule.earned).toBe(false);
+    expect(rule.points).toBe(5);
+    expect(rule.text).toContain("עמוד ברשת חברתית");
   });
 
   it("own_website: אתר עצמאי רגיל - ידוע והושג", () => {
@@ -206,9 +207,95 @@ describe("social presence as website (אבן דרך 4, משימה 0)", () => {
     expect(rule.text).toContain("פייסבוק");
   });
 
-  it("own_website: אין שום נוכחות דיגיטלית (לא website ולא socialOnly) - לא ידוע, לא כפל-ספירה עם has_website", () => {
+  it("own_website: אין שום נוכחות דיגיטלית (לא website ולא socialOnly) - ידוע תמיד (תיקון סקירת קוד C1), פער עם טקסט כללי", () => {
     const rule = scoreFindings(DIMENSIONS, THIN).dimensions
       .find((d) => d.key === "visibility")!.rules.find((r) => r.key === "own_website")!;
-    expect(rule.known).toBe(false);
+    expect(rule.known).toBe(true);
+    expect(rule.earned).toBe(false);
+    expect(rule.text).toBe("לעסק אין אתר עצמאי משלו");
+  });
+
+  it("own_website: אתר מת (crawl+PSI נכשלו) לא זוכה רק כי הוא לא חברתי (תיקון סקירת קוד C2)", () => {
+    const f: ScanFindings = {
+      business: { placeId: "p12", name: "עסק", website: "https://dead.co.il", rating: 4.5, reviewCount: 30 },
+      partial: ["crawl_failed", "pagespeed_failed"], meta: META,
+    };
+    const rule = scoreFindings(DIMENSIONS, f).dimensions
+      .find((d) => d.key === "visibility")!.rules.find((r) => r.key === "own_website")!;
+    expect(rule.known).toBe(true);
+    expect(rule.earned).toBe(false);
+    expect(rule.text).toBe("לעסק אין אתר עצמאי משלו");
+  });
+});
+
+describe("score invariants after the own_website review fixes (סקירת קוד - אבן דרך 4 משימה 0)", () => {
+  it("RICH: has_website (5) + own_website (15) יחד = בדיוק כמו החוק המקורי בן 20 הנקודות - אין הזזת ציון", () => {
+    const vis = scoreFindings(DIMENSIONS, RICH).dimensions.find((d) => d.key === "visibility")!;
+    const hasWebsite = vis.rules.find((r) => r.key === "has_website")!;
+    const ownWebsite = vis.rules.find((r) => r.key === "own_website")!;
+    expect(hasWebsite.earned).toBe(true);
+    expect(ownWebsite.earned).toBe(true);
+    expect(hasWebsite.points + ownWebsite.points).toBe(20);
+  });
+
+  it("עסק בלי אתר (מאפיה): overall=84, visibility=64 - ערכי ה-parent, לא הבאג (own_website ידוע תמיד, לא יוצא מהמכנה)", () => {
+    const bakery: ScanFindings = {
+      business: { placeId: "p2b", name: "מאפיית בדיקה", phone: "08-000", rating: 4.4, reviewCount: 30 },
+      reviewInsights: { totalAnalyzed: 5, positiveThemes: [], problemThemes: [] },
+      partial: ["no_website"],
+      meta: META,
+    };
+    const report = scoreFindings(DIMENSIONS, bakery);
+    const vis = report.dimensions.find((d) => d.key === "visibility")!;
+    expect(vis.score).toBe(64);
+    expect(report.overall).toBe(84);
+  });
+
+  it("אתר רשום אך crawl+PSI נכשלו (לא חברתי): overall=77, visibility=64 - own_website לא זוכה בטעות (C2)", () => {
+    const deadSite: ScanFindings = {
+      business: {
+        placeId: "p7b", name: "עסק מת", phone: "03-000", website: "https://dead.co.il",
+        rating: 3.5, reviewCount: 10,
+      },
+      reviewInsights: { totalAnalyzed: 5, positiveThemes: [{ theme: "שירות", count: 3 }], problemThemes: [] },
+      partial: ["crawl_failed", "pagespeed_failed"],
+      meta: META,
+    };
+    const report = scoreFindings(DIMENSIONS, deadSite);
+    const vis = report.dimensions.find((d) => d.key === "visibility")!;
+    expect(vis.score).toBe(64);
+    expect(report.overall).toBe(77);
+  });
+
+  it("מסלול URL, אתר שבור לגמרי: overall=0, topStrengths ריק - אין מה לפרגן עליו", () => {
+    const siteDown: ScanFindings = {
+      business: { placeId: "", name: "x.co.il", website: "https://x.co.il/" },
+      partial: ["no_gbp", "crawl_failed", "pagespeed_failed"],
+      meta: META,
+    };
+    const report = scoreFindings(DIMENSIONS, siteDown);
+    expect(report.overall).toBe(0);
+    expect(report.topStrengths).toEqual([]);
+  });
+
+  it("מסעדה עם עמוד פייסבוק בלבד: has_website לא זוכה, ופער own_website מגיע ל-topGaps (לא נדחק החוצה ב-5 נק')", () => {
+    const restaurant: ScanFindings = {
+      business: {
+        placeId: "p11", name: "מסעדה", phone: "03-111",
+        website: "https://www.facebook.com/restaurant-fb", rating: 4.1, reviewCount: 12,
+      },
+      socialOnly: { platform: "facebook", url: "https://www.facebook.com/restaurant-fb" },
+      reviewInsights: {
+        totalAnalyzed: 5,
+        positiveThemes: [{ theme: "אווירה נעימה", count: 3 }],
+        problemThemes: [{ theme: "המתנה ארוכה", count: 2 }],
+      },
+      partial: ["social_only"],
+      meta: META,
+    };
+    const report = scoreFindings(DIMENSIONS, restaurant);
+    const vis = report.dimensions.find((d) => d.key === "visibility")!;
+    expect(vis.rules.find((r) => r.key === "has_website")!.earned).toBe(false);
+    expect(report.topGaps.map((g) => g.ruleKey)).toContain("own_website");
   });
 });

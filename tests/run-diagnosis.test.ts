@@ -215,6 +215,8 @@ describe("runDiagnosis - נוכחות חברתית כ'אתר' (אבן דרך 4, 
     expect(pagespeed).not.toHaveBeenCalled();
     expect(outcome.findings.socialOnly).toEqual({ platform: "facebook", url: "https://www.facebook.com/business-social" });
     expect(outcome.findings.partial).toContain("social_only");
+    // הערת האיסוף עם שם הפלטפורמה בפועל חייבת להישמר - בעל העסק צריך לראות "עמוד פייסבוק", לא רק דגל ריק
+    expect(outcome.findings.partialDetails?.social_only).toBe("הנוכחות הדיגיטלית היא עמוד פייסבוק - אין אתר עצמאי לסריקה");
     expect(outcome.findings.partial).not.toContain("crawl_failed");
     expect(outcome.findings.partial).not.toContain("pagespeed_failed");
 
@@ -233,6 +235,7 @@ describe("runDiagnosis - נוכחות חברתית כ'אתר' (אבן דרך 4, 
 
     expect(outcome.findings.socialOnly).toEqual({ platform: "facebook", url: "https://www.facebook.com/business-social" });
     expect(outcome.findings.partial).toContain("social_only");
+    expect(outcome.findings.partialDetails?.social_only).toBe("הנוכחות הדיגיטלית היא עמוד פייסבוק - אין אתר עצמאי לסריקה");
     const crawlDone = events.find((e) => e.type === "step_done" && e.key === "crawl");
     const pagespeedDone = events.find((e) => e.type === "step_done" && e.key === "pagespeed");
     expect(crawlDone).toMatchObject({ ok: false });

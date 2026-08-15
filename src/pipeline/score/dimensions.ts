@@ -1,7 +1,7 @@
 import type { ScanFindings } from "../types";
 import type { DimensionDef } from "./types";
 import { noGbp, crawlUsable, reviewsAnalyzed } from "../evidence";
-import { SOCIAL_PLATFORM_LABEL_HE } from "../social-hosts";
+import { SOCIAL_PLATFORM_LABEL_HE, socialPresenceOf } from "../social-hosts";
 
 // עזר "ידוע" מקומי לממד הזה בלבד — לא משותף (רק accessibility צריך אותו)
 const phoneFound = (f: ScanFindings) => !!f.business.phone || !!f.websiteSignals?.hasPhoneLink;
@@ -10,6 +10,21 @@ const recurringProblems = (f: ScanFindings) =>
   (f.reviewInsights?.problemThemes ?? []).filter((t) => t.count >= 2);
 
 const sec = (ms?: number) => ((ms ?? 0) / 1000).toFixed(1);
+
+// has_website "הושג" = יש כתובת רשומה, היא לא נכשלה כפול (crawl+PSI), והיא לא עמוד חברתי -
+// עמוד פייסבוק הוא לא "יש אתר" (סקירת קוד: לפני התיקון עמוד חברתי היה מרוויח את החוק הזה כי
+// אין לו כלל crawl_failed/pagespeed_failed - הדגלים האלה נדלגים בכוונה על אתר חברתי ב-scan.ts)
+const hasWebsiteEarned = (f: ScanFindings) =>
+  !f.partial.includes("no_website")
+  && !(f.partial.includes("crawl_failed") && f.partial.includes("pagespeed_failed"))
+  && !f.socialOnly;
+
+// נוכחות חברתית לצורך "אתר עצמאי": socialOnly הוא המקור העדכני (נקבע בזמן הסריקה), אבל נופלים חזרה
+// לזיהוי מחדש מ-business.website כדי לכסות שורות סריקה ישנות/שנוקדו-מחדש בלי socialOnly (סקירת קוד -
+// אבן דרך 4 משימה 1 מרעננת ציונים מ-findings שמורים בלי לחזור ולסרוק)
+const socialPlatformOf = (f: ScanFindings): string | undefined =>
+  f.socialOnly?.platform ?? socialPresenceOf(f.business.website ?? "")?.platform;
+const isSocialPresence = (f: ScanFindings) => socialPlatformOf(f) != null;
 
 export const DIMENSIONS: DimensionDef[] = [
   {
@@ -22,30 +37,35 @@ export const DIMENSIONS: DimensionDef[] = [
         okText: () => "לעסק פרופיל פעיל בגוגל",
       },
       {
-        key: "has_website", points: 15,
+        key: "has_website", points: 5,
         known: () => true,
-        // אתר רשום שה-crawl וה-PageSpeed שניהם נכשלו בו הוא ככל הנראה לא זמין גם ללקוח —
-        // לא ראוי "לפרגן" עליו כאילו הוא תקין
-        earned: (f) => !f.partial.includes("no_website")
-          && !(f.partial.includes("crawl_failed") && f.partial.includes("pagespeed_failed")),
+        // אתר רשום שה-crawl וה-PageSpeed שניהם נכשלו בו הוא ככל הנראה לא זמין גם ללקוח, ועמוד
+        // ברשת חברתית הוא לא "יש אתר" (hasWebsiteEarned - סקירת קוד)
+        earned: hasWebsiteEarned,
         gapText: (f) => f.partial.includes("no_website")
           ? "לעסק אין אתר, אין בית דיגיטלי להפנות אליו לקוחות"
-          : noGbp(f)
-            ? "לא הצלחנו לטעון את האתר, ייתכן שהוא לא זמין גם ללקוחות"
-            : "האתר רשום בגוגל אך לא הצלחנו לטעון אותו, ייתכן שהוא לא זמין גם ללקוחות",
+          : f.socialOnly
+            ? "האתר הרשום הוא בעצם עמוד ברשת חברתית, לא אתר עצמאי"
+            : noGbp(f)
+              ? "לא הצלחנו לטעון את האתר, ייתכן שהוא לא זמין גם ללקוחות"
+              : "האתר רשום בגוגל אך לא הצלחנו לטעון אותו, ייתכן שהוא לא זמין גם ללקוחות",
         okText: () => "לעסק יש אתר",
       },
       {
-        key: "own_website", points: 5,
-        // "אתר עצמאי" (אבן דרך 4, משימה 0): נפרד מ-has_website בכוונה - has_website שואל "האם
-        // האתר עובד", זה שואל "האם זו בכלל כתובת שהעסק שולט בה, או רק עמוד ברשת חברתית". עסק בלי
-        // שום נוכחות דיגיטלית (לא website ולא socialOnly) לא ידוע כאן - זה כבר הפער של has_website,
-        // אין טעם לכפול-ספור אותו פער תחת שני חוקים
-        known: (f) => !!f.business.website || !!f.socialOnly,
-        earned: (f) => !!f.business.website && !f.socialOnly,
+        key: "own_website", points: 15,
+        // "אתר עצמאי" (אבן דרך 4, משימה 0): known תמיד true (סקירת קוד C1) - זה חוק שמחפש עדות
+        // חיובית, לא רק "יש כתובת"; עסק בלי שום נוכחות דיגיטלית פשוט לא זכה בו, בדיוק כמו שהוא לא
+        // זכה בשום חוק ידע-חיובי אחר. earned דורש גם שהאתר לא חברתי וגם שהוא עבד בפועל (hasWebsiteEarned) -
+        // אתר מת (crawl+PSI נכשלו) לא "זוכה" כאן רק כי הוא לא חברתי (סקירת קוד C2)
+        known: () => true,
+        earned: (f) => !isSocialPresence(f) && hasWebsiteEarned(f),
         gapText: (f) => {
-          const label = f.socialOnly ? (SOCIAL_PLATFORM_LABEL_HE[f.socialOnly.platform] ?? f.socialOnly.platform) : "חברתי";
-          return `הנוכחות הדיגיטלית של העסק היא עמוד ${label} ולא אתר עצמאי, אין דף שהעסק שולט בו ויכול להציג בו מחירים ולסגור ממנו לידים`;
+          const platform = socialPlatformOf(f);
+          if (platform) {
+            const label = SOCIAL_PLATFORM_LABEL_HE[platform] ?? platform;
+            return `הנוכחות הדיגיטלית של העסק היא עמוד ${label} ולא אתר עצמאי, אין דף שהעסק שולט בו ויכול להציג בו מחירים ולסגור ממנו לידים`;
+          }
+          return "לעסק אין אתר עצמאי משלו";
         },
         okText: () => "לעסק אתר עצמאי משלו, לא רק עמוד ברשת חברתית",
       },

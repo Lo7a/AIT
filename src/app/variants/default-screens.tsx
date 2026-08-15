@@ -382,7 +382,11 @@ export function DefaultReport({ report }: { report: ReportView }) {
         </p>
         {findings.partial.length > 0 && (
           <p className="mt-1">
-            הערות איסוף: {findings.partial.map((f) => PARTIAL_FLAG_LABEL[f]).join(" · ")}
+            {/* social_only מקבל את הנוסח עם שם הפלטפורמה בפועל (partialDetails), לא את התווית הגנרית -
+                בעל העסק צריך לראות "עמוד פייסבוק", לא "עמוד ברשת חברתית" (סקירת קוד m2) */}
+            הערות איסוף: {findings.partial
+              .map((f) => (f === "social_only" && findings.partialDetails?.social_only) || PARTIAL_FLAG_LABEL[f])
+              .join(" · ")}
           </p>
         )}
       </footer>
