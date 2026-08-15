@@ -54,6 +54,20 @@
 - [ ] בדיקות: הסינון הטהור (שם, כתובת, ריק, אין התאמות); הזרימה URL->search (הוק - החלקים הטהורים; ה-JSX בשער); search-handler לא נשבר.
 - [ ] Commit: `feat(4-0.5): branch picker combobox and URL input that also searches Maps`
 
+### משימה 0.7: העשרת נתונים - עמודות עסק מלאות + raw payload לכל סריקה
+
+**הרקע (דרישת מייסד, 15.8):** בטבלת businesses יש placeId אבל city ריק וטלפון לא קיים בכלל - הסריקה אוספת ולא כותבת חזרה. בנוסף להב רוצה payload: לשמור את הנתונים הגולמיים שאנחנו כבר מקבלים (ומשלמים עליהם) לשימושים עתידיים.
+
+**Files:** Modify: `prisma/schema.prisma` (Business.phone/address; Scan.raw Json?), `src/pipeline/google/places.ts` (formattedAddress ב-field mask של details + החזרת raw), `src/pipeline/google/pagespeed.ts` (החזרת raw מקוצץ), `src/pipeline/scan.ts` + `src/pipeline/scan-website.ts` (איסוף raw), `src/server/diagnosis-repo.ts` (persist: scan.raw + עדכון Business), `src/pipeline/types.ts`; Create: `src/pipeline/city-of.ts` (גזירת עיר טהורה); Test: `tests/city-of.test.ts` + הרחבות קיימות
+
+- [ ] מיגרציה אדיטיבית: `businesses.phone TEXT NULL`, `businesses.address TEXT NULL`, `scans.raw JSONB NULL`. בלי שינוי לשורות קיימות (DB נתוני בדיקה, יימחק בעתיד ממילא).
+- [ ] details field mask מקבל formattedAddress (אותה רמת חיוב - Contact SKU כבר פעיל בגלל הטלפון); findings.business מקבל address.
+- [ ] `cityOf(address: string): string | null` - טהורה: המקטע הלפני-אחרון בפיצול פסיקים של כתובת ישראלית ("רגר 12, באר שבע, ישראל" -> "באר שבע"), עם הגנות (פחות מ-2 מקטעים -> null, סינון "ישראל"/מיקוד).
+- [ ] persist אחרי סריקה: עדכון Business עם phone/address מה-findings ו-city מ-cityOf רק כשהעמודה ריקה או השתנתה; לא דורס city שהוקלד ידנית כשאין כתובת.
+- [ ] scan.raw: `{ placeDetails?: <גוף Places המלא>, pageSpeed?: <מקוצץ: categories+metrics+loadingExperience, בלי מיליון audits>, crawledUrls?: string[] }` - בלי HTML גולמי (כבד, חסר ערך עתידי). האיסוף מחזיר {data, raw} בלי לשבור חוזים קיימים.
+- [ ] בדיקות: cityOf (5+ צורות כתובת), persist מעדכן עסק, raw נשמר בשני המסלולים, מסלול socialOnly לא נשבר (אין details? יש - Places רץ במסלול placeId).
+- [ ] Commit: `feat(4-0.7): business contact columns + raw scan payload for future use`
+
 ### משימה 1: ממד בשלות תהליכים אמיתי + רענון ציונים אחרי ראיון
 
 **Files:** Modify: `src/pipeline/score/dimensions.ts`, `src/pipeline/score/engine.ts`, `src/server/run-interview.ts`; Test: `tests/score-engine.test.ts`, `tests/dimensions.test.ts`, `tests/run-interview.test.ts`
