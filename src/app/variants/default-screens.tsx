@@ -62,6 +62,15 @@ export function DefaultHome({ recent }: { recent: DiagnosisListItem[] }) {
                       להשלמת הראיון
                     </Link>
                   )}
+                  {/* אבחון שכבר יש לו Roadmap - כניסה ישירה אליו מהרשימה (בקשת מייסד) */}
+                  {d.status === "roadmap_ready" && (
+                    <Link
+                      href={`/roadmap/${d.id}`}
+                      className="text-sm font-medium text-[#111111] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
+                    >
+                      ל-Roadmap
+                    </Link>
+                  )}
                   {HAS_REPORT.includes(d.status) && (
                     <Link
                       href={`/report/${d.id}`}
