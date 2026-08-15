@@ -134,8 +134,16 @@ export async function buildRoadmap(
     0,
   );
 
+  // hasInterviewModel = יש לפחות סקציה אחת במודל עם credit>=1 - זה האות הישיר ל-confidence="high"
+  // (ראו opportunity-score.ts, תיקון בדיקה 4 בשער אבן דרך 4). קרדיט 1 מגיע אך ורק מתשובה מאושרת
+  // בראיון (business-model.ts: "1 = אושר בראיון") - סקציה שמקורה בסריקה בלבד תקרה תמיד ב-0.5.
+  // "model !== null" בפני עצמו לא מספיק: כל סריקה כותבת שורת מודל נגזרת גם בלי אף ראיון
+  // (deriveBusinessModel נקרא ללא-תנאי ב-run-diagnosis.ts, saveScanResult כותב אותה תמיד -
+  // diagnosis-repo.ts) - ולכן state.model כמעט אף פעם לא null בפועל, וה-null check היה משאיר את
+  // הממצא החי פתוח (עסק שנסרק בלי ראיון, מודל נגזר-סריקה 25% שלמות, קיבל high על כל פריט)
+  const hasInterviewModel = state.model !== null && Object.values(state.model.credits).some((c) => c >= 1);
   const ranked = matches
-    .map((match) => ({ match, ...scoreOpportunity(match, maxLostPoints) }))
+    .map((match) => ({ match, ...scoreOpportunity(match, maxLostPoints, hasInterviewModel) }))
     .sort(compareByScoreThenName);
 
   const reasoningInputs: ReasoningItemInput[] = ranked.map(({ match }) => ({

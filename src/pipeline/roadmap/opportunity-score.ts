@@ -34,9 +34,24 @@ const COMPLEXITY_ADJUSTMENT: Record<string, number> = {
 
 export type Confidence = "high" | "medium" | "low";
 
+// ביטחון (confidence) - תיקון ממצא שער יציאה אבן דרך 4, בדיקה 4 (docs/milestone-4-gate.md):
+// התוכנית (משימה 3) דרשה ל-high גם "הסקציות הרלוונטיות במודל עם credit>=1 היכן שנדרש" - קרדיט 1
+// מגיע אך ורק מראיון מאושר (business-model.ts: "1 = אושר בראיון"), לעולם לא מסריקה בלבד. המימוש
+// הראשון השמיט את התנאי הזה ובדק רק unknownKeys, כך שעסק שנסרק בלי אף ראיון (למשל gapKey שידוע
+// ישירות מהזחילה/PSI, כמו online_booking/perf) קיבל high על כל פריט - התג "דיוק ישתפר עם עוד
+// מידע" אף פעם לא הופיע בדיוק במקום שהכי נחוץ. hasInterviewModel (מועבר ע"י הקורא - ראו
+// run-roadmap.ts) הוא הפרמטר הישיר לתנאי הזה: בלי מודל מראיון, high אסור בכלל, לא משנה כמה
+// ה-gapKeys ידועים מהסריקה.
+//
+// low: אין שום ראיה כמותית - הפריט נכנס רק על כאב הבעלים (ראו matching.ts, כלל הכניסה). לא תלוי
+//   ב-hasInterviewModel כלל (ללא ראיון אין גם ציטוטי כאב - matching.ts, painQuotesOf - אז המקרה
+//   הזה כמעט תיאורטי כש-hasInterviewModel=false, אבל הכלל נשאר עקבי).
+// אחרת (יש ראיה אחת לפחות): בלי מודל מראיון - medium תמיד, תקרה שלא ניתנת לעקיפה; עם מודל מראיון
+//   - high כשאין gapKey לא-ידוע, אחרת medium (ההתנהגות המקורית).
 export function scoreOpportunity(
   match: OpportunityMatch,
   maxLostPoints: number,
+  hasInterviewModel: boolean,
 ): { score: number; confidence: Confidence } {
   const lostPoints = match.evidence.reduce((sum, e) => sum + e.lostWeightedPoints, 0);
   const base = maxLostPoints > 0 ? (BASE_MAX_POINTS * lostPoints) / maxLostPoints : 0;
@@ -48,10 +63,14 @@ export function scoreOpportunity(
   const raw = base + painBonus + certaintyPenalty + complexityAdjustment;
   const score = Math.min(100, Math.max(0, Math.round(raw)));
 
-  // high: אין שום פער לא-ידוע, ויש לפחות ראיה כמותית אחת. medium: יש ראיה אבל גם חוסר מידע.
-  // low: אין שום ראיה כמותית - הפריט נכנס רק על כאב הבעלים (ראו matching.ts, כלל הכניסה).
   const confidence: Confidence =
-    match.evidence.length === 0 ? "low" : match.unknownKeys.length > 0 ? "medium" : "high";
+    match.evidence.length === 0
+      ? "low"
+      : !hasInterviewModel
+        ? "medium"
+        : match.unknownKeys.length > 0
+          ? "medium"
+          : "high";
 
   return { score, confidence };
 }

@@ -46,6 +46,51 @@ function seedModelWithPain(models: any[], diagnosisId: string, painQuote: string
   });
 }
 
+// מודל נגזר-סריקה בלבד (deriveBusinessModel, business-model.ts) - בדיוק כמו כל אבחון שסיים סריקה
+// בפועל (saveScanResult כותב שורת מודל כזאת תמיד, גם בלי אף ראיון - ראו diagnosis-repo.ts).
+// אף קרדיט לא מגיע ל-1: 0.5 הוא התקרה של סקציה שמקורה בסריקה בלבד, 1 דורש תשובת ראיון מאושרת
+// (business-model.ts: "1 = אושר בראיון"). זה בדיוק מקרה קמפאי החי מהשער (בדיקה 4,
+// docs/milestone-4-gate.md): מודל נגזר-סריקה בשלמות 25%.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function seedScanDerivedModel(models: any[], diagnosisId: string) {
+  models.push({
+    where: { diagnosisId },
+    payload: {
+      data: {
+        profile: { name: "קמפאי" }, channels: { google: true }, lead_flow: {}, scheduling: {},
+        service: {}, billing: {}, retention: {}, tools: {}, pains: {}, manual_tasks: {},
+      },
+      fieldSources: {},
+      credits: {
+        profile: 0.5, channels: 0.5, lead_flow: 0, scheduling: 0.5, service: 0, billing: 0,
+        retention: 0, tools: 0.5, pains: 0, manual_tasks: 0,
+      },
+      completenessPct: 25,
+      updatedAt: new Date(),
+    },
+  });
+}
+
+// מודל עם סקציה בודדת בקרדיט 1 - האות היחיד לתשובת ראיון מאושרת (שאר הסקציות 0, שום דבר אחר
+// מרמז על ראיון). לא קשור לפריט הנבדק עצמו בכוונה - hasInterviewModel הוא גלובלי-לאבחון, לא
+// per-item, בדיוק כמו שהתוכנית מתארת ("הסקציות הרלוונטיות... עם credit>=1")
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function seedModelWithConfirmedSection(models: any[], diagnosisId: string, section: string) {
+  models.push({
+    where: { diagnosisId },
+    payload: {
+      data: {
+        profile: {}, channels: {}, lead_flow: {}, scheduling: {}, service: {}, billing: {},
+        retention: {}, tools: {}, manual_tasks: {}, pains: {},
+      },
+      fieldSources: {},
+      credits: { [section]: 1 },
+      completenessPct: 10,
+      updatedAt: new Date(),
+    },
+  });
+}
+
 // שני פריטי קטלוג אמיתיים (prisma/seed.ts) - שני gapKeys שונים לגמרי, כדי שהמסלול המלא ייצור
 // שני items מובחנים בלי להתלכד
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -165,7 +210,7 @@ describe("buildRoadmap - מסלול מלא", () => {
     expect(transitions.filter((t: string) => t.endsWith("→roadmap_ready"))).toHaveLength(1);
   });
 
-  it("model=null (בלי ראיון בכלל) - עדיין עובד, מבוסס רק על ראיות מהסריקה", async () => {
+  it("model=null (בלי ראיון בכלל) - עדיין עובד, מבוסס רק על ראיות מהסריקה, ואף פריט לא high", async () => {
     const { db, diagnoses, scans, catalogs, roadmapItems } = makeFakeDb() as any;
     seedDiagnosis(diagnoses, "d1", "report_ready");
     seedScan(scans, "d1");
@@ -178,6 +223,45 @@ describe("buildRoadmap - מסלול מלא", () => {
     expect(result.roadmapId).toBeTruthy();
     expect(roadmapItems).toHaveLength(2);
     expect(roadmapItems.every((it: any) => typeof it.reasoning === "string")).toBe(true);
+    // תיקון ממצא שער יציאה אבן דרך 4, בדיקה 4: שני הפריטים נכנסים על ראיה ישירה מהסריקה
+    // (online_booking/whatsapp+chat_widget, שני gapKeys ידועים ללא שום תלות בראיון) - בלי מודל
+    // מראיון confidence לא יכול לעלות ל-high, לא משנה כמה ה-gapKeys ידועים
+    expect(roadmapItems.some((it: any) => it.confidence === "high")).toBe(false);
+    expect(roadmapItems.every((it: any) => it.confidence === "medium")).toBe(true);
+  });
+
+  // תיקון-המשך לממצא שער יציאה אבן דרך 4, בדיקה 4: model !== null לבדו לא סוגר את הממצא החי כי
+  // כל סריקה כותבת שורת מודל נגזרת (הבדיקה הקודמת, model=null, קורית רק בבדיקת-יחידה סינתטית -
+  // אף אבחון אמיתי לא מגיע למצב הזה). קמפאי בשער קיבל בדיוק מודל כזה (נגזר-סריקה, שלמות 25%) וכל
+  // 3 הפריטים שלו יצאו high. hasInterviewModel חייב להיגזר מ-credits (>=1 בסקציה כלשהי), לא
+  // מקיום השורה עצמה
+  it("מודל נגזר-סריקה בלבד (קרדיטים <=0.5, אף סקציה לא הגיעה ל-1) - אף פריט לא high (מקרה קמפאי החי בשער)", async () => {
+    const { db, diagnoses, scans, catalogs, models, roadmapItems } = makeFakeDb() as any;
+    seedDiagnosis(diagnoses, "d1", "report_ready");
+    seedScan(scans, "d1");
+    seedBookingCatalog(catalogs);
+    seedWhatsappBotCatalog(catalogs);
+    seedScanDerivedModel(models, "d1");
+
+    const result = await buildRoadmap(db, echoComplete, "d1");
+
+    expect(result.roadmapId).toBeTruthy();
+    expect(roadmapItems).toHaveLength(2);
+    expect(roadmapItems.some((it: any) => it.confidence === "high")).toBe(false);
+    expect(roadmapItems.every((it: any) => it.confidence === "medium")).toBe(true);
+  });
+
+  it("מודל עם סקציה אחת בקרדיט 1 (תשובת ראיון מאושרת) - high עדיין אפשרי כשאין gapKey לא-ידוע", async () => {
+    const { db, diagnoses, scans, catalogs, models, roadmapItems } = makeFakeDb() as any;
+    seedDiagnosis(diagnoses, "d1", "report_ready");
+    seedScan(scans, "d1");
+    const booking = seedBookingCatalog(catalogs); // online_booking ידוע מהזחילה - אין unknownKeys
+    seedModelWithConfirmedSection(models, "d1", "lead_flow"); // לא קשור לפריט התורים עצמו בכוונה
+
+    await buildRoadmap(db, echoComplete, "d1");
+
+    const bookingItem = roadmapItems.find((it: any) => it.catalogId === booking.id);
+    expect(bookingItem.confidence).toBe("high");
   });
 
   it("ה-LLM זורק - ה-Roadmap עדיין נוצר עם נימוק fallback דטרמיניסטי (אפס ספרות)", async () => {

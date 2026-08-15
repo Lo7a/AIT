@@ -29,6 +29,15 @@ export function groupByPhase(items: RoadmapItemView[]): PhaseGroup[] {
     .filter((g) => g.items.length > 0);
 }
 
+// תיקון ממצא שער יציאה אבן דרך 4, בדיקה 2 - "ממצא 2" (docs/milestone-4-gate.md): הכרטיס הציג את
+// item.problem מהקטלוג כלשונו מתחת לשם הפריט, גם לפריט שנכנס רק על כאב הבעלים (confidence="low",
+// אפס ראיות כמותיות - matching.ts, כלל הכניסה). ה-problem הוא ניסוח תחום כללי ("אין דרך מהירה
+// לפנות לעסק") שיכול לסתור ישירות את מצב העסק בפועל (מקרה חי: עסק שכן יש לו וואטסאפ קיבל בדיוק
+// את הטענה הזו). ה-reasoning מעוגן-הציטוט הוא הטקסט הכן היחיד לפריט כזה, בלי הטענה הגנרית לצידו.
+export function shouldShowCatalogProblem(item: Pick<RoadmapItemView, "confidence">): boolean {
+  return item.confidence !== "low";
+}
+
 export type BuildPhase = "idle" | "building" | "ready" | "error";
 export type ItemBriefStatus = "idle" | "sending" | "requested" | "error";
 

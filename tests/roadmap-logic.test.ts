@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  groupByPhase, initialRoadmapState, roadmapReducer, PHASE_LABEL, PHASE_ORDER,
+  groupByPhase, initialRoadmapState, roadmapReducer, shouldShowCatalogProblem, PHASE_LABEL, PHASE_ORDER,
 } from "../src/app/roadmap/roadmap-logic";
 import type { RoadmapItemView, RoadmapView } from "../src/server/roadmap-repo";
 
@@ -74,6 +74,22 @@ describe("groupByPhase", () => {
 
   it("PHASE_LABEL מכסה את כל ארבעת השלבים מ-PHASE_ORDER", () => {
     for (const phase of PHASE_ORDER) expect(PHASE_LABEL[phase]).toBeTruthy();
+  });
+});
+
+// תיקון ממצא שער יציאה אבן דרך 4, בדיקה 2: הכרטיס לא מציג את problem הקטלוג הגנרי לפריט
+// כאב-בלבד (confidence="low") - הוא יכול לסתור את מצב העסק בפועל. medium/high ממשיכים כרגיל.
+describe("shouldShowCatalogProblem", () => {
+  it("confidence='low' -> false (כאב-בלבד, אין ראיה - ה-problem הגנרי מוסתר)", () => {
+    expect(shouldShowCatalogProblem(makeItem({ confidence: "low" }))).toBe(false);
+  });
+
+  it("confidence='medium' -> true (יש ראיה, גם אם חלקית)", () => {
+    expect(shouldShowCatalogProblem(makeItem({ confidence: "medium" }))).toBe(true);
+  });
+
+  it("confidence='high' -> true (ללא שינוי מההתנהגות הקיימת)", () => {
+    expect(shouldShowCatalogProblem(makeItem({ confidence: "high" }))).toBe(true);
   });
 });
 

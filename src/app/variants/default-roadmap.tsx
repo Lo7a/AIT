@@ -6,7 +6,7 @@ import type { RoadmapView, RoadmapItemView } from "../../server/roadmap-repo";
 import type { ScoreReport } from "../../pipeline/score/types";
 import { deriveBusinessMap, type StageStatus } from "../../pipeline/roadmap/business-map";
 import { useRoadmap } from "../roadmap/use-roadmap";
-import { PHASE_LABEL, type ItemBriefStatus } from "../roadmap/roadmap-logic";
+import { PHASE_LABEL, shouldShowCatalogProblem, type ItemBriefStatus } from "../roadmap/roadmap-logic";
 import { TONE_TAG_CLASSES } from "./default-screens";
 import type { ScoreToneKind } from "../../pipeline/report/presenter";
 
@@ -128,7 +128,11 @@ function ItemCard({
             <h3 className="font-[family-name:var(--font-frank)] text-lg font-semibold">{item.name}</h3>
             <ConfidenceTag confidence={item.confidence} />
           </div>
-          <p className="mt-1 text-[#6F6E6A]">{item.problem}</p>
+          {/* תיקון ממצא שער יציאה אבן דרך 4, בדיקה 2: item.problem הוא ניסוח תחום כללי מהקטלוג
+              שיכול לסתור את מצב העסק בפועל (מקרה חי: עסק עם וואטסאפ קיבל "אין דרך מהירה לפנות") -
+              מוסתר לפריט כאב-בלבד (confidence="low"), שם ה-reasoning המעוגן-ציטוט הוא הסיפור הכן
+              היחיד. ראו shouldShowCatalogProblem, roadmap-logic.ts */}
+          {shouldShowCatalogProblem(item) && <p className="mt-1 text-[#6F6E6A]">{item.problem}</p>}
         </div>
         <span className="shrink-0 tabular-nums text-lg font-semibold">
           {item.score}

@@ -37,8 +37,8 @@ describe("scoreOpportunity", () => {
     const low = match({ evidence: [evidenceItem(10)] });
     const high = match({ evidence: [evidenceItem(30)] });
 
-    const lowResult = scoreOpportunity(low, 100);
-    const highResult = scoreOpportunity(high, 100);
+    const lowResult = scoreOpportunity(low, 100, true);
+    const highResult = scoreOpportunity(high, 100, true);
 
     expect(highResult.score).toBeGreaterThan(lowResult.score);
   });
@@ -47,8 +47,8 @@ describe("scoreOpportunity", () => {
     const withoutPain = match({ evidence: [evidenceItem(20)] });
     const withPain = match({ evidence: [evidenceItem(20)], painQuotes: ["הלקוחות מתלוננים על זמן המענה"] });
 
-    const a = scoreOpportunity(withoutPain, 100);
-    const b = scoreOpportunity(withPain, 100);
+    const a = scoreOpportunity(withoutPain, 100, true);
+    const b = scoreOpportunity(withPain, 100, true);
 
     expect(b.score - a.score).toBe(20);
   });
@@ -57,8 +57,8 @@ describe("scoreOpportunity", () => {
     const complete = match({ evidence: [evidenceItem(20)] });
     const withUnknown = match({ evidence: [evidenceItem(20)], unknownKeys: ["fb_pixel"] });
 
-    const a = scoreOpportunity(complete, 100);
-    const b = scoreOpportunity(withUnknown, 100);
+    const a = scoreOpportunity(complete, 100, true);
+    const b = scoreOpportunity(withUnknown, 100, true);
 
     expect(a.score - b.score).toBe(10);
     expect(a.confidence).toBe("high");
@@ -72,7 +72,7 @@ describe("scoreOpportunity", () => {
       unknownKeys: ["analytics", "fb_pixel", "whatsapp"],
       painQuotes: ["כאב אחד בלבד"],
     });
-    const result = scoreOpportunity(painOnlyHighComplexity, 500);
+    const result = scoreOpportunity(painOnlyHighComplexity, 500, true);
     expect(result.score).toBeGreaterThanOrEqual(0);
     expect(result.score).toBeLessThanOrEqual(100);
 
@@ -82,7 +82,7 @@ describe("scoreOpportunity", () => {
       unknownKeys: [],
       painQuotes: ["כאב"],
     });
-    const maxedResult = scoreOpportunity(maxedOut, 1000);
+    const maxedResult = scoreOpportunity(maxedOut, 1000, true);
     expect(maxedResult.score).toBeLessThanOrEqual(100);
     expect(maxedResult.score).toBeGreaterThanOrEqual(0);
   });
@@ -97,39 +97,67 @@ describe("scoreOpportunity", () => {
       unknownKeys: ["fb_pixel", "analytics"],
       painQuotes: [],
     });
-    const result = scoreOpportunity(weakest, 100);
+    const result = scoreOpportunity(weakest, 100, true);
     expect(result.score).toBe(0);
     expect(Object.is(result.score, -0)).toBe(false);
   });
 
-  it("gives confidence=low for a pain-only match (empty evidence)", () => {
+  it("gives confidence=low for a pain-only match (empty evidence), regardless of hasInterviewModel", () => {
     const painOnly = match({ evidence: [], painQuotes: ["כואב לי שהתורים לא מנוהלים"] });
-    const result = scoreOpportunity(painOnly, 100);
-    expect(result.confidence).toBe("low");
-    expect(result.score).toBeGreaterThanOrEqual(0);
+    const withModel = scoreOpportunity(painOnly, 100, true);
+    const withoutModel = scoreOpportunity(painOnly, 100, false);
+    expect(withModel.confidence).toBe("low");
+    expect(withoutModel.confidence).toBe("low");
+    expect(withModel.score).toBeGreaterThanOrEqual(0);
   });
 
   it("is deterministic: calling twice with the same input yields a deep-equal result", () => {
     const m = match({ evidence: [evidenceItem(17)], unknownKeys: ["fb_pixel"], painQuotes: ["כאב"] });
-    const first = scoreOpportunity(m, 80);
-    const second = scoreOpportunity(m, 80);
+    const first = scoreOpportunity(m, 80, true);
+    const second = scoreOpportunity(m, 80, true);
     expect(second).toEqual(first);
   });
 
   it("does not produce NaN when maxLostPoints is 0 (pain-only matches, no lost points anywhere)", () => {
     const m = match({ evidence: [], painQuotes: ["כאב בלי שום ראיה כמותית"] });
-    const result = scoreOpportunity(m, 0);
+    const result = scoreOpportunity(m, 0, true);
     expect(Number.isFinite(result.score)).toBe(true);
     expect(result.score).toBeGreaterThanOrEqual(0);
   });
 
   it("applies the complexity modifier: low +10, medium 0, high -10 (relative to each other)", () => {
-    const low = scoreOpportunity(match({ catalog: catalogItem({ complexity: "low" }), evidence: [evidenceItem(20)] }), 100);
-    const medium = scoreOpportunity(match({ catalog: catalogItem({ complexity: "medium" }), evidence: [evidenceItem(20)] }), 100);
-    const high = scoreOpportunity(match({ catalog: catalogItem({ complexity: "high" }), evidence: [evidenceItem(20)] }), 100);
+    const low = scoreOpportunity(match({ catalog: catalogItem({ complexity: "low" }), evidence: [evidenceItem(20)] }), 100, true);
+    const medium = scoreOpportunity(match({ catalog: catalogItem({ complexity: "medium" }), evidence: [evidenceItem(20)] }), 100, true);
+    const high = scoreOpportunity(match({ catalog: catalogItem({ complexity: "high" }), evidence: [evidenceItem(20)] }), 100, true);
 
     expect(low.score - medium.score).toBe(10);
     expect(medium.score - high.score).toBe(10);
+  });
+
+  // תיקון ממצא שער יציאה אבן דרך 4, בדיקה 4 (docs/milestone-4-gate.md): בלי מודל מראיון, עסק
+  // מקבל לכל היותר medium - אף פעם לא high, גם כשאין שום unknownKeys (ה-gapKeys ידועים ישירות
+  // מהסריקה, לא מהראיון)
+  describe("hasInterviewModel=false (עסק בלי אף ראיון)", () => {
+    it("לעולם לא high, גם כשכל ה-gapKeys ידועים (unknownKeys ריק) - נתקרה ל-medium", () => {
+      const fullyKnownFromScan = match({ evidence: [evidenceItem(30)], unknownKeys: [] });
+      const result = scoreOpportunity(fullyKnownFromScan, 100, false);
+      expect(result.confidence).toBe("medium");
+    });
+
+    it("נשאר medium גם כשיש unknownKeys - לא יורד ל-low כל עוד יש ראיה אחת לפחות", () => {
+      const withUnknown = match({ evidence: [evidenceItem(30)], unknownKeys: ["fb_pixel"] });
+      const result = scoreOpportunity(withUnknown, 100, false);
+      expect(result.confidence).toBe("medium");
+    });
+
+    it("הציון המספרי זהה בין hasInterviewModel=true ל-false לאותה התאמה - רק הביטחון משתנה", () => {
+      const m = match({ evidence: [evidenceItem(25)], unknownKeys: [] });
+      const withModel = scoreOpportunity(m, 100, true);
+      const withoutModel = scoreOpportunity(m, 100, false);
+      expect(withoutModel.score).toBe(withModel.score);
+      expect(withModel.confidence).toBe("high");
+      expect(withoutModel.confidence).toBe("medium");
+    });
   });
 });
 
