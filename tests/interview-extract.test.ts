@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { extractAnswer, sanitizeUpdates } from "../src/pipeline/interview/extract";
+import { extractAnswer, normalizeTypography, sanitizeUpdates } from "../src/pipeline/interview/extract";
 import type { ScanFindings } from "../src/pipeline/types";
 import { deriveBusinessModel } from "../src/pipeline/model/business-model";
+
+// כל התווים האסורים במבחנים האלה כתובים כ-\u escapes בכוונה (לא כתווים ליטרליים) - כדי
+// שסריקות forbidden-char גורפות על המאגר לא ידגלו את קובץ הבדיקות עצמו כהפרה, בדיוק כמו
+// ב-extract.ts. בזמן ריצה ה-\u escape הופך לתו האמיתי, בדיוק כמו שמודל שפה היה מפיק אותו.
 
 const findings: ScanFindings = {
   business: { placeId: "p1", name: "עסק" },
@@ -69,6 +73,45 @@ describe("sanitizeUpdates", () => {
   });
 });
 
+describe("normalizeTypography", () => {
+  it("מקף ארוך (em dash) הופך למקף רגיל", () => {
+    const input = "הבנתי, תודה \u2014 הפניות מגיעות בטלפון";
+    expect(normalizeTypography(input)).toBe("הבנתי, תודה - הפניות מגיעות בטלפון");
+  });
+
+  it("מקף בינוני (en dash) הופך למקף רגיל", () => {
+    expect(normalizeTypography("2020\u20132024")).toBe("2020-2024");
+  });
+
+  it("אליפסיס הופך לשלוש נקודות", () => {
+    expect(normalizeTypography("רגע\u2026 בודק")).toBe("רגע... בודק");
+  });
+
+  it("מסיר סימוני כיווניות LRM/RLM", () => {
+    expect(normalizeTypography("טקסט \u200Eעם\u200F סימון נסתר")).toBe("טקסט עם סימון נסתר");
+  });
+
+  it("חץ הופך למקף רגיל", () => {
+    expect(normalizeTypography("עוברים מ-A \u2192 B")).toBe("עוברים מ-A - B");
+  });
+
+  it("מסיר אימוג'י (טווח פנים/סמלים וגם טווח סמלי Unicode ותיקים)", () => {
+    expect(normalizeTypography("מעולה \u{1F600} תודה")).toBe("מעולה תודה");
+    expect(normalizeTypography("בדיקה \u2705 עברה")).toBe("בדיקה עברה");
+  });
+
+  it("מכווץ רווחים כפולים (כולל אלה שנוצרים מהסרת תווים) וגוזם קצוות", () => {
+    expect(normalizeTypography("שלום   עולם")).toBe("שלום עולם");
+    expect(normalizeTypography("קצה \u200Eאחד\u200F קצה")).toBe("קצה אחד קצה");
+    expect(normalizeTypography("  ריווח בקצוות  ")).toBe("ריווח בקצוות");
+  });
+
+  it("לא נוגע בעברית רגילה, גרשיים או מרכאות - רק בתווי ה-AI-tells עצמם", () => {
+    const input = "זה בסדר גמור, ה״עברית״ ו\"המרכאות\" נשארות בדיוק ככה";
+    expect(normalizeTypography(input)).toBe(input);
+  });
+});
+
 describe("extractAnswer", () => {
   it("מסלול מוצלח: עדכונים מסונטזים + תשובת אישור", async () => {
     const complete = async () => ({
@@ -85,6 +128,37 @@ describe("extractAnswer", () => {
     expect(r.usedFallback).toBe(false);
     expect(r.updates).toEqual([{ section: "lead_flow", fields: { handler: "דנה", responseTime: "עד שעה" } }]);
     expect(r.reply).toContain("דנה");
+  });
+
+  it("reply עם מקף ארוך מה-LLM נשמר נקי (מנורמל למקף רגיל)", async () => {
+    const complete = async () => ({
+      data: { updates: [], reply: "הבנתי, תודה \u2014 הפניות מגיעות בטלפון" },
+      usage: { inputTokens: 1, outputTokens: 1 },
+    });
+    const r = await extractAnswer({ findings, model, question: null, answer: "טקסט" }, { complete });
+    expect(r.reply).toBe("הבנתי, תודה - הפניות מגיעות בטלפון");
+  });
+
+  it("ערך שדה מחולץ עם מקף ארוך מנורמל גם הוא (לא רק reply)", async () => {
+    const complete = async () => ({
+      data: {
+        updates: [{ section: "billing", fields: { note: "גובים מזומן \u2014 לפעמים אשראי" } }],
+        reply: "טוב",
+      },
+      usage: { inputTokens: 1, outputTokens: 1 },
+    });
+    const r = await extractAnswer({ findings, model, question: null, answer: "טקסט" }, { complete });
+    expect(r.updates[0].fields.note).toBe("גובים מזומן - לפעמים אשראי");
+  });
+
+  it("ownerNotes ב-fallback (כשל LLM) נשאר verbatim - לא עובר נרמול, אלה מילות בעל העסק", async () => {
+    const complete = async () => { throw new Error("down"); };
+    const answerWithDash = "תשובה עם מקף \u2014 ארוך משלי";
+    const r = await extractAnswer(
+      { findings, model, question: { key: "billing_flow", section: "billing", text: "איך גובים?" }, answer: answerWithDash },
+      { complete },
+    );
+    expect(r.updates).toEqual([{ section: "billing", fields: { ownerNotes: answerWithDash } }]);
   });
 
   it("LLM נכשל בשאלה מונחית - fallback: התשובה הגולמית נשמרת לסקציית השאלה", async () => {
