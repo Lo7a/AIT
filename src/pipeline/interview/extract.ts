@@ -25,25 +25,37 @@ export interface ExtractOptions { complete?: CompleteFn; }
 const MAX_UPDATES = 4;
 const MAX_FIELD_CHARS = 300;
 
-// תווי "AI-tells" ידועים שמודלים נוטים להטמיע (מקף ארוך/בינוני, אליפסיס, חץ, סימוני כיווניות,
-// אימוג'י) - המדיניות של המייסד אוסרת אותם בכל טקסט שמוצג למשתמש. הפרומפט למטה מבקש מהמודל
-// להימנע מהם, אבל זו רק הפחתת סבירות - האכיפה האמיתית היא כאן, דטרמיניסטית, על כל טקסט
-// שמקורו ב-LLM בנתיב הראיון (reply + ערכי שדות מחולצים). לא חל על מילות בעל העסק עצמו
-// (ownerNotes ב-fallback נשאר verbatim - אלה המילים שלו, לא של המודל).
+// תווי "AI-tells" ידועים שמודלים נוטים להטמיע (מקף ארוך/בינוני/אופקי, סימן מינוס, אליפסיס,
+// חץ, רווח קשיח) וכן תווים "בלתי-נראים" מסוכנים (סימוני כיווניות, עקיפות/בידודי כיווניות
+// מסוג Trojan Source שיכולים להזיז ויזואלית טקסט עברי בתוך בועת הודעה, מצרפי אימוג'י) -
+// המדיניות של המייסד אוסרת את הקבוצה הראשונה בכל טקסט שמוצג למשתמש, והשנייה מסוכנת מבחינת
+// אבטחה/נגישות בפני עצמה. הפרומפט למטה מבקש מהמודל להימנע מהם, אבל זו רק הפחתת סבירות -
+// האכיפה האמיתית היא כאן, דטרמיניסטית, על כל טקסט שמקורו ב-LLM בנתיב הראיון (reply + ערכי
+// שדות מחולצים). לא חל על מילות בעל העסק עצמו (ownerNotes ב-fallback נשאר verbatim - אלה
+// המילים שלו, לא של המודל).
 // כל התווים האסורים כתובים כאן כ-\u escapes בכוונה, לא כתווים ליטרליים - כדי שסריקות
 // forbidden-char גורפות על המאגר לא ידגלו את הקובץ הזה עצמו כהפרה
-const EM_EN_DASH = /[\u2014\u2013]/g;
+const DASH_LIKE = /[\u2014\u2013\u2015\u2212]/g; // מקף ארוך/בינוני/אופקי + סימן מינוס
 const ELLIPSIS_CHAR = /\u2026/g;
-const BIDI_MARKS = /[\u200E\u200F]/g;
+const BIDI_MARKS = /[\u200E\u200F]/g; // LRM/RLM
+// עקיפות/בידודי כיווניות (LRE/RLE/PDF/LRO/RLO וטווח ה-isolate) - יכולים להזיז ויזואלית טקסט
+// בתוך בועת ההודעה בלי שהתו עצמו נראה, בדיוק כמו מתקפות Trojan Source
+const BIDI_CONTROLS = /[\u202A-\u202E\u2066-\u2069]/g;
+const JOINERS = /[\u200C\u200D]/g; // ZWJ/ZWNJ - נשארים בודדים ומיותרים אחרי הסרת אימוג'י מצרף
 const ARROW = /\u2192/g;
-const EMOJI_PATTERN = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu;
+const NBSP = /\u00A0/g;
+// טווח אימוג'י רחב: 1F000 יורד עד מאהג'ונג/דומינו/קלפים (לא רק 1F300), 2B00-2BFF מוסיף סמלים יחד עם 2600-27BF ו-FE0F
+const EMOJI_PATTERN = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}]/gu;
 
 export function normalizeTypography(s: string): string {
   return s
-    .replace(EM_EN_DASH, "-")
+    .replace(DASH_LIKE, "-")
     .replace(ELLIPSIS_CHAR, "...")
     .replace(BIDI_MARKS, "")
+    .replace(BIDI_CONTROLS, "")
+    .replace(JOINERS, "")
     .replace(ARROW, "-")
+    .replace(NBSP, " ")
     .replace(EMOJI_PATTERN, "")
     .replace(/ {2,}/g, " ")
     .trim();

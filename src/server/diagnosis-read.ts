@@ -4,7 +4,7 @@ import type { ScoreReport } from "../pipeline/score/types";
 import type { ReportNarrative } from "../pipeline/report/narrative";
 import type { LlmUsage } from "../pipeline/llm/client";
 import {
-  recommendNextStep, type BusinessModel, type ModelSection, type FieldSource, type NextStepRecommendation,
+  recommendNextStep, MODEL_SECTIONS, type BusinessModel, type ModelSection, type FieldSource, type NextStepRecommendation,
 } from "../pipeline/model/business-model";
 import type { DiagnosisStatus } from "./status";
 
@@ -99,10 +99,16 @@ type ModelRowDb = {
 };
 
 export function toModelView(m: ModelRowDb): ModelView {
+  // מילוי קרדיטים חסרים ב-0, בעותק (לא נוגעים באובייקט הגולמי מ-Prisma) - מראה
+  // getInterviewState (interview-repo.ts): בלי זה, סקציה עתידית שנוספת ל-MODEL_SECTIONS
+  // אחרי ששורת מודל ישנה כבר נשמרה הייתה נקראת credits[section]===undefined, וההשוואה
+  // undefined < 1 היא false ב-JS - recommendNextStep היה מתייחס אליה כאילו כבר הושלמה
+  const credits: Record<ModelSection, number> = { ...(m.credits as Record<ModelSection, number>) };
+  for (const s of MODEL_SECTIONS) if (typeof credits[s] !== "number") credits[s] = 0;
   return {
     data: m.data as Record<ModelSection, Record<string, unknown>>,
     fieldSources: m.fieldSources as Partial<Record<ModelSection, FieldSource[]>>,
-    credits: m.credits as Record<ModelSection, number>,
+    credits,
     completenessPct: m.completenessPct,
     updatedAt: m.updatedAt,
   };

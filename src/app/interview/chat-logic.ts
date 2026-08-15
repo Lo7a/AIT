@@ -116,6 +116,10 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         starting: false,
         busy: false,
         error: action.keepError ? state.error : null,
+        // סטטוס אמיתי מהשרת קובע אם הראיון עדיין פעיל - בלי זה שני טאבים פתוחים על אותו ראיון:
+        // טאב א' מסיים, טאב ב' מקבל snapshot מרוענן (למשל אחרי 409) עם status=report_ready אבל
+        // ה-UI שלו עדיין מציג תיבת קלט פעילה ("משקר" למשתמש שהראיון עדיין בעיצומו)
+        closed: action.payload.status !== "interviewing",
       };
 
     // הגנת double-submit הראשית: שליחה בזמן busy או עם קלט ריק היא no-op שקט. זו רק שכבת
@@ -187,8 +191,11 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case "finishFail":
       return { ...state, finishing: false, error: action.error };
 
+    // כישלון start אומר שהראיון אף פעם לא הפך ל-interviewing - שליחת הודעה מובטחת להיכשל
+    // (הראיון לא פעיל) אם ננסה בכל זאת, אז נועלים closed מיד במקום לחכות שהמשתמש ינסה לשלוח
+    // ויגלה את זה רק אז. רענון העמוד הוא הדרך הנכונה לנסות start שוב.
     case "startFail":
-      return { ...state, starting: false, error: action.error };
+      return { ...state, starting: false, error: action.error, closed: true };
 
     default:
       return state;

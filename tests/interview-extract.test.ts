@@ -110,6 +110,36 @@ describe("normalizeTypography", () => {
     const input = "זה בסדר גמור, ה״עברית״ ו\"המרכאות\" נשארות בדיוק ככה";
     expect(normalizeTypography(input)).toBe(input);
   });
+
+  it("קו אופקי (horizontal bar) הופך למקף רגיל", () => {
+    expect(normalizeTypography("טווח 2020\u20152024")).toBe("טווח 2020-2024");
+  });
+
+  it("סימן מינוס (minus sign) הופך למקף רגיל", () => {
+    expect(normalizeTypography("טמפרטורה \u22125 מעלות")).toBe("טמפרטורה -5 מעלות");
+  });
+
+  it("מסיר ZWJ/ZWNJ - נשארים בודדים ומיותרים אחרי הסרת אימוג'י מצרף", () => {
+    expect(normalizeTypography("טקסט \u200Dעם\u200C מצרפים")).toBe("טקסט עם מצרפים");
+  });
+
+  it("מסיר עקיפות/בידודי כיווניות (LRE/PDF, LRI/PDI) - מניעת היפוך ויזואלי מסוג Trojan Source", () => {
+    expect(normalizeTypography("התחלה \u202Aאמצע\u202C סוף")).toBe("התחלה אמצע סוף");
+    expect(normalizeTypography("התחלה \u2066אמצע\u2069 סוף")).toBe("התחלה אמצע סוף");
+  });
+
+  it("רווח קשיח (NBSP) הופך לרווח רגיל", () => {
+    expect(normalizeTypography("מילה\u00A0מילה")).toBe("מילה מילה");
+  });
+
+  it("מסיר אימוג'י מטווח מורחב: מאהג'ונג/קלפים (מ-1F000, לא רק 1F300) ודגלים (regional indicators)", () => {
+    expect(normalizeTypography("מעולה \u{1F004} תודה")).toBe("מעולה תודה");
+    expect(normalizeTypography("דגל \u{1F1EE}\u{1F1F1} כאן")).toBe("דגל כאן");
+  });
+
+  it("מסיר סמלים מטווח 2B00-2BFF (כמו כוכב מלא)", () => {
+    expect(normalizeTypography("מדורג \u2B50 גבוה")).toBe("מדורג גבוה");
+  });
 });
 
 describe("extractAnswer", () => {

@@ -163,4 +163,14 @@ describe("finishInterview", () => {
     const { db } = makeFakeDb() as any;
     await expect(finishInterview(db, "אין")).rejects.toThrow(/לא נמצא/);
   });
+
+  // roadmap_ready->report_ready אינו מעבר חוקי במכונת המצבים (status.ts) - בלי הבדיקה הייעודית
+  // ב-finishInterview, סיום ראיון שכבר חזר אליו מ-Roadmap היה מנסה מעבר לא-חוקי ומקבל 409/500
+  // מזויף במקום להתנהג בדיוק כמו report_ready ("הראיון כבר סגור, אין מה לעשות")
+  it("roadmap_ready - no-op שקט כמו report_ready, בלי ניסיון מעבר לא-חוקי", async () => {
+    const { db, diagnoses, scans, transitions } = makeFakeDb() as any;
+    seed(diagnoses, scans, "roadmap_ready");
+    await finishInterview(db, "d1");
+    expect(transitions).toEqual([]);
+  });
 });

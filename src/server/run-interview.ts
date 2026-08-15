@@ -2,9 +2,11 @@ import type { PrismaClient } from "@prisma/client";
 import { pickNextQuestion, QUESTION_BANK, MAX_GUIDED_QUESTIONS } from "../pipeline/interview/questions";
 import { extractAnswer, type ExtractOptions } from "../pipeline/interview/extract";
 import { applyInterviewUpdates } from "../pipeline/interview/merge";
+import { InterviewError, NOT_ACTIVE_MESSAGE } from "../pipeline/interview/contract";
 import { recommendNextStep } from "../pipeline/model/business-model";
 import { transitionDiagnosis } from "./diagnosis-repo";
 import { appendExchange, getInterviewState, type InterviewState } from "./interview-repo";
+import type { DiagnosisStatus } from "./status";
 
 // אורקסטרטור הראיון: הראיון לא חוסם כלום, ניתן לעצירה בכל רגע, וכל תור נשמר אטומית.
 // השאלה הבאה תמיד מחושבת מחדש מהמודל וההיסטוריה - resume בלי מצב נסתר.
@@ -48,20 +50,38 @@ export function snapshotOf(state: InterviewState): InterviewSnapshot {
 
 async function loadStateOrThrow(prisma: PrismaClient, diagnosisId: string): Promise<InterviewState> {
   const state = await getInterviewState(prisma, diagnosisId);
-  if (!state) throw new Error("האבחון לא נמצא או שאין לו סריקה");
+  if (!state) throw new InterviewError("האבחון לא נמצא או שאין לו סריקה", "not_found");
   return state;
 }
 
+// עוטף את transitionDiagnosis: כישלון CAS (שני request מקבילים מתחרים על אותו diagnosisId,
+// המפסיד מקבל "מעבר סטטוס נכשל" - ראו diagnosis-repo.ts) הופך ל-InterviewError("conflict") כדי
+// ש-interview-handlers.ts ימפה אותו ל-409 בלי היוריסטיקה על תוכן ההודעה. כל שגיאה אחרת (כולל
+// מעבר לא-חוקי במכונת המצבים, או תקלת DB) עוברת הלאה בלי שינוי - לא ה-InterviewError שלנו,
+// ולכן ה-handler ימפה אותה ל-500 גנרי, לא ל-409 מזויף
+async function transitionOrConflict(
+  prisma: PrismaClient, diagnosisId: string, to: DiagnosisStatus,
+): Promise<void> {
+  try {
+    await transitionDiagnosis(prisma, diagnosisId, to);
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("מעבר סטטוס נכשל")) {
+      throw new InterviewError(err.message, "conflict");
+    }
+    throw err;
+  }
+}
+
 // הערת concurrency למשימות 6/11: שני request מקבילים שקוראים ל-startInterview על אותו diagnosisId
-// מתחרים על אותו CAS ב-transitionDiagnosis; המפסיד מקבל "מעבר סטטוס נכשל" (409) ולא באמת שגיאה -
-// קליינטים צריכים להתייחס לזה כ"יש לרענן את המצב" (כנראה שהראיון כבר התחיל אצל הבקשה המקבילה)
+// מתחרים על אותו CAS ב-transitionDiagnosis; המפסיד מקבל 409 ולא באמת שגיאה - קליינטים צריכים
+// להתייחס לזה כ"יש לרענן את המצב" (כנראה שהראיון כבר התחיל אצל הבקשה המקבילה)
 export async function startInterview(prisma: PrismaClient, diagnosisId: string): Promise<InterviewSnapshot> {
   const state = await loadStateOrThrow(prisma, diagnosisId);
   if (state.status === "interviewing") return snapshotOf(state); // resume שקט
   if (state.status !== "report_ready" && state.status !== "roadmap_ready") {
-    throw new Error("אי אפשר להתחיל ראיון לפני שהדוח מוכן");
+    throw new InterviewError("אי אפשר להתחיל ראיון לפני שהדוח מוכן", "invalid");
   }
-  await transitionDiagnosis(prisma, diagnosisId, "interviewing");
+  await transitionOrConflict(prisma, diagnosisId, "interviewing");
   return snapshotOf({ ...state, status: "interviewing" });
 }
 
@@ -72,14 +92,14 @@ export async function runInterviewTurn(
   opts: ExtractOptions = {},
 ): Promise<TurnResult> {
   const content = input.content.trim();
-  if (!content) throw new Error("תשובה ריקה, אין מה לשמור");
+  if (!content) throw new InterviewError("תשובה ריקה, אין מה לשמור", "invalid");
   const state = await loadStateOrThrow(prisma, diagnosisId);
-  if (state.status !== "interviewing") throw new Error("הראיון לא פעיל, יש להתחיל אותו קודם");
+  if (state.status !== "interviewing") throw new InterviewError(NOT_ACTIVE_MESSAGE, "invalid");
 
   const question = input.questionKey != null
     ? QUESTION_BANK.find((q) => q.key === input.questionKey) ?? null
     : null;
-  if (input.questionKey != null && !question) throw new Error("שאלה לא מוכרת");
+  if (input.questionKey != null && !question) throw new InterviewError("שאלה לא מוכרת", "invalid");
 
   const extractQuestion = question
     ? { key: question.key, section: question.section, text: question.text(state.findings, state.model) }
@@ -119,6 +139,10 @@ export async function runInterviewTurn(
 
 export async function finishInterview(prisma: PrismaClient, diagnosisId: string): Promise<void> {
   const state = await loadStateOrThrow(prisma, diagnosisId);
-  if (state.status === "report_ready") return; // כבר שם - no-op שקט, סימטרי ל-resume השקט של startInterview
-  await transitionDiagnosis(prisma, diagnosisId, "report_ready"); // interviewing עובר; כל סטטוס אחר יזרוק כאן
+  // report_ready - כבר שם, no-op שקט, סימטרי ל-resume השקט של startInterview.
+  // roadmap_ready - הראיון כבר נסגר בעבר וה-Roadmap כבר חושב ממנו; roadmap_ready->report_ready
+  // אינו מעבר חוקי במכונת המצבים (ראו status.ts), אז בלי הבדיקה הזו finish היה נכשל שם ב-409
+  // מזויף במקום להתנהג בדיוק כמו report_ready - שניהם "הראיון כבר סגור, אין מה לעשות"
+  if (state.status === "report_ready" || state.status === "roadmap_ready") return;
+  await transitionOrConflict(prisma, diagnosisId, "report_ready"); // interviewing עובר; כל סטטוס אחר יזרוק כאן
 }

@@ -333,3 +333,28 @@ describe("sectionProgress", () => {
     expect(progress.find((p) => p.key === "billing")?.state).toBe("none");
   });
 });
+
+// closed נגזר מסטטוס אמיתי מהשרת (משימה 3-12) - בלי זה שני טאבים פתוחים על אותו ראיון: טאב
+// שמסיים את הראיון לא "מדליף" את זה לטאב השני, שממשיך להציג תיבת קלט פעילה על ראיון שכבר נסגר
+describe("chatReducer - closed נגזר מ-snapshot.status", () => {
+  it("snapshot עם status=report_ready => closed=true", () => {
+    const state = initialChatState(makeSnapshot({ status: "interviewing" }));
+    expect(state.closed).toBe(false);
+    const next = chatReducer(state, { type: "snapshot", payload: makeSnapshot({ status: "report_ready" }) });
+    expect(next.closed).toBe(true);
+  });
+
+  it("snapshot עם status=interviewing => closed=false (גם אם היה true קודם)", () => {
+    const state = { ...initialChatState(makeSnapshot()), closed: true };
+    const next = chatReducer(state, { type: "snapshot", payload: makeSnapshot({ status: "interviewing" }) });
+    expect(next.closed).toBe(false);
+  });
+
+  it("startFail => closed=true (start נכשל = הראיון אף פעם לא הפך לפעיל, שליחה מובטחת להיכשל)", () => {
+    const state = initialChatState(makeSnapshot());
+    expect(state.closed).toBe(false);
+    const next = chatReducer(state, { type: "startFail", error: "שגיאה כלשהי" });
+    expect(next.closed).toBe(true);
+    expect(next.starting).toBe(false);
+  });
+});

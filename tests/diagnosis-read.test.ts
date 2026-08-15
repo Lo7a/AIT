@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { Prisma } from "@prisma/client";
-import { getReport, listRecentDiagnoses } from "../src/server/diagnosis-read";
+import { getReport, listRecentDiagnoses, toModelView } from "../src/server/diagnosis-read";
+import { MODEL_SECTIONS } from "../src/pipeline/model/business-model";
 import type { ScanFindings } from "../src/pipeline/types";
 
 const findings: ScanFindings = {
@@ -42,6 +43,27 @@ function diagRow(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
 }
+
+// משימה 3-12, פריט 7: תיקון תואם ל-getInterviewState (interview-repo.ts) - שורת מודל שנשמרה
+// לפני שסקציה חדשה נוספה ל-MODEL_SECTIONS הייתה מחזירה credits[section]===undefined, ו-
+// undefined < 1 הוא false ב-JS - recommendNextStep היה מתייחס לסקציה כאילו כבר הושלמה
+describe("toModelView - מילוי קרדיטים חסרים", () => {
+  it("סקציה שחסרה ב-credits הגולמי מקבלת 0, לא undefined; סקציות קיימות לא נדרסות", () => {
+    const raw = {
+      data: {}, fieldSources: {},
+      credits: { profile: 1 } as Record<string, number>, // כל שאר הסקציות חסרות בכוונה
+      completenessPct: 10,
+      updatedAt: new Date("2026-08-13"),
+    };
+    const view = toModelView(raw as never);
+    for (const s of MODEL_SECTIONS) {
+      expect(typeof view.credits[s]).toBe("number");
+    }
+    expect(view.credits.profile).toBe(1);
+    expect(view.credits.channels).toBe(0);
+    expect(view.credits.lead_flow).toBe(0);
+  });
+});
 
 describe("getReport", () => {
   it("מחזיר null כשהאבחון לא קיים", async () => {
