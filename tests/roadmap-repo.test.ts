@@ -31,8 +31,8 @@ describe("createRoadmap", () => {
     seedCatalog(catalogs, { id: "cat-2", name: "הקמת פרופיל Google Business" });
 
     const id = await createRoadmap(db, "d1", [
-      { catalogId: "cat-1", score: 80, confidence: "high", phase: "automation" },
-      { catalogId: "cat-2", score: 60, confidence: "low", phase: "quick_wins" },
+      { catalogId: "cat-1", score: 80, confidence: "high", phase: "automation", reasoning: "נימוק לפריט הראשון" },
+      { catalogId: "cat-2", score: 60, confidence: "low", phase: "quick_wins", reasoning: null },
     ]);
 
     expect(id).toBeTruthy();
@@ -40,6 +40,8 @@ describe("createRoadmap", () => {
     expect(roadmaps[0].diagnosisId).toBe("d1");
     expect(roadmapItems).toHaveLength(2);
     expect(roadmapItems.every((it: any) => it.roadmapId === id)).toBe(true);
+    expect(roadmapItems.find((it: any) => it.catalogId === "cat-1").reasoning).toBe("נימוק לפריט הראשון");
+    expect(roadmapItems.find((it: any) => it.catalogId === "cat-2").reasoning).toBeNull();
   });
 
   it("אטומיות: כשל באמצע הטרנזקציה (catalogId שני לא קיים בקטלוג) לא משאיר לא roadmap ולא אף פריט", async () => {
@@ -50,8 +52,8 @@ describe("createRoadmap", () => {
 
     await expect(
       createRoadmap(db, "d1", [
-        { catalogId: "cat-1", score: 80, confidence: "high", phase: "automation" },
-        { catalogId: "cat-999", score: 60, confidence: "low", phase: "quick_wins" },
+        { catalogId: "cat-1", score: 80, confidence: "high", phase: "automation", reasoning: null },
+        { catalogId: "cat-999", score: 60, confidence: "low", phase: "quick_wins", reasoning: null },
       ]),
     ).rejects.toThrow();
 
@@ -73,9 +75,9 @@ describe("getRoadmapView", () => {
     seedCatalog(catalogs, { id: "cat-1", name: "ראשון" });
     seedCatalog(catalogs, { id: "cat-2", name: "שני" });
 
-    await createRoadmap(db, "d1", [{ catalogId: "cat-1", score: 50, confidence: "low", phase: "automation" }]);
+    await createRoadmap(db, "d1", [{ catalogId: "cat-1", score: 50, confidence: "low", phase: "automation", reasoning: null }]);
     const secondId = await createRoadmap(db, "d1", [
-      { catalogId: "cat-2", score: 90, confidence: "high", phase: "ai" },
+      { catalogId: "cat-2", score: 90, confidence: "high", phase: "ai", reasoning: null },
     ]);
 
     const view = await getRoadmapView(db, "d1");
@@ -103,7 +105,9 @@ describe("getRoadmapView", () => {
       source: "achiya-automation.com", verifiedAt,
     });
 
-    await createRoadmap(db, "d1", [{ catalogId: "cat-1", score: 70, confidence: "medium", phase: "ai" }]);
+    await createRoadmap(db, "d1", [
+      { catalogId: "cat-1", score: 70, confidence: "medium", phase: "ai", reasoning: "שאלות חוזרות מעמיסות - בוט עונה 24/7" },
+    ]);
     const view = await getRoadmapView(db, "d1");
 
     expect(view).not.toBeNull();
@@ -119,6 +123,7 @@ describe("getRoadmapView", () => {
     expect(item.phase).toBe("ai");
     expect(item.score).toBe(70);
     expect(item.status).toBe("proposed");
+    expect(item.reasoning).toBe("שאלות חוזרות מעמיסות - בוט עונה 24/7");
     expect(item.benchmarks).toHaveLength(1);
     expect(item.benchmarks[0].source).toBe("achiya-automation.com");
     expect(item.benchmarks[0].metric).toBe("הקמת בוט וואטסאפ");
@@ -129,9 +134,10 @@ describe("getRoadmapView", () => {
     const { db, catalogs, diagnoses } = makeFakeDb() as any;
     seedDiagnosis(diagnoses);
     seedCatalog(catalogs, { id: "cat-1" });
-    await createRoadmap(db, "d1", [{ catalogId: "cat-1", score: 50, confidence: "low", phase: "automation" }]);
+    await createRoadmap(db, "d1", [{ catalogId: "cat-1", score: 50, confidence: "low", phase: "automation", reasoning: null }]);
     const view = await getRoadmapView(db, "d1");
     expect(view!.items[0].benchmarks).toEqual([]);
+    expect(view!.items[0].reasoning).toBeNull();
   });
 
   it("פריטים חוזרים בסדר יורד לפי score - סדר קריאה דטרמיניסטי", async () => {
@@ -142,9 +148,9 @@ describe("getRoadmapView", () => {
     seedCatalog(catalogs, { id: "cat-3", name: "ג" });
 
     await createRoadmap(db, "d1", [
-      { catalogId: "cat-1", score: 40, confidence: "low", phase: "automation" },
-      { catalogId: "cat-2", score: 90, confidence: "high", phase: "ai" },
-      { catalogId: "cat-3", score: 65, confidence: "medium", phase: "quick_wins" },
+      { catalogId: "cat-1", score: 40, confidence: "low", phase: "automation", reasoning: null },
+      { catalogId: "cat-2", score: 90, confidence: "high", phase: "ai", reasoning: null },
+      { catalogId: "cat-3", score: 65, confidence: "medium", phase: "quick_wins", reasoning: null },
     ]);
 
     const view = await getRoadmapView(db, "d1");

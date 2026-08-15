@@ -184,6 +184,11 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
         return rows.map((m) => ({ ...m }));
       },
     },
+    // תמיכה מינימלית ל-run-roadmap.ts: קריאת כל שורות הקטלוג (select נבלע כמו בכל מקום אחר
+    // בפייק הזה - הבדיקות זורעות ישירות ל-catalogs, ראו הערה למעלה על מנגנון הזריעה)
+    opportunityCatalog: {
+      findMany: async () => catalogs.map((c) => ({ ...c })),
+    },
     roadmap: {
       create: async ({ data }: any) => {
         const t = Math.max(Date.now(), lastRoadmapEnd + 1);
@@ -212,6 +217,7 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
         const row = {
           id: genId("rmi"), roadmapId: data.roadmapId, catalogId: data.catalogId,
           score: data.score, confidence: data.confidence, phase: data.phase,
+          reasoning: data.reasoning ?? null,
           status: data.status ?? "proposed", updatedAt: new Date(),
         };
         roadmapItems.push(row);

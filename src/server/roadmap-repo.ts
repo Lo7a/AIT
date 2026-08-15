@@ -10,6 +10,10 @@ export interface RoadmapItemInput {
   score: number;
   confidence: Confidence;
   phase: Phase;
+  // משפט נימוק אחד בעברית (אבן דרך 4, משימה 5) - LLM מוגן או תבנית דטרמיניסטית fallback,
+  // לעולם לא null בפועל (buildReasoning תמיד מייצר ערך) - הטיפוס nullable כדי לשקף את עמודת
+  // ה-DB עצמה (reasoning String? בסכמה, אדיטיבי) ולהשאיר פתח לעתיד (backfill על שורות ישנות)
+  reasoning: string | null;
 }
 
 export interface RoadmapBenchmarkView {
@@ -41,6 +45,7 @@ export interface RoadmapItemView {
   savingRange: string;
   complexity: string;
   installTime: string;
+  reasoning: string | null;
   benchmarks: RoadmapBenchmarkView[];
 }
 
@@ -71,6 +76,7 @@ export async function createRoadmap(
           score: item.score,
           confidence: item.confidence,
           phase: item.phase,
+          reasoning: item.reasoning,
         },
       });
     }
@@ -97,7 +103,7 @@ export async function getRoadmapView(prisma: PrismaClient, diagnosisId: string):
     where: { roadmapId: roadmap.id },
     orderBy: [{ score: "desc" }, { id: "asc" }],
     select: {
-      id: true, catalogId: true, score: true, confidence: true, phase: true, status: true,
+      id: true, catalogId: true, score: true, confidence: true, phase: true, status: true, reasoning: true,
       catalog: {
         select: {
           name: true, problem: true, solution: true, costRange: true, savingRange: true,
@@ -119,6 +125,7 @@ export async function getRoadmapView(prisma: PrismaClient, diagnosisId: string):
       confidence: it.confidence as Confidence,
       phase: it.phase as Phase,
       status: it.status as RoadmapItemStatus,
+      reasoning: it.reasoning,
       name: it.catalog.name,
       problem: it.catalog.problem,
       solution: it.catalog.solution,

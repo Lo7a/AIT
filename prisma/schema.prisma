@@ -112,6 +112,10 @@ model RoadmapItem {
   score      Int
   confidence String
   phase      String
+  // משפט נימוק אחד בעברית - למה ההזדמנות הזו רלוונטית לעסק הזה (אבן דרך 4, משימה 5). Nullable:
+  // עמודה אדיטיבית, וגם כי שכבת ה-reasoning תמיד מייצרת ערך (LLM או תבנית) אבל העמודה נשארת
+  // גמישה לעתיד (למשל ריצת backfill על שורות ישנות בלי הרצה מחדש של כל ה-Roadmap)
+  reasoning  String?
   status     String             @default("proposed")
   updatedAt  DateTime           @default(now()) @updatedAt @map("updated_at")
   briefs     Brief[]

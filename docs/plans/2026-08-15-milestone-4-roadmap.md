@@ -148,7 +148,9 @@ export function phaseOf(match: OpportunityMatch): "quick_wins" | "automation" | 
 - [ ] reasoning.ts: משפט נימוק אחד לכל פריט - prompt עם delimiters בדפוס extract.ts, קלט: problem/solution מהקטלוג + evidence texts + painQuote; פלט: משפט עברית שמסביר למה זה רלוונטי לעסק הזה. **חוזה קשיח: הנימוק לא מכיל ספרות בכלל** - sanitizer מוחק כל תו ספרה ומפיל fallback לתבנית דטרמיניסטית (problem מהקטלוג + הראיה הראשונה). normalizeTypography על הכול. usage נצבר כמו בראיון.
 - [ ] אין ראיון = עובד (model null, פריטי confidence low-medium בלבד) - "יש Roadmap גם בלי ראיון" (אפיון).
 - [ ] בדיקות: מסלול מלא על fake-db עם קטלוג אמיתי (fixture מה-10), מעבר סטטוס, נימוק עם ספרות נופל ל-fallback, אידמפוטנטיות קריאה חוזרת (roadmap שני נוצר, הקריאה מחזירה אחרון).
-- [ ] Commit: `feat(4-5): roadmap orchestrator - fresh scores, catalog matching, guarded LLM reasoning`
+- [x] Commit: `feat(4-5): roadmap orchestrator - fresh scores, catalog matching, guarded LLM reasoning`
+
+**As-built (15.8):** עמודת reasoning נוספה ל-RoadmapItem (מיגרציה 20260815124719, אדיטיבית) - פער תוכנית שנסגר. שומר הספרות עובד עם \p{Nd} (כל ספרה בכל כתב, לא רק ASCII). ממצא חשוב: תבנית ה-fallback אסור שתכלול את catalog.solution - כמה פתרונות בקטלוג מכילים ספרות ("24/7", "GA4", "LCP מתחת ל-4 שניות"); התבנית היא problem + ראיה ראשונה נקיית-ספרות, או ציטוט כאב, או problem לבד (רשת ביטחון סופית). פריט שנכנס על כאב בלבד מקבל נימוק מעוגן-ציטוט ("בעל העסק סיפר: ...") ולא "חסר לך". buildRoadmap עם טוען ייעודי (לא getInterviewState - מבחין not_found/אין-סריקה ומחזיר מודל null אמיתי), ציונים טריים בזיכרון בלבד (לא נכתב ל-scan.scores - זה של finishInterview), חישוב מחדש מ-roadmap_ready נשאר roadmap_ready בלי מעבר. כשל LLM לא מפיל רודמאפ - הכול נופל לתבנית. 15+8 בדיקות חדשות.
 
 ### משימה 6: מסלולי API + סקירת סבב יחיד למשימות 2-6
 
