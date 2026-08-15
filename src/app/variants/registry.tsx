@@ -4,7 +4,7 @@ import * as modern from "./modern/index";
 import * as dark from "./dark/index";
 import * as vivid from "./vivid/index";
 
-// כל גרסה מספקת שלושה מסכים; עד שגרסה נבנית - ה-fallback הוא רכיבי ברירת המחדל הקיימים
+// כל גרסה מספקת ארבעה מסכים; עד שגרסה נבנית - ה-fallback הוא רכיבי ברירת המחדל הקיימים
 export interface VariantScreens {
   Home: ComponentType<{ recent: import("../../server/diagnosis-read").DiagnosisListItem[] }>;
   Scan: ComponentType<{

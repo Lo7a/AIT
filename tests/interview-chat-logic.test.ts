@@ -129,7 +129,7 @@ describe("chatReducer - turnOk", () => {
     expect(next.next).toEqual(Q2);
   });
 
-  it("usedFallback=true עדיין מציג את התשובה כמו שהיא (מוצג verbatim)", () => {
+  it("usedFallback=true עדיין מציג את התשובה כמו שהיא (מוצג verbatim), ו-nextQuestion=null -> freeText=true", () => {
     const sent = chatReducer({ ...initialChatState(makeSnapshot()), input: "תשובה" }, { type: "send" });
     const turn: TurnResult = {
       reply: "תשובת ברירת מחדל בלי חילוץ",
@@ -142,9 +142,10 @@ describe("chatReducer - turnOk", () => {
     };
     const next = chatReducer(sent, { type: "turnOk", payload: turn });
     expect(next.messages[1].content).toBe("תשובת ברירת מחדל בלי חילוץ");
+    expect(next.freeText).toBe(true);
   });
 
-  it("מצב מונחה חוזר אוטומטית כשמגיעה שאלה חדשה לא-דולגה, גם אם freeText היה true קודם", () => {
+  it("מצב מונחה חוזר אוטומטית כשמגיעה שאלה חדשה לא-דולגה, גם אם freeText היה true קודם (בלי כוונה דביקה)", () => {
     const sent = chatReducer(
       { ...initialChatState(makeSnapshot()), freeText: true, input: "תשובה" },
       { type: "send" },
@@ -154,6 +155,64 @@ describe("chatReducer - turnOk", () => {
       credits: emptyCredits(), askedCount: 1, done: false,
     };
     expect(chatReducer(sent, { type: "turnOk", payload: turn }).freeText).toBe(false);
+  });
+
+  it("turnOk לא מתעלם מ-skippedKeys: nextQuestion שכבר דולגה => freeText=true", () => {
+    const withSkip = { ...initialChatState(makeSnapshot()), skippedKeys: [Q2.key], input: "תשובה" };
+    const sent = chatReducer(withSkip, { type: "send" });
+    const turn: TurnResult = {
+      reply: "עוד תודה", usedFallback: false, nextQuestion: Q2, completenessPct: 25,
+      credits: emptyCredits(), askedCount: 1, done: false,
+    };
+    const next = chatReducer(sent, { type: "turnOk", payload: turn });
+    expect(next.freeText).toBe(true);
+  });
+});
+
+describe("chatReducer - setFreeText וכוונה דביקה (freeTextIntent)", () => {
+  it("setFreeText(true) נועל כוונה - turnOk עם שאלה חדשה לא-דולגה נשאר בחופשי", () => {
+    let state = initialChatState(makeSnapshot({ nextQuestion: Q1 }));
+    state = chatReducer(state, { type: "setFreeText", value: true });
+    expect(state.freeText).toBe(true);
+    expect(state.freeTextIntent).toBe(true);
+
+    const sent = chatReducer({ ...state, input: "תשובה" }, { type: "send" });
+    const turn: TurnResult = {
+      reply: "טוב", usedFallback: false, nextQuestion: Q2, completenessPct: 25,
+      credits: emptyCredits(), askedCount: 1, done: false,
+    };
+    const next = chatReducer(sent, { type: "turnOk", payload: turn });
+    expect(next.freeText).toBe(true);
+  });
+
+  it("אחרי setFreeText(false) (\"חזרה לשאלות\") - turnOk עם שאלה חדשה חוזר למונחה", () => {
+    let state = initialChatState(makeSnapshot({ nextQuestion: Q1 }));
+    state = chatReducer(state, { type: "setFreeText", value: true });
+    state = chatReducer(state, { type: "setFreeText", value: false });
+    expect(state.freeText).toBe(false);
+    expect(state.freeTextIntent).toBe(false);
+
+    const sent = chatReducer({ ...state, input: "תשובה" }, { type: "send" });
+    const turn: TurnResult = {
+      reply: "טוב", usedFallback: false, nextQuestion: Q2, completenessPct: 25,
+      credits: emptyCredits(), askedCount: 1, done: false,
+    };
+    const next = chatReducer(sent, { type: "turnOk", payload: turn });
+    expect(next.freeText).toBe(false);
+  });
+
+  it("חופשי-בכפייה מדילוג לא נועל כוונה מפורשת - turnOk עם שאלה חדשה לא-דולגה חוזר למונחה", () => {
+    const skipped = chatReducer(initialChatState(makeSnapshot({ nextQuestion: Q1 })), { type: "skip" });
+    expect(skipped.freeText).toBe(true);
+    expect(skipped.freeTextIntent).toBe(false); // תוצאה של דילוג, לא בחירה מפורשת של המשתמש
+
+    const sent = chatReducer({ ...skipped, input: "תשובה" }, { type: "send" });
+    const turn: TurnResult = {
+      reply: "טוב", usedFallback: false, nextQuestion: Q2, completenessPct: 25,
+      credits: emptyCredits(), askedCount: 1, done: false,
+    };
+    const next = chatReducer(sent, { type: "turnOk", payload: turn });
+    expect(next.freeText).toBe(false);
   });
 });
 
@@ -221,6 +280,18 @@ describe("chatReducer - snapshot (נתיב פישור 409 / רענון אחרי 
     const next = chatReducer(skipped, { type: "snapshot", payload: makeSnapshot({ nextQuestion: Q1 }) });
     expect(next.skippedKeys).toEqual([Q1.key]);
     expect(visibleNext(next.next, next.skippedKeys)).toBeNull();
+  });
+
+  it("keepError=true משמר שגיאה קיימת (למשל הודעת \"הראיון כבר נסגר\"); בלי הדגל - מנקה", () => {
+    const sent = chatReducer({ ...initialChatState(makeSnapshot()), input: "משהו" }, { type: "send" });
+    const failed = chatReducer(sent, { type: "turnFail", error: "הראיון כבר נסגר. לחיצה על סיום הראיון תעביר לדוח המעודכן." });
+    expect(failed.error).not.toBeNull();
+
+    const kept = chatReducer(failed, { type: "snapshot", payload: makeSnapshot(), keepError: true });
+    expect(kept.error).toBe(failed.error);
+
+    const cleared = chatReducer(failed, { type: "snapshot", payload: makeSnapshot() });
+    expect(cleared.error).toBeNull();
   });
 });
 

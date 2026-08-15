@@ -5,28 +5,53 @@ import type { InterviewSnapshot } from "../../server/run-interview";
 import { useInterviewChat } from "../interview/use-interview-chat";
 import type { ChatMessage, SectionProgressItem } from "../interview/chat-logic";
 
-// מסך הראיון בשפת העיצוב הזמנית הקיימת (ראו default-screens.tsx) - אין כאן שום לוגיקה,
-// רק תצוגה על גבי useInterviewChat. גרסת עיצוב עתידית מחליפה את הקובץ הזה בלבד.
+// מסך הראיון בשפת העיצוב הזמנית הקיימת (ראו default-screens.tsx) - אין כאן שום לוגיקת עסק,
+// רק תצוגה על גבי useInterviewChat. גרסת עיצוב עתידית מחליפה את הקובץ הזה בלבד. ניהול פוקוס
+// כן חי כאן (ולא בהוק): הוא תלוי-DOM/תזמון-רינדור, לא כלל עסקי - ראו ההערות ליד ה-effect למטה.
 
 const SECONDARY_BTN =
   "rounded-md border border-black/[0.12] px-4 py-2 text-sm text-[#111111] hover:bg-[#F1F0EE] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]";
 const QUIET_BTN =
   "px-4 py-2 text-sm text-[#6F6E6A] underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]";
 
+// הבדל מלא/חלקי/כלום לא נשען על צבע בלבד: full מלא ובגבול רציף, partial בגבול מקווקו
+// (border-dashed) עם נקודה מוקפת, none בגבול רציף דהוי בלי נקודה בכלל - ניתן להבחין גם
+// בגווני אפור/עיוורון צבעים
 const CHIP_CLASSES: Record<SectionProgressItem["state"], string> = {
-  full: "border-[#111111] bg-[#111111] text-white",
-  partial: "border-[#111111]/25 bg-[#F1F0EE] text-[#111111]",
-  none: "border-black/[0.12] text-[#6F6E6A]",
+  full: "border-solid border-[#111111] bg-[#111111] text-white",
+  partial: "border-dashed border-[#111111]/50 bg-[#F1F0EE] text-[#111111]",
+  none: "border-solid border-black/[0.12] text-[#6F6E6A]",
 };
+const STATE_LABEL: Record<SectionProgressItem["state"], string> = {
+  full: "הושלם",
+  partial: "חלקי",
+  none: "עוד לא",
+};
+
+function SectionChip({ item }: { item: SectionProgressItem }) {
+  return (
+    <li
+      className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${CHIP_CLASSES[item.state]}`}
+      aria-label={`${item.label}: ${STATE_LABEL[item.state]}`}
+    >
+      {item.state !== "none" && (
+        <span
+          aria-hidden="true"
+          className={`h-1.5 w-1.5 shrink-0 rounded-full ${item.state === "full" ? "bg-current" : "border border-current"}`}
+        />
+      )}
+      {item.label}
+    </li>
+  );
+}
 
 function TypingDots() {
   return (
-    <div
-      className="flex max-w-[85%] animate-fade-up items-center gap-2 self-start rounded-lg border border-black/[0.06] bg-white px-4 py-2.5 text-sm text-[#6F6E6A]"
-      aria-hidden="true"
-    >
+    // הטקסט "חושב" נשאר נגיש (לא aria-hidden) כדי שהוא ייקרא בתוך אזור ה-aria-live של
+    // ההודעות - רק הנקודות המונפשות עצמן דקורטיביות
+    <div className="flex max-w-[85%] animate-fade-up items-center gap-2 self-start rounded-lg border border-black/[0.06] bg-white px-4 py-2.5 text-sm text-[#6F6E6A]">
       <span>חושב</span>
-      <span className="flex items-end gap-0.5">
+      <span className="flex items-end gap-0.5" aria-hidden="true">
         <span className="h-1 w-1 animate-bounce rounded-full bg-[#6F6E6A]" style={{ animationDelay: "0ms" }} />
         <span className="h-1 w-1 animate-bounce rounded-full bg-[#6F6E6A]" style={{ animationDelay: "150ms" }} />
         <span className="h-1 w-1 animate-bounce rounded-full bg-[#6F6E6A]" style={{ animationDelay: "300ms" }} />
@@ -58,16 +83,43 @@ export function DefaultInterview({
 }) {
   const {
     messages, busy, starting, finishing, input, freeText, visible, sections,
-    completenessPct, error, closed,
-    inputRef, send, skip, finish, setInput, setFreeText,
+    completenessPct, error, closed, canSend, canFinish, canSkip,
+    send, skip, finish, setInput, setFreeText,
   } = useInterviewChat(diagnosisId, initial);
 
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const inputDisabled = busy || starting || finishing || closed;
+
   useEffect(() => {
     // גלילה אוטומטית היא אפקט ויזואלי גרידא, לכן חי כאן ולא ב-hook (ראו use-scan-stream.ts
     // להערת ה-scroll המקבילה במסך הסריקה)
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages.length, busy]);
+
+  // ניהול פוקוס: focus() על תיבת טקסט מנוטרלת (disabled) הוא no-op בדפדפן, ובזמן ש-inputDisabled
+  // הוא true הפוקוס כבר "נפל" ל-body. לכן לא מספיק לקרוא focus() מיד אחרי dispatch (זה בדיוק
+  // הבאג שהיה כאן) - צריך effect שרץ אחרי שהרינדור בפועל הפך את השדה בחזרה לפעיל, ותופס במפורש
+  // את המעבר true -> false (לא כל רינדור - אחרת גם טעינה ראשונית הייתה גונבת פוקוס מהמשתמש)
+  const wasDisabledRef = useRef(inputDisabled);
+  useEffect(() => {
+    if (wasDisabledRef.current && !inputDisabled) {
+      inputRef.current?.focus();
+    }
+    wasDisabledRef.current = inputDisabled;
+  }, [inputDisabled]);
+
+  // דלג/מעבר מצב לא משנים את inputDisabled (התיבה כל הזמן פעילה בזמן הזה), אז ה-effect למעלה
+  // לא יתפוס את זה - הכפתור שנלחץ עלול "להיעלם" מתחת לעכבר (הפאנל מוחלף), אז מזיזים פוקוס
+  // במפורש בכל handler כזה כדי שלא יישאר על body
+  function handleSkip() {
+    skip();
+    inputRef.current?.focus();
+  }
+  function handleSetFreeText(value: boolean) {
+    setFreeText(value);
+    inputRef.current?.focus();
+  }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -75,9 +127,6 @@ export function DefaultInterview({
       void send();
     }
   }
-
-  const inputDisabled = busy || starting || finishing || closed;
-  const controlsDisabled = busy || starting;
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-16" aria-busy={starting || busy || finishing}>
@@ -89,7 +138,14 @@ export function DefaultInterview({
       </p>
 
       <section className="mt-8 animate-fade-up" style={{ animationDelay: "120ms" }}>
-        <div className="h-[2px] w-full overflow-hidden rounded-full bg-[#F1F0EE]">
+        <div
+          role="progressbar"
+          aria-valuenow={completenessPct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="שלמות האבחון"
+          className="h-[2px] w-full overflow-hidden rounded-full bg-[#F1F0EE]"
+        >
           <div
             className="h-[2px] rounded-full bg-[#111111] transition-[width] duration-500"
             style={{ width: `${completenessPct}%` }}
@@ -97,9 +153,7 @@ export function DefaultInterview({
         </div>
         <ul className="mt-4 flex flex-wrap gap-2">
           {sections.map((s) => (
-            <li key={s.key} className={`rounded-full border px-2.5 py-1 text-xs ${CHIP_CLASSES[s.state]}`}>
-              {s.label}
-            </li>
+            <SectionChip key={s.key} item={s} />
           ))}
         </ul>
       </section>
@@ -112,7 +166,7 @@ export function DefaultInterview({
         {messages.map((m) => (
           <Bubble key={m.id} message={m} />
         ))}
-        {busy && <TypingDots />}
+        {(busy || starting) && <TypingDots />}
         <div ref={bottomRef} />
       </section>
 
@@ -128,18 +182,13 @@ export function DefaultInterview({
                 <button
                   type="button"
                   className={SECONDARY_BTN}
-                  disabled={controlsDisabled}
-                  onClick={() => setFreeText(false)}
+                  disabled={!canSkip}
+                  onClick={() => handleSetFreeText(false)}
                 >
                   חזרה לשאלות
                 </button>
               )}
-              <button
-                type="button"
-                className={QUIET_BTN}
-                disabled={finishing || starting}
-                onClick={() => void finish()}
-              >
+              <button type="button" className={QUIET_BTN} disabled={!canFinish} onClick={() => void finish()}>
                 סיום הראיון
               </button>
             </div>
@@ -149,23 +198,18 @@ export function DefaultInterview({
             <div className="rounded-lg border border-black/[0.06] bg-white p-5">
               <p className="text-lg font-medium">{visible.text}</p>
               <div className="mt-4 flex flex-wrap gap-3">
-                <button type="button" className={SECONDARY_BTN} disabled={controlsDisabled} onClick={skip}>
+                <button type="button" className={SECONDARY_BTN} disabled={!canSkip} onClick={handleSkip}>
                   דלג
                 </button>
                 <button
                   type="button"
                   className={SECONDARY_BTN}
-                  disabled={controlsDisabled}
-                  onClick={() => setFreeText(true)}
+                  disabled={!canSkip}
+                  onClick={() => handleSetFreeText(true)}
                 >
                   כתיבה חופשית
                 </button>
-                <button
-                  type="button"
-                  className={QUIET_BTN}
-                  disabled={finishing || starting}
-                  onClick={() => void finish()}
-                >
+                <button type="button" className={QUIET_BTN} disabled={!canFinish} onClick={() => void finish()}>
                   סיום הראיון
                 </button>
               </div>
@@ -176,7 +220,7 @@ export function DefaultInterview({
 
       {error && (
         <p className="mt-4 animate-fade-up text-sm text-[#B3261E]" role="alert">
-          {error} - אפשר לנסות שוב
+          {error}
         </p>
       )}
 
@@ -189,12 +233,13 @@ export function DefaultInterview({
           disabled={inputDisabled}
           rows={2}
           placeholder="כתבו כאן"
+          aria-label="הודעה לראיון"
           className="min-h-[3rem] flex-1 resize-none rounded-lg border border-black/[0.12] bg-white px-4 py-2.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111] disabled:cursor-not-allowed disabled:opacity-60"
         />
         <button
           type="button"
           onClick={() => void send()}
-          disabled={inputDisabled || input.trim().length === 0}
+          disabled={!canSend}
           className="shrink-0 rounded-md bg-[#111111] px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
         >
           שליחה

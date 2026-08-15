@@ -7,7 +7,7 @@ export default function InterviewNotFound() {
         האבחון לא נמצא
       </h1>
       <p className="mt-3 animate-fade-up text-lg text-[#6F6E6A]" style={{ animationDelay: "80ms" }}>
-        ייתכן שהקישור שגוי או שעדיין אין סריקה לאבחון הזה שאפשר לראיין עליה.
+        ייתכן שהקישור שגוי, או שעדיין לא הסתיימה סריקה לעסק הזה.
       </p>
       <Link
         href="/"

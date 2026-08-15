@@ -34,7 +34,11 @@ export interface ChatState {
   starting: boolean; // בקשת start באוויר (רק סביב ה-mount)
   finishing: boolean; // בקשת finish באוויר
   input: string;
-  freeText: boolean; // מצב תצוגה נוכחי - מונחה מול חופשי
+  freeText: boolean; // מצב תצוגה בפועל (מחושב) - מונחה מול חופשי, ראו freeTextIntent למקור
+  // כוונה מפורשת של המשתמש ("כתיבה חופשית") - נבדלת מ-freeText המחושב: דילוג/מיצוי שאלות
+  // מייצרים חופשי זמני (computed) שחוזר אוטומטית למונחה ברגע ששאלה לא-דולגה זמינה, אבל
+  // בחירה מפורשת של המשתמש היא "דביקה" ונשארת עד שהוא עצמו לוחץ "חזרה לשאלות"
+  freeTextIntent: boolean;
   skippedKeys: string[];
   next: NextQuestion | null; // ההצעה הגולמית מהשרת - יש לסנן דרך visibleNext לפני תצוגה
   completenessPct: number;
@@ -49,6 +53,12 @@ function toChatMessage(m: { id: string; role: ChatRole; content: string }): Chat
   return { id: m.id, role: m.role, content: m.content };
 }
 
+// המצב ה"מחושב" (לא הדביק) של חופשי/מונחה - אותו חוק תמיד: אין שאלה גלויה (או שהשרת ממליץ
+// חופשי) => חופשי. משמש הן לאתחול (עם recommendFreeText) והן לכל תור/snapshot (בלעדיו)
+function computedFreeText(next: NextQuestion | null, skippedKeys: string[], recommend = false): boolean {
+  return recommend || visibleNext(next, skippedKeys) == null;
+}
+
 // אתחול ה-state מתוך ה-snapshot שה-RSC כבר טען (ראו page.tsx) - זה גם נתיב ה-resume: היסטוריה
 // מלאה כבר נמצאת ב-initial.messages, בלי טיפול מיוחד
 export function initialChatState(initial: InterviewSnapshot): ChatState {
@@ -59,7 +69,8 @@ export function initialChatState(initial: InterviewSnapshot): ChatState {
     starting: initial.status !== "interviewing",
     finishing: false,
     input: "",
-    freeText: initial.recommendFreeText || visibleNext(initial.nextQuestion, skippedKeys) == null,
+    freeText: computedFreeText(initial.nextQuestion, skippedKeys, initial.recommendFreeText),
+    freeTextIntent: false,
     skippedKeys,
     next: initial.nextQuestion,
     completenessPct: initial.completenessPct,
@@ -72,7 +83,9 @@ export function initialChatState(initial: InterviewSnapshot): ChatState {
 }
 
 export type ChatAction =
-  | { type: "snapshot"; payload: InterviewSnapshot }
+  // keepError: נתיב פישור אחרי שגיאה (למשל "הראיון לא פעיל") - השגיאה כבר הוצגה במפורש
+  // ואנחנו לא רוצים ש-snapshot ימחק אותה תוך כדי רענון המצב האמיתי מהשרת
+  | { type: "snapshot"; payload: InterviewSnapshot; keepError?: boolean }
   | { type: "send" }
   | { type: "turnOk"; payload: TurnResult }
   | { type: "turnFail"; error: string }
@@ -98,11 +111,11 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         askedCount: action.payload.askedCount,
         maxQuestions: action.payload.maxQuestions,
         next: action.payload.nextQuestion,
-        freeText: action.payload.recommendFreeText
-          || visibleNext(action.payload.nextQuestion, state.skippedKeys) == null,
+        freeText: state.freeTextIntent
+          || computedFreeText(action.payload.nextQuestion, state.skippedKeys, action.payload.recommendFreeText),
         starting: false,
         busy: false,
-        error: null,
+        error: action.keepError ? state.error : null,
       };
 
     // הגנת double-submit הראשית: שליחה בזמן busy או עם קלט ריק היא no-op שקט. זו רק שכבת
@@ -115,9 +128,8 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return { ...state, messages: [...state.messages, message], input: "", busy: true, error: null };
     }
 
-    // freeText מחושב מחדש לפי אותו חוק בכל תור (מראה את דפוס ה-CLI המאושר): אם יש שאלה הבאה
-    // גלויה (לא דולגה) - חוזרים אוטומטית למצב מונחה, גם אם המשתמש בחר "כתיבה חופשית" לתשובה
-    // הקודמת בלבד. בחירת "כתיבה חופשית" היא לא נעילה קבועה של המצב.
+    // freeText מחושב מחדש לפי אותו חוק בכל תור (מראה את דפוס ה-CLI המאושר), אלא אם המשתמש
+    // בעצמו נעל כוונה מפורשת (freeTextIntent) - במקרה כזה נשארים בחופשי גם כשיש שאלה זמינה
     case "turnOk": {
       const reply: ChatMessage = { id: `local-${state.messages.length}`, role: "assistant", content: action.payload.reply };
       return {
@@ -127,7 +139,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         credits: action.payload.credits,
         askedCount: action.payload.askedCount,
         next: action.payload.nextQuestion,
-        freeText: visibleNext(action.payload.nextQuestion, state.skippedKeys) == null,
+        freeText: state.freeTextIntent || computedFreeText(action.payload.nextQuestion, state.skippedKeys),
         busy: false,
         error: null,
       };
@@ -147,16 +159,21 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       };
     }
 
-    // דילוג: מוסיפים ל-skippedKeys בלבד, אף פעם לא לשרת. אחרי הדילוג השאלה הנוכחית תמיד
-    // מסתתרת (זה בדיוק מה שדולג עכשיו), אז freeText הופך ל-true עד שהשרת יציע שאלה אחרת
+    // דילוג: מוסיפים ל-skippedKeys בלבד, אף פעם לא לשרת. לא נוגע ב-freeTextIntent בכוונה -
+    // זה חופשי "מחושב" זמני (השאלה שדולגה כרגע היא בהכרח היחידה שהייתה גלויה), לא בחירה של
+    // המשתמש, אז ברגע שהשרת יציע שאלה אחרת לא-דולגה חוזרים אוטומטית למונחה (turnOk למעלה)
     case "skip": {
       const visible = visibleNext(state.next, state.skippedKeys);
       if (!visible) return state; // אין שאלה גלויה לדלג עליה כרגע
       return { ...state, skippedKeys: [...state.skippedKeys, visible.key], freeText: true };
     }
 
-    case "setFreeText":
-      return { ...state, freeText: action.value };
+    // "כתיבה חופשית" נועלת כוונה מפורשת (דביקה עד "חזרה לשאלות"); "חזרה לשאלות" משחררת אותה
+    // וחוזרת למה שהמצב המחושב אומר באותו רגע (יכול עדיין להיות חופשי אם באמת אין שאלה גלויה)
+    case "setFreeText": {
+      if (action.value) return { ...state, freeText: true, freeTextIntent: true };
+      return { ...state, freeText: computedFreeText(state.next, state.skippedKeys), freeTextIntent: false };
+    }
 
     case "setInput":
       return { ...state, input: action.value };
