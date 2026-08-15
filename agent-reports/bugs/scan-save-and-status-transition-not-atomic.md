@@ -4,7 +4,12 @@
 - **Status:** Open
 - **Priority:** Medium
 - **Branch:** `main`
-- **Commit:** `7360f0a877c90528b684a3238cc7f8be97996f7a`
+- **Commit reviewed:** `7360f0a877c90528b684a3238cc7f8be97996f7a`
+- **Re-verified at:** `06d81ed` (2026-08-15) — **still applies, line numbers corrected.**
+  `server/run-diagnosis.ts` grew by 37 lines in milestone 4 task 0 (social-presence handling), so
+  the offending block moved from lines 169-172 to **186-189**. The code itself is byte-identical:
+  still two sequential awaits inside one `step`. `server/diagnosis-repo.ts` is unchanged, so its
+  references remain accurate.
 - **Evidence standard:** Reasoned from code — not executed
 
 ## Description
@@ -14,7 +19,7 @@ in a single `prisma.$transaction` so they cannot diverge. The status transition 
 the result is then performed as a **separate** round trip:
 
 ```ts
-// src/server/run-diagnosis.ts:169-172
+// src/server/run-diagnosis.ts:186-189
 await step(emit, "save", "שומרים את האבחון", async () => {
   await saveScanResult(prisma, created.diagnosisId, toScanRow(findings, score, narrative), model);
   await transitionDiagnosis(prisma, created.diagnosisId, "report_ready");
@@ -26,7 +31,7 @@ two awaits, the scan and model are durably stored while the diagnosis remains at
 
 ## Location
 
-- `src/server/run-diagnosis.ts:169-172` — the two sequential awaits
+- `src/server/run-diagnosis.ts:186-189` — the two sequential awaits
 - `src/server/diagnosis-repo.ts:113-145` — `saveScanResult`, correctly transactional
 - `src/server/diagnosis-repo.ts:94-111` — `transitionDiagnosis`, a read-then-conditional-update
 - `src/server/status.ts:7-14` — the transition table

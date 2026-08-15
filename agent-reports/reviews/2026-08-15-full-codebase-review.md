@@ -4,7 +4,9 @@
 - **Status:** Open
 - **Priority:** High (as an index; individual findings carry their own priority)
 - **Branch:** `main`
-- **Commit:** `7360f0a877c90528b684a3238cc7f8be97996f7a`
+- **Commit reviewed:** `7360f0a877c90528b684a3238cc7f8be97996f7a`
+- **Re-verified at:** `06d81ed` (2026-08-15) — **all seven findings still stand.** See the survival
+  table below.
 - **Date:** 2026-08-15
 - **Scope:** All of `src/`, `prisma/`, the specification, and the milestone gate documents.
   Excluded: `design/` HTML variants, and the UI hooks under `src/app/` beyond a skim.
@@ -74,6 +76,38 @@ Derived from the spec and `docs/llm.md`; every finding below is ultimately about
 
 Findings 1–3 were reproduced by executing the real modules. Findings 4–7 are reasoned from
 source; each report states what remains unverified.
+
+## Survival check against `06d81ed`
+
+`main` advanced nine commits after the review — milestone 4 tasks 0, 0.5, 0.7 and 1 shipped
+between 13:01 and 14:15 on 2026-08-15, touching 27 source and test files. Every finding was
+re-checked against the new tip.
+
+**All seven still stand.** None of the five files carrying findings 1, 2, 4, 5 and 7 was touched:
+
+| File | Findings | Changed since review? |
+|---|---|---|
+| `pipeline/crawler/crawl.ts` | 1, 3 | No |
+| `server/api/diagnose-stream.ts` | 1, 2 | No |
+| `pipeline/analyze/reviews.ts` | 4 | No |
+| `pipeline/report/narrative.ts` | 5 | No |
+| `pipeline/google/pagespeed.ts` | 7 | No |
+| `server/run-diagnosis.ts` | 6 | **Yes** — +37 lines; defect unchanged, moved to lines 186-189 |
+| `pipeline/score/dimensions.ts` | 3 (consumer) | **Yes** — +162 lines; `multi_page` moved to 299-302 |
+
+Line numbers in the two changed files have been corrected in their reports. Everything else
+remains accurate as written.
+
+**What the new commits did fix:** the `websiteKeyOf` identity collision described in
+[`milestone-4-plan-review.md`](milestone-4-plan-review.md) §3 is resolved by task 0, and the
+process dimension is no longer the stub described under "Minor observations" — task 1 implemented
+it via a new `scoreWithModel(f, model)` entry point in `score/engine.ts:70`.
+
+**Two findings became more urgent, not less.** Task 0.5 shipped, routing typed URLs through the
+validator that carries finding 2 — the amplification that report predicted is now live. And task 7
+(the unauthenticated email endpoint) has *not* shipped, so there is still time to act on
+[`../features/auth-rate-limiting-and-csrf.md`](../features/auth-rate-limiting-and-csrf.md) before
+it does.
 
 Deployment blockers are collected separately in
 [`deployment-readiness.md`](deployment-readiness.md). The milestone 4 plan is reviewed in

@@ -4,7 +4,11 @@
 - **Status:** Open
 - **Priority:** High
 - **Branch:** `main`
-- **Commit:** `7360f0a877c90528b684a3238cc7f8be97996f7a`
+- **Commit reviewed:** `7360f0a877c90528b684a3238cc7f8be97996f7a`
+- **Re-verified at:** `06d81ed` (2026-08-15) — **still reproduces.** `api/diagnose-stream.ts` is
+  unchanged and the offending line is present verbatim. All line references remain accurate.
+  Note that milestone 4 task 0.5 has since shipped, which routes more traffic through this
+  validator — the amplification predicted below is now live.
 - **Evidence standard:** Verified by execution
 
 ## Description

@@ -4,7 +4,10 @@
 - **Status:** Open
 - **Priority:** Critical
 - **Branch:** `main`
-- **Commit:** `7360f0a877c90528b684a3238cc7f8be97996f7a`
+- **Commit reviewed:** `7360f0a877c90528b684a3238cc7f8be97996f7a`
+- **Re-verified at:** `06d81ed` (2026-08-15) — **still reproduces.** `crawler/crawl.ts` is
+  unchanged since the review and `fetchPage` still sets no `redirect:` option, so the default
+  `follow` applies. All line references below remain accurate.
 - **Evidence standard:** Verified by execution
 
 ## Description

@@ -4,7 +4,9 @@
 - **Status:** Open
 - **Priority:** Medium
 - **Branch:** `main`
-- **Commit:** `7360f0a877c90528b684a3238cc7f8be97996f7a`
+- **Commit reviewed:** `7360f0a877c90528b684a3238cc7f8be97996f7a`
+- **Re-verified at:** `06d81ed` (2026-08-15) — **still applies.** `google/pagespeed.ts` is unchanged.
+  All line references remain accurate. The central claim below is **still untested.**
 - **Evidence standard:** Reasoned from code — the central technical claim is **unverified**, see Open questions
 
 ## Description

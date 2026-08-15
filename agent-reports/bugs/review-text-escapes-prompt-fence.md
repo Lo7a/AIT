@@ -4,7 +4,9 @@
 - **Status:** Open
 - **Priority:** High
 - **Branch:** `main`
-- **Commit:** `7360f0a877c90528b684a3238cc7f8be97996f7a`
+- **Commit reviewed:** `7360f0a877c90528b684a3238cc7f8be97996f7a`
+- **Re-verified at:** `06d81ed` (2026-08-15) — **still applies.** `analyze/reviews.ts` is unchanged
+  and contains no delimiter strip. All line references remain accurate.
 - **Evidence standard:** Reasoned from code — not executed against a live model
 
 ## Description

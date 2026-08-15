@@ -4,7 +4,11 @@
 - **Status:** Open
 - **Priority:** Medium
 - **Branch:** `main`
-- **Commit:** `7360f0a877c90528b684a3238cc7f8be97996f7a`
+- **Commit reviewed:** `7360f0a877c90528b684a3238cc7f8be97996f7a`
+- **Re-verified at:** `06d81ed` (2026-08-15) — **still applies.** `report/narrative.ts` is unchanged.
+  All line references remain accurate. Related: commit `0e01228` records a founder decision about a
+  "narrative-staleness gate check", which touches the same subsystem — worth confirming it does not
+  overlap with this finding before acting.
 - **Evidence standard:** Reasoned from code — not executed
 
 ## Description

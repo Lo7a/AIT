@@ -4,7 +4,12 @@
 - **Status:** Open
 - **Priority:** High
 - **Branch:** `main`
-- **Commit:** `7360f0a877c90528b684a3238cc7f8be97996f7a`
+- **Commit reviewed:** `7360f0a877c90528b684a3238cc7f8be97996f7a`
+- **Re-verified at:** `06d81ed` (2026-08-15) — **still reproduces.** `crawler/crawl.ts`, where the
+  defect lives, is unchanged; lines 108, 118 and 125 remain accurate. The consumer moved:
+  `score/dimensions.ts` grew by 162 lines in milestone 4 task 0/1, so the `multi_page` rule is now
+  at **`dimensions.ts:299-302`** (was 183-187). Its logic is unchanged —
+  `earned: (f) => (f.websiteSignals?.pagesCrawled ?? 0) >= 4`, still 15 points.
 - **Evidence standard:** Verified by execution
 
 ## Description

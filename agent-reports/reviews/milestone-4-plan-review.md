@@ -4,10 +4,33 @@
 - **Status:** Open
 - **Priority:** High — reviewed before implementation, so the cheapest moment to act
 - **Branch:** `main`
-- **Commit:** `7360f0a877c90528b684a3238cc7f8be97996f7a`
+- **Commit reviewed:** `7360f0a877c90528b684a3238cc7f8be97996f7a`
+- **Re-verified at:** `06d81ed` (2026-08-15) — **partially overtaken by implementation.** See the
+  status update immediately below.
 - **Document reviewed:** `docs/plans/2026-08-15-milestone-4-roadmap.md`
-- **Implementation status at review time:** not started — all task checkboxes unchecked; HEAD is
+- **Implementation status at review time:** not started — all task checkboxes unchecked; HEAD was
   the documentation commit for task 0.5
+
+## Status update at `06d81ed`
+
+Milestone 4 moved fast between 13:01 and 14:15 on 2026-08-15. **Tasks 0, 0.5, 0.7 and 1 have
+shipped**, so the "not started" line above describes the review moment, not the present.
+
+| Task | Commits | Effect on this review |
+|---|---|---|
+| 0 — social presence as website | `dade448`, `4a2f1ed` | §3 below is **resolved** |
+| 0.5 — branch picker + URL searches Maps | `897d5ab`, `f1a1de8` | Amplifies an open bug — see note |
+| 0.7 — business contact columns, raw scan payload | `4b14be2` | Not covered by this review |
+| 1 — process maturity dimension | `6311756` | §2 below is **superseded** — see correction |
+
+**Task 7 has not shipped**, so §1 — the unauthenticated email endpoint — remains open and is now
+the most time-sensitive item in this document.
+
+**New note on task 0.5.** It is live, and it routes typed URLs through `parseDiagnoseBody`. That
+is the validator carrying the `fc`/`fd` false positive in
+[`../bugs/forbidden-host-rejects-fc-fd-domains.md`](../bugs/forbidden-host-rejects-fc-fd-domains.md),
+so the amplification that report predicted has now actually happened. That bug is unfixed as of
+`06d81ed`.
 
 ## Assessment
 
@@ -62,7 +85,30 @@ used as the interim safeguard.
 
 ---
 
-## 2. Tasks 1 and 5 name a function that does not exist — Priority: Low
+## 2. Tasks 1 and 5 name a function that does not exist — Priority: Low — **RESOLVED in `6311756`**
+
+> **Update at `06d81ed`.** Task 1 has shipped and the implementer did not follow the plan's naming.
+> `computeScores` still does not exist anywhere in the codebase. What was actually built is a new
+> second entry point alongside the existing one:
+>
+> ```ts
+> // src/pipeline/score/engine.ts:70-72
+> export function scoreWithModel(f: ScanFindings, model: BusinessModel | null): ScoreReport {
+>   return scoreFindings(buildDimensions(model), f);
+> }
+> ```
+>
+> This is a better design than the plan proposed: `scoreFindings(defs, f)` keeps its signature
+> untouched, `buildDimensions(model)` in `dimensions.ts` composes the rule set, and `model = null`
+> reproduces the old `DIMENSIONS` exactly — so the zero-regression requirement holds structurally
+> rather than by test alone. `run-interview.ts:160` calls `scoreWithModel`;
+> `run-diagnosis.ts:174` still calls `scoreFindings(DIMENSIONS, findings)`, so the initial scan
+> keeps the process stub and only the interview refresh lights the dimension up. That matches the
+> plan's intent.
+>
+> The finding below is retained for the record; the correction it asked for is no longer needed.
+
+
 
 The plan repeatedly refers to `computeScores(findings, model?)`:
 
@@ -93,7 +139,23 @@ as an option — that is the less invasive of the two it lists, since it avoids 
 
 ---
 
-## 3. Task 0's `websiteKeyOf` collision is real — confirmed, and the planned fix is right
+## 3. Task 0's `websiteKeyOf` collision is real — **RESOLVED in `dade448` / `4a2f1ed`**
+
+> **Update at `06d81ed`.** Task 0 has shipped and this is fixed. `src/server/website-key.ts` now
+> imports `canonicalSocialHost` and `identityPathOf` from the new `src/pipeline/social-hosts.ts`
+> and derives the key from both host and identity path. The shipped fix goes further than this
+> report anticipated in two useful ways: `identityPathOf` handles identities that span more than
+> one path segment or live in a query string, and `canonicalSocialHost` folds `m.facebook.com/x`
+> and `facebook.com/x` onto the same key so mobile and desktop URLs are not treated as two
+> businesses. `tests/website-key.test.ts` gained 88 lines.
+>
+> **The one caveat this report raised is still open:** the fix is forward-looking only. Any rows
+> that already merged under the old key remain merged. A query against `businesses` for
+> social-host `website_key` values would establish whether any repair is needed. Not verified —
+> no database access was used in this review.
+
+## Original finding (retained for the record)
+
 
 The plan asserts an identity bug:
 

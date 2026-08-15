@@ -14,36 +14,45 @@ a suggested direction — none of it has been applied.
 | Reviewed commit | `7360f0a877c90528b684a3238cc7f8be97996f7a` |
 | Branch reviewed | `main` |
 | Reviewed on | 2026-08-15 |
+| Last re-verified against | `06d81ed` (2026-08-15) — all seven findings still stood |
 | Working tree at review time | Clean, level with `origin/main` |
 
-### Step 1 — verify before you trust anything here
+### Step 1 — measure the drift before you trust anything here
 
-The commit carrying these reports was made directly on top of the reviewed commit, so the
-anchor is structural, not just documented:
+These reports live on `main` alongside the code they describe, so `main` will keep moving
+underneath them. Do not check the parent commit — check the **distance** from the reviewed
+revision:
 
 ```
-git rev-parse HEAD^        # must print 7360f0a877c90528b684a3238cc7f8be97996f7a
-git rev-parse HEAD
-git status --short
+git merge-base --is-ancestor 7360f0a HEAD && echo "reviewed commit is in history"
+git log --oneline 7360f0a..HEAD                                  # what has changed since
+git diff --stat 7360f0a HEAD -- src/                             # which source files moved
 ```
 
-- **`HEAD^` is `7360f0a`** → every line number, quoted snippet, and finding is current.
-- **You are on a later commit** → line numbers may have drifted and some findings may already be
-  fixed. Re-locate each finding by its **quoted code**, not by line number, and confirm it still
-  exists before changing anything. `git log --oneline 7360f0a..HEAD` shows what moved.
+- **No source files listed** → every line number, quoted snippet, and finding is current.
+- **Source files listed** → check whether any of them carries a finding you are about to act on.
+  Each report header states which file it depends on and when it was last re-verified. Re-locate
+  the finding by its **quoted code**, not by line number, and confirm it still exists before
+  changing anything.
 
 Line numbers here are a convenience. The quoted source snippets are the real identifier.
 
-## Baseline measured at `7360f0a`
+If you re-verify a report, update its `Re-verified at:` header line. That is how the next reader
+knows how much to trust it.
 
-| Check | Result |
-|---|---|
-| `npm test` | 387 passed / 34 files, exit 0 |
-| `npx tsc --noEmit` | Clean, exit 0 |
-| `npm run build` | **Not run** — see environment notes |
+## Baseline
 
-Reproduce this baseline before your first edit. If it does not reproduce on your machine, stop
-and find out why; do not start fixing on top of an unexplained failure.
+| Check | At `7360f0a` (reviewed) | At `06d81ed` (re-verified) |
+|---|---|---|
+| `npm test` | 387 passed / 34 files, exit 0 | **469 passed / 37 files, exit 0** |
+| `npx tsc --noEmit` | Clean, exit 0 | Not re-run |
+| `npm run build` | Not run | Not run — see environment notes |
+
+Reproduce the baseline for whatever commit you are on before your first edit. If it does not
+reproduce, stop and find out why; do not start fixing on top of an unexplained failure.
+
+The suite is green at `06d81ed`, so every finding in these reports is a defect that **passes the
+existing tests**. Each report's acceptance criteria names the test that would have caught it.
 
 ## Read in this order
 
@@ -98,6 +107,10 @@ Ordered by cost-to-fix against value, not purely by severity.
 
 Items 1–3 are independent and safe to do in one sitting. Item 4 changes crawler behaviour and
 deserves its own review round.
+
+**Two items became more urgent at `06d81ed`.** Milestone 4 task 0.5 shipped, so item 1's validator
+now sees more traffic than it did at review time. And task 7 has *not* shipped yet — item 8 is
+still ahead of it, but that window closes the moment the brief endpoint lands.
 
 ## Report hygiene
 
