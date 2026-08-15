@@ -90,6 +90,40 @@ describe("runPageSpeed", () => {
     expect(result.seoScore).toBe(0);
   });
 
+  it("returns a trimmed raw payload (categories/core metrics/loadingExperience) - not the full audits tree", async () => {
+    const fetchImpl = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
+      psiResponse({
+        loadingExperience: { overall_category: "AVERAGE" },
+        lighthouseResult: {
+          categories: { performance: { score: 0.42 }, seo: { score: 0.9 } },
+          audits: {
+            "largest-contentful-paint": { numericValue: 4123.5 },
+            "cumulative-layout-shift": { numericValue: 0.12 },
+            "total-blocking-time": { numericValue: 300 },
+            // audit לא-ליבה שלא אמור להגיע ל-raw המקוצץ (עץ ה-audits המלא הוא מגה-בייטים)
+            "unused-css-rules": { numericValue: 999, details: { items: new Array(500).fill({}) } },
+          },
+        },
+      }));
+    const result = await runPageSpeed("https://example.co.il", { apiKey: "k", fetchImpl });
+    expect(result.raw).toEqual({
+      categories: { performance: { score: 0.42 }, seo: { score: 0.9 } },
+      metrics: {
+        "largest-contentful-paint": 4123.5,
+        "cumulative-layout-shift": 0.12,
+        "total-blocking-time": 300,
+      },
+      loadingExperience: { overall_category: "AVERAGE" },
+    });
+    expect(JSON.stringify(result.raw)).not.toContain("unused-css-rules");
+  });
+
+  it("raw is undefined when lighthouseResult is missing entirely", async () => {
+    const fetchImpl = vi.fn(async () => psiResponse({}));
+    const result = await runPageSpeed("https://example.co.il", { apiKey: "k", fetchImpl });
+    expect(result.raw).toBeUndefined();
+  });
+
   it("throws when PSI returns 200 with a lighthouse runtimeError", async () => {
     const fetchImpl = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
       psiResponse({

@@ -1,11 +1,12 @@
 import type { PrismaClient, Prisma } from "@prisma/client";
-import type { ScanFindings } from "../pipeline/types";
+import type { ScanFindings, ScanRawPayload } from "../pipeline/types";
 import type { ScoreReport } from "../pipeline/score/types";
 import type { NarrativeResult } from "../pipeline/report/narrative";
 import type { LlmUsage } from "../pipeline/llm/client";
 import type { BusinessModel } from "../pipeline/model/business-model";
 import { assertTransition, type DiagnosisStatus } from "./status";
 import { websiteKeyOf } from "./website-key";
+import { cityOf } from "../pipeline/city-of";
 
 export interface LlmPricing { usdPerMInput: number; usdPerMOutput: number }
 
@@ -26,6 +27,9 @@ export interface ScanRow {
   llmCost: number;
   apiCost: number;
   durationMs: number;
+  // payload גולמי (מקוצץ אצל PageSpeed) - עמודה נפרדת מ-findings כדי לא לשכפל נתונים כבדים
+  // בכל קריאה של הדוח (אבן דרך 4, משימה 0.7). לשימוש עתידי בלבד - לא נצרך היום
+  raw: ScanRawPayload | null;
 }
 
 // ממפה טהור — כל לוגיקת העמודות במקום אחד, נבדק אופליין
@@ -48,6 +52,7 @@ export function toScanRow(
     llmCost: llmCostUsd(usage, pricing),
     apiCost: findings.meta.estCostUsd,
     durationMs: findings.meta.durationMs,
+    raw: findings.raw ?? null,
   };
 }
 
@@ -128,6 +133,7 @@ export async function saveScanResult(
         llmCost: row.llmCost,
         apiCost: row.apiCost,
         durationMs: row.durationMs,
+        raw: (row.raw ?? undefined) as object | undefined,
       },
     }),
     prisma.businessModelRow.upsert({
@@ -142,4 +148,40 @@ export async function saveScanResult(
       },
     }),
   ]);
+}
+
+export interface BusinessContactFindings {
+  phone?: string;
+  address?: string;
+}
+
+// העשרת שורת העסק אחרי סריקה (אבן דרך 4, משימה 0.7): phone/address תמיד מתעדכנים כשיש ערך חדש
+// מהסריקה - אין קונפליקט אפשרי, המקור היחיד שלהם הוא Places. city שונה: יכול להיות שהוקלד ידנית
+// (למשל דרך CLI --city) והוא נכון יותר ממה ש-cityOf גוזר מהכתובת הפורמלית, אז לא דורסים אותו
+// בעיוורון - מעדכנים רק כש-cityOf מפיק ערך וגם (אין city קיים או שהוא שונה מהקיים).
+//
+// קריאה-ואז-כתיבה מותנית לא מתאימה ל-$transaction המערכי של saveScanResult בלי לעבור לטרנזקציה
+// אינטראקטיבית לשם שדה יחיד - בדיוק כמו הנימוק המתועד ב-finishInterview (run-interview.ts) על
+// רענון scores, זו העשרה נלווית (לא חלק מהאמת המהותית של האבחון עצמו) שרצה ברצף אחרי השמירה,
+// לא אטומית איתה. כשל כאן לא אמור להפיל אבחון ששולם - הקורא עוטף בעצמו ב-try/catch (run-diagnosis.ts,
+// באותו דפוס כמו backfill האתר הקיים)
+export async function enrichBusinessFromScan(
+  prisma: PrismaClient,
+  businessId: string,
+  business: BusinessContactFindings,
+): Promise<void> {
+  const data: Prisma.BusinessUpdateInput = {};
+  if (business.phone) data.phone = business.phone;
+  if (business.address) data.address = business.address;
+
+  if (business.address) {
+    const city = cityOf(business.address);
+    if (city) {
+      const current = await prisma.business.findUnique({ where: { id: businessId }, select: { city: true } });
+      if (!current?.city || current.city !== city) data.city = city;
+    }
+  }
+
+  if (Object.keys(data).length === 0) return; // כלום לעדכן - לא שווה עגול DB מיותר
+  await prisma.business.update({ where: { id: businessId }, data });
 }

@@ -1,4 +1,4 @@
-import type { PageSpeedResult } from "../types";
+import type { PageSpeedRawTrimmed, PageSpeedResult } from "../types";
 import { defaultFetch, readErrorBody, type FetchLike } from "../http";
 
 export interface PageSpeedOptions {
@@ -11,6 +11,34 @@ const PSI_URL = "https://pagespeedonline.googleapis.com/pagespeedonline/v5/runPa
 const TIMEOUT_MS = 60_000;
 // חלון הניסיון החוזר קצר יותר מהראשון: 60s + 30s = 90s, בדיוק תקציב "סריקה מלאה" מהספק
 const RETRY_TIMEOUT_MS = 30_000;
+
+// מדדי הליבה שאנחנו שומרים מתוך עץ ה-audits העצום (אבן דרך 4, משימה 0.7) - לא כל העץ (מגה-בייטים,
+// כולל opportunities/details לכל audit) אלא רק המספרים של Core Web Vitals + FCP/Speed Index
+const CORE_METRIC_AUDITS = [
+  "largest-contentful-paint", "cumulative-layout-shift", "total-blocking-time",
+  "first-contentful-paint", "speed-index",
+] as const;
+
+type PsiResponseBody = {
+  loadingExperience?: unknown;
+  lighthouseResult?: {
+    runtimeError?: { code?: string; message?: string };
+    categories?: { performance?: { score?: number }; seo?: { score?: number } };
+    audits?: Record<string, { numericValue?: number } | undefined>;
+  };
+};
+
+// raw מקוצץ: קטגוריות+מדדי ליבה+חוויית טעינה בלבד - לא עץ ה-audits המלא (ראו PageSpeedRawTrimmed)
+function trimRaw(body: PsiResponseBody): PageSpeedRawTrimmed | undefined {
+  const lr = body.lighthouseResult;
+  if (!lr) return undefined;
+  const metrics: Record<string, number> = {};
+  for (const id of CORE_METRIC_AUDITS) {
+    const v = lr.audits?.[id]?.numericValue;
+    if (v != null) metrics[id] = v;
+  }
+  return { categories: lr.categories, metrics, loadingExperience: body.loadingExperience };
+}
 
 async function attemptPageSpeed(
   url: string,
@@ -30,13 +58,7 @@ async function attemptPageSpeed(
     signal: AbortSignal.timeout(timeoutMs),
   });
   if (!res.ok) throw new Error(`PageSpeed HTTP ${res.status}: ${await readErrorBody(res)}`);
-  const body = (await res.json()) as {
-    lighthouseResult?: {
-      runtimeError?: { code?: string; message?: string };
-      categories?: { performance?: { score?: number }; seo?: { score?: number } };
-      audits?: { "largest-contentful-paint"?: { numericValue?: number } };
-    };
-  };
+  const body = (await res.json()) as PsiResponseBody;
   // PSI מחזיר 200 גם כשהוא נכשל לטעון את האתר — runtimeError הוא הכישלון האמיתי
   const runtimeError = body.lighthouseResult?.runtimeError;
   if (runtimeError) {
@@ -49,6 +71,7 @@ async function attemptPageSpeed(
       categories?.performance?.score != null ? Math.round(categories.performance.score * 100) : undefined,
     seoScore: categories?.seo?.score != null ? Math.round(categories.seo.score * 100) : undefined,
     lcpMs: lcp != null ? Math.round(lcp) : undefined,
+    raw: trimRaw(body),
   };
 }
 

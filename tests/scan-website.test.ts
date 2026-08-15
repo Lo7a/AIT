@@ -69,6 +69,29 @@ describe("scanWebsiteOnly", () => {
   });
 });
 
+// אבן דרך 4, משימה 0.7: payload גולמי לשימוש עתידי (scan.raw) - במסלול הזה לעולם אין placeDetails
+describe("scanWebsiteOnly - raw payload", () => {
+  it("collects pageSpeed raw and crawledUrls without leaking raw into findings.pageSpeed", async () => {
+    const pageSpeedRaw = { categories: { performance: { score: 0.4 } }, metrics: { lcp: 8000 } };
+    const findings = await scanWebsiteOnly("https://www.lavangroup.co.il/", {
+      crawl: async () => SIGNALS,
+      pagespeed: async () => ({ ...PSI, raw: pageSpeedRaw }),
+    });
+    expect(findings.raw).toEqual({ pageSpeed: pageSpeedRaw, crawledUrls: SIGNALS.crawledUrls });
+    expect(findings.pageSpeed).toEqual(PSI);
+    expect((findings.pageSpeed as { raw?: unknown }).raw).toBeUndefined();
+  });
+
+  it("social-only route: no crawl/PSI run at all, so raw is absent (nothing to save)", async () => {
+    const crawl = vi.fn();
+    const pagespeed = vi.fn();
+    const findings = await scanWebsiteOnly("https://www.facebook.com/business-social", { crawl, pagespeed });
+    expect(crawl).not.toHaveBeenCalled();
+    expect(pagespeed).not.toHaveBeenCalled();
+    expect(findings.raw).toBeUndefined();
+  });
+});
+
 describe("normalizeSiteUrl", () => {
   it("trims leading/trailing whitespace before normalizing", () => {
     expect(normalizeSiteUrl(" https://x.co.il").href).toBe("https://x.co.il/");

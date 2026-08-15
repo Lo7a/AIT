@@ -12,7 +12,9 @@ import {
 import { generateNarrative, type NarrativeOptions, type NarrativeResult } from "../pipeline/report/narrative";
 import type { ScanFindings } from "../pipeline/types";
 import type { ScoreReport } from "../pipeline/score/types";
-import { createDiagnosisForBusiness, transitionDiagnosis, saveScanResult, toScanRow } from "./diagnosis-repo";
+import {
+  createDiagnosisForBusiness, transitionDiagnosis, saveScanResult, toScanRow, enrichBusinessFromScan,
+} from "./diagnosis-repo";
 import { websiteKeyOf } from "./website-key";
 import { socialPresenceOf, socialOnlyDetail } from "../pipeline/social-hosts";
 import type { DiagnoseEvent, DiagnoseStepKey } from "./diagnose-events";
@@ -198,6 +200,17 @@ export async function runDiagnosis(
       });
     } catch (err) {
       console.error("⚠️ עדכון האתר בשורת העסק נכשל (לא קריטי):", err instanceof Error ? err.message : err);
+    }
+  }
+
+  // שלב 5ב: העשרת phone/address/city מהסריקה (אבן דרך 4, משימה 0.7) - רק במסלול Places (URL
+  // אין בו קריאת Places בכלל, אין phone/address לגזור). קוסמטי כמו backfill האתר למעלה - כשל
+  // לא מפיל אבחון ששולם (ראו נימוק מלא ב-enrichBusinessFromScan, diagnosis-repo.ts)
+  if (target.kind === "places") {
+    try {
+      await enrichBusinessFromScan(prisma, created.businessId, findings.business);
+    } catch (err) {
+      console.error("עדכון פרטי הקשר בשורת העסק נכשל (לא קריטי):", err instanceof Error ? err.message : err);
     }
   }
 

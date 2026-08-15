@@ -1,7 +1,7 @@
 import {
   JS_RENDERED_DETAIL,
   type PageSpeedResult, type PartialFlag, type PlaceDetails, type Review, type ReviewInsights,
-  type ScanFindings, type SocialOnly, type WebsiteSignals,
+  type ScanFindings, type ScanRawPayload, type SocialOnly, type WebsiteSignals,
 } from "./types";
 import type { LlmUsage } from "./llm/client";
 import { getPlaceDetails } from "./google/places";
@@ -54,6 +54,7 @@ export async function runScan(
 
   let websiteSignals: WebsiteSignals | undefined;
   let pageSpeed: PageSpeedResult | undefined;
+  let pageSpeedRaw: PageSpeedResult["raw"];
   let reviewInsights: ReviewInsights | undefined;
   let socialOnly: SocialOnly | undefined;
 
@@ -92,8 +93,13 @@ export async function runScan(
       partial.push("crawl_failed");
       partialDetails.crawl_failed = reasonOf(crawlResult);
     }
-    if (psiResult.status === "fulfilled" && psiResult.value) pageSpeed = psiResult.value;
-    else if (psiResult.status === "rejected") {
+    if (psiResult.status === "fulfilled" && psiResult.value) {
+      // מפרידים raw מהתוצאה הציבורית: findings.pageSpeed נשאר נקי כמו היום, ה-raw המקוצץ
+      // עובר בנפרד ל-findings.raw (אבן דרך 4, משימה 0.7) - בלי לשכפל אותו פעמיים באותה סריקה
+      const { raw, ...psData } = psiResult.value;
+      pageSpeed = psData;
+      pageSpeedRaw = raw;
+    } else if (psiResult.status === "rejected") {
       partial.push("pagespeed_failed");
       partialDetails.pagespeed_failed = reasonOf(psiResult);
     }
@@ -115,11 +121,19 @@ export async function runScan(
     partial.push("no_review_text");
   }
 
+  // placeDetails.raw תמיד נאסף במסלול הזה (Places רץ תמיד כאן, גם ב-socialOnly - רק crawl/PSI
+  // מדולגים) - ראו scan-website.ts להשוואה, שם אין בכלל קריאת Places
+  const raw: ScanRawPayload | undefined =
+    details.raw != null || pageSpeedRaw != null || websiteSignals?.crawledUrls != null
+      ? { placeDetails: details.raw, pageSpeed: pageSpeedRaw, crawledUrls: websiteSignals?.crawledUrls }
+      : undefined;
+
   return {
     business: {
       placeId: details.placeId,
       name: details.name,
       phone: details.phone,
+      address: details.address,
       website: details.website,
       rating: details.rating,
       reviewCount: details.reviewCount,
@@ -138,5 +152,6 @@ export async function runScan(
       llmOutputTokens: llmUsage.outputTokens,
       estCostUsd: placesCalls * EST_PLACES_CALL_USD,
     },
+    raw,
   };
 }

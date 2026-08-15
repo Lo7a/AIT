@@ -151,3 +151,51 @@ describe("runScan", () => {
     expect(findings.partial).not.toContain("few_reviews"); // reviewCount=23 — העסק לא "דל ביקורות"
   });
 });
+
+// אבן דרך 4, משימה 0.7: payload גולמי לשימוש עתידי (scan.raw)
+describe("runScan - raw payload", () => {
+  it("collects placeDetails/pageSpeed/crawledUrls raw when the collectors provide it, without leaking raw into findings.business/pageSpeed", async () => {
+    const detailsRaw = { id: "pid-1", nationalPhoneNumber: "04-1234567" };
+    const pageSpeedRaw = { categories: { performance: { score: 0.42 } }, metrics: { lcp: 4100 } };
+    const deps = richDeps({
+      details: vi.fn().mockResolvedValue({ ...RICH_DETAILS, address: "העצמאות 1, חיפה", raw: detailsRaw }),
+      pagespeed: vi.fn().mockResolvedValue({ performanceScore: 42, seoScore: 90, lcpMs: 4100, raw: pageSpeedRaw }),
+    });
+    const findings = await runScan("pid-1", deps);
+    expect(findings.business.address).toBe("העצמאות 1, חיפה");
+    expect(findings.raw).toEqual({
+      placeDetails: detailsRaw,
+      pageSpeed: pageSpeedRaw,
+      crawledUrls: RICH_SIGNALS.crawledUrls,
+    });
+    // findings.pageSpeed נשאר נקי - בלי raw מוטבע בתוכו (אין כפילות)
+    expect(findings.pageSpeed).toEqual({ performanceScore: 42, seoScore: 90, lcpMs: 4100 });
+    expect((findings.pageSpeed as { raw?: unknown }).raw).toBeUndefined();
+  });
+
+  it("still captures placeDetails raw on the social-only route (Places always runs there); crawl/PSI raw stay absent", async () => {
+    const detailsRaw = { id: "pid-1", websiteUri: "https://www.facebook.com/business-social" };
+    const crawl = vi.fn();
+    const pagespeed = vi.fn();
+    const deps = richDeps({
+      details: vi.fn().mockResolvedValue({
+        ...RICH_DETAILS, website: "https://www.facebook.com/business-social", raw: detailsRaw,
+      }),
+      crawl, pagespeed,
+    });
+    const findings = await runScan("pid-1", deps);
+    expect(crawl).not.toHaveBeenCalled();
+    expect(pagespeed).not.toHaveBeenCalled();
+    expect(findings.raw).toEqual({ placeDetails: detailsRaw, pageSpeed: undefined, crawledUrls: undefined });
+  });
+
+  it("findings.raw is undefined when no collector supplies raw data (e.g. mocks without it)", async () => {
+    const findings = await runScan("pid-2", richDeps({
+      details: vi.fn().mockResolvedValue({
+        placeId: "pid-2", name: "אינסטלטור דוד", website: undefined, rating: 5, reviewCount: 2,
+        reviews: [{ rating: 5, text: "מקצוען" }],
+      }),
+    }));
+    expect(findings.raw).toBeUndefined();
+  });
+});

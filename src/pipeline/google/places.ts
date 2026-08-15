@@ -58,8 +58,10 @@ export async function getPlaceDetails(
   opts: PlacesOptions = {},
 ): Promise<PlaceDetails> {
   const { apiKey, fetchImpl } = resolveOpts(opts);
+  // formattedAddress נוסף לגזירת עיר/כתובת (אבן דרך 4, משימה 0.7) - אותה רמת חיוב, ה-Contact SKU
+  // כבר פעיל בגלל nationalPhoneNumber
   const fieldMask =
-    "id,displayName,nationalPhoneNumber,websiteUri,rating,userRatingCount,reviews";
+    "id,displayName,formattedAddress,nationalPhoneNumber,websiteUri,rating,userRatingCount,reviews";
   const res = await fetchImpl(
     `${DETAILS_URL}/${encodeURIComponent(placeId)}?languageCode=he`,
     {
@@ -71,6 +73,7 @@ export async function getPlaceDetails(
   const body = (await res.json()) as {
     id: string;
     displayName?: { text?: string };
+    formattedAddress?: string;
     nationalPhoneNumber?: string;
     websiteUri?: string;
     rating?: number;
@@ -95,9 +98,11 @@ export async function getPlaceDetails(
     placeId: body.id,
     name: body.displayName?.text ?? "",
     phone: body.nationalPhoneNumber,
+    address: body.formattedAddress,
     website: body.websiteUri,
     rating: body.rating,
     reviewCount: body.userRatingCount,
     reviews,
+    raw: body,
   };
 }

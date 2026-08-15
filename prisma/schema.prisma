@@ -17,8 +17,11 @@ model Business {
   // זהות עסק אתר-בלבד: host מנורמל (websiteKeyOf) — upsert אטומי במקום findFirst+create
   websiteKey String?     @unique @map("website_key")
   website    String?
+  phone      String?
+  address    String?
   city       String?
   createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @default(now()) @updatedAt @map("updated_at")
   diagnoses  Diagnosis[]
 
   @@map("businesses")
@@ -48,10 +51,13 @@ model Scan {
   findings    Json
   scores      Json?
   narrative   Json?
+  // גוף גולמי (מקוצץ אצל PageSpeed) מהספקים - לשימוש עתידי, לא נצרך היום בשום מסך (אבן דרך 4, משימה 0.7)
+  raw         Json?
   llmCost     Decimal?  @map("llm_cost") @db.Decimal(10, 4)
   apiCost     Decimal?  @map("api_cost") @db.Decimal(10, 4)
   durationMs  Int       @map("duration_ms")
   createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
 
   @@index([diagnosisId])
   @@map("scans")
@@ -66,6 +72,7 @@ model InterviewMessage {
   questionKey String?   @map("question_key")
   isFreeText  Boolean   @default(false) @map("is_free_text")
   createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
 
   @@index([diagnosisId, createdAt])
   @@map("interview_messages")
@@ -89,6 +96,7 @@ model Roadmap {
   diagnosisId String        @map("diagnosis_id") @db.Uuid
   diagnosis   Diagnosis     @relation(fields: [diagnosisId], references: [id])
   createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @default(now()) @updatedAt @map("updated_at")
   items       RoadmapItem[]
 
   @@index([diagnosisId])
@@ -105,6 +113,7 @@ model RoadmapItem {
   confidence String
   phase      String
   status     String             @default("proposed")
+  updatedAt  DateTime           @default(now()) @updatedAt @map("updated_at")
   briefs     Brief[]
 
   @@index([roadmapId, phase, score(sort: Desc)])
@@ -119,6 +128,7 @@ model Brief {
   content       String
   sentAt        DateTime?   @map("sent_at")
   createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @default(now()) @updatedAt @map("updated_at")
 
   @@index([roadmapItemId])
   @@map("briefs")
@@ -135,6 +145,7 @@ model OpportunityCatalog {
   complexity  String
   installTime String                       @map("install_time")
   embedding   Unsupported("vector(768)")?
+  updatedAt   DateTime                     @default(now()) @updatedAt @map("updated_at")
   items       RoadmapItem[]
   benchmarks  Benchmark[]
 
@@ -149,6 +160,7 @@ model Benchmark {
   range      String
   source     String
   verifiedAt DateTime           @map("verified_at")
+  updatedAt  DateTime           @default(now()) @updatedAt @map("updated_at")
 
   @@index([catalogId])
   @@map("benchmarks")

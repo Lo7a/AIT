@@ -68,9 +68,10 @@ describe("searchBusiness", () => {
 
 describe("getPlaceDetails", () => {
   it("maps details incl. reviews and drops empty-text reviews", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({
+    const responseBody = {
       id: "pid-1",
       displayName: { text: "מוסך הצפון" },
+      formattedAddress: "העצמאות 1, חיפה, ישראל",
       nationalPhoneNumber: "04-1234567",
       websiteUri: "https://example.co.il",
       rating: 4.6,
@@ -81,13 +82,15 @@ describe("getPlaceDetails", () => {
         { rating: 4 },
         { rating: 3, text: { text: "טוב מאוד" }, originalText: { text: "Very good service" } },
       ],
-    }));
+    };
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(responseBody));
     const details = await getPlaceDetails("pid-1", { apiKey: "test-secret-key", fetchImpl });
     expect(details.reviews).toHaveLength(3);
     expect(details).toEqual({
       placeId: "pid-1",
       name: "מוסך הצפון",
       phone: "04-1234567",
+      address: "העצמאות 1, חיפה, ישראל",
       website: "https://example.co.il",
       rating: 4.6,
       reviewCount: 23,
@@ -96,6 +99,8 @@ describe("getPlaceDetails", () => {
         { rating: 2, text: "חיכיתי שבוע לתשובה", relativeTime: undefined },
         { rating: 3, text: "טוב מאוד", relativeTime: undefined },
       ],
+      // הגוף המלא כפי שהתקבל - נשמר גם הוא (אבן דרך 4, משימה 0.7, לשימוש עתידי)
+      raw: responseBody,
     });
     const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
     expect(url).toContain("/places/pid-1");
@@ -104,6 +109,7 @@ describe("getPlaceDetails", () => {
     const headers = init.headers as Record<string, string>;
     expect(headers["X-Goog-Api-Key"]).toBe("test-secret-key");
     expect(headers["X-Goog-FieldMask"]).toContain("reviews");
+    expect(headers["X-Goog-FieldMask"]).toContain("formattedAddress");
   });
 
   it("throws a clear error on HTTP failure", async () => {

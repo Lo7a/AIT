@@ -257,3 +257,48 @@ describe("runDiagnosis - נוכחות חברתית כ'אתר' (אבן דרך 4, 
     expect(businesses[0].websiteKey).not.toBe(businesses[1].websiteKey);
   });
 });
+
+describe("runDiagnosis - העשרת עסק: phone/address/city מהסריקה (אבן דרך 4, משימה 0.7)", () => {
+  it("מסלול Places: phone/address/city נכתבים לשורת העסק אחרי הסריקה", async () => {
+    const { db, businesses } = makeFakeDb();
+    const deps: ScanDeps = {
+      ...happyScanDeps,
+      details: async () => ({
+        placeId: "p1", name: "עסק בדיקה", website: "https://x.co.il", phone: "03-1234567",
+        address: "שדרות רגר 12, באר שבע, ישראל", rating: 4.4, reviewCount: 8,
+        reviews: [{ rating: 5, text: "שירות" }],
+      }),
+    };
+    await runDiagnosis(db, { kind: "places", placeId: "p1", name: "עסק בדיקה" }, {
+      scanDeps: deps, narrativeOptions: { complete: fakeComplete },
+    });
+    expect(businesses[0].phone).toBe("03-1234567");
+    expect(businesses[0].address).toBe("שדרות רגר 12, באר שבע, ישראל");
+    expect(businesses[0].city).toBe("באר שבע");
+  });
+
+  it("מסלול Places: לא דורס city שהוקלד ידנית בעת היצירה כשהסריקה חוזרת בלי כתובת", async () => {
+    const { db, businesses } = makeFakeDb();
+    const deps: ScanDeps = {
+      ...happyScanDeps,
+      details: async () => ({
+        placeId: "p1", name: "עסק בדיקה", website: "https://x.co.il", phone: "03-1234567",
+        rating: 4.4, reviewCount: 8, reviews: [{ rating: 5, text: "שירות" }],
+        // בכוונה בלי address - הסריקה הזו לא הביאה כתובת
+      }),
+    };
+    await runDiagnosis(db, { kind: "places", placeId: "p1", name: "עסק בדיקה", city: "עיר שהוקלדה ידנית" }, {
+      scanDeps: deps, narrativeOptions: { complete: fakeComplete },
+    });
+    expect(businesses[0].city).toBe("עיר שהוקלדה ידנית");
+  });
+
+  it("מסלול URL: אין קריאת Places בכלל - אין phone/address להעשיר, לא נכשל", async () => {
+    const { db, businesses } = makeFakeDb();
+    await runDiagnosis(db, { kind: "url", url: "https://www.x.co.il/" }, {
+      websiteDeps: { crawl: happyScanDeps.crawl, pagespeed: happyScanDeps.pagespeed },
+      narrativeOptions: { complete: fakeComplete },
+    });
+    expect(businesses[0].phone).toBeNull();
+  });
+});

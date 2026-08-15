@@ -1,6 +1,7 @@
 import {
   JS_RENDERED_DETAIL,
-  type PageSpeedResult, type PartialFlag, type ScanFindings, type SocialOnly, type WebsiteSignals,
+  type PageSpeedResult, type PartialFlag, type ScanFindings, type ScanRawPayload, type SocialOnly,
+  type WebsiteSignals,
 } from "./types";
 import { crawlWebsite } from "./crawler/crawl";
 import { runPageSpeed } from "./google/pagespeed";
@@ -38,6 +39,7 @@ export async function scanWebsiteOnly(
 
   let websiteSignals: WebsiteSignals | undefined;
   let pageSpeed: PageSpeedResult | undefined;
+  let pageSpeedRaw: PageSpeedResult["raw"];
   let socialOnly: SocialOnly | undefined;
 
   // "האתר" שהוזן הוא בעצם עמוד ברשת חברתית (ממצא מייסד, אבן דרך 4 משימה 0) - מדלגים על crawl+PSI
@@ -64,12 +66,24 @@ export async function scanWebsiteOnly(
       partialDetails.crawl_failed = reasonOf(crawlResult);
     }
 
-    if (psiResult.status === "fulfilled") pageSpeed = psiResult.value;
-    else {
+    if (psiResult.status === "fulfilled") {
+      // כמו ב-scan.ts: מפרידים raw מהתוצאה הציבורית - findings.pageSpeed נשאר נקי, ה-raw המקוצץ
+      // עובר בנפרד ל-findings.raw (אבן דרך 4, משימה 0.7)
+      const { raw, ...psData } = psiResult.value;
+      pageSpeed = psData;
+      pageSpeedRaw = raw;
+    } else {
       partial.push("pagespeed_failed");
       partialDetails.pagespeed_failed = reasonOf(psiResult);
     }
   }
+
+  // אין קריאת Places במסלול הזה בכלל - placeDetails תמיד נעדר; ב-socialOnly גם crawl/PSI
+  // מדולגים לגמרי אז raw ריק - זה בסדר (אין מה לשמור)
+  const raw: ScanRawPayload | undefined =
+    pageSpeedRaw != null || websiteSignals?.crawledUrls != null
+      ? { pageSpeed: pageSpeedRaw, crawledUrls: websiteSignals?.crawledUrls }
+      : undefined;
 
   return {
     business: {
@@ -91,5 +105,6 @@ export async function scanWebsiteOnly(
       llmOutputTokens: 0,
       estCostUsd: 0,
     },
+    raw,
   };
 }
