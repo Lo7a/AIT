@@ -19,6 +19,13 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
   const scans: any[] = [];
   const models: any[] = [];
   const messages: any[] = [];
+  // קטלוג ההזדמנויות + בנצ'מרקים: קבועים בזרע (prisma/seed.ts), לא נכתבים ע"י קוד השרת - הבדיקות
+  // זורעות אותם ישירות (push), בלי צורך ב-db.opportunityCatalog.create מקביל
+  const catalogs: any[] = [];
+  const benchmarks: any[] = [];
+  const roadmaps: any[] = [];
+  const roadmapItems: any[] = [];
+  const briefs: any[] = [];
   // "from→to" לפי סדר - לב האסרטים על מכונת המצבים. נרשמים רק מעברים שהצליחו בפועל (count:1);
   // מעבר שנכשל (race מדומה דרך failTransitions, או סטטוס לא תואם) לא משאיר עקבות כאן
   const transitions: string[] = [];
@@ -28,6 +35,9 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
   // מילישנייה - כשה-caller מעביר createdAt מפורש (כמו appendExchange האמיתי) הוא מכבד אותו;
   // מונה עולה משמש רק כברירת מחדל כשלא הועבר createdAt
   let msgSeq = 0;
+  // אותו טיפול בדיוק בשביל roadmaps: שני createRoadmap רצופים באותה בדיקה (roadmap מחושב מחדש)
+  // לא אמורים להתנגש על מילישנייה - שעון מונוטוני קל כמו lastExchangeEnd ב-interview-repo.ts
+  let lastRoadmapEnd = 0;
 
   // any מפורש: הפייק מפנה לעצמו מתוך $transaction (הצורה האינטראקטיבית מקבלת את אותו client),
   // ובלי ההערה TypeScript היה נופל על הסקה מעגלית
@@ -174,6 +184,75 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
         return rows.map((m) => ({ ...m }));
       },
     },
+    roadmap: {
+      create: async ({ data }: any) => {
+        const t = Math.max(Date.now(), lastRoadmapEnd + 1);
+        lastRoadmapEnd = t;
+        const row = { id: genId("rm"), diagnosisId: data.diagnosisId, createdAt: new Date(t), updatedAt: new Date(t) };
+        roadmaps.push(row);
+        return { ...row };
+      },
+      // תמיכה מינימלית ל-roadmap-repo.ts: ה-roadmap האחרון של אבחון, ממוין לפי createdAt
+      findFirst: async ({ where, orderBy }: any) => {
+        let rows = roadmaps.filter((r) => where?.diagnosisId == null || r.diagnosisId === where.diagnosisId);
+        if (orderBy?.createdAt === "desc") {
+          rows = [...rows].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        }
+        return rows[0] ? { ...rows[0] } : null;
+      },
+    },
+    roadmapItem: {
+      create: async ({ data }: any) => {
+        // מדמה FK constraint אמיתי של Postgres (roadmap_items.catalog_id -> opportunity_catalog.id):
+        // catalogId שלא קיים בקטלוג נכשל ב-INSERT. זה גם מנגנון ההזרקה הטבעי לבדיקת אטומיות
+        // createRoadmap - כשל באמצע הלולאה חייב לגלגל אחורה גם את שורת ה-roadmap עצמה
+        if (!catalogs.some((c) => c.id === data.catalogId)) {
+          throw new Error(`roadmapItem.create: catalogId לא קיים בקטלוג: ${data.catalogId}`);
+        }
+        const row = {
+          id: genId("rmi"), roadmapId: data.roadmapId, catalogId: data.catalogId,
+          score: data.score, confidence: data.confidence, phase: data.phase,
+          status: data.status ?? "proposed", updatedAt: new Date(),
+        };
+        roadmapItems.push(row);
+        return { ...row };
+      },
+      // תמיכה מינימלית ל-roadmap-repo.ts: פריטי roadmap ממוינים, כל שורה מצורפת ל-catalog שלה
+      // (עם benchmarks מקוננים) - select/include נבלעים, כמו בכל מודל אחר בפייק הזה - התצוגה
+      // נבנית תמיד עם הצירוף המלא ו-getRoadmapView בוחר ממנה רק את מה שהוא צריך
+      findMany: async ({ where, orderBy }: any) => {
+        let rows = roadmapItems.filter((it) => where?.roadmapId == null || it.roadmapId === where.roadmapId);
+        const keys: any[] = Array.isArray(orderBy) ? orderBy : orderBy ? [orderBy] : [];
+        if (keys.length > 0) {
+          rows = [...rows].sort((a, b) => {
+            for (const key of keys) {
+              if (key.score === "desc") { const diff = b.score - a.score; if (diff !== 0) return diff; }
+              else if (key.score === "asc") { const diff = a.score - b.score; if (diff !== 0) return diff; }
+              else if (key.id === "asc") { if (a.id !== b.id) return a.id < b.id ? -1 : 1; }
+              else if (key.id === "desc") { if (a.id !== b.id) return a.id > b.id ? -1 : 1; }
+            }
+            return 0;
+          });
+        }
+        return rows.map((it) => {
+          const catalog = catalogs.find((c) => c.id === it.catalogId);
+          const itemBenchmarks = benchmarks.filter((b) => b.catalogId === it.catalogId);
+          return { ...it, catalog: catalog ? { ...catalog, benchmarks: itemBenchmarks.map((b) => ({ ...b })) } : null };
+        });
+      },
+    },
+    // תמיכה מינימלית ל-Brief (משימה 7, עוד לא נצרך כאן) - נוספה עכשיו כדי שהמודל יהיה זמין בלי
+    // לגעת בפייק שוב כשה-repo של ה-Brief ייכתב
+    brief: {
+      create: async ({ data }: any) => {
+        const row = {
+          id: genId("brief"), roadmapItemId: data.roadmapItemId, content: data.content,
+          sentAt: data.sentAt ?? null, createdAt: new Date(), updatedAt: new Date(),
+        };
+        briefs.push(row);
+        return { ...row };
+      },
+    },
     // שתי הצורות של $transaction נתמכות:
     // 1. מערך פרומיסים - הפרומיסים נבנים eager (הקריאות ל-.create/.upsert כבר רצות לפני
     //    שה-$transaction בכלל נקרא), ובניגוד ל-PrismaPromise האמיתי (lazy) הפייק רק מחכה למה
@@ -186,6 +265,7 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
       const before = {
         scans: [...scans], models: [...models], transitions: [...transitions],
         statuses: new Map(diagnoses.map((d) => [d.id, d.status])),
+        roadmaps: [...roadmaps], roadmapItems: [...roadmapItems], briefs: [...briefs],
       };
       try {
         return await arg(db);
@@ -197,10 +277,16 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
           const prev = before.statuses.get(d.id);
           if (prev != null) d.status = prev;
         }
+        roadmaps.splice(0, roadmaps.length, ...before.roadmaps);
+        roadmapItems.splice(0, roadmapItems.length, ...before.roadmapItems);
+        briefs.splice(0, briefs.length, ...before.briefs);
         throw err;
       }
     },
   };
 
-  return { db: db as any, businesses, diagnoses, scans, models, messages, transitions };
+  return {
+    db: db as any, businesses, diagnoses, scans, models, messages, transitions,
+    catalogs, benchmarks, roadmaps, roadmapItems, briefs,
+  };
 }

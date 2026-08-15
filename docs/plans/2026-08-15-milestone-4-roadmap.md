@@ -136,7 +136,9 @@ export function phaseOf(match: OpportunityMatch): "quick_wins" | "automation" | 
 - [ ] `createRoadmap(prisma, diagnosisId, items: {catalogId, score, confidence, phase}[])` - טרנזקציה: יצירת roadmap + כל הפריטים; מחזיר את ה-id. Roadmap חדש לכל חישוב (היסטוריה נשמרת - "מחושב מחדש" מהאפיון), הקריאה תמיד לוקחת את האחרון.
 - [ ] `getRoadmapView(prisma, diagnosisId)` - האחרון לפי createdAt, עם join לקטלוג + בנצ'מרקים; מחזיר RoadmapView מוכן למסך (שמות, טווחים כמחרוזות מהקטלוג, phase, score, confidence, benchmarks עם source+verifiedAt); null אם אין.
 - [ ] בדיקות: אטומיות (כשל באמצע = כלום לא נשמר), קריאת האחרון מבין שניים, join מלא.
-- [ ] Commit: `feat(4-4): roadmap repo - atomic create, latest-view read`
+- [x] Commit: `feat(4-4): roadmap repo - atomic create, latest-view read`
+
+**As-built (15.8):** RoadmapView/RoadmapItemView/RoadmapBenchmarkView מיוצאים מ-roadmap-repo; Confidence/Phase מיובאים מ-opportunity-score (טיפוס צר, לא string). סדר פריטים בקריאה: score desc ואז id asc (אין עמודת rank בסכמה - מפורש ודטרמיניסטי, קיבוץ לפי phase בצד המסך). בנצ'מרקים: Benchmark.catalogId בלבד - כל הבנצ'מרקים של פריט הקטלוג, אין מפתח עדין יותר. fake-db קיבל roadmap/roadmapItem/brief + מאגרי catalogs/benchmarks עם FK אמיתי (catalogId לא קיים = זריקה, כמו Postgres) בתוך מנגנון ה-rollback. פער שהתגלה: אין עמודת reasoning ב-RoadmapItem - משימה 5 מוסיפה במיגרציה אדיטיבית. 7 בדיקות.
 
 ### משימה 5: אורקסטרטור + נימוק LLM - run-roadmap.ts + reasoning.ts
 
