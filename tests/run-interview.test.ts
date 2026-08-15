@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { startInterview, runInterviewTurn, finishInterview } from "../src/server/run-interview";
+import { fallbackNarrative } from "../src/pipeline/report/narrative";
 import { makeFakeDb } from "./fakes/fake-db";
 import type { ScanFindings } from "../src/pipeline/types";
 
@@ -22,6 +23,16 @@ function seed(diagnoses: any[], scans: any[], status = "report_ready") {
 const okComplete = async () => ({
   data: { updates: [{ section: "lead_flow", fields: { handler: "דנה" } }], reply: "רשמתי, דנה מטפלת." },
   usage: { inputTokens: 5, outputTokens: 5 },
+});
+
+// complete תקין לרענון הנרטיב (סגירת שער FAIL 2, שינוי 2) - gapExplanations ריק כדי להימנע
+// מהתלות בציוני-האמת ובמפתחות-פער האמיתיים של כל בדיקה בנפרד (אותו דפוס כמו fakeComplete
+// ב-run-diagnosis.test.ts). מוזרק בכל מקום שבו finishInterview עובר בפועל דרך interviewing -
+// בלי complete מפורש הוא היה נופל לברירת המחדל של generateNarrative (completeJSON אמיתי),
+// שתלוי במפתח API אמיתי ובגישת רשת - אסור בבדיקת יחידה אופליין
+const narrativeOk = async () => ({
+  data: { headline: "כותרת רעננה", summary: "סיכום רענן", gapExplanations: [] },
+  usage: { inputTokens: 2, outputTokens: 2 },
 });
 
 describe("startInterview", () => {
@@ -144,11 +155,49 @@ describe("runInterviewTurn", () => {
   });
 });
 
+describe("runInterviewTurn - רענון scores תוך כדי הראיון (סגירת שער FAIL 2, שינוי 1)", () => {
+  it("אחרי תור - scan.scores מתעדכן מיידית, לא רק בסיום הראיון", async () => {
+    const { db, diagnoses, scans } = makeFakeDb() as any;
+    seed(diagnoses, scans, "interviewing");
+    await runInterviewTurn(db, "d1",
+      { content: "אני עונה תוך שעה", questionKey: "lead_flow_intake", isFreeText: false },
+      {
+        complete: async () => ({
+          data: {
+            updates: [{ section: "lead_flow", fields: { whoHandles: "בעל העסק", responseTime: "תוך שעה" } }],
+            reply: "רשמתי",
+          },
+          usage: { inputTokens: 1, outputTokens: 1 },
+        }),
+      });
+    const scan = scans.find((s: any) => s.id === "s1");
+    expect(scan.scores).toBeDefined();
+    const process = scan.scores.dimensions.find((d: any) => d.key === "process");
+    expect(process.score).not.toBeNull();
+    const leadRule = process.rules.find((r: any) => r.key === "lead_handling");
+    expect(leadRule.known).toBe(true);
+    expect(leadRule.earned).toBe(true);
+  });
+
+  it("כשל בכתיבת scores תוך כדי תור - לא מפיל את התור, התשובה עדיין נשמרת", async () => {
+    const { db, diagnoses, scans, messages } = makeFakeDb() as any;
+    seed(diagnoses, scans, "interviewing");
+    db.scan.update = async () => { throw new Error("scan update boom"); };
+    const r = await runInterviewTurn(db, "d1",
+      { content: "דנה עונה תוך שעה", questionKey: "lead_flow_intake", isFreeText: false },
+      { complete: okComplete });
+    expect(r.reply).toContain("דנה");
+    expect(messages).toHaveLength(2); // ההחלפה עצמה נשמרה - הכשל ברענון לא גלגל אותה אחורה
+    const scan = scans.find((s: any) => s.id === "s1");
+    expect(scan.scores).toBeUndefined();
+  });
+});
+
 describe("finishInterview", () => {
   it("עובר ל-report_ready", async () => {
     const { db, diagnoses, scans, transitions } = makeFakeDb() as any;
     seed(diagnoses, scans, "interviewing");
-    await finishInterview(db, "d1");
+    await finishInterview(db, "d1", { complete: narrativeOk });
     expect(transitions).toContain("interviewing→report_ready");
   });
 
@@ -190,7 +239,7 @@ describe("finishInterview - רענון scores (אבן דרך 4, משימה 1)", 
           usage: { inputTokens: 1, outputTokens: 1 },
         }),
       });
-    await finishInterview(db, "d1");
+    await finishInterview(db, "d1", { complete: narrativeOk });
     const scan = scans.find((s: any) => s.id === "s1");
     expect(scan.scores).toBeDefined();
     const process = scan.scores.dimensions.find((d: any) => d.key === "process");
@@ -242,7 +291,7 @@ describe("finishInterview - רענון scores (אבן דרך 4, משימה 1)", 
       updates: [{ section: "manual_tasks", fields: { manualTasks: "רישום ביומן ידני, שיחות כשמוכן, תזכורות ידניות" } }],
       reply: "רשמתי",
     });
-    await finishInterview(db, "d1");
+    await finishInterview(db, "d1", { complete: narrativeOk });
     const scan = scans.find((s: any) => s.id === "s1");
     const process = scan.scores.dimensions.find((d: any) => d.key === "process");
     expect(process.score).not.toBeNull();
@@ -263,10 +312,15 @@ describe("finishInterview - רענון scores (אבן דרך 4, משימה 1)", 
     const { db, diagnoses, scans, transitions } = makeFakeDb() as any;
     seed(diagnoses, scans, "interviewing");
     db.scan.update = async () => { throw new Error("scan update boom"); };
-    await expect(finishInterview(db, "d1")).resolves.toBeUndefined();
+    // complete שזורק מפורש (לא ברירת המחדל) - כך שגם ניסיון רענון הנרטיב (שינוי 2) לא תלוי
+    // ברשת/מפתח API אמיתי; generateNarrative עצמו בולע את הכשל הזה ומחזיר fallback, שהכתיבה
+    // שלו ל-DB נכשלת גם היא באותו override
+    await expect(finishInterview(db, "d1", { complete: async () => { throw new Error("no network in tests"); } }))
+      .resolves.toBeUndefined();
     expect(transitions.some((t: string) => t.startsWith("interviewing") && t.endsWith("report_ready"))).toBe(true);
     const scan = scans.find((s: any) => s.id === "s1");
     expect(scan.scores).toBeUndefined(); // הכתיבה נכשלה - לא נשאר עם scores חלקיים/פגומים
+    expect(scan.narrative).toBeUndefined(); // אותו override מפיל גם את כתיבת הנרטיב - לא נשאר עם נרטיב חלקי
   });
 
   // סקירת קוד (סבב 2, M5): מוטציה שהופכת orderBy desc ל-asc ב-scan.findFirst הייתה שורדת בלי
@@ -278,10 +332,71 @@ describe("finishInterview - רענון scores (אבן דרך 4, משימה 1)", 
     const newFindings: ScanFindings = { ...findings, business: { ...findings.business, name: "עסק חדש" } };
     scans.push({ id: "s-old", diagnosisId: "d1", findings: oldFindings, createdAt: new Date("2026-01-01") });
     scans.push({ id: "s-new", diagnosisId: "d1", findings: newFindings, createdAt: new Date("2026-02-01") });
-    await finishInterview(db, "d1");
+    await finishInterview(db, "d1", { complete: narrativeOk });
     const oldScan = scans.find((s: any) => s.id === "s-old");
     const newScan = scans.find((s: any) => s.id === "s-new");
     expect(oldScan.scores).toBeUndefined();
     expect(newScan.scores).toBeDefined();
+  });
+});
+
+describe("finishInterview - רענון narrative (סגירת שער FAIL 2, שינוי 2)", () => {
+  it("מייצר ושומר נרטיב טרי מהציונים המרועננים", async () => {
+    const { db, diagnoses, scans } = makeFakeDb() as any;
+    seed(diagnoses, scans, "interviewing");
+    scans.find((s: any) => s.id === "s1").narrative = {
+      narrative: { headline: "כותרת ישנה מלפני הראיון", summary: "ישן", gapExplanations: [] },
+      usage: { inputTokens: 0, outputTokens: 0 }, usedFallback: false,
+    };
+    await runInterviewTurn(db, "d1",
+      { content: "אני עונה תוך שעה", questionKey: "lead_flow_intake", isFreeText: false },
+      { complete: okComplete });
+    await finishInterview(db, "d1", { complete: narrativeOk });
+    const scan = scans.find((s: any) => s.id === "s1");
+    expect(scan.narrative.narrative.headline).toBe("כותרת רעננה");
+    expect(scan.narrative.usedFallback).toBe(false);
+  });
+
+  it("כשל LLM (429/רשת) - נשמר הנרטיב הדטרמיניסטי של generateNarrative עצמו (usedFallback: true), לא נזרק", async () => {
+    const { db, diagnoses, scans } = makeFakeDb() as any;
+    seed(diagnoses, scans, "interviewing");
+    await expect(finishInterview(db, "d1", { complete: async () => { throw new Error("429"); } }))
+      .resolves.toBeUndefined();
+    const scan = scans.find((s: any) => s.id === "s1");
+    expect(scan.narrative).toBeDefined();
+    expect(scan.narrative.usedFallback).toBe(true);
+    // הפולבק הדטרמיניסטי בנוי מ-fallbackNarrative(findings, scores) - עקבי עם הציונים הטריים
+    // שנכתבו על אותה שורה, לא עם מה שהיה שמור לפני סיום הראיון
+    expect(scan.narrative.narrative.headline).toBe(fallbackNarrative(findings, scan.scores).headline);
+  });
+
+  it("קריסה קשה בשלב שמירת הנרטיב - הנרטיב הישן נשאר, finishInterview עדיין מצליח", async () => {
+    const { db, diagnoses, scans, transitions } = makeFakeDb() as any;
+    seed(diagnoses, scans, "interviewing");
+    const oldNarrative = {
+      narrative: { headline: "כותרת ישנה", summary: "ישן", gapExplanations: [] },
+      usage: { inputTokens: 0, outputTokens: 0 }, usedFallback: false,
+    };
+    scans.find((s: any) => s.id === "s1").narrative = oldNarrative;
+    const originalUpdate = db.scan.update;
+    // הכתיבה של scores (data.scores) עדיין עוברת דרך המימוש האמיתי; רק כתיבת narrative קורסת -
+    // מדמה כשל DB אמיתי בצעד הנרטיב בלבד, בלי לגעת ברענון ה-scores הרגיל
+    db.scan.update = async (args: any) => {
+      if (args.data.narrative) throw new Error("narrative write boom");
+      return originalUpdate(args);
+    };
+    await expect(finishInterview(db, "d1", { complete: narrativeOk })).resolves.toBeUndefined();
+    expect(transitions).toContain("interviewing→report_ready");
+    const scan = scans.find((s: any) => s.id === "s1");
+    expect(scan.narrative).toEqual(oldNarrative); // הנרטיב הישן נשאר בדיוק כפי שהיה
+    expect(scan.scores).toBeDefined(); // רענון ה-scores הרגיל (שינוי 1/הישן) עדיין הצליח
+  });
+
+  it("no-op מ-report_ready - לא נוגע בנרטיב", async () => {
+    const { db, diagnoses, scans } = makeFakeDb() as any;
+    seed(diagnoses, scans, "report_ready");
+    await finishInterview(db, "d1", { complete: narrativeOk });
+    const scan = scans.find((s: any) => s.id === "s1");
+    expect(scan.narrative).toBeUndefined();
   });
 });

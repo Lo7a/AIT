@@ -6,6 +6,7 @@ import { scoreWithModel } from "../pipeline/score/engine";
 import { matchOpportunities, type CatalogRowLite, type OpportunityMatch } from "../pipeline/roadmap/matching";
 import { scoreOpportunity, phaseOf } from "../pipeline/roadmap/opportunity-score";
 import { buildReasoning, type CompleteFn, type ReasoningItemInput } from "../pipeline/roadmap/reasoning";
+import { generateNarrative } from "../pipeline/report/narrative";
 import { InterviewError } from "../pipeline/interview/contract";
 import { toFindings, toModelView } from "./diagnosis-read";
 import { transitionDiagnosis } from "./diagnosis-repo";
@@ -13,10 +14,11 @@ import { createRoadmap, type RoadmapItemInput } from "./roadmap-repo";
 import type { DiagnosisStatus } from "./status";
 
 // אורקסטרטור ה-Roadmap (אבן דרך 4, משימה 5): מחשב ציונים טריים מהממצאים האחרונים + המודל
-// המעודכן בזיכרון בלבד (בלי לגעת ב-scan.scores השמור - זה תפקידו של finishInterview, ראו
-// run-interview.ts משימה 1), מתאים הזדמנויות מהקטלוג, מדרג אותן, מנמק ב-LLM (מוגן - כשל בשכבת
-// הנימוק לעולם לא מפיל את ה-Roadmap), ושומר אטומית. Roadmap חדש בכל קריאה - "מחושב מחדש" הוא
-// הזרימה הרגילה, לא מקרה קצה (ראו status.ts: roadmap_ready -> interviewing -> roadmap_ready).
+// המעודכן, מתאים הזדמנויות מהקטלוג, מדרג אותן, מנמק ב-LLM (מוגן - כשל בשכבת הנימוק לעולם לא
+// מפיל את ה-Roadmap), ושומר אטומית. Roadmap חדש בכל קריאה - "מחושב מחדש" הוא הזרימה הרגילה, לא
+// מקרה קצה (ראו status.ts: roadmap_ready -> interviewing -> roadmap_ready). מאז סגירת שער FAIL 2
+// (שינוי 3) הציונים הטריים האלה נכתבים גם ל-scan.scores בסוף הבנייה (לא רק בזיכרון) - ראו הערה
+// למטה ליד הכתיבה עצמה.
 
 // roadmap_ready כלול בכוונה - חישוב מחדש (למשל אחרי חזרה לראיון ועוד חזרה ל-roadmap_ready) לא
 // אמור להיכשל; ההבדל היחיד מ-report_ready/interviewing הוא שאין צורך במעבר סטטוס (ראו למטה)
@@ -26,6 +28,8 @@ interface RoadmapState {
   status: DiagnosisStatus;
   findings: ScanFindings;
   model: BusinessModel | null;
+  scanId: string; // לכתיבת הציונים הטריים ולהשוואה מול מה ששמור (סגירת שער FAIL 2, שינוי 3)
+  storedScores: unknown; // scan.scores כפי שהיה שמור לפני הבנייה הזו - להשוואה בלבד, לא מפוענח לטיפוס
 }
 
 // בכוונה לא משתמשים ב-getInterviewState (interview-repo.ts): הוא מקפל "אבחון לא קיים" ו"אין
@@ -44,6 +48,8 @@ async function loadStateOrThrow(prisma: PrismaClient, diagnosisId: string): Prom
     status: d.status as DiagnosisStatus,
     findings: toFindings(scan.findings),
     model: modelRow ? toModelView(modelRow) : null,
+    scanId: scan.id,
+    storedScores: scan.scores ?? null,
   };
 }
 
@@ -123,8 +129,8 @@ export async function buildRoadmap(
     throw new InterviewError("אי אפשר לבנות Roadmap במצב הנוכחי של האבחון", "invalid");
   }
 
-  // ציונים טריים בזיכרון בלבד - לא כותבים ל-scan.scores כאן (זה תפקיד finishInterview, אבן
-  // דרך 4 משימה 1); ה-Roadmap צריך את התמונה העדכנית ביותר להתאמה עצמה, לא לרענון הדוח השמור
+  // ה-Roadmap צריך את התמונה העדכנית ביותר להתאמה עצמה - הציונים האלה גם נכתבים ל-scan.scores
+  // בסוף הפונקציה (סגירת שער FAIL 2, שינוי 3), אחרי שהבנייה עצמה כבר הצליחה
   const scores = scoreWithModel(state.findings, state.model);
   const catalog = await loadCatalog(prisma);
   const matches = matchOpportunities(scores, state.model, catalog);
@@ -178,6 +184,36 @@ export async function buildRoadmap(
   // (וגם שם הסטטוס עלול להשתנות תוך כדי - ראו reachStatusOrConflict)
   if (state.status !== "roadmap_ready") {
     await reachStatusOrConflict(prisma, diagnosisId, "roadmap_ready");
+  }
+
+  // ריפוי הדוח הישן (סגירת שער FAIL 2, שינוי 3 - סוגר בדיקה 7 בשער): scores למעלה כבר מחושבים
+  // טריים לצורך ההתאמה עצמה; עכשיו נכתבים גם ל-scan.scores. זה סוגר שני מסלולים בבת אחת: (א)
+  // אבחונים שנסגרו לפני ששינוי 1 (רענון תוך-ראיון) או שינוי 2 (רענון נרטיב בסיום) נחתו - אין
+  // backfill חד-פעמי נפרד, הבנייה הבאה של Roadmap כבר מרפאת אותם בעצמה; (ב) המסלול
+  // roadmap_ready->interviewing->roadmap_ready שבודק שוב Roadmap אחרי חזרה לראיון ועוקף את
+  // finishInterview לגמרי. לא בתוך הטרנזקציה של createRoadmap למעלה, ואחרי שהיא כבר הצליחה -
+  // אותו דפוס בדיוק כמו רענון scores ב-finishInterview: כשל כאן לא אמור להפיל Roadmap ששולם
+  let scoresChanged = false;
+  try {
+    scoresChanged = JSON.stringify(scores) !== JSON.stringify(state.storedScores);
+    await prisma.scan.update({ where: { id: state.scanId }, data: { scores: scores as unknown as object } });
+  } catch (err) {
+    console.error("שמירת scores טריים אחרי בניית Roadmap נכשלה (לא קריטי):", err instanceof Error ? err.message : err);
+  }
+
+  // נרטיב מתעדכן רק כשהציונים בפועל השתנו - חוסך קריאת LLM מיותרת כשבונים Roadmap פעמיים ברצף
+  // בלי שום שינוי אמיתי (למשל חזרה למסך 5 בלי לענות על אף שאלה בראיון). ההשוואה מול מה ששמור
+  // *לפני* הבנייה הזו (state.storedScores, נטען למעלה ב-loadStateOrThrow) - לא מול מה שכתבנו
+  // הרגע, כדי שההחלטה תשקף שינוי אמיתי בתוכן ולא רק את זה שכתבנו את אותו ערך מחדש. אותו דפוס
+  // גנרציה+שמירה כמו finishInterview (שינוי 2) - כשל כאן (LLM/DB) לא מפיל את הבנייה, והנרטיב
+  // הישן פשוט נשאר
+  if (scoresChanged) {
+    try {
+      const narrative = await generateNarrative(state.findings, scores, { complete });
+      await prisma.scan.update({ where: { id: state.scanId }, data: { narrative: narrative as unknown as object } });
+    } catch (err) {
+      console.error("רענון narrative אחרי בניית Roadmap נכשל (לא קריטי):", err instanceof Error ? err.message : err);
+    }
   }
 
   return { roadmapId, usage: reasoning.usage };

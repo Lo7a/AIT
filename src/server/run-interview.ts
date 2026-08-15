@@ -5,6 +5,8 @@ import { applyInterviewUpdates } from "../pipeline/interview/merge";
 import { InterviewError, NOT_ACTIVE_MESSAGE } from "../pipeline/interview/contract";
 import { recommendNextStep } from "../pipeline/model/business-model";
 import { scoreWithModel } from "../pipeline/score/engine";
+import type { ScoreReport } from "../pipeline/score/types";
+import { generateNarrative, type NarrativeOptions } from "../pipeline/report/narrative";
 import { transitionDiagnosis } from "./diagnosis-repo";
 import { appendExchange, getInterviewState, type InterviewState } from "./interview-repo";
 import type { DiagnosisStatus } from "./status";
@@ -117,6 +119,20 @@ export async function runInterviewTurn(
     assistant: { content: result.reply },
   }, updated);
 
+  // רענון ציונים תוך כדי הראיון (אבן דרך 4, סגירת שער FAIL 2, שינוי 1): הדוח הוא מסמך חי - כל
+  // תשובה שנשמרת בהצלחה אמורה להשתקף בציון מיד, לא רק בסיום הראיון (finishInterview כבר עושה
+  // רענון דומה בסיום, ראו שם). פעולה טהורה וזולה (בלי LLM) על המודל המעודכן (updated) - בדיוק
+  // כמו שהשאלה הבאה למטה נבחרת לפי updated ולא לפי state שלפני התור. מחוץ לטרנזקציה של
+  // appendExchange למעלה בכוונה, אותו נימוק מדויק כמו רענון scores ב-finishInterview: כשל
+  // ברענון אסור לגלגל אחורה תשובה ששמורה כבר בהצלחה. try/catch לא-קריטי - מדפיס ולא זורק,
+  // כדי שכשל ברענון לעולם לא יפיל תור ראיון
+  try {
+    const freshScores = scoreWithModel(state.findings, updated);
+    await prisma.scan.update({ where: { id: state.scanId }, data: { scores: freshScores as unknown as object } });
+  } catch (err) {
+    console.error("רענון scores תוך כדי תור ראיון נכשל (לא קריטי - יתעדכן בתור הבא או בסיום):", err instanceof Error ? err.message : err);
+  }
+
   const askedKeys = question && !state.askedKeys.includes(question.key)
     ? [...state.askedKeys, question.key]
     : state.askedKeys;
@@ -138,7 +154,15 @@ export async function runInterviewTurn(
   };
 }
 
-export async function finishInterview(prisma: PrismaClient, diagnosisId: string): Promise<void> {
+export async function finishInterview(
+  prisma: PrismaClient,
+  diagnosisId: string,
+  // complete מוזרק לצורך רענון הנרטיב (שינוי 2 למטה) - אותו סגנון הזרקה בדיוק כמו opts:
+  // ExtractOptions ב-runInterviewTurn: אופציונלי, ברירת המחדל (completeJSON האמיתי) נפתרת
+  // עמוק בפנים ב-generateNarrative עצמו ולא כאן - כך שנתיב ה-API היצרני (finish/route.ts)
+  // לא צריך לבנות עטיפה בעצמו, בדיוק כמו ש-message/route.ts לא בונה עטיפה סביב extractAnswer
+  opts: NarrativeOptions = {},
+): Promise<void> {
   const state = await loadStateOrThrow(prisma, diagnosisId);
   // report_ready - כבר שם, no-op שקט, סימטרי ל-resume השקט של startInterview.
   // roadmap_ready - הראיון כבר נסגר בעבר וה-Roadmap כבר חושב ממנו; roadmap_ready->report_ready
@@ -164,10 +188,29 @@ export async function finishInterview(prisma: PrismaClient, diagnosisId: string)
   // נסגר. וזריקה כאן גם הייתה הופכת לתקלה קבועה: finishInterview על סטטוס report_ready הוא
   // no-op שקט (ראו למעלה), אז ניסיון חוזר לא היה מרענן שוב - הכשל היה נצרב לצמיתות במקום להתאושש
   // ברענון הבא (למשל אחרי ראיון עתידי, או ריצת backfill ייעודית)
+  let scores: ScoreReport | undefined;
   try {
-    const scores = scoreWithModel(state.findings, state.model);
+    scores = scoreWithModel(state.findings, state.model);
     await prisma.scan.update({ where: { id: state.scanId }, data: { scores: scores as unknown as object } });
   } catch (err) {
     console.error("רענון scores אחרי סיום ראיון נכשל (לא קריטי - הראיון כבר נסגר, יתעדכן ברענון הבא):", err instanceof Error ? err.message : err);
+  }
+
+  // רענון נרטיב (סגירת שער FAIL 2, שינוי 2 - סוגר בדיקה 7 בשער): scan.scores כבר מתרענן למעלה,
+  // אבל עד השינוי הזה scan.narrative לא - הכותרת וההסברים המשיכו לתאר את הפערים שהיו לפני
+  // הראיון. אותה קריאת LLM בדיוק כמו run-diagnosis.ts (generateNarrative, אותו guard/fallback,
+  // כולל normalizeTypography בפנים), רק על הציונים הטריים שחושבו כרגע. כשל LLM לא נחשב כשל כאן
+  // בכלל - generateNarrative בולע אותו בעצמו ומחזיר נרטיב דטרמיניסטי עקבי עם הציונים הטריים
+  // ("נוסח אוטומטי" שמתאים למציאות עדיף על ניסוח אלגנטי שכבר לא נכון), וזה בדיוק מה שאמור
+  // להישמר. רק קריסה אמיתית של הצעד עצמו (כאן: כשל הכתיבה ל-DB) נבלעת ומשאירה את הנרטיב הישן
+  // במקום. תלוי בקיום scores טריים בזיכרון (if (scores)): בלי חישוב ציונים מוצלח למעלה אין
+  // בסיס נתונים עדכני לכתוב עליו נרטיב
+  if (scores) {
+    try {
+      const narrative = await generateNarrative(state.findings, scores, opts);
+      await prisma.scan.update({ where: { id: state.scanId }, data: { narrative: narrative as unknown as object } });
+    } catch (err) {
+      console.error("רענון narrative אחרי סיום ראיון נכשל (לא קריטי - הנרטיב הישן נשאר, יתעדכן ברענון הבא):", err instanceof Error ? err.message : err);
+    }
   }
 }

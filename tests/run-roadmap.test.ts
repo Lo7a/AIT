@@ -187,9 +187,9 @@ describe("buildRoadmap - מסלול מלא", () => {
     const view = await getRoadmapView(db, "d1");
     expect(view?.items).toHaveLength(2);
     expect(view?.items.every((it) => typeof it.reasoning === "string" && it.reasoning!.length > 0)).toBe(true);
-    // הציונים הטריים מחושבים בזיכרון בלבד - עמודת scan.scores היא באחריות finishInterview
-    // (אבן דרך 4, משימה 1) ו-buildRoadmap לא נוגע בה
-    expect(scans[0].scores).toBeUndefined();
+    // הציונים הטריים ששימשו להתאמה עצמה גם נכתבים ל-scan.scores (סגירת שער FAIL 2, שינוי 3) -
+    // ריפוי-ממילא לדוח הישן, ראו describe ייעודי למטה לבדיקת ההתנהגות הזו לעומק
+    expect(scans[0].scores).toBeDefined();
   });
 
   it("חישוב מחדש מ-roadmap_ready יוצר Roadmap שני ונשאר roadmap_ready (בלי מעבר סטטוס נוסף)", async () => {
@@ -335,6 +335,73 @@ describe("buildRoadmap - מסלול מלא", () => {
 
     const view = await getRoadmapView(db, "d1");
     expect(view?.items).toEqual([]);
+  });
+});
+
+describe("buildRoadmap - שמירת scores ורענון narrative (סגירת שער FAIL 2, שינוי 3)", () => {
+  // מבדיל בין קריאת complete לנרטיב (narrative.ts, בלוק <<<DATA>>>) לבין קריאת complete לנימוק
+  // (reasoning.ts, בלוק <<<ITEMS>>>) - buildRoadmap מזריק את אותה complete לשתיהן, וצריך לספור
+  // כל אחת בנפרד כדי לוודא שהנרטיב לא מתחדש כשהציונים לא השתנו, בעוד שהנימוק כן רץ בכל בנייה
+  function makeCombinedComplete(counters: { narrative: number; reasoning: number }): CompleteFn {
+    return async (prompt) => {
+      if (prompt.includes("<<<DATA>>>")) {
+        counters.narrative++;
+        return {
+          data: { headline: "כותרת", summary: "סיכום", gapExplanations: [] },
+          usage: { inputTokens: 1, outputTokens: 1 },
+        };
+      }
+      counters.reasoning++;
+      return echoComplete(prompt);
+    };
+  }
+
+  it("כותב את הציונים הטריים ל-scan.scores", async () => {
+    const { db, diagnoses, scans, catalogs } = makeFakeDb() as any;
+    seedDiagnosis(diagnoses, "d1", "report_ready");
+    seedScan(scans, "d1");
+    seedBookingCatalog(catalogs);
+
+    await buildRoadmap(db, echoComplete, "d1");
+
+    const scan = scans.find((s: any) => s.id === "s1");
+    expect(scan.scores).toBeDefined();
+    expect(scan.scores.overall).not.toBeUndefined();
+  });
+
+  it("נרטיב מתעדכן רק כשהציונים בפועל השתנו - בנייה שנייה עם אותם ממצאים/מודל לא קוראת שוב ל-complete בשביל נרטיב", async () => {
+    const { db, diagnoses, scans, catalogs } = makeFakeDb() as any;
+    seedDiagnosis(diagnoses, "d1", "report_ready");
+    seedScan(scans, "d1");
+    seedBookingCatalog(catalogs);
+    const counters = { narrative: 0, reasoning: 0 };
+    const complete = makeCombinedComplete(counters);
+
+    await buildRoadmap(db, complete, "d1");
+    // בנייה ראשונה: אין scores שמורים קודם (null) - כל ערך נחשב "השתנה", הנרטיב מתחדש
+    expect(counters.narrative).toBe(1);
+    const scan1 = scans.find((s: any) => s.id === "s1");
+    expect(scan1.narrative).toBeDefined();
+
+    await buildRoadmap(db, complete, "d1"); // בנייה שנייה, אותם findings/model -> אותם scores בדיוק
+    expect(counters.narrative).toBe(1); // לא נקראה שוב - הציונים זהים
+    expect(counters.reasoning).toBe(2); // הנימוק כן רץ בכל בנייה, בלי תלות בשינוי ציונים
+  });
+
+  it("כשל בשמירת scores/narrative אחרי הבנייה לא מפיל את buildRoadmap", async () => {
+    const { db, diagnoses, scans, catalogs, roadmapItems } = makeFakeDb() as any;
+    seedDiagnosis(diagnoses, "d1", "report_ready");
+    seedScan(scans, "d1");
+    seedBookingCatalog(catalogs);
+    db.scan.update = async () => { throw new Error("scan update boom"); };
+
+    const result = await buildRoadmap(db, echoComplete, "d1");
+
+    expect(result.roadmapId).toBeTruthy();
+    expect(roadmapItems.length).toBeGreaterThan(0);
+    const scan = scans.find((s: any) => s.id === "s1");
+    expect(scan.scores).toBeUndefined();
+    expect(scan.narrative).toBeUndefined();
   });
 });
 
