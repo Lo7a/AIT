@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { scanWebsiteOnly, normalizeSiteUrl } from "../src/pipeline/scan-website";
+import { crawlWebsite } from "../src/pipeline/crawler/crawl";
 import type { WebsiteSignals, PageSpeedResult } from "../src/pipeline/types";
 
 const SIGNALS: WebsiteSignals = {
@@ -66,6 +67,21 @@ describe("scanWebsiteOnly", () => {
     expect(findings.pageSpeed).toBeUndefined();
     expect(findings.partialDetails?.crawl_failed).toContain("crawl down");
     expect(findings.partialDetails?.pagespeed_failed).toContain("psi down");
+  });
+
+  // מסלול ה-url הישיר לא עובר דרך parseDiagnoseBody בקריאה ישירה (CLI, קוד פנימי); ההגנה
+  // האמיתית היא בשכבת ה-fetch. הסריקה נכשלת בחן ומחזירה דוח עם crawl_failed במקום לקרוס
+  it("refuses an internal host at the fetch layer and degrades to crawl_failed", async () => {
+    const fetchImpl = vi.fn();
+    const findings = await scanWebsiteOnly("http://192.168.1.1/", {
+      crawl: (siteUrl) => crawlWebsite(siteUrl, { fetchImpl }),
+      pagespeed: async () => PSI,
+    });
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(findings.partial).toContain("crawl_failed");
+    expect(findings.partialDetails?.crawl_failed).toContain("192.168.1.1");
+    expect(findings.business.name).toBe("192.168.1.1"); // עדיין מוחזר דוח
+    expect(findings.pageSpeed).toEqual(PSI);
   });
 });
 

@@ -223,6 +223,86 @@ describe("crawlWebsite", () => {
   });
 });
 
+// באג מאומת (דוח SSRF): בדיקת המארח רצה רק בשכבת ה-API על הכתובת שהוגשה, ו-fetchPage עקב
+// אחרי הפניות עם redirect ברירת המחדל - מארח ציבורי שמחזיר 302 ל-127.0.0.1 גרר את הסורק
+// לרשת הפנימית וגם לקישורים שנמצאו שם. ההגנה עברה לשכבת ה-fetch: כל כתובת, בכל קפיצה
+describe("crawlWebsite - חסימת מארחים פנימיים בשכבת ה-fetch", () => {
+  function redirectResponse(status: number, location: string | null, url = "") {
+    return {
+      ok: false, status, url,
+      headers: { get: (name: string) => (name.toLowerCase() === "location" ? location : null) },
+      text: async () => "",
+    } as unknown as Response;
+  }
+  const calledUrls = (fetchImpl: { mock: { calls: unknown[][] } }) =>
+    fetchImpl.mock.calls.map((c) => String(c[0]));
+
+  it("הפניה ממארח ציבורי ל-127.0.0.1 נכשלת סגור - אין בקשה שנייה לרשת הפנימית", async () => {
+    const INTERNAL = `<html><body><a href="/admin">admin</a><a href="/keys">keys</a></body></html>`;
+    const fetchImpl = vi.fn(async (url: RequestInfo | URL) => {
+      const u = url.toString();
+      if (u.includes("attacker.example")) return redirectResponse(302, "http://127.0.0.1:6379/");
+      return htmlResponse(INTERNAL, u);
+    });
+    await expect(crawlWebsite("https://attacker.example", { fetchImpl })).rejects.toThrow(/127\.0\.0\.1/);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(calledUrls(fetchImpl).some((u) => u.includes("127.0.0.1"))).toBe(false);
+  });
+
+  it("עמוד פנימי שמפנה ללופבק נופל לבד - הסריקה שורדת ובלי כתובת פנימית ב-crawledUrls", async () => {
+    const home = `<html><body><a href="/r">הפניה</a><a href="/contact">צור קשר</a></body></html>`;
+    const fetchImpl = vi.fn(async (url: RequestInfo | URL) => {
+      const u = url.toString();
+      if (u.includes("/r")) return redirectResponse(302, "http://127.0.0.1:6379/keys");
+      if (u.includes("/contact")) return htmlResponse(CONTACT, u);
+      return htmlResponse(home, u);
+    });
+    const signals = await crawlWebsite("https://example.co.il/", { fetchImpl, maxPages: 5 });
+    expect(signals.hasWhatsappLink).toBe(true); // צור קשר כן נסרק
+    expect(signals.crawledUrls.some((u) => u.includes("127.0.0.1"))).toBe(false);
+    expect(calledUrls(fetchImpl).some((u) => u.includes("127.0.0.1"))).toBe(false);
+  });
+
+  it("שרשרת הפניות ציבורית נעקבת (כולל Location יחסי) וה-finalUrl הוא היעד", async () => {
+    const fetchImpl = vi.fn(async (url: RequestInfo | URL) => {
+      const u = url.toString();
+      if (u === "https://example.co.il/") return redirectResponse(301, "/step2");
+      if (u === "https://example.co.il/step2") return redirectResponse(302, "https://www.example.co.il/final");
+      return htmlResponse(GALLERY, ""); // url ריק - ה-finalUrl מגיע ממעקב ההפניות שלנו
+    });
+    const signals = await crawlWebsite("https://example.co.il/", { fetchImpl, maxPages: 1 });
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    expect(signals.crawledUrls).toEqual(["https://www.example.co.il/final"]);
+  });
+
+  it("שרשרת ארוכה מהחסם נכשלת אחרי 5 קפיצות", async () => {
+    let n = 0;
+    const fetchImpl = vi.fn(async () => redirectResponse(302, `https://example.co.il/hop${++n}`));
+    await expect(crawlWebsite("https://example.co.il/", { fetchImpl })).rejects.toThrow(/הפניות/);
+    expect(fetchImpl).toHaveBeenCalledTimes(6); // בקשה ראשונה + 5 קפיצות מותרות
+  });
+
+  it("כתובת פתיחה עם מארח חסום נדחית לפני כל בקשה", async () => {
+    const fetchImpl = vi.fn();
+    await expect(crawlWebsite("http://169.254.169.254/latest/meta-data/", { fetchImpl }))
+      .rejects.toThrow(/169\.254\.169\.254/);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("Location שאינו http/https (file://) נדחה ולא נחשף בהודעה", async () => {
+    const fetchImpl = vi.fn(async () => redirectResponse(302, "file:///etc/passwd"));
+    const err = await crawlWebsite("https://example.co.il/", { fetchImpl }).catch((e: Error) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error).message).not.toContain("passwd");
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("הפניה בלי כותרת Location נכשלת בהודעה ברורה", async () => {
+    const fetchImpl = vi.fn(async () => redirectResponse(302, null));
+    await expect(crawlWebsite("https://example.co.il/", { fetchImpl })).rejects.toThrow(/Location/);
+  });
+});
+
 describe("homepage timeout retry", () => {
   const timeoutError = () => new DOMException("The operation was aborted due to timeout", "TimeoutError");
 

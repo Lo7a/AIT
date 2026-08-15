@@ -1,5 +1,6 @@
 import type { PageSpeedRawTrimmed, PageSpeedResult } from "../types";
 import { defaultFetch, readErrorBody, type FetchLike } from "../http";
+import { forbiddenHostOf } from "../forbidden-host";
 
 export interface PageSpeedOptions {
   apiKey?: string;
@@ -89,6 +90,11 @@ export async function runPageSpeed(
   url: string,
   opts: PageSpeedOptions = {},
 ): Promise<PageSpeedResult> {
+  // כאן אין SSRF - את ה-fetch לאתר מבצעים השרתים של גוגל, לא אנחנו. הדילוג הוא לעקביות
+  // עם הסורק ולחיסכון: קריאת PSI על מארח פנימי היא בזבוז ודאי (גוגל לא תגיע לשם).
+  // הכישלון זורם למסלול pagespeed_failed הקיים, כמו כל כישלון PSI אחר
+  const blockedHost = forbiddenHostOf(url);
+  if (blockedHost) throw new Error(`PageSpeed דולג - מארח חסום (פנימי או מקומי): ${blockedHost}`);
   try {
     return await attemptPageSpeed(url, opts, TIMEOUT_MS);
   } catch (err) {

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { runScan, type ScanDeps } from "../src/pipeline/scan";
+import { crawlWebsite } from "../src/pipeline/crawler/crawl";
 import type { PlaceDetails, WebsiteSignals } from "../src/pipeline/types";
 
 const RICH_DETAILS: PlaceDetails = {
@@ -114,6 +115,23 @@ describe("runScan", () => {
     expect(findings.business.name).toBe("מוסך הצפון"); // האבחון עדיין מחזיר ממצאים
     expect(findings.meta.llmInputTokens).toBe(0);
     expect(findings.partialDetails?.crawl_failed).toContain("boom");
+  });
+
+  // המסלול הזה לא עובר בכלל בבדיקת ה-API: details.website מגיע מגוגל, ונסרק כמו שהוא.
+  // ההגנה היחידה שמכסה אותו היא בשכבת ה-fetch, ולכן היא נבדקת כאן מקצה לקצה
+  it("refuses a Places-sourced website that points at an internal host, and still returns a report", async () => {
+    const fetchImpl = vi.fn();
+    const deps = richDeps({
+      details: vi.fn().mockResolvedValue({ ...RICH_DETAILS, website: "http://127.0.0.1:6379/" }),
+      crawl: (siteUrl: string) => crawlWebsite(siteUrl, { fetchImpl }),
+    });
+    const findings = await runScan("pid-1", deps);
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(findings.partial).toContain("crawl_failed");
+    expect(findings.partialDetails?.crawl_failed).toContain("127.0.0.1");
+    expect(findings.partialDetails?.crawl_failed).not.toContain("6379");
+    expect(findings.business.name).toBe("מוסך הצפון"); // הדוח עדיין נבנה
+    expect(findings.reviewInsights?.totalAnalyzed).toBe(5);
   });
 
   it("propagates a details failure (nothing to scan without the business)", async () => {

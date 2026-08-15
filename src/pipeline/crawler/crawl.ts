@@ -1,5 +1,6 @@
 import type { WebsiteSignals } from "../types";
 import { defaultFetch, type FetchLike } from "../http";
+import { assertFetchableUrl } from "../forbidden-host";
 import { extractSignals, type PageSignals } from "./signals";
 
 export interface CrawlOptions {
@@ -17,6 +18,9 @@ const DEFAULT_TIMEOUT_MS = 10_000;
 const HOME_RETRY_MULTIPLIER = 3;
 // עמודים שנכשלים לא מקדמים את מונה ההצלחות — לכן חוסמים גם את מספר הניסיונות הכולל
 const EXTRA_ATTEMPTS = 4;
+// אנחנו עוקבים אחרי ההפניות בעצמנו (redirect: "manual"), אז החסם הוא שלנו. אתרים אמיתיים
+// עושים לכל היותר שתיים-שלוש (http→https→www→נתיב); חמש נדיבה ומספיק כדי לא להיתקע בלולאה
+const MAX_REDIRECTS = 5;
 
 // מילות מפתח שמקדמות עמוד בתור — העמודים שהכי מלמדים על העסק
 const PRIORITY_KEYWORDS = [
@@ -50,22 +54,45 @@ interface FetchedPage {
   finalUrl: string;
 }
 
+// כאן נמצאת ההגנה מפני SSRF, ובכוונה בשכבת ה-fetch ולא בשכבת ה-API: כל בקשה יוצאת עוברת
+// דרך כאן - הכתובת ההתחלתית, כל קפיצת הפניה, וגם אתר שהגיע מ-Places (details.website) שלא
+// נבדק בכניסה בכלל. redirect: "manual" כי ברירת המחדל ("follow") הייתה עוקבת אחרי 302
+// למארח פנימי בלי שום בדיקה, ואז הסורק היה מנתח את התשובה הפנימית וממשיך לקישורים שבה
+// (באג מאומת). נבדק אמפירית ב-Node 22/undici: במצב manual מתקבלת תשובת 3xx אמיתית עם
+// כותרת Location קריאה (ולא opaqueredirect ריק), כך שאפשר לעקוב בעצמנו ולבדוק כל קפיצה
 async function fetchPage(
   url: string,
   fetchImpl: FetchLike,
   timeoutMs: number,
 ): Promise<FetchedPage> {
-  const res = await fetchImpl(url, {
-    headers: { "User-Agent": "AIT-Scanner/0.1 (+business diagnosis)" },
-    signal: AbortSignal.timeout(timeoutMs),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
-  const contentType = res.headers?.get?.("content-type") ?? "";
-  // עמוד שאינו HTML (למשל PDF בלי סיומת) — לא סורקים; כשאין header (מוקים) מקבלים
-  if (contentType && !/text\/html|application\/xhtml/i.test(contentType)) {
-    throw new Error(`non-HTML content-type "${contentType}" for ${url}`);
+  let currentUrl = url; // המחרוזת המקורית נשמרת כמות שהיא; רק קפיצות הפניה מנורמלות
+  for (let hop = 0; ; hop++) {
+    const current = assertFetchableUrl(currentUrl); // בדיקת מארח לפני כל בקשה, בלי יוצא מן הכלל
+    const res = await fetchImpl(currentUrl, {
+      headers: { "User-Agent": "AIT-Scanner/0.1 (+business diagnosis)" },
+      redirect: "manual",
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (res.status >= 300 && res.status < 400) {
+      // ההודעות נושאות שם מארח בלבד (נתון שהתוקף כבר שלח) - לא נתיב, לא פורט, לא query
+      if (hop >= MAX_REDIRECTS) throw new Error(`יותר מדי הפניות (מעל ${MAX_REDIRECTS}) עבור ${current.hostname}`);
+      const location = res.headers?.get?.("location");
+      if (!location) throw new Error(`הפניה ${res.status} בלי כותרת Location עבור ${current.hostname}`);
+      void res.body?.cancel().catch(() => {}); // לא קוראים את גוף ההפניה - משחררים את החיבור
+      // Location יחסי נפתר מול הכתובת הנוכחית; המארח שהתקבל נבדק מיד, לפני הקפיצה
+      currentUrl = assertFetchableUrl(location, current).href;
+      continue;
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status} for ${currentUrl}`);
+    const contentType = res.headers?.get?.("content-type") ?? "";
+    // עמוד שאינו HTML (למשל PDF בלי סיומת) — לא סורקים; כשאין header (מוקים) מקבלים
+    if (contentType && !/text\/html|application\/xhtml/i.test(contentType)) {
+      throw new Error(`non-HTML content-type "${contentType}" for ${currentUrl}`);
+    }
+    // finalUrl = הכתובת האחרונה שנשלחה אליה בקשה בפועל, כך שדדופ ההפניות ובדיקת
+    // same-origin של הקישורים ממשיכים לעבוד בדיוק כמו קודם (res.url ריק במוקים של המבחנים)
+    return { html: await res.text(), finalUrl: res.url || currentUrl };
   }
-  return { html: await res.text(), finalUrl: res.url || url }; // res.url ריק במוקים של המבחנים
 }
 
 export async function crawlWebsite(

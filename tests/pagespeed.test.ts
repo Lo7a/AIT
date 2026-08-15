@@ -181,3 +181,14 @@ describe("PSI retry on timeout", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("PSI - מארח פנימי", () => {
+  // כאן אין SSRF (השרתים של גוגל מבצעים את ה-fetch, לא אנחנו) - הדילוג הוא לעקביות
+  // ולחיסכון: אין טעם לשלם קריאת PSI על מארח שגוגל ממילא לא תגיע אליו
+  it("skips the PSI call entirely for an internal host", async () => {
+    const fetchImpl = vi.fn<FetchLike>();
+    await expect(runPageSpeed("http://127.0.0.1:6379/", { apiKey: "k", fetchImpl }))
+      .rejects.toThrow(/127\.0\.0\.1/);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+});
