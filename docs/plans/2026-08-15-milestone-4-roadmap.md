@@ -28,6 +28,20 @@
 
 ---
 
+### משימה 0: נוכחות חברתית כ"אתר" - זיהוי, זהות, וניקוד כן
+
+**הרקע (ממצא מייסד, 15.8):** עסקים רבים שמים בגוגל את עמוד הפייסבוק/אינסטגרם שלהם בשדה האתר. היום זה מייצר שלוש בעיות: (1) הקרולר קורא shell של פייסבוק (חומת התחברות) ומסיק "אין כלום" כאילו זו עובדה על העסק; (2) PSI על דומיינים כאלה נחסם (429); (3) **באג זהות אמיתי:** websiteKeyOf זורק path, אז שני עסקים עם עמודי פייסבוק שונים מקבלים אותו מפתח (facebook.com) והשני מתמזג לעסק הראשון.
+
+**Files:** Create: `src/pipeline/social-hosts.ts`; Modify: `src/server/website-key.ts`, `src/pipeline/run-diagnosis.ts` (דילוג על crawl+PSI), `src/pipeline/score/dimensions.ts` (חוק "אתר עצמאי"), `src/pipeline/model/business-model.ts` (ערוץ חברתי); Test: `tests/social-hosts.test.ts`, `tests/website-key.test.ts`, `tests/run-diagnosis.test.ts`, `tests/dimensions.test.ts`
+
+- [ ] `social-hosts.ts`: `export function socialPresenceOf(url: string): { platform: string } | null` - זיהוי לפי host מנורמל: facebook.com/m.facebook.com, instagram.com, tiktok.com, wa.me/api.whatsapp.com, linktr.ee, linkedin.com, x.com/twitter.com, youtube.com. דטרמיניסטי, רשימה גלויה.
+- [ ] `websiteKeyOf`: לדומיין חברתי המפתח כולל את מקטע ה-path הראשון (`facebook.com/mybusiness`); דומיין חברתי חשוף בלי path נשאר כהיום. כל שאר הדומיינים - התנהגות זהה להיום (בדיקות הרגרסיה הקיימות נשארות ירוקות כלשונן).
+- [ ] pipeline: אתר חברתי => לא מריצים crawl ולא PSI (אין עלות, אין 429, אין אותות זבל); findings מקבל `socialOnly: { platform, url }` + הערת איסוף "הנוכחות הדיגיטלית היא עמוד <פלטפורמה> - אין אתר עצמאי לסריקה".
+- [ ] ניקוד: חוקי אתר נשארים "לא נבדק" (known=false); בממד הנראות חוק חדש/מותאם "אתר עצמאי" - עבור socialOnly: known=true, earned=false, gapText ברור לבעל העסק. הנרטיב מקבל את זה כפער מוביל מועמד.
+- [ ] מודל: channels מקבל את העמוד החברתי (source: scan) - זה ערוץ אמיתי של העסק.
+- [ ] בדיקות: זיהוי כל פלטפורמה; מפתח עם path לשני עסקי פייסבוק שונים = מפתחות שונים; pipeline מדלג על crawl/PSI ב-socialOnly; חוק "אתר עצמאי" earned לאתר רגיל, פער ל-socialOnly, לא ידוע כשאין אתר כלל.
+- [ ] Commit: `feat(4-0): social page as website - honest detection, per-page identity, no garbage crawl`
+
 ### משימה 1: ממד בשלות תהליכים אמיתי + רענון ציונים אחרי ראיון
 
 **Files:** Modify: `src/pipeline/score/dimensions.ts`, `src/pipeline/score/engine.ts`, `src/server/run-interview.ts`; Test: `tests/score-engine.test.ts`, `tests/dimensions.test.ts`, `tests/run-interview.test.ts`
@@ -145,6 +159,7 @@ export function phaseOf(match: OpportunityMatch): "quick_wins" | "automation" | 
 
 | # | משימה | תלות |
 |---|---|---|
+| 0 | נוכחות חברתית כאתר | - |
 | 1 | ממד process + רענון ציונים | - |
 | 2 | מנוע התאמה | 1 (מפתחות process) |
 | 3 | דירוג ושלביות | 2 |
