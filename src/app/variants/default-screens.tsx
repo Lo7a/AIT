@@ -33,12 +33,14 @@ export function DefaultHome({ recent }: { recent: DiagnosisListItem[] }) {
           <h2 className="font-[family-name:var(--font-frank)] text-lg font-bold tracking-tight">
             אבחונים אחרונים
           </h2>
-          <ul className="mt-3 divide-y divide-black/[0.06] rounded-lg border border-black/[0.06] bg-white">
+          {/* הרשימה מציגה את כל האבחונים - גובה קבוע וגלילה פנימית במקום חיתוך.
+              דירוג האנימציה נעצר אחרי השורות הראשונות, אחרת שורות עמוק ברשימה מופיעות באיחור של שניות */}
+          <ul className="mt-3 max-h-80 divide-y divide-black/[0.06] overflow-y-auto overscroll-contain rounded-lg border border-black/[0.06] bg-white">
             {recent.map((d, i) => (
               <li
                 key={d.id}
                 className="flex animate-fade-up items-center justify-between px-4 py-3"
-                style={{ animationDelay: `${240 + i * 80}ms` }}
+                style={{ animationDelay: `${240 + Math.min(i, 5) * 80}ms` }}
               >
                 <span>
                   <span className="font-medium">{d.businessName}</span>

@@ -7,7 +7,7 @@ import { getVariant } from "./variants/registry";
 export const dynamic = "force-dynamic"; // הרשימה חייבת להיות טרייה - בלי קאש סטטי
 
 export default async function HomePage() {
-  const [recent, cookieStore] = await Promise.all([listRecentDiagnoses(prisma, 8), cookies()]);
+  const [recent, cookieStore] = await Promise.all([listRecentDiagnoses(prisma), cookies()]);
   const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
   const { Home } = getVariant(theme);
   return <Home recent={recent} />;

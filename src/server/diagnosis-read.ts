@@ -140,10 +140,11 @@ export async function getReport(prisma: PrismaClient, diagnosisId: string): Prom
   };
 }
 
-export async function listRecentDiagnoses(prisma: PrismaClient, limit = 10): Promise<DiagnosisListItem[]> {
+// limit לא חובה - בלי limit מוחזרות כל השורות (מסך הבית גולל את הרשימה במקום לחתוך אותה)
+export async function listRecentDiagnoses(prisma: PrismaClient, limit?: number): Promise<DiagnosisListItem[]> {
   const rows = await prisma.diagnosis.findMany({
     orderBy: { createdAt: "desc" },
-    take: limit,
+    ...(limit != null ? { take: limit } : {}),
     // select צר — הרשימה צריכה רק שם עסק וציון כולל, לא לגרור findings/narrative רב-KB לכל שורה
     include: {
       business: { select: { name: true } },

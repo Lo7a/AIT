@@ -152,4 +152,12 @@ describe("listRecentDiagnoses", () => {
     const rows = await listRecentDiagnoses(fakeDb(null, [diagRow({ scans: [] })]) as never, 8);
     expect(rows[0].overall).toBeNull();
   });
+
+  it("בלי limit — findMany בלי take, כל האבחונים חוזרים", async () => {
+    const db = fakeDb(null, [diagRow()]);
+    await listRecentDiagnoses(db as never);
+    expect(db.diagnosis.findMany).toHaveBeenCalledWith(
+      expect.not.objectContaining({ take: expect.anything() }),
+    );
+  });
 });
