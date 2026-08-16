@@ -10,9 +10,10 @@ export interface VariantScreens {
     recent: import("../../server/diagnosis-read").DiagnosisListItem[];
     // חיווט הכניסה (אבן דרך "לצאת החוצה"): session = המשתמש המחובר (null/חסר = אנונימי),
     // loginEnabled = מפתחות Supabase קיימים ולכן קישור "כניסה" מוצג לאנונימיים. אופציונליים
-    // כדי שגרסאות עיצוב קיימות ימשיכו להתקמפל בלי שינוי
+    // כדי שגרסאות עיצוב קיימות ימשיכו להתקמפל בלי שינוי. isAdminUser = קישור "ניהול" (/admin)
     session?: { email: string | null } | null;
     loginEnabled?: boolean;
+    isAdminUser?: boolean;
   }>;
   Scan: ComponentType<{
     target: { placeId?: string; name?: string; url?: string; city?: string };

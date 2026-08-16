@@ -30,6 +30,7 @@ export default async function HomePage() {
       recent={recent}
       session={user != null ? { email: user.email } : null}
       loginEnabled={hasAuthConfig()}
+      isAdminUser={user != null && isAdmin(user)}
     />
   );
 }
