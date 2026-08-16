@@ -1,0 +1,31 @@
+# הרצה מקומית - מדריך התקנה (לשותף)
+
+## דרישות
+- Node.js 22 ומעלה, npm.
+- קובץ `.env` בשורש הפרויקט (לקבל את הערכים מלהב - לא שמורים בגיט).
+
+## שלבי התקנה
+1. `git clone` + `npm install`
+2. ליצור `.env` לפי `.env.example` עם הערכים האמיתיים.
+3. `npx prisma generate`
+4. `npm run dev` - האפליקציה על http://localhost:3000
+5. אימות: `npx vitest run` (הבדיקות רצות אופליין, לא צריכות DB או מפתחות).
+
+## הבעיה המוכרת: "Can't reach database server"
+
+מחרוזת החיבור הישירה של Supabase (`db.<ref>.supabase.co`) עובדת רק ברשתות עם IPv6. ברוב הרשתות הביתיות בישראל אין IPv6 - והחיבור נכשל בדיוק בשגיאה הזאת.
+
+**הפתרון:** ב-`.env`, שורת `DATABASE_URL` צריכה להצביע על ה-session pooler (יש לו IPv4):
+
+```
+DATABASE_URL=postgresql://postgres.<project-ref>:<PASSWORD>@aws-0-eu-central-1.pooler.supabase.com:5432/postgres
+```
+
+שימו לב לשני ההבדלים מהחיבור הישיר: שם המשתמש הוא `postgres.<project-ref>` (עם נקודה והמזהה), והמארח הוא `aws-0-eu-central-1.pooler.supabase.com`. את ה-ref והסיסמה לקבל מלהב.
+
+`DIRECT_URL` (למיגרציות) יכול להישאר על המארח הישיר - מיגרציות מריץ בדרך כלל רק מי שיש לו IPv6 או דרך רשת שתומכת.
+
+## הערות
+- לא לשמור את הפרויקט בתיקייה שמסונכרנת ל-OneDrive (נעילות קבצים שוברות את prisma generate ואת .next).
+- אם `prisma generate` נכשל ב-EPERM: לסגור את שרת ה-dev (הוא מחזיק DLL), להריץ שוב, להרים את השרת.
+- תקיית `agent-reports/` היא ערוץ הדוחות של הסוכן שלך - נשארת בבעלותך, אף אחד אחר לא נוגע בה.
