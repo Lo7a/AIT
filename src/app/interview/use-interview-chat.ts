@@ -84,18 +84,27 @@ export function useInterviewChat(diagnosisId: string, initial: InterviewSnapshot
   // בוליאנים נגזרים חשופים מההוק ולא מחושבים שוב בתצוגה: כלל "מתי מותר לשלוח/לסיים/לדלג"
   // הוא חוק לוגי, לא פרט ויזואלי - גרסת עיצוב עתידית שמחליפה את default-interview.tsx לא
   // אמורה לגזור אותו בעצמה ולסכן פער בין הגרסאות
-  const canSend = !state.busy && !state.starting && !state.finishing && !state.closed && state.input.trim().length > 0;
+  // תנאי-הנעילה המלא של כל פעולת שליחה בפועל (טקסט חופשי/צ'יפ בודד/אישור בחירה מרובה) - busy
+  // בזמן תור, starting לפני שהראיון בכלל פעיל, finishing כשסיום כבר בדרך, closed אחרי שנסגר.
+  // דלג/כתיבה חופשית ממשיכים להשתמש ב-canSkip הקיים (לא כולל finishing/closed) - התנהגות
+  // קיימת שלא נגעתי בה, לא חלק מהשינוי הזה
+  const canAnswer = !state.busy && !state.starting && !state.finishing && !state.closed;
+  const canSend = canAnswer && state.input.trim().length > 0;
   const canFinish = !state.finishing && !state.starting;
   const canSkip = !state.busy && !state.starting && visible != null;
+  // בחירה מרובה: כפתור "שליחה" של אישור הצ'יפים פעיל רק כשנבחרה לפחות תווית אחת
+  const canConfirmOptions = canAnswer && state.selectedOptions.length > 0;
 
-  async function send() {
-    if (state.busy || state.input.trim().length === 0 || sendingRef.current) return;
+  // ליבת השליחה המשותפת ל-send() (טקסט חופשי, קורא state.input) ול-selectOption/confirmOptions
+  // (צ'יפים, מקבלים תוכן ישירות) - כדי שלא תהיה שתי מימושים כפולים של אותה שיחת רשת. content
+  // מגיע כפרמטר מפורש (לא נקרא מ-state.input) כדי להימנע מבעיית ה-state הסגור-ישן: לו
+  // selectOption היה עושה setInput(label) ואז קורא ל-send() הישן, send() עדיין היה קורא את
+  // state.input מהרינדור הנוכחי (לפני שה-dispatch של setInput תפס) - reducer לא מתעדכן סינכרונית.
+  async function submit(content: string, questionKey: string | undefined, freeText: boolean) {
+    if (state.busy || content.trim().length === 0 || sendingRef.current) return;
     sendingRef.current = true;
     try {
-      const content = state.input.trim();
-      const freeText = state.freeText;
-      const questionKey = freeText ? undefined : (visible?.key);
-      dispatch({ type: "send" });
+      dispatch({ type: "send", content });
       let res: Response;
       try {
         res = await fetch(`/api/interview/${diagnosisId}/message`, {
@@ -130,6 +139,36 @@ export function useInterviewChat(diagnosisId: string, initial: InterviewSnapshot
     } finally {
       sendingRef.current = false;
     }
+  }
+
+  async function send() {
+    const freeText = state.freeText;
+    const questionKey = freeText ? undefined : (visible?.key);
+    await submit(state.input, questionKey, freeText);
+  }
+
+  // בחירה בודדת: לחיצה על צ'יפ = שליחה מיידית (אפיון מחדש-ראיון, החלטה D). תמיד קשורה לשאלה
+  // המונחית הנוכחית (questionKey=visible.key, isFreeText=false) - בדיוק כמו תשובה מוקלדת רגילה
+  // לאותה שאלה, רק שהתוכן הוא תווית הצ'יפ במקום מה שהוקלד בתיבה
+  function selectOption(label: string) {
+    if (visible == null || visible.multiSelect) return;
+    void submit(label, visible.key, false);
+  }
+
+  // בחירה מרובה: הצ'יפים רק מסמנים (toggleOption ב-reducer) - השליחה בפועל קורית רק בלחיצה על
+  // כפתור האישור, עם כל התוויות שנבחרו מחוברות בפסיק (אותו פורמט טקסט כמו תשובה מוקלדת חופשית -
+  // אין שינוי בחוזה החילוץ, ראו אפיון מחדש-ראיון החלטה C)
+  function confirmOptions() {
+    if (visible == null || !visible.multiSelect || state.selectedOptions.length === 0) return;
+    void submit(state.selectedOptions.join(", "), visible.key, false);
+  }
+
+  function toggleOption(label: string) {
+    dispatch({ type: "toggleOption", label });
+  }
+
+  function openCustomInput() {
+    dispatch({ type: "openCustomInput" });
   }
 
   function skip() {
@@ -175,9 +214,15 @@ export function useInterviewChat(diagnosisId: string, initial: InterviewSnapshot
     canSend,
     canFinish,
     canSkip,
+    canAnswer,
+    canConfirmOptions,
     send,
     skip,
     finish,
+    selectOption,
+    confirmOptions,
+    toggleOption,
+    openCustomInput,
     setInput: (value: string) => dispatch({ type: "setInput", value }),
     setFreeText: (value: boolean) => dispatch({ type: "setFreeText", value }),
   };

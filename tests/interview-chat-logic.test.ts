@@ -70,6 +70,12 @@ describe("initialChatState - גזירת מצב חופשי/מונחה התחלת�
     expect(initialChatState(makeSnapshot({ status: "interviewing" })).starting).toBe(false);
   });
 
+  it("selectedOptions/customInputOpen מתחילים ריקים/סגורים", () => {
+    const state = initialChatState(makeSnapshot());
+    expect(state.selectedOptions).toEqual([]);
+    expect(state.customInputOpen).toBe(false);
+  });
+
   it("היסטוריית resume מתורגמת ל-ChatMessage בלי createdAt/questionKey", () => {
     const state = initialChatState(makeSnapshot({
       messages: [
@@ -103,6 +109,111 @@ describe("chatReducer - send", () => {
     expect(next.error).toBeNull();
     expect(next.messages).toHaveLength(1);
     expect(next.messages[0]).toMatchObject({ role: "user", content: "יש לנו הרבה פניות בטלפון" });
+  });
+
+  it("content מפורש (שליחת צ'יפ) עוקף את state.input כתוכן ההודעה - וגם מנקה את התיבה, כמו שליחה רגילה", () => {
+    const state = { ...initialChatState(makeSnapshot()), input: "טקסט שלא נשלח" };
+    const next = chatReducer(state, { type: "send", content: "וואטסאפ" });
+    expect(next.busy).toBe(true);
+    expect(next.input).toBe(""); // אותה התנהגות ניקוי כמו שליחה רגילה - לא ה-content שנבחר בתיבה
+    expect(next.messages).toHaveLength(1);
+    expect(next.messages[0]).toMatchObject({ role: "user", content: "וואטסאפ" });
+  });
+
+  it("content ריק (רווחים בלבד) הוא no-op גם כשמגיע כ-content מפורש", () => {
+    const state = initialChatState(makeSnapshot());
+    expect(chatReducer(state, { type: "send", content: "   " })).toBe(state);
+  });
+
+  it("שליחה (עם או בלי content) מאפסת selectedOptions/customInputOpen - יוצאים מהקשר השאלה שנענתה", () => {
+    const state = {
+      ...initialChatState(makeSnapshot()), input: "תשובה", selectedOptions: ["א", "ב"], customInputOpen: true,
+    };
+    const next = chatReducer(state, { type: "send" });
+    expect(next.selectedOptions).toEqual([]);
+    expect(next.customInputOpen).toBe(false);
+  });
+});
+
+describe("chatReducer - toggleOption (צ'יפים בבחירה מרובה)", () => {
+  it("מוסיף תווית שטרם נבחרה", () => {
+    const state = initialChatState(makeSnapshot());
+    const next = chatReducer(state, { type: "toggleOption", label: "וואטסאפ" });
+    expect(next.selectedOptions).toEqual(["וואטסאפ"]);
+  });
+
+  it("לחיצה שנייה על אותה תווית מסירה אותה (toggle)", () => {
+    const withOne = chatReducer(initialChatState(makeSnapshot()), { type: "toggleOption", label: "וואטסאפ" });
+    const withTwo = chatReducer(withOne, { type: "toggleOption", label: "טלפון" });
+    expect(withTwo.selectedOptions).toEqual(["וואטסאפ", "טלפון"]);
+    const removedFirst = chatReducer(withTwo, { type: "toggleOption", label: "וואטסאפ" });
+    expect(removedFirst.selectedOptions).toEqual(["טלפון"]);
+  });
+
+  it("נעול בזמן busy - no-op, אותו state בדיוק", () => {
+    const state = { ...initialChatState(makeSnapshot()), busy: true };
+    expect(chatReducer(state, { type: "toggleOption", label: "וואטסאפ" })).toBe(state);
+  });
+});
+
+describe("chatReducer - openCustomInput (\"אחר\")", () => {
+  it("חושף את תיבת הטקסט (customInputOpen=true) בלי לגעת ב-freeText הגלובלי", () => {
+    const state = initialChatState(makeSnapshot({ nextQuestion: Q1, recommendFreeText: false }));
+    expect(state.freeText).toBe(false);
+    const next = chatReducer(state, { type: "openCustomInput" });
+    expect(next.customInputOpen).toBe(true);
+    expect(next.freeText).toBe(false); // "אחר" הוא לא מעבר למצב חופשי גלובלי - עדיין אותה שאלה מונחית
+  });
+
+  it("נעול בזמן busy - no-op, אותו state בדיוק", () => {
+    const state = { ...initialChatState(makeSnapshot()), busy: true };
+    expect(chatReducer(state, { type: "openCustomInput" })).toBe(state);
+  });
+});
+
+describe("chatReducer - איפוס מצב צ'יפים במעברי הקשר", () => {
+  it("turnOk מאפס selectedOptions/customInputOpen - השאלה הבאה מתחילה נקייה", () => {
+    const withChips = {
+      ...initialChatState(makeSnapshot()), input: "תשובה", selectedOptions: ["א"], customInputOpen: true,
+    };
+    const sent = chatReducer(withChips, { type: "send" });
+    const turn: TurnResult = {
+      reply: "טוב", usedFallback: false, nextQuestion: Q2, completenessPct: 25,
+      credits: emptyCredits(), askedCount: 1, done: false,
+    };
+    const next = chatReducer(sent, { type: "turnOk", payload: turn });
+    expect(next.selectedOptions).toEqual([]);
+    expect(next.customInputOpen).toBe(false);
+  });
+
+  it("snapshot מאפס selectedOptions/customInputOpen", () => {
+    const withChips = { ...initialChatState(makeSnapshot()), selectedOptions: ["א", "ב"], customInputOpen: true };
+    const next = chatReducer(withChips, { type: "snapshot", payload: makeSnapshot() });
+    expect(next.selectedOptions).toEqual([]);
+    expect(next.customInputOpen).toBe(false);
+  });
+
+  it("skip מאפס selectedOptions/customInputOpen", () => {
+    const withChips = {
+      ...initialChatState(makeSnapshot({ nextQuestion: Q1 })), selectedOptions: ["א"], customInputOpen: true,
+    };
+    const next = chatReducer(withChips, { type: "skip" });
+    expect(next.selectedOptions).toEqual([]);
+    expect(next.customInputOpen).toBe(false);
+  });
+
+  it("setFreeText (שני הכיוונים) מאפס selectedOptions/customInputOpen", () => {
+    const withChips = {
+      ...initialChatState(makeSnapshot({ nextQuestion: Q1 })), selectedOptions: ["א"], customInputOpen: true,
+    };
+    const toFree = chatReducer(withChips, { type: "setFreeText", value: true });
+    expect(toFree.selectedOptions).toEqual([]);
+    expect(toFree.customInputOpen).toBe(false);
+
+    const withChips2 = { ...toFree, selectedOptions: ["ב"], customInputOpen: true };
+    const backToGuided = chatReducer(withChips2, { type: "setFreeText", value: false });
+    expect(backToGuided.selectedOptions).toEqual([]);
+    expect(backToGuided.customInputOpen).toBe(false);
   });
 });
 

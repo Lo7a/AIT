@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { startInterview, runInterviewTurn, finishInterview } from "../src/server/run-interview";
 import { fallbackNarrative } from "../src/pipeline/report/narrative";
+import { CLOSING_QUESTION_KEY } from "../src/pipeline/interview/questions";
 import { makeFakeDb } from "./fakes/fake-db";
 import type { ScanFindings } from "../src/pipeline/types";
 
@@ -152,6 +153,42 @@ describe("runInterviewTurn", () => {
     const saved = models[models.length - 1];
     const fs = (saved.create ?? saved.update).fieldSources;
     expect(fs.profile).toContain("free_text");
+  });
+});
+
+describe("runInterviewTurn - שאלת הסיכום (אפיון מחדש-ראיון, החלטה B)", () => {
+  it("התשובה על שאלת הסיכום מגיעה למודל (סקציית pains) ואין שאלה אחרי - גם אם סקציות אחרות עדיין חסרות", async () => {
+    const { db, diagnoses, scans, messages, models } = makeFakeDb() as any;
+    seed(diagnoses, scans, "interviewing");
+    const r = await runInterviewTurn(db, "d1",
+      { content: "הכי מציק לי זה שאני עונה לבד לכל הפניות בערבים", questionKey: CLOSING_QUESTION_KEY, isFreeText: false },
+      {
+        complete: async () => ({
+          data: {
+            updates: [{ section: "pains", fields: { ownerNotes: "עונה לבד לכל הפניות בערבים" } }],
+            reply: "רשמתי, תודה",
+          },
+          usage: { inputTokens: 1, outputTokens: 1 },
+        }),
+      });
+    // אין שאלה הבאה בשום מקרה אחרי שאלת הסיכום, גם שרוב הסקציות (billing/service/manual_tasks
+    // וכו') עדיין בקרדיט 0 באבחון החדש הזה - זה בדיוק ה"לא משוער לפי קרדיט" מ-pickNextQuestion
+    expect(r.nextQuestion).toBeNull();
+    expect(r.done).toBe(true);
+    expect(messages).toHaveLength(2);
+    const saved = models[models.length - 1];
+    const fields = (saved.create ?? saved.update).data.pains;
+    expect(fields.ownerNotes).toBe("עונה לבד לכל הפניות בערבים");
+  });
+
+  it("אחרי שאלת הסיכום, גם resume (startInterview) לא מציע עוד שאלה - עקבי עם מה שהתור החזיר", async () => {
+    const { db, diagnoses, scans } = makeFakeDb() as any;
+    seed(diagnoses, scans, "interviewing");
+    await runInterviewTurn(db, "d1",
+      { content: "אין לי תלונות מיוחדות", questionKey: CLOSING_QUESTION_KEY, isFreeText: false },
+      { complete: async () => ({ data: { updates: [], reply: "הבנתי" }, usage: { inputTokens: 1, outputTokens: 1 } }) });
+    const resumed = await startInterview(db, "d1");
+    expect(resumed.nextQuestion).toBeNull();
   });
 });
 

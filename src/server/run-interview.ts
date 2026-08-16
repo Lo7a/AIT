@@ -21,7 +21,11 @@ export interface InterviewSnapshot {
   maxQuestions: number;
   completenessPct: number;
   credits: Record<string, number>; // קרדיטים לפי סקציה - כדי שה-UI יציג התקדמות פר-סקציה, לא רק אחוז כולל
-  nextQuestion: { key: string; section: string; text: string } | null;
+  // options/multiSelect (אפיון מחדש-ראיון, החלטה C): מוצגים רק כשהשאלה מגדירה אפשרויות בבנק
+  // (questions.ts) - undefined אומר "בלי בחירה מרובה, טקסט חופשי" (כמו שאלת הסיכום היום).
+  // options הוא מערך תוויות (string[]) ולא QuestionOption[] המלא - זה כל מה שהתצוגה צריכה כדי
+  // לצייר צ'יפים, בלי לגרור טיפוס פנימי של הבנק אל חוזה ה-API.
+  nextQuestion: { key: string; section: string; text: string; options?: string[]; multiSelect?: boolean } | null;
   recommendFreeText: boolean; // שלמות נמוכה - עדיף לפתוח בסיפור חופשי (recommendNextStep)
 }
 
@@ -46,7 +50,12 @@ export function snapshotOf(state: InterviewState): InterviewSnapshot {
     maxQuestions: MAX_GUIDED_QUESTIONS,
     completenessPct: state.model.completenessPct,
     credits: state.model.credits,
-    nextQuestion: q ? { key: q.key, section: q.section, text: q.text(state.findings, state.model) } : null,
+    nextQuestion: q
+      ? {
+        key: q.key, section: q.section, text: q.text(state.findings, state.model),
+        options: q.options?.map((o) => o.label), multiSelect: q.multiSelect,
+      }
+      : null,
     recommendFreeText: recommendNextStep(state.model).action === "free_text",
   };
 }
@@ -145,7 +154,10 @@ export async function runInterviewTurn(
     reply: result.reply,
     usedFallback: result.usedFallback,
     nextQuestion: next
-      ? { key: next.key, section: next.section, text: next.text(state.findings, updated) }
+      ? {
+        key: next.key, section: next.section, text: next.text(state.findings, updated),
+        options: next.options?.map((o) => o.label), multiSelect: next.multiSelect,
+      }
       : null,
     completenessPct: updated.completenessPct,
     credits: updated.credits,

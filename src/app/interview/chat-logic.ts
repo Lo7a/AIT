@@ -18,6 +18,10 @@ export interface NextQuestion {
   key: string;
   section: string;
   text: string;
+  // אפיון מחדש-ראיון, החלטה C: options/multiSelect מגיעים מהשרת רק כשהשאלה מגדירה אפשרויות
+  // בחירה מרובה (questions.ts) - undefined = בלי אפשרויות, נופלים לטקסט חופשי (כמו שאלת הסיכום)
+  options?: string[];
+  multiSelect?: boolean;
 }
 
 // דילוג הוא מצב לקוח בלבד ואף פעם לא נשמר בשרת (ראו cli-interview.ts - אותו דפוס בדיוק):
@@ -41,6 +45,11 @@ export interface ChatState {
   freeTextIntent: boolean;
   skippedKeys: string[];
   next: NextQuestion | null; // ההצעה הגולמית מהשרת - יש לסנן דרך visibleNext לפני תצוגה
+  // מצב צ'יפים של השאלה הנוכחית (אפיון מחדש-ראיון, החלטה D): תוויות שנבחרו בבחירה מרובה (טרם
+  // אושרו בכפתור "שליחה"), ו"אחר" - שהוא רק גילוי תיבת הטקסט הקיימת, לא שינוי ל-freeText הגלובלי.
+  // שני השדות מתאפסים בכל מעבר לשאלה חדשה (turnOk/snapshot) ובכל יציאה מההקשר הנוכחי (skip/setFreeText/send)
+  selectedOptions: string[];
+  customInputOpen: boolean;
   completenessPct: number;
   credits: Record<string, number>;
   askedCount: number;
@@ -73,6 +82,8 @@ export function initialChatState(initial: InterviewSnapshot): ChatState {
     freeTextIntent: false,
     skippedKeys,
     next: initial.nextQuestion,
+    selectedOptions: [],
+    customInputOpen: false,
     completenessPct: initial.completenessPct,
     credits: initial.credits,
     askedCount: initial.askedCount,
@@ -86,12 +97,18 @@ export type ChatAction =
   // keepError: נתיב פישור אחרי שגיאה (למשל "הראיון לא פעיל") - השגיאה כבר הוצגה במפורש
   // ואנחנו לא רוצים ש-snapshot ימחק אותה תוך כדי רענון המצב האמיתי מהשרת
   | { type: "snapshot"; payload: InterviewSnapshot; keepError?: boolean }
-  | { type: "send" }
+  // content אופציונלי (אפיון מחדש-ראיון, החלטה D): צ'יפים שולחים תוכן משלהם (תווית בודדת, או
+  // תוויות מרובות מחוברות) בלי לעבור דרך state.input - נמנעים מבעיית ה-state סגור-ישן
+  // (setInput ואז send מיד היה עדיין קורא state.input הישן מהרינדור הנוכחי). בלי content -
+  // בדיוק ההתנהגות הישנה (state.input כמו תמיד)
+  | { type: "send"; content?: string }
   | { type: "turnOk"; payload: TurnResult }
   | { type: "turnFail"; error: string }
   | { type: "skip" }
   | { type: "setFreeText"; value: boolean }
   | { type: "setInput"; value: string }
+  | { type: "toggleOption"; label: string }
+  | { type: "openCustomInput" }
   | { type: "finishStart" }
   | { type: "finishOk" }
   | { type: "finishFail"; error: string }
@@ -113,6 +130,9 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         next: action.payload.nextQuestion,
         freeText: state.freeTextIntent
           || computedFreeText(action.payload.nextQuestion, state.skippedKeys, action.payload.recommendFreeText),
+        // שאלה (חדשה או לא) הגיעה מהשרת - מצב הצ'יפים של ה"שאלה הקודמת" כבר לא רלוונטי
+        selectedOptions: [],
+        customInputOpen: false,
         starting: false,
         busy: false,
         error: action.keepError ? state.error : null,
@@ -126,10 +146,14 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
     // ההגנה הראשונה - הכפתור בתצוגה גם מנוטרל, אבל השרת עצמו סימטרי (last-write-wins,
     // שום הודעה לא הולכת לאיבוד) כך שההגנה כאן היא נוחות ולא נחיצות קריטית
     case "send": {
-      if (state.busy || state.input.trim().length === 0) return state;
-      const content = state.input.trim();
+      // content מפורש (שליחת צ'יפ) עוקף את state.input; בלעדיו - בדיוק ההתנהגות הישנה
+      const content = (action.content ?? state.input).trim();
+      if (state.busy || content.length === 0) return state;
       const message: ChatMessage = { id: `local-${state.messages.length}`, role: "user", content };
-      return { ...state, messages: [...state.messages, message], input: "", busy: true, error: null };
+      return {
+        ...state, messages: [...state.messages, message], input: "", busy: true, error: null,
+        selectedOptions: [], customInputOpen: false,
+      };
     }
 
     // freeText מחושב מחדש לפי אותו חוק בכל תור (מראה את דפוס ה-CLI המאושר), אלא אם המשתמש
@@ -144,6 +168,9 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         askedCount: action.payload.askedCount,
         next: action.payload.nextQuestion,
         freeText: state.freeTextIntent || computedFreeText(action.payload.nextQuestion, state.skippedKeys),
+        // שאלה הבאה כבר הגיעה - מצב הצ'יפים של השאלה שזה עתה נענתה לא אמור לדלוף לשאלה הבאה
+        selectedOptions: [],
+        customInputOpen: false,
         busy: false,
         error: null,
       };
@@ -169,18 +196,42 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case "skip": {
       const visible = visibleNext(state.next, state.skippedKeys);
       if (!visible) return state; // אין שאלה גלויה לדלג עליה כרגע
-      return { ...state, skippedKeys: [...state.skippedKeys, visible.key], freeText: true };
+      return {
+        ...state, skippedKeys: [...state.skippedKeys, visible.key], freeText: true,
+        selectedOptions: [], customInputOpen: false, // יוצאים מהקשר השאלה שדולגה
+      };
     }
 
     // "כתיבה חופשית" נועלת כוונה מפורשת (דביקה עד "חזרה לשאלות"); "חזרה לשאלות" משחררת אותה
     // וחוזרת למה שהמצב המחושב אומר באותו רגע (יכול עדיין להיות חופשי אם באמת אין שאלה גלויה)
     case "setFreeText": {
-      if (action.value) return { ...state, freeText: true, freeTextIntent: true };
-      return { ...state, freeText: computedFreeText(state.next, state.skippedKeys), freeTextIntent: false };
+      // בשני הכיוונים יוצאים מהקשר צ'יפים - "כתיבה חופשית" נוטשת את פאנל הצ'יפים, ו"חזרה
+      // לשאלות" חוזרת אליו נקי בלי בחירות שדבקו משאלה קודמת
+      if (action.value) return { ...state, freeText: true, freeTextIntent: true, selectedOptions: [], customInputOpen: false };
+      return {
+        ...state, freeText: computedFreeText(state.next, state.skippedKeys), freeTextIntent: false,
+        selectedOptions: [], customInputOpen: false,
+      };
     }
 
     case "setInput":
       return { ...state, input: action.value };
+
+    // בחירה מרובה: הופך תווית בפנים/בחוץ ל-selectedOptions. ננעל בזמן busy (תור באוויר) - אותו
+    // עיקרון נעילה כמו send/skip, כדי שלא ייערכו בחירות על שאלה שכבר בדרך להישלח
+    case "toggleOption": {
+      if (state.busy) return state;
+      const selectedOptions = state.selectedOptions.includes(action.label)
+        ? state.selectedOptions.filter((l) => l !== action.label)
+        : [...state.selectedOptions, action.label];
+      return { ...state, selectedOptions };
+    }
+
+    // "אחר": חושף את תיבת הטקסט הקיימת עבור השאלה הנוכחית - לא שינוי ל-freeText הגלובלי (זה
+    // עדיין תשובה לאותה שאלה מונחית, רק מוקלדת ולא נבחרת מצ'יפ)
+    case "openCustomInput":
+      if (state.busy) return state;
+      return { ...state, customInputOpen: true };
 
     case "finishStart":
       return { ...state, finishing: true, error: null };

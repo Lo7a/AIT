@@ -13,6 +13,13 @@ const SECONDARY_BTN =
   "rounded-md border border-black/[0.12] px-4 py-2 text-sm text-[#111111] hover:bg-[#F1F0EE] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]";
 const QUIET_BTN =
   "px-4 py-2 text-sm text-[#6F6E6A] underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]";
+// צ'יפ אפשרות (אפיון מחדש-ראיון, החלטה D): גבול עגול תמיד, מילוי כהה רק כשנבחר (בחירה מרובה
+// בלבד - בבחירה בודדת לחיצה שולחת מיד ואין מצב "נבחר" קבוע להראות)
+const OPTION_CHIP_BTN =
+  "rounded-full border px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]";
+const OPTION_CHIP_IDLE = "border-black/[0.12] text-[#111111] hover:bg-[#F1F0EE]";
+const OPTION_CHIP_SELECTED = "border-[#111111] bg-[#111111] text-white";
+const OPTION_CHIP_OTHER = "border-dashed border-black/[0.25] text-[#6F6E6A] hover:bg-[#F1F0EE]";
 
 // הבדל מלא/חלקי/כלום לא נשען על צבע בלבד: full מלא ובגבול רציף, partial בגבול מקווקו
 // (border-dashed) עם נקודה מוקפת, none בגבול רציף דהוי בלי נקודה בכלל - ניתן להבחין גם
@@ -83,13 +90,18 @@ export function DefaultInterview({
 }) {
   const {
     messages, busy, starting, finishing, input, freeText, visible, sections,
-    completenessPct, error, closed, canSend, canFinish, canSkip,
-    send, skip, finish, setInput, setFreeText,
+    completenessPct, error, closed, canSend, canFinish, canSkip, canAnswer, canConfirmOptions,
+    selectedOptions, customInputOpen,
+    send, skip, finish, selectOption, confirmOptions, toggleOption, openCustomInput, setInput, setFreeText,
   } = useInterviewChat(diagnosisId, initial);
 
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const inputDisabled = busy || starting || finishing || closed;
+  // השאלה הנוכחית מציעה צ'יפים ועדיין לא נלחץ "אחר" - פאנל הצ'יפים מוצג במקום תיבת הטקסט
+  // המשותפת (אפיון מחדש-ראיון, החלטה D). בלי אפשרויות (כמו שאלת הסיכום) - נשאר בדיוק כמו היום.
+  const showChips = !freeText && visible != null && (visible.options?.length ?? 0) > 0 && !customInputOpen;
+  const showTextInput = !showChips;
 
   useEffect(() => {
     // גלילה אוטומטית היא אפקט ויזואלי גרידא, לכן חי כאן ולא ב-hook (ראו use-scan-stream.ts
@@ -122,6 +134,18 @@ export function DefaultInterview({
     setFreeText(value);
     inputRef.current?.focus();
   }
+
+  // "אחר": בניגוד לדלג/מעבר מצב למעלה, כאן התיבה לא הייתה קיימת בכלל רגע לפני הלחיצה (showChips
+  // היה true, showTextInput false) - focus() מיידי היה פוגע ב-ref ריק (הרכיב עוד לא רונדר).
+  // צריך effect שרץ אחרי שהרינדור בפועל הוסיף את התיבה, בדיוק כמו wasDisabledRef למעלה אבל
+  // על המעבר false -> true של customInputOpen במקום busy/starting/finishing/closed
+  const wasCustomInputOpenRef = useRef(customInputOpen);
+  useEffect(() => {
+    if (!wasCustomInputOpenRef.current && customInputOpen) {
+      inputRef.current?.focus();
+    }
+    wasCustomInputOpenRef.current = customInputOpen;
+  }, [customInputOpen]);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -195,10 +219,70 @@ export function DefaultInterview({
               </button>
             </div>
           </div>
+        ) : showChips && visible?.options ? (
+          <div className="rounded-lg border border-black/[0.06] bg-white p-5">
+            <p className="text-lg font-medium">{visible.text}</p>
+            <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="אפשרויות תשובה">
+              {visible.options.map((label) => {
+                const selected = !!visible.multiSelect && selectedOptions.includes(label);
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    aria-pressed={visible.multiSelect ? selected : undefined}
+                    disabled={!canAnswer}
+                    onClick={() => (visible.multiSelect ? toggleOption(label) : selectOption(label))}
+                    className={`${OPTION_CHIP_BTN} ${selected ? OPTION_CHIP_SELECTED : OPTION_CHIP_IDLE}`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                disabled={!canAnswer}
+                onClick={() => openCustomInput()}
+                className={`${OPTION_CHIP_BTN} ${OPTION_CHIP_OTHER}`}
+              >
+                אחר - אכתוב בעצמי
+              </button>
+            </div>
+            {visible.multiSelect && (
+              <div className="mt-3">
+                <button
+                  type="button"
+                  className={SECONDARY_BTN}
+                  disabled={!canConfirmOptions}
+                  onClick={() => void confirmOptions()}
+                >
+                  שליחה
+                </button>
+              </div>
+            )}
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button type="button" className={SECONDARY_BTN} disabled={!canSkip} onClick={handleSkip}>
+                דלג
+              </button>
+              <button
+                type="button"
+                className={SECONDARY_BTN}
+                disabled={!canSkip}
+                onClick={() => handleSetFreeText(true)}
+              >
+                כתיבה חופשית
+              </button>
+              <button type="button" className={QUIET_BTN} disabled={!canFinish} onClick={() => void finish()}>
+                סיום הראיון
+              </button>
+            </div>
+          </div>
         ) : (
           visible && (
             <div className="rounded-lg border border-black/[0.06] bg-white p-5">
               <p className="text-lg font-medium">{visible.text}</p>
+              {visible.options != null && customInputOpen && (
+                <p className="mt-1 text-sm text-[#6F6E6A]">אפשר לכתוב את התשובה למטה</p>
+              )}
               <div className="mt-4 flex flex-wrap gap-3">
                 <button type="button" className={SECONDARY_BTN} disabled={!canSkip} onClick={handleSkip}>
                   דלג
@@ -226,27 +310,29 @@ export function DefaultInterview({
         </p>
       )}
 
-      <div className="mt-4 flex animate-fade-up items-end gap-3" style={{ animationDelay: "240ms" }}>
-        <textarea
-          ref={inputRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={inputDisabled}
-          rows={2}
-          placeholder="כתבו כאן"
-          aria-label="הודעה לראיון"
-          className="min-h-[3rem] flex-1 resize-none rounded-lg border border-black/[0.12] bg-white px-4 py-2.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111] disabled:cursor-not-allowed disabled:opacity-60"
-        />
-        <button
-          type="button"
-          onClick={() => void send()}
-          disabled={!canSend}
-          className="shrink-0 rounded-md bg-[#111111] px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
-        >
-          שליחה
-        </button>
-      </div>
+      {showTextInput && (
+        <div className="mt-4 flex animate-fade-up items-end gap-3" style={{ animationDelay: "240ms" }}>
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={inputDisabled}
+            rows={2}
+            placeholder="כתבו כאן"
+            aria-label="הודעה לראיון"
+            className="min-h-[3rem] flex-1 resize-none rounded-lg border border-black/[0.12] bg-white px-4 py-2.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111] disabled:cursor-not-allowed disabled:opacity-60"
+          />
+          <button
+            type="button"
+            onClick={() => void send()}
+            disabled={!canSend}
+            className="shrink-0 rounded-md bg-[#111111] px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
+          >
+            שליחה
+          </button>
+        </div>
+      )}
     </main>
   );
 }

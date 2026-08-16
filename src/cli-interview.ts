@@ -2,6 +2,7 @@ import "dotenv/config";
 import * as readline from "node:readline/promises";
 import { prisma } from "./server/db";
 import { startInterview, runInterviewTurn, finishInterview } from "./server/run-interview";
+import { MAX_GUIDED_QUESTIONS } from "./pipeline/interview/questions";
 
 // כלי פיתוח בלבד: צ'אט ראיון בטרמינל מול המנוע האמיתי. שימוש:
 //   npm run interview -- <diagnosisId>
@@ -50,7 +51,7 @@ async function main() {
       isFreeText: freeMode,
     });
     console.log(`\n${r.reply}${r.usedFallback ? " (נשמר בלי חילוץ - תקלת LLM)" : ""}`);
-    console.log(`שלמות: ${r.completenessPct}% | נענו ${r.askedCount}/12`);
+    console.log(`שלמות: ${r.completenessPct}% | נענו ${r.askedCount}/${MAX_GUIDED_QUESTIONS}`);
     current = r.nextQuestion && !skipped.includes(r.nextQuestion.key) ? r.nextQuestion : null;
     if (!current) { freeMode = true; console.log("(השאלות המונחות מוצו, אפשר להמשיך חופשי או 'סיים')"); }
     else freeMode = false;

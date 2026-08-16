@@ -231,6 +231,19 @@ describe("extractAnswer", () => {
     expect(seenPrompt).toContain("אל תמציא");
   });
 
+  it("הפרומפט אוסר במפורש הד/ציטוט/סיכום של תשובת בעל העסק ב-reply, ומבקש גיוון בין ניסוחי אישור", async () => {
+    let seenPrompt = "";
+    const complete = async (p: string) => {
+      seenPrompt = p;
+      return { data: { updates: [], reply: "טוב" }, usage: { inputTokens: 1, outputTokens: 1 } };
+    };
+    await extractAnswer({ findings, model, question: null, answer: "התשובה שלי" }, { complete });
+    // הבעיה שהתיקון הזה סוגר: הניסוח הישן ביקש reply "שמשקף מה הבנת" - זה בדיוק ההד שאסור.
+    // הבדיקה מוודאת שהאיסור המפורש קיים, לא רק שהמילה "reply" מוזכרת איפשהו
+    expect(seenPrompt).toContain("אסור בהחלט לחזור, לצטט או לסכם");
+    expect(seenPrompt).toContain("גוונו בין ניסוחים");
+  });
+
   it("תשובה שמכילה שורת >>> לא יכולה לברוח מהתחימה למיקום הוראה", async () => {
     let seenPrompt = "";
     const complete = async (p: string) => {
