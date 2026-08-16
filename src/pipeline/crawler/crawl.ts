@@ -31,6 +31,7 @@ const PRIORITY_KEYWORDS = [
 const BOOL_KEYS = [
   "hasContactForm", "hasWhatsappLink", "hasPhoneLink", "hasEmailLink",
   "hasOnlineBooking", "hasChatWidget", "hasFacebookPixel", "hasGoogleAnalytics",
+  "hasAccessibilityStatement", "hasAccessibilityWidget",
 ] as const;
 
 // סמני אפליקציית JS — תבניות ספציפיות של Next/React/Vue/Angular, לא כל <script>.
@@ -166,6 +167,8 @@ export async function crawlWebsite(
     hasChatWidget: merged.hasChatWidget,
     hasFacebookPixel: merged.hasFacebookPixel,
     hasGoogleAnalytics: merged.hasGoogleAnalytics,
+    hasAccessibilityStatement: merged.hasAccessibilityStatement,
+    hasAccessibilityWidget: merged.hasAccessibilityWidget,
     platform: merged.platform,
     jsRendered,
   };

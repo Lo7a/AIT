@@ -316,6 +316,27 @@ export const DIMENSIONS: DimensionDef[] = [
         gapText: () => "אין כתובת אימייל נגישה באתר",
         okText: () => "אימייל נגיש באתר",
       },
+      {
+        key: "a11y_statement", points: 15,
+        // תקנות נגישות השירות (חוק שוויון זכויות לאנשים עם מוגבלות) מחייבות עסקים בישראל בהצהרת
+        // נגישות נגישה באתר - זו דרישה חוקית שעסקים נתבעים עליה בפועל, וקל יחסית לסגור אותה
+        known: (f) => crawlUsable(f),
+        earned: (f) => !!f.websiteSignals?.hasAccessibilityStatement,
+        gapText: () => "אין הצהרת נגישות באתר - דרישה חוקית בישראל שעסקים נתבעים עליה, וקל לסגור אותה",
+        okText: () => "יש הצהרת נגישות באתר",
+      },
+      {
+        key: "site_a11y", points: 15,
+        // בדיקת הנגישות האוטומטית של PSI משקפת חוויה בפועל של גולשים עם מוגבלות - ציון נמוך הוא
+        // גם חשיפה משפטית וגם חוויה גרועה. רכיב נגישות מותקן בלי מדידה בפועל הוא העדות הכי טובה
+        // שיש כשאין ציון מדוד; אבל הוא לא מכסה על ציון מדוד גרוע (הרכיב לא תמיד עוזר בפועל)
+        known: (f) => f.pageSpeed?.accessibilityScore != null || !!f.websiteSignals?.hasAccessibilityWidget,
+        earned: (f) => (f.pageSpeed?.accessibilityScore != null
+          ? f.pageSpeed.accessibilityScore >= 80
+          : !!f.websiteSignals?.hasAccessibilityWidget),
+        gapText: () => "בדיקת הנגישות האוטומטית מצאה ליקויים - חשיפה משפטית וחוויה קשה לגולשים עם מוגבלות",
+        okText: (f) => (f.pageSpeed?.accessibilityScore != null ? "האתר עובר בדיקת נגישות אוטומטית" : "מותקן רכיב נגישות"),
+      },
     ],
   },
   {

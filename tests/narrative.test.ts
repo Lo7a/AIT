@@ -97,7 +97,10 @@ describe("generateNarrative", () => {
     const s = scoreFindings(DIMENSIONS, struggling);
     const echo = {
       headline: "יש עבודה",
-      summary: "דירוג 3.8 — מתחת לרף האמון של 4.2, וציון ביצועים 31/100 מתחת ליעד של 70",
+      // "70" (סף הביצועים) הוסר מהמשפט - הוא לא היה חוקי מעצם היותו סף (הוא היה "מותר" בעבר רק
+      // בצירוף מקרים כי ציון ממד הנגישות יצא בדיוק 70; אחרי הוספת a11y_statement/site_a11y
+      // (אבן דרך 4 המשך - הצהרת נגישות) המכנה של הממד השתנה במכוון והציון כבר לא 70)
+      summary: "דירוג 3.8 - מתחת לרף האמון של 4.2, וציון ביצועים 31/100",
       gapExplanations: s.topGaps.map((g) => ({ ruleKey: g.ruleKey, explanation: g.text })),
     };
     const result = await generateNarrative(struggling, s, { complete: llmReply(echo) });

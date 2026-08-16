@@ -151,6 +151,8 @@ describe("extractSignals", () => {
       hasChatWidget: false,
       hasFacebookPixel: false,
       hasGoogleAnalytics: false,
+      hasAccessibilityStatement: false,
+      hasAccessibilityWidget: false,
       platform: undefined,
       internalLinks: [],
     });
@@ -176,5 +178,63 @@ describe("extractSignals", () => {
   it("counts a select as a real field (service dropdown + phone)", () => {
     const html = `<form action="/lead"><select name="service"><option>א</option></select><input name="phone"/></form>`;
     expect(extractSignals(html, BASE).hasContactForm).toBe(true);
+  });
+});
+
+// הצהרת נגישות (תקנות נגישות השירות) ורכיב נגישות מותקן - פיצ'ר עמידה בדין הישראלי (משימת המייסד)
+describe("accessibility statement + widget detection", () => {
+  it("detects a statement link by the short Hebrew nav label (נגישות בלבד)", () => {
+    const html = `<nav><a href="/x">נגישות</a></nav>`;
+    expect(extractSignals(html, BASE).hasAccessibilityStatement).toBe(true);
+  });
+
+  it("detects a statement link by the full Hebrew phrase", () => {
+    const html = `<footer><a href="/page">הצהרת נגישות</a></footer>`;
+    expect(extractSignals(html, BASE).hasAccessibilityStatement).toBe(true);
+  });
+
+  it("detects a statement link by English href pattern", () => {
+    expect(extractSignals(`<a href="/accessibility-statement">Accessibility</a>`, BASE).hasAccessibilityStatement).toBe(true);
+    expect(extractSignals(`<a href="/negishut">site</a>`, BASE).hasAccessibilityStatement).toBe(true);
+  });
+
+  it("detects a statement link by percent-encoded Hebrew href", () => {
+    const encoded = encodeURIComponent("הצהרת-נגישות");
+    const html = `<a href="/info/${encoded}">מידע</a>`;
+    expect(extractSignals(html, BASE).hasAccessibilityStatement).toBe(true);
+  });
+
+  it("tolerates a malformed percent-encoding in the href without throwing", () => {
+    const html = `<a href="/page%E2%28%">קישור</a>`;
+    expect(() => extractSignals(html, BASE)).not.toThrow();
+    expect(extractSignals(html, BASE).hasAccessibilityStatement).toBe(false);
+  });
+
+  it("a plain paragraph mentioning נגישות (not an anchor) is not detected", () => {
+    const html = `<p>אנחנו מחויבים לנגישות מלאה באתר שלנו</p>`;
+    expect(extractSignals(html, BASE).hasAccessibilityStatement).toBe(false);
+  });
+
+  it.each([
+    ["userway", `<script src="https://cdn.userway.org/widget.js"></script>`],
+    ["equalweb", `<script src="https://cdn.equalweb.com/core/4.2.0/accessibility.js"></script>`],
+    ["accessibe/acsbapp", `<script src="https://acsbapp.com/apps/app/dist/js/app.js"></script>`],
+    ["nagich", `<script src="https://www.nagich.co.il/widget.js"></script>`],
+    ["enable.co.il", `<script src="https://www.enable.co.il/widget.js"></script>`],
+    ["accessible-poetry", `<link rel="stylesheet" href="/wp-content/plugins/accessible-poetry/style.css"/>`],
+    ["accessiway", `<script src="https://widget.accessiway.com/scan.js"></script>`],
+    ["negishim", `<script src="https://negishim.co.il/widget.js"></script>`],
+  ])("detects the %s accessibility widget fingerprint", (_label, html) => {
+    expect(extractSignals(html, BASE).hasAccessibilityWidget).toBe(true);
+  });
+
+  it('"enable" as a plain English word is not an accessibility widget (word-boundary care)', () => {
+    const html = `<p>This feature will enable better performance for our users.</p>`;
+    expect(extractSignals(html, BASE).hasAccessibilityWidget).toBe(false);
+  });
+
+  it("plain page text mentioning a provider name in prose is still detected (fingerprint, not word-filtered)", () => {
+    // userway/equalweb וכו' הם שמות ספק ולא מילים אנגליות נפוצות - אין סיכון להתנגשות במילה חופשית
+    expect(extractSignals(`<div class="userway-widget"></div>`, BASE).hasAccessibilityWidget).toBe(true);
   });
 });

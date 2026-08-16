@@ -2,9 +2,16 @@ import * as cheerio from "cheerio";
 import type { WebsiteSignals } from "../types";
 
 // סיגנלים של עמוד בודד; ה-crawler ממזג אותם לרמת האתר (WebsiteSignals)
-// jsRendered מוחרג — הוא נגזר ברמת האתר (crawl.ts) מהעמוד הראשי, extractSignals לא קובע אותו
-export interface PageSignals extends Omit<WebsiteSignals, "pagesCrawled" | "crawledUrls" | "jsRendered"> {
+// jsRendered מוחרג — הוא נגזר ברמת האתר (crawl.ts) מהעמוד הראשי, extractSignals לא קובע אותו.
+// hasAccessibilityStatement/hasAccessibilityWidget: אופציונליים ב-WebsiteSignals (כדי לא לשבור
+// fixtures ישנים בבדיקות), אבל כאן חובה - extractSignals תמיד מחשבת ערך אמיתי, ובלי הדריסה הזו
+// הלולאה הגנרית ב-crawl.ts (merged[key] = merged[key] || signals[key]) לא הייתה מתקמפלת (TS לא
+// מרשה כתיבה גנרית דרך מפתחות ששייכים ל-boolean|undefined לצד boolean רגיל)
+export interface PageSignals
+  extends Omit<WebsiteSignals, "pagesCrawled" | "crawledUrls" | "jsRendered" | "hasAccessibilityStatement" | "hasAccessibilityWidget"> {
   internalLinks: string[];
+  hasAccessibilityStatement: boolean;
+  hasAccessibilityWidget: boolean;
 }
 
 // זיהוי לפי דומיינים/קבצים של ספקים — לא לפי מילים בטקסט חופשי, כדי למנוע התרעות שווא
@@ -18,6 +25,16 @@ const CHAT_RE = /tawk\.to|tidio(?:chat)?\.(?:co|com)|intercom(?:cdn)?\.(?:io|com
 const CUSTOM_CHAT_RE = /chat-(?:fab|window|widget|box|popup|container|launcher|bubble)\b|togglechat\s*\(|openchat\s*\(/;
 const FB_PIXEL_RE = /fbq\(|fbevents\.js/;
 const GA_RE = /gtag\(|googletagmanager|google-analytics/;
+// הצהרת נגישות (תקנות נגישות השירות - חוק שוויון זכויות לאנשים עם מוגבלות): מזהים לפי טקסט
+// עוגן ("נגישות" לבד - תיוג תפריט מקובל שמוביל לעמוד ההצהרה - או "הצהרת נגישות" המלאה) או לפי
+// href שמפנה לעמוד הצהרה, באנגלית או בעברית מקודדת. רק עוגן <a> - לא טקסט חופשי בעמוד, אחרת כל
+// פסקה שמזכירה "נגישות" הייתה נספרת בטעות
+const A11Y_STATEMENT_TEXT_RE = /נגישות/;
+const A11Y_STATEMENT_HREF_RE = /accessibility[-_]?statement|negishut|הצהרת[-_ ]?נגישות/i;
+// ספקי רכיבי נגישות (ווידג'ט) ישראליים ובינלאומיים - טביעת אצבע בקוד הגולמי, לא מילה חופשית
+// (אותה פילוסופיה כמו CHAT_RE/BOOKING_RE). accessible-poetry הוא פלאגין וורדפרס ישראלי (נראה חי
+// היום). enable\.co\.il עם נקודה מפורשת כדי לא להתנגש עם המילה האנגלית הרגילה "enable"
+const A11Y_WIDGET_RE = /userway|equalweb|accessibe|acsbapp|nagich|enable\.co\.il|accessible-poetry|accessiway|negishim/;
 // טפסים שאינם יצירת קשר: חיפוש, ניוזלטר, התחברות, עגלה, תגובות בלוג
 const NON_CONTACT_FORM_RE = /(?:^|[^a-z])(search|newsletter|subscribe|mc4wp|login|register|cart|coupon|comment)/;
 // קישורים לקבצים — לא עמודים, לא נכנסים לתור הסריקה
@@ -83,6 +100,31 @@ export function extractSignals(html: string, baseUrl: string): PageSignals {
   else if (lowerHtml.includes("wixstatic.com") || lowerHtml.includes("wix.com")) platform = "wix";
   else if (lowerHtml.includes("cdn.shopify.com")) platform = "shopify";
 
+  // הצהרת נגישות: עוגן שהטקסט שלו מכיל "נגישות", או שה-href שלו (אחרי פענוח הנתיב) מפנה לעמוד
+  // הצהרה. סלחני לכישלון פענוח בשתי רמות - URL לא תקין בכלל, או % לא תקין בתוך נתיב תקין
+  let hasAccessibilityStatement = false;
+  $("a[href]").each((_i, el) => {
+    if (hasAccessibilityStatement) return;
+    const $a = $(el);
+    if (A11Y_STATEMENT_TEXT_RE.test($a.text())) {
+      hasAccessibilityStatement = true;
+      return;
+    }
+    const href = $a.attr("href") ?? "";
+    let pathname = href;
+    try {
+      const u = new URL(href, baseUrl);
+      try {
+        pathname = decodeURIComponent(u.pathname);
+      } catch {
+        pathname = u.pathname; // % לא תקין בפענוח - בודקים את הנתיב הגולמי
+      }
+    } catch {
+      // href לא בר-פענוח כלל כ-URL (גם לא יחסית ל-base) - בודקים את המחרוזת הגולמית שלו
+    }
+    if (A11Y_STATEMENT_HREF_RE.test(pathname)) hasAccessibilityStatement = true;
+  });
+
   return {
     hasContactForm,
     hasWhatsappLink: WHATSAPP_RE.test(lowerHtml),
@@ -92,6 +134,8 @@ export function extractSignals(html: string, baseUrl: string): PageSignals {
     hasChatWidget: CHAT_RE.test(lowerHtml) || CUSTOM_CHAT_RE.test(lowerHtml),
     hasFacebookPixel: FB_PIXEL_RE.test(lowerHtml),
     hasGoogleAnalytics: GA_RE.test(lowerHtml),
+    hasAccessibilityStatement,
+    hasAccessibilityWidget: A11Y_WIDGET_RE.test(lowerHtml),
     platform,
     internalLinks: [...new Set(internalLinks)],
   };

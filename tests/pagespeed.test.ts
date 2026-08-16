@@ -40,6 +40,7 @@ describe("runPageSpeed", () => {
     expect(calledUrl).toContain("strategy=mobile");
     expect(calledUrl).toContain("category=PERFORMANCE");
     expect(calledUrl).toContain("category=SEO");
+    expect(calledUrl).toContain("category=ACCESSIBILITY");
     expect(calledUrl).toContain(encodeURIComponent("https://example.co.il"));
     // המפתח בכותרת ולא ב-URL (מדיניות docs/llm.md) - נבדק חי מול PSI: 200 עם נתוני Lighthouse מלאים
     expect(calledUrl).not.toContain("key=");
@@ -136,6 +137,45 @@ describe("runPageSpeed", () => {
     const fetchImpl = vi.fn(async () => psiResponse({}));
     const result = await runPageSpeed("https://example.co.il", { apiKey: "k", fetchImpl });
     expect(result.raw).toBeUndefined();
+  });
+
+  it("extracts and rounds the accessibility score (Israeli accessibility-compliance feature)", async () => {
+    const fetchImpl = vi.fn(async () =>
+      psiResponse({
+        lighthouseResult: {
+          categories: {
+            performance: { score: 0.5 }, seo: { score: 0.5 },
+            accessibility: { score: 0.876 },
+          },
+          audits: {},
+        },
+      }));
+    const result = await runPageSpeed("https://example.co.il", { apiKey: "k", fetchImpl });
+    expect(result.accessibilityScore).toBe(88);
+  });
+
+  it("accessibilityScore is undefined (null-safe) when the category is missing", async () => {
+    const fetchImpl = vi.fn(async () =>
+      psiResponse({ lighthouseResult: { categories: {}, audits: {} } }));
+    const result = await runPageSpeed("https://example.co.il", { apiKey: "k", fetchImpl });
+    expect(result.accessibilityScore).toBeUndefined();
+  });
+
+  it("keeps the accessibility category in the trimmed raw payload", async () => {
+    const fetchImpl = vi.fn(async () =>
+      psiResponse({
+        lighthouseResult: {
+          categories: {
+            performance: { score: 0.5 }, seo: { score: 0.5 },
+            accessibility: { score: 0.9 },
+          },
+          audits: {},
+        },
+      }));
+    const result = await runPageSpeed("https://example.co.il", { apiKey: "k", fetchImpl });
+    expect(result.raw?.categories).toEqual({
+      performance: { score: 0.5 }, seo: { score: 0.5 }, accessibility: { score: 0.9 },
+    });
   });
 
   it("throws when PSI returns 200 with a lighthouse runtimeError", async () => {

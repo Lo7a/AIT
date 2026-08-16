@@ -42,10 +42,17 @@ const NO_GBP: ScanFindings = {
 };
 
 describe("real dimensions", () => {
-  it("weights sum to 1 and every dimension's points sum to 100", () => {
+  it("weights sum to 1 and every dimension's points sum to its expected total", () => {
     expect(DIMENSIONS.reduce((s, d) => s + d.weight, 0)).toBeCloseTo(1);
+    // accessibility גדל מ-100 ל-130 עם הוספת a11y_statement (15) + site_a11y (15) - עמידה בדין
+    // הישראלי (הצהרת נגישות + בדיקת נגישות אוטומטית). המכנה החדש מכוון (ראו הערת PR/משימה) -
+    // הציון עצמו תמיד earnedPts/knownPts (engine.ts) ולא ביחס ל-100 הקבוע, כך שהשינוי לא מזיז
+    // ציונים קיימים - רק מוסיף עוד עדות אפשרית לממד
+    const expectedTotal: Record<string, number> = {
+      visibility: 100, reputation: 100, accessibility: 130, infrastructure: 100, process: 100,
+    };
     for (const d of DIMENSIONS) {
-      expect(d.rules.reduce((s, r) => s + r.points, 0), d.key).toBe(100);
+      expect(d.rules.reduce((s, r) => s + r.points, 0), d.key).toBe(expectedTotal[d.key]);
     }
   });
 
@@ -173,7 +180,7 @@ describe("social presence as website (אבן דרך 4, משימה 0)", () => {
   it("socialOnly: כל חוקי האתר שתלויים ב-crawl/PageSpeed נשארים לא ידועים - אין ניחוש מהיעדר מידע", () => {
     const websiteDerivedKeys = [
       "perf", "lcp", "seo", "whatsapp", "contact_form", "online_booking", "email_link",
-      "analytics", "fb_pixel", "chat_widget", "multi_page",
+      "analytics", "fb_pixel", "chat_widget", "multi_page", "a11y_statement", "site_a11y",
     ];
     const report = scoreFindings(DIMENSIONS, SOCIAL);
     for (const dim of report.dimensions) {
@@ -318,6 +325,85 @@ describe("score invariants after the own_website review fixes (סקירת קוד
     const vis = report.dimensions.find((d) => d.key === "visibility")!;
     expect(vis.rules.find((r) => r.key === "has_website")!.earned).toBe(false);
     expect(report.topGaps.map((g) => g.ruleKey)).toContain("own_website");
+  });
+});
+
+// עמידה בדין הישראלי - הצהרת נגישות + בדיקת נגישות אוטומטית (תקנות נגישות השירות, ממצא מייסד:
+// עסקים בישראל נתבעים על אתרים לא נגישים והיעדר הצהרה)
+describe("accessibility: a11y_statement + site_a11y (הצהרת נגישות ותקנות נגישות השירות)", () => {
+  const ruleOf = (f: ScanFindings, key: string) =>
+    scoreFindings(DIMENSIONS, f).dimensions.find((d) => d.key === "accessibility")!.rules.find((r) => r.key === key)!;
+
+  it("a11y_statement: known וגם earned כשיש הצהרת נגישות", () => {
+    const f = structuredClone(RICH);
+    f.websiteSignals!.hasAccessibilityStatement = true;
+    const rule = ruleOf(f, "a11y_statement");
+    expect(rule.known).toBe(true);
+    expect(rule.earned).toBe(true);
+    expect(rule.text).toBe("יש הצהרת נגישות באתר");
+  });
+
+  it("a11y_statement: known אבל לא earned כשאין הצהרת נגישות", () => {
+    const rule = ruleOf(RICH, "a11y_statement"); // RICH לא מגדיר hasAccessibilityStatement
+    expect(rule.known).toBe(true);
+    expect(rule.earned).toBe(false);
+    expect(rule.text).toBe("אין הצהרת נגישות באתר - דרישה חוקית בישראל שעסקים נתבעים עליה, וקל לסגור אותה");
+  });
+
+  it("a11y_statement: לא ידוע כש-crawl לא שמיש (בלי אתר בכלל)", () => {
+    const rule = ruleOf(THIN, "a11y_statement");
+    expect(rule.known).toBe(false);
+  });
+
+  it("site_a11y: ציון PSI גבוה - earned", () => {
+    const f = structuredClone(RICH);
+    f.pageSpeed = { ...RICH.pageSpeed, accessibilityScore: 92 };
+    const rule = ruleOf(f, "site_a11y");
+    expect(rule.known).toBe(true);
+    expect(rule.earned).toBe(true);
+    expect(rule.text).toBe("האתר עובר בדיקת נגישות אוטומטית");
+  });
+
+  it("site_a11y: ציון PSI נמוך - gap, גם כשמותקן רכיב נגישות (רכיב לא מכסה על ציון מדוד גרוע)", () => {
+    const f = structuredClone(RICH);
+    f.pageSpeed = { ...RICH.pageSpeed, accessibilityScore: 40 };
+    f.websiteSignals!.hasAccessibilityWidget = true;
+    const rule = ruleOf(f, "site_a11y");
+    expect(rule.known).toBe(true);
+    expect(rule.earned).toBe(false);
+    expect(rule.text).toBe("בדיקת הנגישות האוטומטית מצאה ליקויים - חשיפה משפטית וחוויה קשה לגולשים עם מוגבלות");
+  });
+
+  it("site_a11y: בלי ציון PSI אבל עם רכיב נגישות מותקן - earned (העדות הכי טובה שיש)", () => {
+    const f = structuredClone(RICH);
+    f.websiteSignals!.hasAccessibilityWidget = true;
+    const rule = ruleOf(f, "site_a11y");
+    expect(rule.known).toBe(true);
+    expect(rule.earned).toBe(true);
+    expect(rule.text).toBe("מותקן רכיב נגישות");
+  });
+
+  it("site_a11y: לא ידוע כשאין לא ציון ולא רכיב", () => {
+    const rule = ruleOf(RICH, "site_a11y"); // RICH לא מגדיר accessibilityScore ולא hasAccessibilityWidget
+    expect(rule.known).toBe(false);
+  });
+
+  it("שתי החוקים החדשים לעולם לא מציגים ספרה בטקסט (אלרגן שומר המספרים בנרטיב אוסר ציטוט לא-מאושר)", () => {
+    const NO_DIGIT_RE = /\d/;
+    const withScore = structuredClone(RICH);
+    withScore.pageSpeed = { ...RICH.pageSpeed, accessibilityScore: 92 };
+    withScore.websiteSignals!.hasAccessibilityStatement = true;
+    const withWidgetOnly = structuredClone(RICH);
+    withWidgetOnly.websiteSignals!.hasAccessibilityWidget = true;
+    const withLowScore = structuredClone(RICH);
+    withLowScore.pageSpeed = { ...RICH.pageSpeed, accessibilityScore: 10 };
+
+    for (const key of ["a11y_statement", "site_a11y"]) {
+      for (const f of [RICH, withScore, withWidgetOnly, withLowScore]) {
+        const rule = ruleOf(f, key);
+        if (rule.known) expect(rule.text, `${key}/${rule.text}`).not.toMatch(NO_DIGIT_RE);
+      }
+    }
   });
 });
 

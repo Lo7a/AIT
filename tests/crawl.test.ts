@@ -184,6 +184,24 @@ describe("crawlWebsite", () => {
     expect(signals.pagesCrawled).toBe(1); // רק עמוד הבית — התקציב נגמר
   });
 
+  it("merges accessibility statement/widget signals with OR across pages", async () => {
+    // עמוד בית בלי שום איתות נגישות + עמוד פנימי עם קישור הצהרת נגישות ורכיב userway -
+    // רמת האתר חייבת לזכות ב-OR, בדיוק כמו כל שאר ה-BOOL_KEYS
+    const contact = `<html><body>
+      <a href="/statement">הצהרת נגישות</a>
+      <script src="https://cdn.userway.org/widget.js"></script>
+    </body></html>`;
+    const fetchImpl = vi.fn(async (url: RequestInfo | URL) => {
+      const u = url.toString();
+      if (u.includes("/contact")) return htmlResponse(contact);
+      if (u.includes("/gallery")) return htmlResponse(GALLERY);
+      return htmlResponse(HOME);
+    });
+    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 3 });
+    expect(signals.hasAccessibilityStatement).toBe(true);
+    expect(signals.hasAccessibilityWidget).toBe(true);
+  });
+
   it("merges platform found only on an inner page", async () => {
     const contactWp = `<link href="/wp-content/x.css"/><a href="https://wa.me/972501234567">וו</a>`;
     const fetchImpl = vi.fn(async (url: RequestInfo | URL) => {

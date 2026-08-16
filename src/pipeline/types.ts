@@ -40,6 +40,10 @@ export interface WebsiteSignals {
   hasGoogleAnalytics: boolean;
   platform?: string;
   jsRendered?: boolean; // האתר מרונדר בצד לקוח — האותות מה-HTML הגולמי חלקיים, אסור להסיק מהם "אין"
+  // נגישות (הצהרת נגישות + רכיב נגישות מותקן) - אופציונלי כמו platform/jsRendered כדי לא לשבור
+  // fixtures קיימים של WebsiteSignals בכל הבדיקות; crawl.ts תמיד ממלא ערך אמיתי (true/false) בפועל
+  hasAccessibilityStatement?: boolean;
+  hasAccessibilityWidget?: boolean;
 }
 
 // גרסה מקוצצת של גוף PSI - קטגוריות+ציונים, מדדי ליבה (כולל LCP), ו-loadingExperience אם קיים.
@@ -53,6 +57,7 @@ export interface PageSpeedRawTrimmed {
 export interface PageSpeedResult {
   performanceScore?: number; // 0-100
   seoScore?: number;         // 0-100
+  accessibilityScore?: number; // 0-100 - קטגוריית ACCESSIBILITY של PSI (בדיקת נגישות אוטומטית)
   lcpMs?: number;
   // ראו PageSpeedRawTrimmed - לשימוש עתידי (אבן דרך 4 משימה 0.7), לא נצרך בשום מסך היום
   raw?: PageSpeedRawTrimmed;

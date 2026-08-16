@@ -24,7 +24,7 @@ type PsiResponseBody = {
   loadingExperience?: unknown;
   lighthouseResult?: {
     runtimeError?: { code?: string; message?: string };
-    categories?: { performance?: { score?: number }; seo?: { score?: number } };
+    categories?: { performance?: { score?: number }; seo?: { score?: number }; accessibility?: { score?: number } };
     audits?: Record<string, { numericValue?: number } | undefined>;
   };
 };
@@ -63,6 +63,9 @@ async function attemptPageSpeed(
   const params = new URLSearchParams({ url: normalizedUrl, strategy: "mobile" });
   params.append("category", "PERFORMANCE");
   params.append("category", "SEO");
+  // תכונת עמידה בדין הישראלי (הצהרת נגישות + בדיקת נגישות אוטומטית) - קטגוריית ACCESSIBILITY
+  // של Lighthouse משמשת כאן כאיתות נוסף בממד "נגישות ללקוח" (dimensions.ts)
+  params.append("category", "ACCESSIBILITY");
   // המפתח בכותרת x-goog-api-key ולעולם לא ב-URL (מדיניות docs/llm.md: מפתח ב-URL מודלף ללוגים),
   // בדיוק כמו places.ts ו-llm/client.ts. נבדק חי מול PSI ב-2026-08-15: קריאה עם המפתח בכותרת
   // בלבד החזירה 200 עם עץ Lighthouse מלא. בלי מפתח הקריאה עדיין עובדת אבל במכסה נמוכה
@@ -85,6 +88,8 @@ async function attemptPageSpeed(
     performanceScore:
       categories?.performance?.score != null ? Math.round(categories.performance.score * 100) : undefined,
     seoScore: categories?.seo?.score != null ? Math.round(categories.seo.score * 100) : undefined,
+    accessibilityScore:
+      categories?.accessibility?.score != null ? Math.round(categories.accessibility.score * 100) : undefined,
     lcpMs: lcp != null ? Math.round(lcp) : undefined,
     raw: trimRaw(body),
   };
