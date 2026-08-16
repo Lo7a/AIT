@@ -18,7 +18,7 @@ export interface ScanDeps {
 }
 
 export interface ScanRunOptions {
-  // קריאות Places שבוצעו לפני runScan (חיפוש העסק ב-CLI) — נספרות בעלות
+  // קריאות Places שבוצעו לפני runScan (חיפוש העסק ב-CLI) - נספרות בעלות
   priorPlacesCalls?: number;
 }
 
@@ -30,7 +30,7 @@ export const defaultDeps: ScanDeps = {
 };
 
 const FEW_REVIEWS_THRESHOLD = 5;
-// הערכה גסה לקריאת Places בודדת (חיפוש או פרטים) — נמדד מול החשבונית בשער. LLM = $0 בשכבת החינם; כשייבחר מודל ייצור (9.3) — להוסיף עלות טוקנים
+// הערכה גסה לקריאת Places בודדת (חיפוש או פרטים) - נמדד מול החשבונית בשער. LLM = $0 בשכבת החינם; כשייבחר מודל ייצור (9.3) - להוסיף עלות טוקנים
 const EST_PLACES_CALL_USD = 0.03;
 
 function reasonOf(r: PromiseRejectedResult): string {
@@ -48,7 +48,7 @@ export async function runScan(
   const partialDetails: Partial<Record<PartialFlag, string>> = {};
   let llmUsage: LlmUsage = { inputTokens: 0, outputTokens: 0 };
 
-  // בלי פרטי העסק אין מה לסרוק — כישלון כאן עוצר את האבחון
+  // בלי פרטי העסק אין מה לסרוק - כישלון כאן עוצר את האבחון
   const details = await deps.details(placeId);
   const placesCalls = 1 + (opts.priorPlacesCalls ?? 0);
 
@@ -105,7 +105,7 @@ export async function runScan(
     }
   }
 
-  // Places מחזיר מדגם של עד 5 ביקורות — הדגל נמדד מול ספירת הביקורות האמיתית של העסק
+  // Places מחזיר מדגם של עד 5 ביקורות - הדגל נמדד מול ספירת הביקורות האמיתית של העסק
   if ((details.reviewCount ?? details.reviews.length) < FEW_REVIEWS_THRESHOLD) partial.push("few_reviews");
 
   if (reviewsResult.status === "fulfilled") {
@@ -116,7 +116,7 @@ export async function runScan(
     partialDetails.review_analysis_failed = reasonOf(reviewsResult);
   }
 
-  // עסק מדורג שאין לו טקסטים של ביקורות — הניתוח ריק גם כשספירת הביקורות גבוהה
+  // עסק מדורג שאין לו טקסטים של ביקורות - הניתוח ריק גם כשספירת הביקורות גבוהה
   if (reviewInsights && reviewInsights.totalAnalyzed === 0 && !partial.includes("few_reviews")) {
     partial.push("no_review_text");
   }

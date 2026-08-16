@@ -23,7 +23,7 @@ const happyScanDeps: ScanDeps = {
   }),
 };
 
-// נרטיב מוזרק: JSON תקין — לא מפעיל LLM חי ולא תלוי בפרטי ה-guard
+// נרטיב מוזרק: JSON תקין - לא מפעיל LLM חי ולא תלוי בפרטי ה-guard
 const fakeComplete = async () => ({
   data: { headline: "כותרת", summary: "סיכום", gapExplanations: [] },
   usage: { inputTokens: 10, outputTokens: 10 },
@@ -34,7 +34,7 @@ function collect() {
   return { events, onEvent: (e: DiagnoseEvent) => events.push(e) };
 }
 
-describe("runDiagnosis — מסלול Places", () => {
+describe("runDiagnosis - מסלול Places", () => {
   it("מסיים ב-report_ready עם סדר מעברים מלא ופולט אירועים בסדר הנכון", async () => {
     const { db, transitions, scans, businesses } = makeFakeDb();
     const { events, onEvent } = collect();
@@ -60,7 +60,7 @@ describe("runDiagnosis — מסלול Places", () => {
     expect(businesses[0].website).toBe("https://x.co.il");
   });
 
-  it("כישלון פרטי העסק — חזרה ל-created, השגיאה המקורית נזרקת, אין scan", async () => {
+  it("כישלון פרטי העסק - חזרה ל-created, השגיאה המקורית נזרקת, אין scan", async () => {
     const { db, transitions, scans } = makeFakeDb();
     const deps: ScanDeps = { ...happyScanDeps, details: async () => { throw new Error("Places נפל"); } };
     await expect(runDiagnosis(db, { kind: "places", placeId: "p1", name: "עסק" }, {
@@ -70,7 +70,7 @@ describe("runDiagnosis — מסלול Places", () => {
     expect(scans).toHaveLength(0);
   });
 
-  it("dep בודד שנופל (crawl) לא מפיל אבחון — נגמר report_ready עם step_done ok:false", async () => {
+  it("dep בודד שנופל (crawl) לא מפיל אבחון - נגמר report_ready עם step_done ok:false", async () => {
     const { db, transitions } = makeFakeDb();
     const { events, onEvent } = collect();
     const deps: ScanDeps = { ...happyScanDeps, crawl: async () => { throw new Error("timeout"); } };
@@ -83,7 +83,7 @@ describe("runDiagnosis — מסלול Places", () => {
   });
 });
 
-describe("runDiagnosis — מסלול URL", () => {
+describe("runDiagnosis - מסלול URL", () => {
   const happyWebDeps: WebsiteOnlyDeps = {
     crawl: happyScanDeps.crawl,
     pagespeed: happyScanDeps.pagespeed,
@@ -100,7 +100,7 @@ describe("runDiagnosis — מסלול URL", () => {
     expect(businesses[0].website).toBe("https://www.x.co.il");
   });
 
-  it("כישלון כפול (crawl+PSI) — DiagnoseFailed, חזרה ל-created, אין scan", async () => {
+  it("כישלון כפול (crawl+PSI) - DiagnoseFailed, חזרה ל-created, אין scan", async () => {
     const { db, transitions, scans } = makeFakeDb();
     const deps: WebsiteOnlyDeps = {
       crawl: async () => { throw new Error("down"); },
@@ -114,7 +114,7 @@ describe("runDiagnosis — מסלול URL", () => {
     expect(scans).toHaveLength(0);
   });
 
-  it("url לא תקין — נזרק לפני כל כתיבה ל-DB", async () => {
+  it("url לא תקין - נזרק לפני כל כתיבה ל-DB", async () => {
     const { db, diagnoses } = makeFakeDb();
     await expect(runDiagnosis(db, { kind: "url", url: "mailto:x@y.co.il" }, {}))
       .rejects.toThrow();
@@ -122,7 +122,7 @@ describe("runDiagnosis — מסלול URL", () => {
   });
 });
 
-describe("runDiagnosis — שמירה ומעבר סטטוס אטומיים", () => {
+describe("runDiagnosis - שמירה ומעבר סטטוס אטומיים", () => {
   it("כשל המעבר scanned→report_ready מגלגל אחורה את שורת הסריקה (אין scan יתום)", async () => {
     const { db, transitions, scans, models, diagnoses } = makeFakeDb({
       failTransitions: new Set(["scanned→report_ready"]),
@@ -143,8 +143,8 @@ describe("runDiagnosis — שמירה ומעבר סטטוס אטומיים", () 
   });
 });
 
-describe("runDiagnosis — עמידות בפני onEvent שזורק", () => {
-  it("onEvent שזורק על כל קריאה לא משבש נתונים — מגיע ל-report_ready בלי דגלי כישלון שקריים", async () => {
+describe("runDiagnosis - עמידות בפני onEvent שזורק", () => {
+  it("onEvent שזורק על כל קריאה לא משבש נתונים - מגיע ל-report_ready בלי דגלי כישלון שקריים", async () => {
     const { db, transitions, scans } = makeFakeDb();
     const throwingOnEvent = () => { throw new Error("Controller is already closed"); };
     const outcome = await runDiagnosis(db, { kind: "places", placeId: "p1", name: "עסק בדיקה" }, {
@@ -158,7 +158,7 @@ describe("runDiagnosis — עמידות בפני onEvent שזורק", () => {
     expect(outcome.findings.partial).not.toContain("pagespeed_failed");
   });
 
-  it("done נפלט אחרי ה-backfill — website כבר מעודכן ברגע שאירוע done נשלח", async () => {
+  it("done נפלט אחרי ה-backfill - website כבר מעודכן ברגע שאירוע done נשלח", async () => {
     const { db, businesses } = makeFakeDb();
     let websiteAtDone: string | null | undefined;
     const onEvent = (e: DiagnoseEvent) => {
@@ -171,19 +171,19 @@ describe("runDiagnosis — עמידות בפני onEvent שזורק", () => {
   });
 });
 
-describe("runDiagnosis — כישלון גם ב-revert", () => {
-  it("updateMany נכשל גם על scanning→created — השגיאה המקורית (לא שגיאת ה-revert) ממשיכה להיזרק", async () => {
+describe("runDiagnosis - כישלון גם ב-revert", () => {
+  it("updateMany נכשל גם על scanning→created - השגיאה המקורית (לא שגיאת ה-revert) ממשיכה להיזרק", async () => {
     const { db, transitions } = makeFakeDb({ failTransitions: new Set(["scanning→created"]) });
     const deps: ScanDeps = { ...happyScanDeps, details: async () => { throw new Error("Places נפל"); } };
     await expect(runDiagnosis(db, { kind: "places", placeId: "p1", name: "עסק" }, {
       scanDeps: deps, narrativeOptions: { complete: fakeComplete },
     })).rejects.toThrow("Places נפל");
-    // ה-revert עצמו נכשל (updateMany מדומה count:0) — לא נרשם כמעבר מוצלח
+    // ה-revert עצמו נכשל (updateMany מדומה count:0) - לא נרשם כמעבר מוצלח
     expect(transitions).toEqual(["created→scanning"]);
   });
 });
 
-describe("runDiagnosis — עסק בלי אתר", () => {
+describe("runDiagnosis - עסק בלי אתר", () => {
   it("crawl/pagespeed מסומנים skipped עם הסבר 'לעסק אין אתר', בלי דגלי כישלון", async () => {
     const { db } = makeFakeDb();
     const { events, onEvent } = collect();
@@ -202,7 +202,7 @@ describe("runDiagnosis — עסק בלי אתר", () => {
     const pagespeedDone = events.find((e) => e.type === "step_done" && e.key === "pagespeed");
     expect(crawlDone).toMatchObject({ ok: false, detail: "לעסק אין אתר" });
     expect(pagespeedDone).toMatchObject({ ok: false, detail: "לעסק אין אתר" });
-    // "אין אתר" הוא ידוע-מראש, לא כישלון dep בפועל — לא דגלי crawl_failed/pagespeed_failed
+    // "אין אתר" הוא ידוע-מראש, לא כישלון dep בפועל - לא דגלי crawl_failed/pagespeed_failed
     expect(outcome.findings.partial).not.toContain("crawl_failed");
     expect(outcome.findings.partial).not.toContain("pagespeed_failed");
   });

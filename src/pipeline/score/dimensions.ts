@@ -4,7 +4,7 @@ import { noGbp, crawlUsable, reviewsAnalyzed } from "../evidence";
 import { SOCIAL_PLATFORM_LABEL_HE, socialPresenceOf } from "../social-hosts";
 import type { BusinessModel, ModelSection } from "../model/business-model";
 
-// עזר "ידוע" מקומי לממד הזה בלבד — לא משותף (רק accessibility צריך אותו)
+// עזר "ידוע" מקומי לממד הזה בלבד - לא משותף (רק accessibility צריך אותו)
 const phoneFound = (f: ScanFindings) => !!f.business.phone || !!f.websiteSignals?.hasPhoneLink;
 
 // אות שלילי שמקורו ב-crawl (contact_form/online_booking/chat_widget - התכונה שהם בודקים
@@ -294,7 +294,7 @@ export const DIMENSIONS: DimensionDef[] = [
     rules: [
       {
         key: "phone_available", points: 15,
-        // חיובי (נמצא טלפון) תמיד ידוע — זו עובדה שנמצאה, לא מסקנה מהיעדר מידע.
+        // חיובי (נמצא טלפון) תמיד ידוע - זו עובדה שנמצאה, לא מסקנה מהיעדר מידע.
         // שלילי ("אין טלפון") ידוע רק כששני המקורות האפשריים נבדקו בפועל: GBP קיים,
         // וה-crawl עבד (או שאין בכלל אתר לבדוק).
         known: (f) => phoneFound(f) || (!noGbp(f) && (crawlUsable(f) || f.partial.includes("no_website"))),
@@ -304,7 +304,7 @@ export const DIMENSIONS: DimensionDef[] = [
       },
       {
         key: "whatsapp", points: 25,
-        // גילוי חיובי תקף גם באתר js_rendered — קישור שנמצא הוא נמצא. רק "לא נמצא" דורש crawl אמין.
+        // גילוי חיובי תקף גם באתר js_rendered - קישור שנמצא הוא נמצא. רק "לא נמצא" דורש crawl אמין.
         known: (f) => crawlUsable(f) || !!f.websiteSignals?.hasWhatsappLink,
         earned: (f) => !!f.websiteSignals?.hasWhatsappLink,
         gapText: () => "אין קישור וואטסאפ באתר, הערוץ שלקוחות ישראלים מצפים לו",

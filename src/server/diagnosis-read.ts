@@ -9,11 +9,11 @@ import {
 import type { DiagnosisStatus } from "./status";
 
 // צד הקריאה של שכבת השמירה (שער 2א, דרישה 1): Json → טיפוסי דומיין, Decimal → number.
-// כל ההמרות קורות כאן, בגבול ה-repo — ל-RSC מגיעים רק טיפוסים סריאליזביליים.
+// כל ההמרות קורות כאן, בגבול ה-repo - ל-RSC מגיעים רק טיפוסים סריאליזביליים.
 
 export interface NarrativeView {
   narrative: ReportNarrative;
-  usedFallback: boolean | null; // null = שורה מלפני שמירת הפרובננס (משימה 1) — לא ידוע
+  usedFallback: boolean | null; // null = שורה מלפני שמירת הפרובננס (משימה 1) - לא ידוע
   usage: LlmUsage | null;
 }
 
@@ -44,7 +44,7 @@ export interface ReportView {
   business: ReportBusinessView;
   scan: ReportScanView | null; // הסריקה האחרונה; null כשהאבחון עוד לא נסרק
   model: ModelView | null;
-  nextStep: NextStepRecommendation | null; // מחושב בקריאה מהמודל — לא נשמר ב-DB
+  nextStep: NextStepRecommendation | null; // מחושב בקריאה מהמודל - לא נשמר ב-DB
 }
 
 export interface DiagnosisListItem {
@@ -69,11 +69,11 @@ function toNarrativeView(json: unknown): NarrativeView | null {
   if (Object.hasOwn(obj, "narrative")) {
     // צורה חדשה (משימה 1): NarrativeResult מלא
     const nested = obj.narrative;
-    if (nested == null || typeof nested !== "object") return null; // עטיפה פגומה — בלי נרטיב מקונן תקין, מתדרדר ל"אין נרטיב" ולא זריקה
+    if (nested == null || typeof nested !== "object") return null; // עטיפה פגומה - בלי נרטיב מקונן תקין, מתדרדר ל"אין נרטיב" ולא זריקה
     const r = obj as { narrative: ReportNarrative; usedFallback?: boolean; usage?: LlmUsage };
     return { narrative: r.narrative, usedFallback: r.usedFallback ?? null, usage: r.usage ?? null };
   }
-  // צורה ישנה: ReportNarrative ישיר — בלי פרובננס (ראו הערת האינווריאנט ב-diagnosis-repo.ts)
+  // צורה ישנה: ReportNarrative ישיר - בלי פרובננס (ראו הערת האינווריאנט ב-diagnosis-repo.ts)
   return { narrative: json as ReportNarrative, usedFallback: null, usage: null };
 }
 
@@ -145,7 +145,7 @@ export async function listRecentDiagnoses(prisma: PrismaClient, limit?: number):
   const rows = await prisma.diagnosis.findMany({
     orderBy: { createdAt: "desc" },
     ...(limit != null ? { take: limit } : {}),
-    // select צר — הרשימה צריכה רק שם עסק וציון כולל, לא לגרור findings/narrative רב-KB לכל שורה
+    // select צר - הרשימה צריכה רק שם עסק וציון כולל, לא לגרור findings/narrative רב-KB לכל שורה
     include: {
       business: { select: { name: true } },
       scans: { orderBy: { createdAt: "desc" }, take: 1, select: { scores: true } },

@@ -5,10 +5,10 @@ export interface ParsedArgs {
   query: string;
   pick?: number;
   url?: string;
-  error?: string; // הודעת שגיאה בעברית — main() בודק ויוצא לפני כל קריאת API כשהיא מוגדרת
+  error?: string; // הודעת שגיאה בעברית - main() בודק ויוצא לפני כל קריאת API כשהיא מוגדרת
 }
 
-// מנתח argv ל-query/pick/url; כל דגל עם ערך חסר/לא-תקין נדחה כאן — לפני שנוגעים בשום API חי (Places/PSI)
+// מנתח argv ל-query/pick/url; כל דגל עם ערך חסר/לא-תקין נדחה כאן - לפני שנוגעים בשום API חי (Places/PSI)
 export function parseArgs(argv: string[]): ParsedArgs {
   const args = [...argv];
   let pickRaw: string | undefined;
@@ -46,14 +46,14 @@ export function parseArgs(argv: string[]): ParsedArgs {
     }
   }
 
-  // --url בלי ערך (או עם ערך ריק) היה משאיר את "--url" עצמו כחלק מה-query — וגורר חיפוש Places
+  // --url בלי ערך (או עם ערך ריק) היה משאיר את "--url" עצמו כחלק מה-query - וגורר חיפוש Places
   // חי על המחרוזת "--url". נדחה כאן, לפני כל קריאת API.
   if (sawUrl && !url) {
     return { query: "", error: "--url דורש כתובת: npm run diagnose -- --url https://example.co.il" };
   }
-  // אותה בעיה בדיוק ל---pick חסר ערך — נופל היה לתוך ה-query בשקט
+  // אותה בעיה בדיוק ל---pick חסר ערך - נופל היה לתוך ה-query בשקט
   if (sawPick && (pickRaw === undefined || pickRaw === "")) {
-    // ניסוח ניטרלי-לפקודה — הפרסר משותף ל-scan ול-diagnose, אסור לנקוב בפקודה הלא-נכונה
+    // ניסוח ניטרלי-לפקודה - הפרסר משותף ל-scan ול-diagnose, אסור לנקוב בפקודה הלא-נכונה
     return { query: "", error: "--pick דורש מספר שלם חיובי (למשל: --pick 2)" };
   }
 
@@ -72,13 +72,13 @@ export function parseArgs(argv: string[]): ParsedArgs {
 export interface PickResult {
   chosen?: BusinessCandidate;
   printed: string; // מה שמודפס למשתמש (רשימת מועמדים או הודעת שגיאה)
-  // כמה מועמדים ואין --pick — לא שגיאה, רק דורש קלט נוסף (cli.ts יוצא בקוד 0 ולא 1)
+  // כמה מועמדים ואין --pick - לא שגיאה, רק דורש קלט נוסף (cli.ts יוצא בקוד 0 ולא 1)
   ambiguous?: boolean;
 }
 
 const MAX_LISTED_CANDIDATES = 5; // תואם להתנהגות ה-cli הקודמת (candidates.slice(0, 5))
 
-// מאתר עסק לפי שאילתה; אם יש כמה מועמדים ואין --pick — מחזיר רשימה להדפסה בלבד
+// מאתר עסק לפי שאילתה; אם יש כמה מועמדים ואין --pick - מחזיר רשימה להדפסה בלבד
 export async function pickCandidate(query: string, pick?: number): Promise<PickResult> {
   const candidates = await searchBusiness(query);
   if (candidates.length === 0) {

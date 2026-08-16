@@ -23,10 +23,10 @@ describe("diagnosis state machine", () => {
   it.each([
     ["created", "scanning"],
     ["scanning", "scanned"],
-    ["scanning", "created"],        // סריקה נכשלה — מותר לנסות שוב
+    ["scanning", "created"],        // סריקה נכשלה - מותר לנסות שוב
     ["scanned", "report_ready"],
     ["report_ready", "interviewing"],
-    ["report_ready", "roadmap_ready"], // דילוג על הראיון — עיקרון "כלום לא חובה"
+    ["report_ready", "roadmap_ready"], // דילוג על הראיון - עיקרון "כלום לא חובה"
     ["interviewing", "roadmap_ready"],
     ["interviewing", "report_ready"],
     ["roadmap_ready", "interviewing"], // חוזרים לראיון, ה-Roadmap יחושב מחדש

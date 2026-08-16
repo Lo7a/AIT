@@ -3,10 +3,10 @@ import { normalizeSiteUrl } from "../../pipeline/site-url";
 // של הסורק (כל הפניה, וגם אתר שהגיע מ-Places ולא עבר כאן בכלל)
 import { isForbiddenHost } from "../../pipeline/forbidden-host";
 import type { DiagnoseEvent } from "../diagnose-events";
-import { DiagnoseFailed } from "../run-diagnosis"; // ייבוא ערכי — ה-handler צריך instanceof
+import { DiagnoseFailed } from "../run-diagnosis"; // ייבוא ערכי - ה-handler צריך instanceof
 import type { DiagnoseTarget } from "../run-diagnosis";
 
-// צר בכוונה — ה-handler צריך רק diagnosisId; ה-fake בבדיקות לא נדרש לבנות DiagnoseOutcome מלא
+// צר בכוונה - ה-handler צריך רק diagnosisId; ה-fake בבדיקות לא נדרש לבנות DiagnoseOutcome מלא
 export type DiagnoseRunner = (
   target: DiagnoseTarget,
   onEvent: (e: DiagnoseEvent) => void,
@@ -59,11 +59,11 @@ export function makeDiagnoseHandler(run: DiagnoseRunner) {
       start(controller) {
         const enc = new TextEncoder();
         let closed = false;
-        // emit עמיד לניתוק: המשתמש רענן? enqueue ייכשל, נסמן closed — אבל הסריקה ממשיכה
+        // emit עמיד לניתוק: המשתמש רענן? enqueue ייכשל, נסמן closed - אבל הסריקה ממשיכה
         // עד report_ready. עקרון "הכול נשמר" (אפיון 3.1): האבחון יופיע ב"אבחונים אחרונים".
-        // (גם runDiagnosis עצמו מגן על emit — זו הגנת עומק בשכבת הטרנספורט)
+        // (גם runDiagnosis עצמו מגן על emit - זו הגנת עומק בשכבת הטרנספורט)
         // הערה לגבי serverless: על שרת Node ארוך-טווח (הרצה מקומית, VM) הסריקה באמת ממשיכה
-        // אחרי ניתוק — נבדק אמפירית. ב-Vercel serverless יש סיכון שהאינסטנס יוקפא לאחר סיום
+        // אחרי ניתוק - נבדק אמפירית. ב-Vercel serverless יש סיכון שהאינסטנס יוקפא לאחר סיום
         // התגובה; יש לחווט את after() של Next 15 לפני deploy ציבורי (חסם-deploy, לא כאן)
         const emit = (e: DiagnoseEvent) => {
           if (closed) return;
@@ -73,13 +73,13 @@ export function makeDiagnoseHandler(run: DiagnoseRunner) {
             closed = true;
           }
         };
-        // done נפלט על ידי ה-runner עצמו (בעלות האירועים מתועדת ב-diagnose-events) — כאן רק error וסגירה
-        // Promise.resolve().then(...) עוטף גם קריאה שזורקת סינכרונית (לפני הגעה ל-await ראשון) —
+        // done נפלט על ידי ה-runner עצמו (בעלות האירועים מתועדת ב-diagnose-events) - כאן רק error וסגירה
+        // Promise.resolve().then(...) עוטף גם קריאה שזורקת סינכרונית (לפני הגעה ל-await ראשון) -
         // בלי זה, run(target, emit) עצמה הייתה זורקת בתוך start() ומפילה את בניית הזרם (500), לא NDJSON נקי
         Promise.resolve()
           .then(() => run(target, emit))
           .catch((err) => {
-            // שגיאות מוכרות שלנו (עברית, נכתבו למשתמש) עוברות; כל השאר — גנרית + לוג מלא בצד שרת
+            // שגיאות מוכרות שלנו (עברית, נכתבו למשתמש) עוברות; כל השאר - גנרית + לוג מלא בצד שרת
             if (err instanceof DiagnoseFailed) {
               emit({ type: "error", message: err.message });
             } else {

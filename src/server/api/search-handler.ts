@@ -2,7 +2,7 @@ import type { BusinessCandidate } from "../../pipeline/types";
 
 const MAX_CANDIDATES = 5; // תואם ל-MAX_LISTED_CANDIDATES של ה-CLI
 
-// factory — ה-route מזריק את searchBusiness החי, הבדיקות מזריקות fake
+// factory - ה-route מזריק את searchBusiness החי, הבדיקות מזריקות fake
 export function makeSearchHandler(search: (q: string) => Promise<BusinessCandidate[]>) {
   return async function handle(req: Request): Promise<Response> {
     let body: unknown;
@@ -14,7 +14,7 @@ export function makeSearchHandler(search: (q: string) => Promise<BusinessCandida
     const rawQuery = typeof body === "object" && body !== null && "query" in body
       ? (body as { query: unknown }).query
       : undefined;
-    // typeof מחרוזת בלבד — מספר/אובייקט לא עוברים המרה שקטה ל-String (זה גוף בקשה, לא CLI)
+    // typeof מחרוזת בלבד - מספר/אובייקט לא עוברים המרה שקטה ל-String (זה גוף בקשה, לא CLI)
     const query = typeof rawQuery === "string" ? rawQuery.trim() : "";
     if (query.length < 2 || query.length > 120) {
       return Response.json({ error: "יש להזין שם עסק (2 עד 120 תווים)" }, { status: 400 });

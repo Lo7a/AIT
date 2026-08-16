@@ -20,7 +20,7 @@ describe("scanWebsiteOnly", () => {
     expect(findings.business.placeId).toBe("");
     expect(findings.business.name).toBe("lavangroup.co.il");
     expect(findings.business.website).toBe("https://www.lavangroup.co.il/");
-    expect(findings.partial).toEqual(["no_gbp"]); // בלי דגלים נוספים — רק ה-no_gbp הבסיסי
+    expect(findings.partial).toEqual(["no_gbp"]); // בלי דגלים נוספים - רק ה-no_gbp הבסיסי
     expect(findings.partialDetails).toBeUndefined();
     expect(findings.websiteSignals).toEqual(SIGNALS);
     expect(findings.pageSpeed).toEqual(PSI);
@@ -38,7 +38,7 @@ describe("scanWebsiteOnly", () => {
     expect(findings.partial).toContain("js_rendered");
   });
 
-  it("passes the normalized href — not the raw input — to crawl and pagespeed", async () => {
+  it("passes the normalized href - not the raw input - to crawl and pagespeed", async () => {
     // רגרסיה שהופכת deps.crawl(url.href) ל-deps.crawl(siteUrl) הייתה משאירה את שאר המבחנים ירוקים
     const crawl = vi.fn(async () => SIGNALS);
     const pagespeed = vi.fn(async () => PSI);

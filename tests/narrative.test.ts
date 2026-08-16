@@ -6,7 +6,7 @@ import type { ScanFindings } from "../src/pipeline/types";
 
 const META = { startedAt: "", durationMs: 0, placesCalls: 0, llmInputTokens: 0, llmOutputTokens: 0, estCostUsd: 0 };
 
-// עסק עשיר עם אתר מלא — בסגנון אופטיקה בק (זהה לזה של tests/dimensions.test.ts, מועתק לא מיובא)
+// עסק עשיר עם אתר מלא - בסגנון אופטיקה בק (זהה לזה של tests/dimensions.test.ts, מועתק לא מיובא)
 const RICH: ScanFindings = {
   business: { placeId: "p1", name: "אופטיקה", phone: "04-000", website: "https://x.co.il", rating: 4.9, reviewCount: 80 },
   websiteSignals: {
@@ -28,7 +28,7 @@ function llmReply(obj: unknown): CompleteFn {
 
 const GOOD = {
   headline: "העסק חזק במוניטין אבל האתר האיטי עוצר אותו",
-  summary: "דירוג 4.9 עם 80 ביקורות — נכס אמיתי. האתר קיים אבל איטי.",
+  summary: "דירוג 4.9 עם 80 ביקורות - נכס אמיתי. האתר קיים אבל איטי.",
   gapExplanations: [{ ruleKey: "online_booking", explanation: "עסק מבוסס תורים בלי קביעת תור אונליין מפסיד לקוחות" }],
 };
 
@@ -51,7 +51,7 @@ describe("generateNarrative", () => {
   });
 
   it("rejects rule points as an alibi for invented numbers (narrow whitelist)", async () => {
-    // 40 הוא points של חוק — אסור שהוא יכשיר "40% מהלקוחות"; 25/30/35 הם points/weights
+    // 40 הוא points של חוק - אסור שהוא יכשיר "40% מהלקוחות"; 25/30/35 הם points/weights
     const bad = { ...GOOD, summary: "העסק מפסיד 40% מהלקוחות ועוד 35 אחוז" };
     const complete = vi.fn().mockResolvedValue({ data: bad, usage: { inputTokens: 1, outputTokens: 1 } });
     const result = await generateNarrative(RICH, score(), { complete });
@@ -109,9 +109,27 @@ describe("generateNarrative", () => {
 
   it("accepts the canonical 'X מתוך 100' phrasing", async () => {
     const s = score();
-    const canonical = { ...GOOD, summary: `ציון ${s.overall} מתוך 100 — יש בסיס טוב` };
+    const canonical = { ...GOOD, summary: `ציון ${s.overall} מתוך 100 - יש בסיס טוב` };
     const result = await generateNarrative(RICH, s, { complete: llmReply(canonical) });
     expect(result.usedFallback).toBe(false);
+  });
+
+  // תוקן 16.8: הנרטיב היה הפלט היחיד של LLM שלא עבר normalizeTypography - מקף ארוך מהמודל
+  // היה נשמר ל-DB ומוצג. עכשיו sanitize מנרמל כל שדה טקסט, כמו חילוץ הראיון ונימוקי ה-Roadmap
+  it("normalizes forbidden typography from the model (em-dash becomes plain hyphen)", async () => {
+    // המקפים הארוכים כאן הם קלט בדיקה מכוון (em/en dash מהמודל) - היוצא מן הכלל היחיד המותר
+    // לכלל התווים האסורים בקוד; סריקת ניקוי עתידית צריכה לדלג על הבדיקה הזאת
+    const withEmDash = {
+      ...GOOD,
+      headline: "כותרת עם קו — ארוך",
+      summary: "דירוג 4.9 עם 80 ביקורות – נכס אמיתי",
+      gapExplanations: [{ ruleKey: "online_booking", explanation: "פער — שעולה כסף" }],
+    };
+    const result = await generateNarrative(RICH, score(), { complete: llmReply(withEmDash) });
+    expect(result.usedFallback).toBe(false);
+    const all = [result.narrative.headline, result.narrative.summary, result.narrative.gapExplanations[0].explanation].join(" ");
+    expect(all).not.toMatch(/[—–]/);
+    expect(result.narrative.headline).toBe("כותרת עם קו - ארוך");
   });
 
   it("treats empty/garbage LLM output as failure, not blank success", async () => {
@@ -132,7 +150,7 @@ describe("generateNarrative", () => {
   });
 
   it("tolerates thousands separators for real data numbers", async () => {
-    const withThousands = { ...GOOD, summary: "העמוד נטען אחרי 12,700 מילישניות — לאט מדי" };
+    const withThousands = { ...GOOD, summary: "העמוד נטען אחרי 12,700 מילישניות - לאט מדי" };
     const result = await generateNarrative(RICH, score(), { complete: llmReply(withThousands) });
     expect(result.usedFallback).toBe(false); // 12700 קיים בנתונים
   });

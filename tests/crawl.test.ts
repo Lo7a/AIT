@@ -11,7 +11,7 @@ const GALLERY = `<html><body>תמונות</body></html>`;
 const NEXT_HTML = `<html><head><script src="/_next/static/chunks/main.js"></script></head>
 <body><div id="__next"></div></body></html>`;
 const BROCHURE_HTML = `<html><body><h1>ברוכים הבאים</h1><p>טלפון: 03-1234567</p></body></html>`;
-// צורת ה-HTML האמיתית של Next.js App Router — בלי __NEXT_DATA__ ובלי id="__next" (אלה Pages Router)
+// צורת ה-HTML האמיתית של Next.js App Router - בלי __NEXT_DATA__ ובלי id="__next" (אלה Pages Router)
 const APP_ROUTER_HTML = `<html><head><script src="/_next/static/chunks/webpack-abc123.js" async></script></head>
 <body><div class="min-h-screen bg-gray-50"><div class="animate-pulse"></div></div>
 <script>self.__next_f=self.__next_f||[];self.__next_f.push([0])</script></body></html>`;
@@ -36,7 +36,7 @@ describe("crawlWebsite", () => {
     expect(signals.pagesCrawled).toBe(3);
     expect(signals.hasContactForm).toBe(true);
     expect(signals.hasWhatsappLink).toBe(true);
-    // "צור קשר" מנצח את "גלריה" למרות שהוא מופיע אחריו ב-DOM — העדיפות בפעולה
+    // "צור קשר" מנצח את "גלריה" למרות שהוא מופיע אחריו ב-DOM - העדיפות בפעולה
     expect(signals.crawledUrls[1]).toContain("/contact");
     expect(signals.crawledUrls).toHaveLength(3);
     const init = fetchImpl.mock.calls[0][1] as RequestInit;
@@ -181,7 +181,7 @@ describe("crawlWebsite", () => {
       return htmlResponse(HOME);
     });
     const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 3, budgetMs: -1 });
-    expect(signals.pagesCrawled).toBe(1); // רק עמוד הבית — התקציב נגמר
+    expect(signals.pagesCrawled).toBe(1); // רק עמוד הבית - התקציב נגמר
   });
 
   it("merges accessibility statement/widget signals with OR across pages", async () => {

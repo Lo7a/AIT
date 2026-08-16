@@ -42,7 +42,7 @@ describe("parseArgs", () => {
     expect(result.url).toBe("https://example.co.il");
   });
 
-  it("cli.ts (scan) משתמש באותו פרסר — --url מתקבל כשדה ומודחה על ידי scan", () => {
+  it("cli.ts (scan) משתמש באותו פרסר - --url מתקבל כשדה ומודחה על ידי scan", () => {
     const parsed = parseArgs(["מאפייה", "--url", "https://x.co.il"]);
     expect(parsed.url).toBe("https://x.co.il"); // הפרסר מזהה; ההחלטה לדחות היא של scan
   });

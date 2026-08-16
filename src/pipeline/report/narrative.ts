@@ -1,6 +1,7 @@
 import type { ScanFindings } from "../types";
 import type { ScoreReport } from "../score/types";
 import { completeJSON, stripFenceMarkers, type LlmUsage } from "../llm/client";
+import { normalizeTypography } from "../interview/extract";
 
 export interface GapExplanation { ruleKey: string; explanation: string; }
 export interface ReportNarrative {
@@ -14,7 +15,7 @@ export interface NarrativeResult {
   usedFallback: boolean;
 }
 
-// לא גנרי בכוונה — generateNarrative תמיד קורא ל-complete בלי לפרמט T (הטיפוס האמיתי מגיע מ-sanitize),
+// לא גנרי בכוונה - generateNarrative תמיד קורא ל-complete בלי לפרמט T (הטיפוס האמיתי מגיע מ-sanitize),
 // אז הגנריות לא הוסיפה בטיחות, רק חייבה כל מוק בבדיקות לעבור דרך `as never` (14 מקומות, סקירת קוד)
 export type CompleteFn = (prompt: string) => Promise<{ data: unknown; usage: LlmUsage }>;
 export interface NarrativeOptions { complete?: CompleteFn; }
@@ -71,7 +72,7 @@ function allowedNumbers(f: ScanFindings, score: ScoreReport): Set<string> {
   return allowed;
 }
 
-// התאמה סלחנית: אלפים ("4,300"→"4300") ופסיק/נקודה עשרוניים — כל וריאציה שמתאימה למאגר המותרים מספיקה
+// התאמה סלחנית: אלפים ("4,300"→"4300") ופסיק/נקודה עשרוניים - כל וריאציה שמתאימה למאגר המותרים מספיקה
 function isAllowed(token: string, allowed: Set<string>): boolean {
   return (
     allowed.has(token) ||
@@ -86,20 +87,22 @@ function violations(n: ReportNarrative, allowed: Set<string>): string[] {
   return texts.flatMap(extractNumbers).filter((num) => !isAllowed(num, allowed));
 }
 
-// בנייה מחדש של האובייקט — שדות שהומצאו על ידי המודל לא שורדים (העיקרון של analyze/reviews).
-// validRuleKeys: מפתחות חוק אמיתיים מ-topGaps בלבד — ruleKey מומצא (הזיה) נזרק בשקט ולא מגיע לפלט/לצליבה בהמשך
+// בנייה מחדש של האובייקט - שדות שהומצאו על ידי המודל לא שורדים (העיקרון של analyze/reviews).
+// validRuleKeys: מפתחות חוק אמיתיים מ-topGaps בלבד - ruleKey מומצא (הזיה) נזרק בשקט ולא מגיע לפלט/לצליבה בהמשך.
+// normalizeTypography על כל שדה טקסט (תוקן 16.8): הנרטיב היה הפלט היחיד של LLM שלא עבר את
+// הנרמול - מקף ארוך שהמודל פולט היה נשמר ל-DB ומוצג, בניגוד לכלל הברזל על תווים אסורים
 function sanitize(raw: unknown, validRuleKeys: Set<string>): ReportNarrative {
   const r = (raw ?? {}) as Record<string, unknown>;
   const gaps = Array.isArray(r.gapExplanations) ? r.gapExplanations : [];
   return {
-    headline: String(r.headline ?? "").trim().slice(0, MAX_TEXT_CHARS),
-    summary: String(r.summary ?? "").trim().slice(0, MAX_TEXT_CHARS),
+    headline: normalizeTypography(String(r.headline ?? "").trim()).slice(0, MAX_TEXT_CHARS),
+    summary: normalizeTypography(String(r.summary ?? "").trim()).slice(0, MAX_TEXT_CHARS),
     gapExplanations: gaps
       .map((g) => {
         const e = (g ?? {}) as Record<string, unknown>;
         return {
           ruleKey: String(e.ruleKey ?? "").trim(),
-          explanation: String(e.explanation ?? "").trim().slice(0, MAX_TEXT_CHARS),
+          explanation: normalizeTypography(String(e.explanation ?? "").trim()).slice(0, MAX_TEXT_CHARS),
         };
       })
       .filter((g) => g.ruleKey && g.explanation && validRuleKeys.has(g.ruleKey)),
@@ -112,8 +115,8 @@ function buildPrompt(f: ScanFindings, score: ScoreReport, stern: boolean): strin
     : "";
   const gapsInstruction = score.topGaps.length > 0
     ? "כתוב הסבר לכל אחד מהפערים המובילים (topGaps) בלבד."
-    : "לא נמצאו פערים מובילים — החזר gapExplanations ריק והתמקד במה שעובד טוב.";
-  // בלי points — הם שייכים למנגנון הפנימי של הציון, לא לנתון שמותר למודל לצטט (אזהרת סקירה)
+    : "לא נמצאו פערים מובילים - החזר gapExplanations ריק והתמקד במה שעובד טוב.";
+  // בלי points - הם שייכים למנגנון הפנימי של הציון, לא לנתון שמותר למודל לצטט (אזהרת סקירה)
   const stripPoints = (h: { dimension: string; ruleKey: string; text: string }) => {
     const { dimension, ruleKey, text } = h;
     return { dimension, ruleKey, text };
@@ -122,14 +125,14 @@ function buildPrompt(f: ScanFindings, score: ScoreReport, stern: boolean): strin
   // JSON.stringify מגן על מרכאות אבל לא על <<<END>>>, ובלי הניקוי שם עסק עוין היה סוגר את הבלוק
   // והשאר שלו היה יושב במיקום הוראה (אותו משטר כמו analyze/reviews ו-interview/extract)
   const safeName = stripFenceMarkers(f.business.name);
-  // אזהרה לעריכה עתידית: כל שורת נתונים חדשה שתתווסף לבלוק <<<DATA>>>...<<<END>>> למטה וכוללת מספר —
+  // אזהרה לעריכה עתידית: כל שורת נתונים חדשה שתתווסף לבלוק <<<DATA>>>...<<<END>>> למטה וכוללת מספר -
   // חייבת להיות מכוסה גם ב-allowedNumbers למעלה, אחרת השומר ידחה מספר שהפרומפט עצמו הציג למודל,
   // והדוח ייפול בשקט לתבנית (usedFallback: true) בלי שום שגיאה גלויה.
   return `אתה יועץ עסקי שכותב נרטיב קצר לדוח אבחון דיגיטלי של עסק ישראלי.
 כללים מחייבים:
 - אל תמציא מספרים, אחוזים או סכומים. מותר להשתמש אך ורק במספרים שמופיעים בנתונים.
 - אל תצטט ביקורות ואל תזכיר שמות של כותבי ביקורות.
-- כתוב עברית טבעית, ישירה, בגובה העיניים — בלי סופרלטיבים ריקים.
+- כתוב עברית טבעית, ישירה, בגובה העיניים - בלי סופרלטיבים ריקים.
 ${sternLine}
 החזר JSON בלבד במבנה:
 {"headline": "משפט פתיחה אחד חד שמסכם את מצב העסק",
@@ -179,14 +182,14 @@ export async function generateNarrative(
         outputTokens: usage.outputTokens + result.usage.outputTokens,
       };
       const narrative = sanitize(result.data, validRuleKeys);
-      // נרטיב ריק (המודל החזיר {}/null/זבל שלא נכנס לשדות) הוא כישלון לכל דבר —
+      // נרטיב ריק (המודל החזיר {}/null/זבל שלא נכנס לשדות) הוא כישלון לכל דבר -
       // לא הצלחה עם headline/summary ריקים שיזלגו לדוח
       const isEmpty = !narrative.headline || !narrative.summary;
       if (!isEmpty && violations(narrative, allowed).length === 0) {
         return { narrative, usage, usedFallback: false };
       }
     } catch {
-      break; // כשל תקשורת/מודל — ישר לתבנית
+      break; // כשל תקשורת/מודל - ישר לתבנית
     }
   }
   return { narrative: fallbackNarrative(f, score), usage, usedFallback: true };

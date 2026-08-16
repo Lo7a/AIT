@@ -14,7 +14,7 @@ export type FieldSource = "scan" | "interview" | "free_text" | "document" | "con
 export interface BusinessModel {
   data: Record<ModelSection, Record<string, unknown>>;
   fieldSources: Partial<Record<ModelSection, FieldSource[]>>;
-  // קרדיט גולמי לכל סקציה — לשימוש recommendNextStep (0.5 עדיין "לא הושלם") ולמד השלמות ב-UI
+  // קרדיט גולמי לכל סקציה - לשימוש recommendNextStep (0.5 עדיין "לא הושלם") ולמד השלמות ב-UI
   credits: Record<ModelSection, number>;
   completenessPct: number;
 }
@@ -29,14 +29,14 @@ type Credit = 0 | 0.5 | 1;
 
 function domainOf(website?: string): string | undefined {
   try {
-    // `|| undefined` — הגנה מפני hostname שהופך למחרוזת ריקה אחרי הסרת "www." (למשל host שהוא "www." בלבד)
+    // `|| undefined` - הגנה מפני hostname שהופך למחרוזת ריקה אחרי הסרת "www." (למשל host שהוא "www." בלבד)
     return website ? new URL(website).hostname.replace(/^www\./, "") || undefined : undefined;
   } catch {
     return undefined;
   }
 }
 
-// נוסחת ההשלמות כפונקציה מיוצאת בפני עצמה — תפר עתידי: אבן דרך 3 תעדכן קרדיטים בודדים
+// נוסחת ההשלמות כפונקציה מיוצאת בפני עצמה - תפר עתידי: אבן דרך 3 תעדכן קרדיטים בודדים
 // (לדוגמה אחרי תשובת ראיון) בלי לגזור מודל שלם מחדש, ותקרא לזה ישירות על מפת הקרדיטים המעודכנת
 export function completenessOf(credits: Record<ModelSection, number>): number {
   return Math.round(
@@ -50,13 +50,13 @@ export function deriveBusinessModel(f: ScanFindings): BusinessModel {
   const problemThemes = f.reviewInsights?.problemThemes.map((t) => t.theme) ?? [];
   const domain = domainOf(f.business.website);
 
-  // ביקורות "נותחו" רק אם יש דגימה בפועל (totalAnalyzed > 0) — לא מספיק ש-reviewInsights קיים:
+  // ביקורות "נותחו" רק אם יש דגימה בפועל (totalAnalyzed > 0) - לא מספיק ש-reviewInsights קיים:
   // analyze/reviews יכול להחזיר אובייקט מלא עם totalAnalyzed: 0 כש-scan.ts מדגיל no_review_text
-  // (אין טקסט לאף ביקורת). "לא נבדק כלום" חייב להיראות שונה מ"נבדק ונמצא נקי" — predicate משותף
+  // (אין טקסט לאף ביקורת). "לא נבדק כלום" חייב להיראות שונה מ"נבדק ונמצא נקי" - predicate משותף
   // עם score/dimensions.ts דרך ../evidence (ראו הערת as-built בתוכנית).
   const reviewsAnalyzed = reviewsAnalyzedOf(f);
 
-  // יש אותות אתר וניתן לסמוך על "לא נמצא": js_rendered הופך רק היעדרים לא-מהימנים, לא נוכחויות —
+  // יש אותות אתר וניתן לסמוך על "לא נמצא": js_rendered הופך רק היעדרים לא-מהימנים, לא נוכחויות -
   // אותה אסימטריה שנקבעה במשימה 6, עכשיו predicate משותף דרך ../evidence: גילוי חיובי הוא ראיה
   // תמיד, "לא נמצא" דורש שהזחילה קראה HTML אמיתי. ראו הערת as-built בתוכנית.
   const crawlUsable = crawlUsableOf(f);
@@ -70,10 +70,10 @@ export function deriveBusinessModel(f: ScanFindings): BusinessModel {
 
   const sections: Record<ModelSection, { data: Record<string, unknown>; credit: Credit }> = {
     profile: {
-      // אין מפתח `domain` בכלל כשאין דומיין — לא `domain: undefined` (JSON.stringify מוחק את זה, אבל
+      // אין מפתח `domain` בכלל כשאין דומיין - לא `domain: undefined` (JSON.stringify מוחק את זה, אבל
       // ה-object החי בזיכרון/במבחנים לא צריך להסתמך על ההתנהגות העקיפה הזאת; ראו הערת as-built)
       data: { name: f.business.name, ...(domain ? { domain } : {}) },
-      credit: 0.5, // שם ודומיין תמיד ידועים מהסריקה; תחום/גודל/ותק — מהראיון
+      credit: 0.5, // שם ודומיין תמיד ידועים מהסריקה; תחום/גודל/ותק - מהראיון
     },
     channels: {
       // עמוד ברשת חברתית (אבן דרך 4, משימה 0) הוא ערוץ אמיתי של העסק - נכנס לצד google, לא במקומו
@@ -85,11 +85,11 @@ export function deriveBusinessModel(f: ScanFindings): BusinessModel {
       credit: (noGbp && !f.socialOnly) ? 0 : 0.5,
     },
     lead_flow: {
-      // בניגוד ל-scheduling/tools למטה: העדר טופס יצירת קשר לא נספר כידע גם כשה-crawl אמין —
+      // בניגוד ל-scheduling/tools למטה: העדר טופס יצירת קשר לא נספר כידע גם כשה-crawl אמין -
       // "אין טופס" לא אומר הרבה על איך מטפלים בלידים בפועל (הם עשויים להגיע בטלפון/וואטסאפ),
       // אז זו לא תשובה לשאלה שהסקציה הזו אמורה למלא
       data: s?.hasContactForm ? { hasContactForm: true } : {},
-      credit: s?.hasContactForm ? 0.5 : 0, // יש טופס — אבל מי מטפל ותוך כמה זמן? רק הראיון יודע
+      credit: s?.hasContactForm ? 0.5 : 0, // יש טופס - אבל מי מטפל ותוך כמה זמן? רק הראיון יודע
     },
     scheduling: {
       // חיובי = הוכחה גם באתר js_rendered; שלילי רק כשהזחילה באמת קראה את האתר
@@ -127,7 +127,7 @@ export function deriveBusinessModel(f: ScanFindings): BusinessModel {
   return { data, fieldSources, credits, completenessPct };
 }
 
-// סדר העדיפות של סקציות לראיון + הניסוח שלהן — הסקציה הראשונה שעדיין לא הושלמה (קרדיט < 1) קובעת את ההמלצה
+// סדר העדיפות של סקציות לראיון + הניסוח שלהן - הסקציה הראשונה שעדיין לא הושלמה (קרדיט < 1) קובעת את ההמלצה
 const INTERVIEW_PRIORITY: [ModelSection, string][] = [
   ["lead_flow", "טיפול בלידים"],
   ["service", "שירות ותפעול"],
@@ -135,7 +135,7 @@ const INTERVIEW_PRIORITY: [ModelSection, string][] = [
   ["manual_tasks", "משימות ידניות חוזרות"],
 ];
 
-const FREE_TEXT_THRESHOLD = 20; // עד 20% (כולל) — אין בסיס לשאלות ממוקדות, עדיף סיפור חופשי
+const FREE_TEXT_THRESHOLD = 20; // עד 20% (כולל) - אין בסיס לשאלות ממוקדות, עדיף סיפור חופשי
 
 export function recommendNextStep(m: BusinessModel): NextStepRecommendation {
   if (m.completenessPct <= FREE_TEXT_THRESHOLD) {
@@ -145,9 +145,9 @@ export function recommendNextStep(m: BusinessModel): NextStepRecommendation {
       reason: "כמעט ולא הצלחנו לאסוף מידע על העסק ממקורות ציבוריים, ספר לנו עליו במילים שלך וזה ימלא את התמונה",
     };
   }
-  // קרדיט 0.5 (מהסריקה בלבד) עדיין נחשב "לא הושלם" — רק אישור בראיון (קרדיט 1) סוגר סקציה.
+  // קרדיט 0.5 (מהסריקה בלבד) עדיין נחשב "לא הושלם" - רק אישור בראיון (קרדיט 1) סוגר סקציה.
   // בדיקה לפי fieldSources (יש/אין מקור) הייתה בוחרת בטעות בסקציה הבאה בתור גם כשהראשונה
-  // חלקית בלבד — ראו הערת as-built בתוכנית.
+  // חלקית בלבד - ראו הערת as-built בתוכנית.
   const missing = INTERVIEW_PRIORITY.find(([section]) => m.credits[section] < 1);
   const label = missing?.[1] ?? "העסק";
   return {

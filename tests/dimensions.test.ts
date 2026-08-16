@@ -6,7 +6,7 @@ import type { ScanFindings } from "../src/pipeline/types";
 
 const META = { startedAt: "", durationMs: 0, placesCalls: 0, llmInputTokens: 0, llmOutputTokens: 0, estCostUsd: 0 };
 
-// עסק עשיר עם אתר מלא — בסגנון אופטיקה בק
+// עסק עשיר עם אתר מלא - בסגנון אופטיקה בק
 const RICH: ScanFindings = {
   business: { placeId: "p1", name: "אופטיקה", phone: "04-000", website: "https://x.co.il", rating: 4.9, reviewCount: 80 },
   websiteSignals: {
@@ -20,7 +20,7 @@ const RICH: ScanFindings = {
   meta: META,
 };
 
-// עסק דל בלי אתר — בסגנון ברכת רחל
+// עסק דל בלי אתר - בסגנון ברכת רחל
 const THIN: ScanFindings = {
   business: { placeId: "p2", name: "מאפיה", phone: "08-000", rating: 4.4, reviewCount: 8 },
   reviewInsights: { totalAnalyzed: 5, positiveThemes: [], problemThemes: [{ theme: "מחירים גבוהים", count: 2 }] },
@@ -28,7 +28,7 @@ const THIN: ScanFindings = {
   meta: META,
 };
 
-// אתר-בלבד בלי פרופיל גוגל — בסגנון לבן גרופ
+// אתר-בלבד בלי פרופיל גוגל - בסגנון לבן גרופ
 const NO_GBP: ScanFindings = {
   business: { placeId: "", name: "lavangroup.co.il", website: "https://lavangroup.co.il/" },
   websiteSignals: {
@@ -77,7 +77,7 @@ describe("real dimensions", () => {
     const report = scoreFindings(DIMENSIONS, THIN);
     const access = report.dimensions.find((d) => d.key === "accessibility")!;
     expect(access.dataStatus).toBe("partial");
-    expect(access.score).toBe(100); // הטלפון קיים — החוק היחיד הידוע הושג
+    expect(access.score).toBe(100); // הטלפון קיים - החוק היחיד הידוע הושג
   });
 
   it("no-GBP business: gbp_exists is the loudest gap, reputation has no data", () => {
@@ -91,7 +91,7 @@ describe("real dimensions", () => {
     const report = scoreFindings(DIMENSIONS, NO_GBP);
     const access = report.dimensions.find((d) => d.key === "accessibility")!;
     const whatsapp = access.rules.find((r) => r.key === "whatsapp")!;
-    expect(whatsapp.known).toBe(false); // לא "אין וואטסאפ" — פשוט לא יודעים
+    expect(whatsapp.known).toBe(false); // לא "אין וואטסאפ" - פשוט לא יודעים
   });
 
   it("no-GBP with failed crawl: phone_available is unknown, not a false gap", () => {

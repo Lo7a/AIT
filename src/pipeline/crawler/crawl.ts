@@ -16,13 +16,13 @@ const DEFAULT_TIMEOUT_MS = 10_000;
 // מפילים את ה-fetch הראשון על timeout, ובלי עמוד הבית כל אותות האתר אובדים. ניסיון שני
 // סבלני אחד (פי 3, ברירת מחדל 30 שניות) עדיף על ויתור מלא; עמודים פנימיים לא מקבלים retry.
 const HOME_RETRY_MULTIPLIER = 3;
-// עמודים שנכשלים לא מקדמים את מונה ההצלחות — לכן חוסמים גם את מספר הניסיונות הכולל
+// עמודים שנכשלים לא מקדמים את מונה ההצלחות - לכן חוסמים גם את מספר הניסיונות הכולל
 const EXTRA_ATTEMPTS = 4;
 // אנחנו עוקבים אחרי ההפניות בעצמנו (redirect: "manual"), אז החסם הוא שלנו. אתרים אמיתיים
 // עושים לכל היותר שתיים-שלוש (http→https→www→נתיב); חמש נדיבה ומספיק כדי לא להיתקע בלולאה
 const MAX_REDIRECTS = 5;
 
-// מילות מפתח שמקדמות עמוד בתור — העמודים שהכי מלמדים על העסק
+// מילות מפתח שמקדמות עמוד בתור - העמודים שהכי מלמדים על העסק
 const PRIORITY_KEYWORDS = [
   "contact", "about", "service", "price", "book",
   "קשר", "אודות", "שירות", "מחיר", "תור",
@@ -34,9 +34,9 @@ const BOOL_KEYS = [
   "hasAccessibilityStatement", "hasAccessibilityWidget",
 ] as const;
 
-// סמני אפליקציית JS — תבניות ספציפיות של Next/React/Vue/Angular, לא כל <script>.
-// __NEXT_DATA__ ו-id="__next" הם Pages Router; App Router (הדף האמיתי שהניע את המשימה) לא פולט אותם —
-// הסמנים שלו הם self.__next_f (hydration) ו-/_next/static/ — לכן שניהם נכללים כאן.
+// סמני אפליקציית JS - תבניות ספציפיות של Next/React/Vue/Angular, לא כל <script>.
+// __NEXT_DATA__ ו-id="__next" הם Pages Router; App Router (הדף האמיתי שהניע את המשימה) לא פולט אותם -
+// הסמנים שלו הם self.__next_f (hydration) ו-/_next/static/ - לכן שניהם נכללים כאן.
 const JS_APP_ROOT_RE =
   /__NEXT_DATA__|self\.__next_f|\/_next\/static\/|data-reactroot|ng-version=|\bid=["']?(?:__next|__nuxt|root|app)\b/;
 
@@ -45,7 +45,7 @@ function priorityOf(url: string): number {
   try {
     lower = decodeURIComponent(url).toLowerCase();
   } catch {
-    lower = url.toLowerCase(); // % לא תקין בקישור — משווים את הכתובת הגולמית
+    lower = url.toLowerCase(); // % לא תקין בקישור - משווים את הכתובת הגולמית
   }
   return PRIORITY_KEYWORDS.some((k) => lower.includes(k)) ? 0 : 1;
 }
@@ -86,7 +86,7 @@ async function fetchPage(
     }
     if (!res.ok) throw new Error(`HTTP ${res.status} for ${currentUrl}`);
     const contentType = res.headers?.get?.("content-type") ?? "";
-    // עמוד שאינו HTML (למשל PDF בלי סיומת) — לא סורקים; כשאין header (מוקים) מקבלים
+    // עמוד שאינו HTML (למשל PDF בלי סיומת) - לא סורקים; כשאין header (מוקים) מקבלים
     if (contentType && !/text\/html|application\/xhtml/i.test(contentType)) {
       throw new Error(`non-HTML content-type "${contentType}" for ${currentUrl}`);
     }
@@ -103,9 +103,9 @@ export async function crawlWebsite(
   const fetchImpl = opts.fetchImpl ?? defaultFetch;
   const maxPages = opts.maxPages ?? DEFAULT_MAX_PAGES;
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const deadline = Date.now() + (opts.budgetMs ?? 40_000); // תקציב זמן כולל לסריקה — יעד ה-KPI הוא אבחון שלם מתחת ל-90 שניות
+  const deadline = Date.now() + (opts.budgetMs ?? 40_000); // תקציב זמן כולל לסריקה - יעד ה-KPI הוא אבחון שלם מתחת ל-90 שניות
 
-  // עמוד הבית חייב להצליח — בלעדיו אין סריקת אתר. timeout (ורק timeout - לא שגיאות HTTP
+  // עמוד הבית חייב להצליח - בלעדיו אין סריקת אתר. timeout (ורק timeout - לא שגיאות HTTP
   // או תוכן) מקבל ניסיון שני סבלני לפני שמוותרים על האתר כולו
   let homePage: FetchedPage;
   try {
@@ -114,7 +114,7 @@ export async function crawlWebsite(
     if (!(err instanceof DOMException && err.name === "TimeoutError")) throw err;
     homePage = await fetchPage(siteUrl, fetchImpl, timeoutMs * HOME_RETRY_MULTIPLIER);
   }
-  // עובדים עם הכתובת הסופית (אחרי redirect) — אחרת בדיקת same-origin פוסלת את כל הקישורים
+  // עובדים עם הכתובת הסופית (אחרי redirect) - אחרת בדיקת same-origin פוסלת את כל הקישורים
   const homeUrl = homePage.finalUrl;
   const home = extractSignals(homePage.html, homeUrl);
   // אפס קישורים פנימיים + שורש אפליקציית JS = התוכן נבנה בדפדפן, ה-HTML הגולמי כמעט ריק

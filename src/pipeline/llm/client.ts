@@ -45,7 +45,7 @@ export async function completeJSON<T>(
     },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
-      // משימת חילוץ — חשיבה מינימלית (thinkingLevel החליף את thinkingBudget בדור Gemini 3):
+      // משימת חילוץ - חשיבה מינימלית (thinkingLevel החליף את thinkingBudget בדור Gemini 3):
       // מהירות, עלות, ומניעת מצב שבו החשיבה בולעת את תקציב הפלט
       generationConfig: { responseMimeType: "application/json", thinkingConfig: { thinkingLevel: "LOW" } },
     }),
@@ -67,10 +67,10 @@ export async function completeJSON<T>(
   }
   let data: T;
   try {
-    // הערה: T אינו מאומת בזמן ריצה — האחריות על ולידציה של המבנה היא על הקורא
+    // הערה: T אינו מאומת בזמן ריצה - האחריות על ולידציה של המבנה היא על הקורא
     data = JSON.parse(text) as T;
   } catch {
-    // בכוונה בלי קטע מהטקסט — אסור שטקסט ביקורות גולמי ידלוף להודעות שגיאה
+    // בכוונה בלי קטע מהטקסט - אסור שטקסט ביקורות גולמי ידלוף להודעות שגיאה
     throw new Error(`LLM returned malformed JSON (${text.length} chars)`);
   }
   return {

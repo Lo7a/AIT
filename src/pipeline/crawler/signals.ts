@@ -2,7 +2,7 @@ import * as cheerio from "cheerio";
 import type { WebsiteSignals } from "../types";
 
 // סיגנלים של עמוד בודד; ה-crawler ממזג אותם לרמת האתר (WebsiteSignals)
-// jsRendered מוחרג — הוא נגזר ברמת האתר (crawl.ts) מהעמוד הראשי, extractSignals לא קובע אותו.
+// jsRendered מוחרג - הוא נגזר ברמת האתר (crawl.ts) מהעמוד הראשי, extractSignals לא קובע אותו.
 // hasAccessibilityStatement/hasAccessibilityWidget: אופציונליים ב-WebsiteSignals (כדי לא לשבור
 // fixtures ישנים בבדיקות), אבל כאן חובה - extractSignals תמיד מחשבת ערך אמיתי, ובלי הדריסה הזו
 // הלולאה הגנרית ב-crawl.ts (merged[key] = merged[key] || signals[key]) לא הייתה מתקמפלת (TS לא
@@ -14,7 +14,7 @@ export interface PageSignals
   hasAccessibilityWidget: boolean;
 }
 
-// זיהוי לפי דומיינים/קבצים של ספקים — לא לפי מילים בטקסט חופשי, כדי למנוע התרעות שווא
+// זיהוי לפי דומיינים/קבצים של ספקים - לא לפי מילים בטקסט חופשי, כדי למנוע התרעות שווא
 const WHATSAPP_RE = /wa\.me\/|(?:api|web)\.whatsapp\.com|whatsapp:\/\/send/;
 // פלטפורמות תורים/הזמנות: בינלאומיות + ישראליות (המקרה החי: פיצרייה עם order.bitetech.co.il
 // שקיבלה "אין הזמנה אונליין"). התבנית order\. תופסת סאב-דומיין הזמנות גנרי של ספק
@@ -37,7 +37,7 @@ const A11Y_STATEMENT_HREF_RE = /accessibility[-_]?statement|negishut|הצהרת[
 const A11Y_WIDGET_RE = /userway|equalweb|accessibe|acsbapp|nagich|enable\.co\.il|accessible-poetry|accessiway|negishim/;
 // טפסים שאינם יצירת קשר: חיפוש, ניוזלטר, התחברות, עגלה, תגובות בלוג
 const NON_CONTACT_FORM_RE = /(?:^|[^a-z])(search|newsletter|subscribe|mc4wp|login|register|cart|coupon|comment)/;
-// קישורים לקבצים — לא עמודים, לא נכנסים לתור הסריקה
+// קישורים לקבצים - לא עמודים, לא נכנסים לתור הסריקה
 const ASSET_EXT_RE = /\.(jpe?g|png|gif|webp|svg|avif|pdf|docx?|xlsx?|pptx?|zip|rar|mp4|mp3|csv)$/i;
 
 // זיהוי תשתית קליינט (Vue/React/Angular) - טביעת אצבע לפי סמנים ידועים בקוד הגולמי, לא ניחוש
@@ -57,7 +57,7 @@ function detectClientFramework(html: string): string | undefined {
 }
 
 // פונקציה טהורה: HTML פנימה, סיגנלים החוצה. בלי רשת, בלי מצב.
-// baseUrl = כתובת העמוד הזה עצמו — משמשת לפתרון קישורים יחסיים ולבדיקת same-origin
+// baseUrl = כתובת העמוד הזה עצמו - משמשת לפתרון קישורים יחסיים ולבדיקת same-origin
 export function extractSignals(html: string, baseUrl: string): PageSignals {
   const $ = cheerio.load(html);
   const lowerHtml = html.toLowerCase();
@@ -78,7 +78,7 @@ export function extractSignals(html: string, baseUrl: string): PageSignals {
       if (ASSET_EXT_RE.test(abs.pathname)) return;
       internalLinks.push(abs.toString());
     } catch {
-      // href לא תקין — מתעלמים
+      // href לא תקין - מתעלמים
     }
   });
 

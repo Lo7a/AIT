@@ -40,7 +40,7 @@ describe("formatDiagnosisSummary", () => {
     expect(text).toContain("טיפול בלידים");
   });
 
-  it("handles an empty topGaps gracefully (healthy business) — no empty gaps section, still shows strengths", () => {
+  it("handles an empty topGaps gracefully (healthy business) - no empty gaps section, still shows strengths", () => {
     const healthyScore: ScoreReport = {
       ...SCORE,
       topGaps: [],

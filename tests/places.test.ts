@@ -30,7 +30,7 @@ describe("searchBusiness", () => {
       reviewCount: 23,
     });
     const calledUrl = fetchImpl.mock.calls[0][0] as string;
-    expect(calledUrl).not.toContain("test-secret-key"); // בדיקת שפיות בסיסית — אין מפתח ב-URL
+    expect(calledUrl).not.toContain("test-secret-key"); // בדיקת שפיות בסיסית - אין מפתח ב-URL
     const calledInit = fetchImpl.mock.calls[0][1] as RequestInit;
     expect((calledInit.headers as Record<string, string>)["X-Goog-Api-Key"]).toBe("test-secret-key");
     const headers = calledInit.headers as Record<string, string>;

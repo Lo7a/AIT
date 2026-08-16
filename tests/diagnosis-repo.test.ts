@@ -26,7 +26,7 @@ describe("toScanRow", () => {
     expect(row.scores).toEqual({ overall: 70 });
     expect(row.narrative).toEqual(NARRATIVE_RESULT);
     expect(row.apiCost).toBe(0.06);
-    expect(row.llmCost).toBe(0); // שכבת חינם בפיתוח — עלות ה-LLM אפס עד בחירת מודל ייצור
+    expect(row.llmCost).toBe(0); // שכבת חינם בפיתוח - עלות ה-LLM אפס עד בחירת מודל ייצור
     expect(row.durationMs).toBe(20000);
   });
 
@@ -47,7 +47,7 @@ describe("toScanRow", () => {
   });
 });
 
-describe("toScanRow — פרובננס נרטיב", () => {
+describe("toScanRow - פרובננס נרטיב", () => {
   it("שומר את NarrativeResult המלא כולל usedFallback ו-usage", () => {
     const row = toScanRow(FINDINGS, { overall: 70 } as never, NARRATIVE_RESULT);
     expect(row.narrative?.usedFallback).toBe(false);
@@ -59,7 +59,7 @@ describe("toScanRow — פרובננס נרטיב", () => {
   });
 });
 
-describe("toScanRow — עלות", () => {
+describe("toScanRow - עלות", () => {
   it("מחשב עלות על סכום טוקני הסריקה והנרטיב (0 בשכבת החינם)", () => {
     const row = toScanRow(FINDINGS, { overall: 70 } as never, NARRATIVE_RESULT);
     expect(row.llmCost).toBe(0);
@@ -73,7 +73,7 @@ describe("toScanRow — עלות", () => {
     expect(row.llmCost).toBeCloseTo(0.00375, 10);
   });
 
-  it("narrative null — עדיין מחייב את טוקני הסריקה", () => {
+  it("narrative null - עדיין מחייב את טוקני הסריקה", () => {
     // meta.llmInputTokens (100) ב-$1/M = 0.0001 + meta.llmOutputTokens (50) ב-$5/M = 0.00025 → סה"כ 0.00035
     const row = toScanRow(FINDINGS, null, null, { usdPerMInput: 1, usdPerMOutput: 5 });
     expect(row.llmCost).toBeCloseTo(0.00035, 10);
@@ -81,7 +81,7 @@ describe("toScanRow — עלות", () => {
 });
 
 describe("llmCostUsd", () => {
-  it("שכבת החינם של Gemini — עלות 0", () => {
+  it("שכבת החינם של Gemini - עלות 0", () => {
     expect(llmCostUsd({ inputTokens: 150_000, outputTokens: 15_000 })).toBe(0);
   });
 
@@ -94,7 +94,7 @@ describe("llmCostUsd", () => {
   });
 });
 
-// updateManyCount: כמה שורות updateMany "מצא ועדכן" — ברירת מחדל 1 (הצליח); 0 מדמה הפסד במרוץ
+// updateManyCount: כמה שורות updateMany "מצא ועדכן" - ברירת מחדל 1 (הצליח); 0 מדמה הפסד במרוץ
 function fakePrisma(currentStatus: string, updateManyCount = 1) {
   return {
     diagnosis: {
@@ -141,7 +141,7 @@ describe("createDiagnosisForBusiness", () => {
     expect(result).toEqual({ businessId: "b1", diagnosisId: "d9" });
   });
 
-  it("מסלול website (no-GBP): upsert אטומי על websiteKey מנורמל — כתיבים שונים מתלכדים לאותו מפתח; name הוא create-only", async () => {
+  it("מסלול website (no-GBP): upsert אטומי על websiteKey מנורמל - כתיבים שונים מתלכדים לאותו מפתח; name הוא create-only", async () => {
     for (const website of ["https://www.LavanGroup.co.il/", "lavangroup.co.il", "https://lavangroup.co.il/about"]) {
       const prisma = fakePrisma("created");
       await createDiagnosisForBusiness(prisma as never, { name: "lavan", placeId: "", website });
@@ -151,7 +151,7 @@ describe("createDiagnosisForBusiness", () => {
         update: Record<string, unknown>;
       };
       expect(upsertCall.where).toEqual({ websiteKey: "lavangroup.co.il" });
-      // Prisma הופך ל-INSERT..ON CONFLICT אטומי רק כש-create.<שדה ייחודי> תואם ל-where — אם רפקטור ישבור
+      // Prisma הופך ל-INSERT..ON CONFLICT אטומי רק כש-create.<שדה ייחודי> תואם ל-where - אם רפקטור ישבור
       // את ההתאמה, הבדיקה הישנה (where בלבד) הייתה נשארת ירוקה בזמן שהאטומיות נפתחת מחדש
       expect(upsertCall.create.websiteKey).toEqual(upsertCall.where.websiteKey);
       // name לא ב-update: סריקה חוזרת של אותו אתר לא צריכה לשנות בשקט את השם שדוחות קודמים כבר מציגים

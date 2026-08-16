@@ -6,7 +6,7 @@ export interface BusinessCandidate {
   reviewCount?: number;
 }
 
-// הביקורות כאן הן זמניות (in-memory) לצורך ניתוח בלבד — לעולם לא נשמרות לפלט
+// הביקורות כאן הן זמניות (in-memory) לצורך ניתוח בלבד - לעולם לא נשמרות לפלט
 export interface Review {
   rating: number;
   text: string;
@@ -39,7 +39,7 @@ export interface WebsiteSignals {
   hasFacebookPixel: boolean;
   hasGoogleAnalytics: boolean;
   platform?: string;
-  jsRendered?: boolean; // האתר מרונדר בצד לקוח — האותות מה-HTML הגולמי חלקיים, אסור להסיק מהם "אין"
+  jsRendered?: boolean; // האתר מרונדר בצד לקוח - האותות מה-HTML הגולמי חלקיים, אסור להסיק מהם "אין"
   // נגישות (הצהרת נגישות + רכיב נגישות מותקן) - אופציונלי כמו platform/jsRendered כדי לא לשבור
   // fixtures קיימים של WebsiteSignals בכל הבדיקות; crawl.ts תמיד ממלא ערך אמיתי (true/false) בפועל
   hasAccessibilityStatement?: boolean;
@@ -69,11 +69,11 @@ export interface PageSpeedResult {
 }
 
 export interface Theme {
-  theme: string; // מסקנה קצרה בעברית — בלי ציטוטים ובלי שמות
+  theme: string; // מסקנה קצרה בעברית - בלי ציטוטים ובלי שמות
   count: number;
 }
 
-// count של כל תמה תקף רק ביחס ל-totalAnalyzed (מה שנותח בפועל) — לעולם לא ביחס ל-reviewCount הכולל של העסק
+// count של כל תמה תקף רק ביחס ל-totalAnalyzed (מה שנותח בפועל) - לעולם לא ביחס ל-reviewCount הכולל של העסק
 export interface ReviewInsights {
   totalAnalyzed: number;
   positiveThemes: Theme[];
@@ -100,7 +100,7 @@ export type PartialFlag =
   | "no_gbp"
   | "social_only";
 
-// הסבר דגל js_rendered — משותף ל-runScan ול-scanWebsiteOnly (משימה 3)
+// הסבר דגל js_rendered - משותף ל-runScan ול-scanWebsiteOnly (משימה 3)
 export const JS_RENDERED_DETAIL = "האתר מרונדר ב-JavaScript - אותות ה-HTML חלקיים";
 
 // "האתר" של העסק הוא בעצם עמוד ברשת חברתית (ממצא מייסד, אבן דרך 4 משימה 0) - ראו social-hosts.ts.
@@ -132,7 +132,7 @@ export interface ScanFindings {
   pageSpeed?: PageSpeedResult;
   reviewInsights?: ReviewInsights;
   socialOnly?: SocialOnly;
-  partial: PartialFlag[]; // איחוד הדגלים האפשריים — ראו PartialFlag
+  partial: PartialFlag[]; // איחוד הדגלים האפשריים - ראו PartialFlag
   partialDetails?: Partial<Record<PartialFlag, string>>; // דגל → סיבת הכישלון (לעולם בלי טקסט ביקורות)
   meta: ScanMeta;
   raw?: ScanRawPayload;

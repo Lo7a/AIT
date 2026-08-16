@@ -10,11 +10,11 @@ const TRANSITIONS: Record<DiagnosisStatus, readonly DiagnosisStatus[]> = {
   scanned: ["report_ready"],
   report_ready: ["interviewing", "roadmap_ready"],
   interviewing: ["report_ready", "roadmap_ready"],
-  roadmap_ready: ["interviewing"], // חזרה לראיון — ה-Roadmap מחושב מחדש אחריה
+  roadmap_ready: ["interviewing"], // חזרה לראיון - ה-Roadmap מחושב מחדש אחריה
 };
 
 export function canTransition(from: DiagnosisStatus, to: DiagnosisStatus): boolean {
-  // Object.hasOwn — כדי שמפתחות שירשו מהפרוטוטייפ ("toString", "__proto__") יחזירו false ולא יזרקו
+  // Object.hasOwn - כדי שמפתחות שירשו מהפרוטוטייפ ("toString", "__proto__") יחזירו false ולא יזרקו
   return Object.hasOwn(TRANSITIONS, from) && TRANSITIONS[from].includes(to);
 }
 

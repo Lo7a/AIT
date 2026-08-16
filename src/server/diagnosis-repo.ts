@@ -11,7 +11,7 @@ import { cityOf } from "../pipeline/city-of";
 export interface LlmPricing { usdPerMInput: number; usdPerMOutput: number }
 
 // תמחור LLM: שכבת החינם של Gemini = 0. כשייבחר מודל ייצור (אפיון 9.3) מעדכנים את שני
-// הקבועים כאן — llm_cost יתחיל להיצבר אמת בלי לגעת בשום קוד אחר. עלות-לאבחון היא KPI (אפיון 9.6)
+// הקבועים כאן - llm_cost יתחיל להיצבר אמת בלי לגעת בשום קוד אחר. עלות-לאבחון היא KPI (אפיון 9.6)
 export const LLM_PRICING: Readonly<LlmPricing> = { usdPerMInput: 0, usdPerMOutput: 0 };
 
 export function llmCostUsd(usage: LlmUsage, pricing: LlmPricing = LLM_PRICING): number {
@@ -21,8 +21,8 @@ export function llmCostUsd(usage: LlmUsage, pricing: LlmPricing = LLM_PRICING): 
 export interface ScanRow {
   findings: ScanFindings;
   scores: ScoreReport | null;
-  // narrative כולל usage + usedFallback — פרובננס הנרטיב (שער 2א, דרישה 5). הערה לצד קריאה עתידי:
-  // עמודת ה-DB דו-צורתית — שורות ישנות מכילות ReportNarrative גולמי בלי עטיפה, שורות חדשות מכילות NarrativeResult; מבדילים ביניהן לפי קיום מפתח narrative מקונן ב-JSON
+  // narrative כולל usage + usedFallback - פרובננס הנרטיב (שער 2א, דרישה 5). הערה לצד קריאה עתידי:
+  // עמודת ה-DB דו-צורתית - שורות ישנות מכילות ReportNarrative גולמי בלי עטיפה, שורות חדשות מכילות NarrativeResult; מבדילים ביניהן לפי קיום מפתח narrative מקונן ב-JSON
   narrative: NarrativeResult | null;
   llmCost: number;
   apiCost: number;
@@ -32,7 +32,7 @@ export interface ScanRow {
   raw: ScanRawPayload | null;
 }
 
-// ממפה טהור — כל לוגיקת העמודות במקום אחד, נבדק אופליין
+// ממפה טהור - כל לוגיקת העמודות במקום אחד, נבדק אופליין
 export function toScanRow(
   findings: ScanFindings,
   scores: ScoreReport | null,
@@ -76,20 +76,20 @@ export async function createDiagnosisForBusiness(
     });
     businessId = business.id;
   } else if (input.website) {
-    // מסלול אתר-בלבד (no_gbp): upsert אטומי על מפתח מנורמל — כתיבים שונים של אותו אתר
+    // מסלול אתר-בלבד (no_gbp): upsert אטומי על מפתח מנורמל - כתיבים שונים של אותו אתר
     // מתלכדים לשורה אחת, ושתי ריצות מקבילות לא יוצרות כפיל (שער 2א, דרישה 3).
-    // הערה: מסלול placeId לעולם לא קובע websiteKey — איחוד עסק שנסרק פעם דרך --url ופעם
+    // הערה: מסלול placeId לעולם לא קובע websiteKey - איחוד עסק שנסרק פעם דרך --url ופעם
     // דרך Places הוא בעיית מייל סטון 3+.
     const key = websiteKeyOf(input.website);
     const business = await prisma.business.upsert({
       where: { websiteKey: key },
-      // name לא ב-update בכוונה: השם שייך ליצירה בלבד — סריקה חוזרת לא תשנה בשקט את השם שכל הדוחות הקודמים מציגים
+      // name לא ב-update בכוונה: השם שייך ליצירה בלבד - סריקה חוזרת לא תשנה בשקט את השם שכל הדוחות הקודמים מציגים
       update: { website: input.website, city: input.city },
       create: { name: input.name, websiteKey: key, website: input.website, city: input.city },
     });
     businessId = business.id;
   } else {
-    // בלי אף מזהה — where ריק היה מחזיר עסק שרירותי ומצמיד לו אבחון של מישהו אחר
+    // בלי אף מזהה - where ריק היה מחזיר עסק שרירותי ומצמיד לו אבחון של מישהו אחר
     throw new Error("createDiagnosisForBusiness: נדרש placeId או website");
   }
   const diagnosis = await prisma.diagnosis.create({ data: { businessId } });
@@ -105,7 +105,7 @@ export async function transitionDiagnosis(
     where: { id: diagnosisId }, select: { status: true },
   });
   assertTransition(current.status as DiagnosisStatus, to);
-  // עדכון מותנה בסטטוס שנקרא — שתי ריצות מקבילות לא יעברו שתיהן; count 0 = הפסדנו במרוץ
+  // עדכון מותנה בסטטוס שנקרא - שתי ריצות מקבילות לא יעברו שתיהן; count 0 = הפסדנו במרוץ
   const result = await prisma.diagnosis.updateMany({
     where: { id: diagnosisId, status: current.status },
     data: { status: to },

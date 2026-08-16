@@ -19,8 +19,8 @@ import { websiteKeyOf } from "./website-key";
 import { socialPresenceOf, socialOnlyDetail } from "../pipeline/social-hosts";
 import type { DiagnoseEvent, DiagnoseStepKey } from "./diagnose-events";
 
-// האורקסטרציה המלאה של אבחון — חולצה מ-cli-diagnose.ts כדי שה-CLI ומסך הסריקה החיה
-// יריצו את אותו קוד בדיוק. אירועי ההתקדמות נפלטים בעטיפת ה-deps — הצנרת עצמה לא השתנתה.
+// האורקסטרציה המלאה של אבחון - חולצה מ-cli-diagnose.ts כדי שה-CLI ומסך הסריקה החיה
+// יריצו את אותו קוד בדיוק. אירועי ההתקדמות נפלטים בעטיפת ה-deps - הצנרת עצמה לא השתנתה.
 
 export type DiagnoseTarget =
   | { kind: "places"; placeId: string; name: string; city?: string }
@@ -38,21 +38,21 @@ export interface DiagnoseOutcome {
 
 export interface RunDiagnosisOptions {
   onEvent?: (e: DiagnoseEvent) => void;
-  scanDeps?: ScanDeps;           // הזרקה בבדיקות — ברירת מחדל: הצנרת החיה
+  scanDeps?: ScanDeps;           // הזרקה בבדיקות - ברירת מחדל: הצנרת החיה
   websiteDeps?: WebsiteOnlyDeps;
   narrativeOptions?: NarrativeOptions;
 }
 
-// הסריקה נכשלה כולה והאבחון הוחזר ל-created — הודעה עברית ידידותית למסך/CLI
+// הסריקה נכשלה כולה והאבחון הוחזר ל-created - הודעה עברית ידידותית למסך/CLI
 export class DiagnoseFailed extends Error {}
 
 type Emit = (e: DiagnoseEvent) => void;
 
 const CONTINUES_WITHOUT_DETAIL = "לא הצליח - ממשיכים בלי המקור הזה";
 
-// step: עוטף dep יחיד בזוג אירועי step/step_done. failDetail מותאם למשמעות האמיתית של הכישלון —
+// step: עוטף dep יחיד בזוג אירועי step/step_done. failDetail מותאם למשמעות האמיתית של הכישלון -
 // עבור dep לא-פטאלי (crawl/pagespeed/reviews/narrative) "ממשיכים בלי המקור הזה" נכון; עבור dep פטאלי
-// (details/save) זה שקרי — הקורא מעביר טקסט מדויק. detailOf (עיצוב הטקסט להצלחה) רץ אחרי ה-try/catch
+// (details/save) זה שקרי - הקורא מעביר טקסט מדויק. detailOf (עיצוב הטקסט להצלחה) רץ אחרי ה-try/catch
 // בכוונה: אם detailOf עצמו זורק (באג בפורמט), זה לא אמור להיראות כמו כישלון של ה-dep שכן הצליח.
 async function step<T>(
   emit: Emit, key: DiagnoseStepKey, label: string,
@@ -120,14 +120,14 @@ export async function runDiagnosis(
 ): Promise<DiagnoseOutcome> {
   const raw = opts.onEvent ?? (() => {});
   // חוזה: onEvent לעולם לא מפיל את האורקסטרציה. emit נקרא מתוך ה-deps, שכישלונם נבלע
-  // ב-Promise.allSettled — צרכן שזורק (למשל: enqueue לזרם אחרי שהלקוח התנתק) היה הופך לדגל
-  // partial שקרי (crawl_failed עם "הצרכן נפל" כטקסט!) שנשמר בפועל ל-DB, ובמסלול URL — לכישלון כפול
+  // ב-Promise.allSettled - צרכן שזורק (למשל: enqueue לזרם אחרי שהלקוח התנתק) היה הופך לדגל
+  // partial שקרי (crawl_failed עם "הצרכן נפל" כטקסט!) שנשמר בפועל ל-DB, ובמסלול URL - לכישלון כפול
   // מדומה ש-DiagnoseFailed הורס אבחון שבפועל הצליח
   const emit: Emit = (e) => {
     try { raw(e); } catch (err) { console.error("⚠️ onEvent נכשל (מתעלמים):", err instanceof Error ? err.message : err); }
   };
 
-  // נרמול URL לפני כל כתיבה ל-DB — כתובת פסולה נכשלת מוקדם ונקי
+  // נרמול URL לפני כל כתיבה ל-DB - כתובת פסולה נכשלת מוקדם ונקי
   const siteUrl = target.kind === "url" ? normalizeSiteUrl(target.url) : undefined;
   // אתר חברתי (ממצא מייסד, אבן דרך 4 משימה 0): מזוהה כאן כדי שגם ה-website שנשמר וגם אירועי
   // הסריקה החיה יתייחסו אליו נכון, לפני שמגיעים בכלל ל-scanWebsiteOnly
@@ -136,7 +136,7 @@ export async function runDiagnosis(
   // שלב 1: יצירת עסק + אבחון (created). מסלול URL: שם = מפתח הדומיין, website = origin יציב (משימה 3) -
   // חוץ מדומיין חברתי: origin לבדו (facebook.com) מאבד את מקטע ה-path שמזהה את העמוד הספציפי,
   // בדיוק הבאג שמשימה 0 מתקנת ב-websiteKeyOf; לכן שם נשמר ה-href המלא כדי שהמפתח בהמשך יהיה נכון
-  // הענפים נבדקים ישירות על target.kind (לא על siteUrl הנגזר) כדי שה-union יצטמצם בלי אף cast —
+  // הענפים נבדקים ישירות על target.kind (לא על siteUrl הנגזר) כדי שה-union יצטמצם בלי אף cast -
   // הוספת סוג שלישי ל-DiagnoseTarget תיכשל בקומפילציה כאן, לא תפיק undefined בשקט
   const businessName = target.kind === "url" ? websiteKeyOf(siteUrl!.href) : target.name;
   const created = await createDiagnosisForBusiness(prisma, target.kind === "url"
@@ -156,7 +156,7 @@ export async function runDiagnosis(
       ? await scanWebsiteOnly(siteUrl!.href, wrapWebsiteDeps(opts.websiteDeps ?? defaultWebsiteOnlyDeps, emit))
       : await runScan(target.placeId, wrapScanDeps(opts.scanDeps ?? defaultDeps, emit), { priorPlacesCalls: 1 });
 
-    // מסלול URL: כישלון כפול (גם crawl וגם PSI) = אין שום ממצא — נבדק לפני scanned
+    // מסלול URL: כישלון כפול (גם crawl וגם PSI) = אין שום ממצא - נבדק לפני scanned
     if (target.kind === "url" && findings.partial.includes("crawl_failed") && findings.partial.includes("pagespeed_failed")) {
       throw new DiagnoseFailed("שני המקורות נכשלו, אין ממצאים לאבחון");
     }
@@ -164,14 +164,14 @@ export async function runDiagnosis(
     try {
       await transitionDiagnosis(prisma, created.diagnosisId, "created");
     } catch (revertErr) {
-      // ההחזרה נכשלה (race) — לא בולעים, אבל השגיאה שממשיכה היא שגיאת הסריקה המקורית
+      // ההחזרה נכשלה (race) - לא בולעים, אבל השגיאה שממשיכה היא שגיאת הסריקה המקורית
       console.error("⚠️ נכשל גם ניסיון החזרת הסטטוס ל-created:", revertErr instanceof Error ? revertErr.message : revertErr);
     }
     throw err;
   }
   await transitionDiagnosis(prisma, created.diagnosisId, "scanned");
 
-  // שלב 3: ציונים ומודל (סינכרוני, אירוע אחד), נרטיב (fallback פנימי — לא מפיל)
+  // שלב 3: ציונים ומודל (סינכרוני, אירוע אחד), נרטיב (fallback פנימי - לא מפיל)
   emit({ type: "step", key: "score", label: "מחשבים ציונים ומודל עסק" });
   const score = scoreFindings(DIMENSIONS, findings);
   const model = deriveBusinessModel(findings);
@@ -191,7 +191,7 @@ export async function runDiagnosis(
     () => saveScanResult(prisma, created.diagnosisId, toScanRow(findings, score, narrative), model),
     () => "האבחון נשמר", "השמירה נכשלה");
 
-  // שלב 5: backfill האתר שהתגלה — קוסמטי, אחרי report_ready, כשל לא מפיל אבחון ששולם.
+  // שלב 5: backfill האתר שהתגלה - קוסמטי, אחרי report_ready, כשל לא מפיל אבחון ששולם.
   // רק במסלול Places (ב-url האתר נשמר כבר ביצירה).
   if (target.kind === "places" && findings.business.website) {
     try {

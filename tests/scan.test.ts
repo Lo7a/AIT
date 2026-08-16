@@ -80,7 +80,7 @@ describe("runScan", () => {
       }),
     });
     await runScan("pid-1", deps);
-    // PSI התחיל לפני שה-crawl הסתיים — כלומר רצו במקביל
+    // PSI התחיל לפני שה-crawl הסתיים - כלומר רצו במקביל
     expect(order.indexOf("psi-start")).toBeLessThan(order.indexOf("crawl-end"));
   });
 
@@ -166,7 +166,7 @@ describe("runScan", () => {
     });
     const findings = await runScan("pid-1", deps);
     expect(findings.partial).toContain("no_review_text");
-    expect(findings.partial).not.toContain("few_reviews"); // reviewCount=23 — העסק לא "דל ביקורות"
+    expect(findings.partial).not.toContain("few_reviews"); // reviewCount=23 - העסק לא "דל ביקורות"
   });
 });
 

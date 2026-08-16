@@ -32,7 +32,7 @@ async function main() {
   const chosen = picked.chosen;
 
   console.log(`🏢 סורק את: ${chosen.name} - ${chosen.address}`);
-  // priorPlacesCalls: 1 — קריאת החיפוש שכבר בוצעה נספרת בעלות
+  // priorPlacesCalls: 1 - קריאת החיפוש שכבר בוצעה נספרת בעלות
   const findings = await runScan(chosen.placeId, undefined, { priorPlacesCalls: 1 });
 
   mkdirSync("output", { recursive: true });

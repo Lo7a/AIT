@@ -6,7 +6,7 @@ import { buildDimensions } from "./dimensions";
 import type { BusinessModel } from "../model/business-model";
 
 const TOP_COUNT = 3;
-// מתחת ל-75% מהנקודות ידועות — הממד מסומן "מידע חלקי" (אפיון 6: לא מענישים על חוסר דאטה)
+// מתחת ל-75% מהנקודות ידועות - הממד מסומן "מידע חלקי" (אפיון 6: לא מענישים על חוסר דאטה)
 const FULL_DATA_THRESHOLD = 0.75;
 
 function scoreDimension(def: DimensionDef, f: ScanFindings): DimensionScore {
@@ -39,14 +39,14 @@ function scoreDimension(def: DimensionDef, f: ScanFindings): DimensionScore {
 export function scoreFindings(defs: DimensionDef[], f: ScanFindings): ScoreReport {
   const dimensions = defs.map((d) => scoreDimension(d, f));
 
-  // ציון כולל משוקלל רק על ממדים שיש להם מידע — המשקולות מנורמלות מחדש
+  // ציון כולל משוקלל רק על ממדים שיש להם מידע - המשקולות מנורמלות מחדש
   const scored = dimensions.filter((d): d is DimensionScore & { score: number } => d.score !== null);
   const weightSum = scored.reduce((s, d) => s + d.weight, 0);
   const overall = weightSum === 0
     ? null
     : Math.round(scored.reduce((s, d) => s + d.score * d.weight, 0) / weightSum);
 
-  // דירוג לפי השפעה אמיתית על הציון הכולל: נקודות × משקל הממד — לא נקודות גולמיות
+  // דירוג לפי השפעה אמיתית על הציון הכולל: נקודות × משקל הממד - לא נקודות גולמיות
   const highlights = (pick: (r: RuleResult) => boolean): Highlight[] =>
     dimensions
       .flatMap((d) => d.rules.filter(pick).map((r) => ({

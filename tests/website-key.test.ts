@@ -22,7 +22,7 @@ describe("websiteKeyOf", () => {
     }
   });
 
-  it("path נזרק בכוונה — עסק = דומיין ב-MVP", () => {
+  it("path נזרק בכוונה - עסק = דומיין ב-MVP", () => {
     expect(websiteKeyOf("https://x.co.il/deep/page?q=1")).toBe("x.co.il");
   });
 

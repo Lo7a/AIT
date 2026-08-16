@@ -3,7 +3,7 @@ import { scoreFindings } from "../src/pipeline/score/engine";
 import type { DimensionDef } from "../src/pipeline/score/types";
 import type { ScanFindings } from "../src/pipeline/types";
 
-// findings מינימלי — החוקים הסינתטיים במבחן לא קוראים ממנו כלום
+// findings מינימלי - החוקים הסינתטיים במבחן לא קוראים ממנו כלום
 function f(partial: ScanFindings["partial"] = []): ScanFindings {
   return {
     business: { placeId: "p1", name: "עסק" },

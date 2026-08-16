@@ -19,7 +19,7 @@ const model = {
 
 const businessRow = { id: "b1", name: "עסק בדיקה", placeId: "p1", websiteKey: null, website: null, city: null, createdAt: new Date("2026-08-13") };
 
-// diagnosis.findUnique/findMany כ-vi.fn (כמו tests/diagnosis-repo.test.ts) — כדי שהקריאה עצמה (limit, select) תהיה נבדקת, לא רק התוצאה
+// diagnosis.findUnique/findMany כ-vi.fn (כמו tests/diagnosis-repo.test.ts) - כדי שהקריאה עצמה (limit, select) תהיה נבדקת, לא רק התוצאה
 function fakeDb(diagnosisRow: unknown, listRows: unknown[] = []) {
   return {
     diagnosis: {
@@ -86,7 +86,7 @@ describe("getReport", () => {
     expect(r?.scan?.narrative?.usage?.outputTokens).toBe(2);
   });
 
-  it("נרטיב ישן (ReportNarrative ישיר, בלי מעטפת) — פרובננס null, הנרטיב עצמו נקרא", async () => {
+  it("נרטיב ישן (ReportNarrative ישיר, בלי מעטפת) - פרובננס null, הנרטיב עצמו נקרא", async () => {
     const row = diagRow();
     (row.scans[0] as { narrative: unknown }).narrative = { headline: "ישן", summary: "ס", gapExplanations: [] };
     const r = await getReport(fakeDb(row) as never, "d1");
@@ -95,7 +95,7 @@ describe("getReport", () => {
     expect(r?.scan?.narrative?.usage).toBeNull();
   });
 
-  it("מעטפה חדשה בלי פרובננס (usedFallback/usage חסרים) — נשמר null, לא false/undefined", async () => {
+  it("מעטפה חדשה בלי פרובננס (usedFallback/usage חסרים) - נשמר null, לא false/undefined", async () => {
     const row = diagRow();
     (row.scans[0] as { narrative: unknown }).narrative = {
       narrative: { headline: "h", summary: "s", gapExplanations: [] },
@@ -105,7 +105,7 @@ describe("getReport", () => {
     expect(r?.scan?.narrative?.usage).toBeNull();
   });
 
-  it("מעטפה עם narrative מקונן פגום (null) — לא זריקה, מתדרדר לנרטיב null", async () => {
+  it("מעטפה עם narrative מקונן פגום (null) - לא זריקה, מתדרדר לנרטיב null", async () => {
     const row = diagRow();
     (row.scans[0] as { narrative: unknown }).narrative = { narrative: null, usedFallback: true };
     const r = await getReport(fakeDb(row) as never, "d1");
@@ -118,7 +118,7 @@ describe("getReport", () => {
     expect(r?.nextStep?.action).toBe("free_text"); // 15% מתחת לסף free_text
   });
 
-  it("אבחון בלי סריקה (created) — scan null, לא זריקה", async () => {
+  it("אבחון בלי סריקה (created) - scan null, לא זריקה", async () => {
     const r = await getReport(fakeDb(diagRow({ scans: [], businessModel: null, status: "created" })) as never, "d1");
     expect(r?.scan).toBeNull();
     expect(r?.model).toBeNull();
@@ -126,13 +126,13 @@ describe("getReport", () => {
     expect(r?.status).toBe("created");
   });
 
-  it("findings פגום (בלי business/meta) — זריקה בקול, לא המשך שקט", async () => {
+  it("findings פגום (בלי business/meta) - זריקה בקול, לא המשך שקט", async () => {
     const row = diagRow();
     (row.scans[0] as { findings: unknown }).findings = { garbage: true };
     await expect(getReport(fakeDb(row) as never, "d1")).rejects.toThrow(/פגומ/);
   });
 
-  it("findings בלי meta (יש business) — זריקה בקול", async () => {
+  it("findings בלי meta (יש business) - זריקה בקול", async () => {
     const row = diagRow();
     (row.scans[0] as { findings: unknown }).findings = { business: { placeId: "p", name: "x" } };
     await expect(getReport(fakeDb(row) as never, "d1")).rejects.toThrow(/פגומ/);
@@ -148,12 +148,12 @@ describe("listRecentDiagnoses", () => {
     expect(db.diagnosis.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 8 }));
   });
 
-  it("אבחון בלי סריקה — overall null", async () => {
+  it("אבחון בלי סריקה - overall null", async () => {
     const rows = await listRecentDiagnoses(fakeDb(null, [diagRow({ scans: [] })]) as never, 8);
     expect(rows[0].overall).toBeNull();
   });
 
-  it("בלי limit — findMany בלי take, כל האבחונים חוזרים", async () => {
+  it("בלי limit - findMany בלי take, כל האבחונים חוזרים", async () => {
     const db = fakeDb(null, [diagRow()]);
     await listRecentDiagnoses(db as never);
     expect(db.diagnosis.findMany).toHaveBeenCalledWith(

@@ -6,7 +6,7 @@ import type { ScanFindings } from "../src/pipeline/types";
 
 const META = { startedAt: "", durationMs: 0, placesCalls: 0, llmInputTokens: 0, llmOutputTokens: 0, estCostUsd: 0 };
 
-// עסק עשיר עם אתר מלא — בסגנון אופטיקה בק (זהה ל-tests/dimensions.test.ts)
+// עסק עשיר עם אתר מלא - בסגנון אופטיקה בק (זהה ל-tests/dimensions.test.ts)
 const RICH: ScanFindings = {
   business: { placeId: "p1", name: "אופטיקה", phone: "04-000", website: "https://x.co.il", rating: 4.9, reviewCount: 80 },
   websiteSignals: {
@@ -20,7 +20,7 @@ const RICH: ScanFindings = {
   meta: META,
 };
 
-// עסק דל בלי אתר — בסגנון ברכת רחל (זהה ל-tests/dimensions.test.ts)
+// עסק דל בלי אתר - בסגנון ברכת רחל (זהה ל-tests/dimensions.test.ts)
 const THIN: ScanFindings = {
   business: { placeId: "p2", name: "מאפיה", phone: "08-000", rating: 4.4, reviewCount: 8 },
   reviewInsights: { totalAnalyzed: 5, positiveThemes: [], problemThemes: [{ theme: "מחירים גבוהים", count: 2 }] },
@@ -28,7 +28,7 @@ const THIN: ScanFindings = {
   meta: META,
 };
 
-// ביקורות נותחו בפועל אך אף ביקורת לא הכילה טקסט (no_review_text) — "לא נבדק כלום", לא "נבדק ונמצא נקי"
+// ביקורות נותחו בפועל אך אף ביקורת לא הכילה טקסט (no_review_text) - "לא נבדק כלום", לא "נבדק ונמצא נקי"
 const NO_TEXT: ScanFindings = {
   business: { placeId: "p5", name: "עסק", rating: 4.5, reviewCount: 40 },
   reviewInsights: { totalAnalyzed: 0, positiveThemes: [], problemThemes: [] },
@@ -36,7 +36,7 @@ const NO_TEXT: ScanFindings = {
   meta: META,
 };
 
-// אתר js_rendered בלי GBP — אותות שליליים לא אמינים, אבל גילוי חיובי (GA) עדיין נספר
+// אתר js_rendered בלי GBP - אותות שליליים לא אמינים, אבל גילוי חיובי (GA) עדיין נספר
 const JS_SITE: ScanFindings = {
   business: { placeId: "", name: "x.co.il", website: "https://x.co.il/" },
   websiteSignals: {
@@ -66,7 +66,7 @@ describe("deriveBusinessModel", () => {
     const m = deriveBusinessModel(THIN);
     expect(m.completenessPct).toBeLessThan(30);
     expect(m.data.pains).toEqual({ fromReviews: ["מחירים גבוהים"] });
-    expect(m.data.service).toEqual({}); // אין מידע — אובייקט ריק, לא null
+    expect(m.data.service).toEqual({}); // אין מידע - אובייקט ריק, לא null
   });
 
   it("gives pains zero credit when analysis ran but no review had text", () => {
@@ -79,7 +79,7 @@ describe("deriveBusinessModel", () => {
     const m = deriveBusinessModel(JS_SITE);
     expect(m.data.scheduling).toEqual({});
     expect(m.credits.scheduling).toBe(0);
-    expect(m.credits.tools).toBe(0.5); // GA זוהה — ראיה חיובית נספרת
+    expect(m.credits.tools).toBe(0.5); // GA זוהה - ראיה חיובית נספרת
     expect((m.data.tools as { detected: string[] }).detected).toEqual(["google_analytics"]);
   });
 
@@ -89,7 +89,7 @@ describe("deriveBusinessModel", () => {
       for (const k of MODEL_SECTIONS) {
         expect(m.credits[k] > 0, `${k}: credit⟺source`).toBe(m.fieldSources[k] !== undefined);
         expect(m.credits[k] > 0, `${k}: credit⟺data`).toBe(Object.keys(m.data[k]).length > 0);
-        // ערכי undefined בתוך data לא שורדים JSONB — המפתח חייב להיות מושמט, לא undefined
+        // ערכי undefined בתוך data לא שורדים JSONB - המפתח חייב להיות מושמט, לא undefined
         expect(Object.values(m.data[k]).includes(undefined), `${k}: no undefined values`).toBe(false);
       }
       expect(m.completenessPct).toBe(completenessOf(m.credits));

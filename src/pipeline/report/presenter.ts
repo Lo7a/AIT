@@ -3,7 +3,7 @@ import type { PartialFlag } from "../types";
 import type { BusinessModel, NextStepRecommendation } from "../model/business-model";
 import type { DiagnosisStatus } from "../../server/status";
 
-// שכבת תצוגה משותפת ל-CLI ולמסכים (שער 2א, דרישה 4) — טהורה, נבדקת אופליין
+// שכבת תצוגה משותפת ל-CLI ולמסכים (שער 2א, דרישה 4) - טהורה, נבדקת אופליין
 
 export const DATA_STATUS_LABEL: Record<DataStatus, string> = {
   full: "מידע מלא",
@@ -11,7 +11,7 @@ export const DATA_STATUS_LABEL: Record<DataStatus, string> = {
   none: "אין מידע",
 };
 
-// תגי הסוגריים של ה-CLI נגזרים מהתוויות — עריכת תווית אחת לא תפצל בשקט בין ה-CLI ל-UI
+// תגי הסוגריים של ה-CLI נגזרים מהתוויות - עריכת תווית אחת לא תפצל בשקט בין ה-CLI ל-UI
 export const DATA_TAG: Record<string, string> = {
   partial: ` (${DATA_STATUS_LABEL.partial})`,
   none: ` (${DATA_STATUS_LABEL.none})`,
@@ -101,7 +101,7 @@ export function formatDiagnosisSummary(
     lines.push("פערים מובילים:");
     for (const g of score.topGaps) lines.push(`  ✗ ${g.text}`);
   } else if (score.overall != null) {
-    // עסק בריא בלי פערים מובילים — שורה חיובית במקום סקציה ריקה. מותנה ב-overall != null: אם אין
+    // עסק בריא בלי פערים מובילים - שורה חיובית במקום סקציה ריקה. מותנה ב-overall != null: אם אין
     // בכלל מידע לאף ממד (topGaps ריק כי אין חוקים ידועים, לא כי הכול תקין) "בסיס דיגיטלי חזק" הוא הטעיה
     // שסותרת את שורת "אין מספיק מידע" שכבר הודפסה למעלה
     lines.push("לא נמצאו פערים מהותיים בסריקה. בסיס דיגיטלי חזק.");

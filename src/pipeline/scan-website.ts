@@ -8,7 +8,7 @@ import { runPageSpeed } from "./google/pagespeed";
 import { normalizeSiteUrl } from "./site-url";
 import { socialPresenceOf, socialOnlyDetail } from "./social-hosts";
 
-// נשמר לתאימות לאחור — כל היבואנים הקיימים (כולל מבחנים) ממשיכים לעבוד בלי שינוי.
+// נשמר לתאימות לאחור - כל היבואנים הקיימים (כולל מבחנים) ממשיכים לעבוד בלי שינוי.
 // המימוש עצמו עבר ל-site-url.ts, מודול-עלה בלי תלות ב-crawler/cheerio (ראו website-key.ts)
 export { normalizeSiteUrl } from "./site-url";
 
@@ -26,7 +26,7 @@ function reasonOf(r: PromiseRejectedResult): string {
   return (r.reason instanceof Error ? r.reason.message : String(r.reason)).slice(0, 200);
 }
 
-// אבחון לעסק שאין לו פרופיל Google — סריקת אתר + PageSpeed בלבד, בלי אף קריאת Places
+// אבחון לעסק שאין לו פרופיל Google - סריקת אתר + PageSpeed בלבד, בלי אף קריאת Places
 export async function scanWebsiteOnly(
   siteUrl: string,
   deps: WebsiteOnlyDeps = defaultWebsiteOnlyDeps,
@@ -87,7 +87,7 @@ export async function scanWebsiteOnly(
 
   return {
     business: {
-      placeId: "", // אין פרופיל Google — זה בדיוק הממצא
+      placeId: "", // אין פרופיל Google - זה בדיוק הממצא
       name: url.hostname.replace(/^www\./, ""),
       website: url.href,
     },
