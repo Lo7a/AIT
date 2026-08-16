@@ -189,9 +189,10 @@ describe("getRoadmapView", () => {
     seedCatalog(catalogs, { id: "cat-2", name: "ב" });
     seedCatalog(catalogs, { id: "cat-3", name: "ג" });
 
+    // כל השלושה לא-ai בכוונה - הבדיקה הזו על סדר ה-score בתוך שכבה אחת; שכבת ה-AI נבדקת בנפרד למטה
     await createRoadmap(db, "d1", [
       { catalogId: "cat-1", score: 40, confidence: "low", phase: "automation", reasoning: null },
-      { catalogId: "cat-2", score: 90, confidence: "high", phase: "ai", reasoning: null },
+      { catalogId: "cat-2", score: 90, confidence: "high", phase: "automation", reasoning: null },
       { catalogId: "cat-3", score: 65, confidence: "medium", phase: "quick_wins", reasoning: null },
     ]);
 
@@ -209,13 +210,15 @@ describe("getRoadmapView", () => {
   it("שוויון בציון נשבר לפי שם הקטלוג, לא לפי סדר ההוספה או ה-id", async () => {
     const { db, catalogs, diagnoses } = makeFakeDb() as any;
     seedDiagnosis(diagnoses);
-    seedCatalog(catalogs, { id: "cat-b", name: "בוט וואטסאפ לשירות לקוחות" });
+    seedCatalog(catalogs, { id: "cat-b", name: "ניהול ומענה לביקורות" });
     seedCatalog(catalogs, { id: "cat-a", name: "איסוף ביקורות אוטומטי" });
     seedCatalog(catalogs, { id: "cat-top", name: "קביעת תורים אונליין" });
 
+    // זוג התיקו (60=60) באותה שכבה (automation) בכוונה - שובר השוויון לפי שם נבדק בתוך שכבה,
+    // וסדר ההוספה של הזוג הפוך לסדר האלפביתי כדי שהבדיקה תיפול אם הקריאה תיסמך על סדר ההוספה
     await createRoadmap(db, "d1", [
       { catalogId: "cat-top", score: 80, confidence: "high", phase: "automation", reasoning: null },
-      { catalogId: "cat-b", score: 60, confidence: "high", phase: "ai", reasoning: null },
+      { catalogId: "cat-b", score: 60, confidence: "high", phase: "automation", reasoning: null },
       { catalogId: "cat-a", score: 60, confidence: "low", phase: "automation", reasoning: null },
     ]);
 
@@ -223,7 +226,32 @@ describe("getRoadmapView", () => {
     expect(view?.items.map((it) => it.name)).toEqual([
       "קביעת תורים אונליין",
       "איסוף ביקורות אוטומטי",
-      "בוט וואטסאפ לשירות לקוחות",
+      "ניהול ומענה לביקורות",
     ]);
+  });
+
+  // החלטת מייסד 16.8 ("AI נמכר הכי טוב"): פריטי שלב ai מעל כולם, גם כשציונם נמוך יותר. המיון
+  // בצד הקריאה (sortItems) - כך גם Roadmaps שנשמרו לפני ההחלטה נקראים בסדר החדש בלי בנייה מחדש
+  it("AI קודם: פריט ai עם ציון נמוך יותר נקרא לפני כל הפריטים הלא-ai", async () => {
+    const { db, catalogs, diagnoses } = makeFakeDb() as any;
+    seedDiagnosis(diagnoses);
+    seedCatalog(catalogs, { id: "cat-bot", name: "בוט וואטסאפ לשירות לקוחות" });
+    seedCatalog(catalogs, { id: "cat-book", name: "קביעת תורים אונליין" });
+    seedCatalog(catalogs, { id: "cat-gbp", name: "הקמת פרופיל Google Business" });
+
+    await createRoadmap(db, "d1", [
+      { catalogId: "cat-book", score: 90, confidence: "high", phase: "automation", reasoning: null },
+      { catalogId: "cat-gbp", score: 70, confidence: "high", phase: "quick_wins", reasoning: null },
+      { catalogId: "cat-bot", score: 45, confidence: "medium", phase: "ai", reasoning: null },
+    ]);
+
+    const view = await getRoadmapView(db, "d1");
+    expect(view?.items.map((it) => it.name)).toEqual([
+      "בוט וואטסאפ לשירות לקוחות",
+      "קביעת תורים אונליין",
+      "הקמת פרופיל Google Business",
+    ]);
+    // בתוך השכבה הלא-ai הסדר נשאר לפי score - ההחלטה מרימה את ai, לא משנה את השאר
+    expect(view?.items.map((it) => it.score)).toEqual([45, 90, 70]);
   });
 });

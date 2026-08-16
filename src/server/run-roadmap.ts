@@ -4,7 +4,7 @@ import type { BusinessModel } from "../pipeline/model/business-model";
 import type { LlmUsage } from "../pipeline/llm/client";
 import { scoreWithModel } from "../pipeline/score/engine";
 import { matchOpportunities, type OpportunityMatch } from "../pipeline/roadmap/matching";
-import { scoreOpportunity, phaseOf } from "../pipeline/roadmap/opportunity-score";
+import { scoreOpportunity, phaseOf, phaseTierOf, type Phase } from "../pipeline/roadmap/opportunity-score";
 import { buildReasoning, type CompleteFn, type ReasoningItemInput } from "../pipeline/roadmap/reasoning";
 import { generateNarrative } from "../pipeline/report/narrative";
 import { InterviewError } from "../pipeline/interview/contract";
@@ -76,13 +76,16 @@ async function reachStatusOrConflict(prisma: PrismaClient, diagnosisId: string, 
   }
 }
 
-// סדר סופי לשמירה/קריאה: score (הציון הסופי, אחרי בונוס כאב/עונש ודאות/התאמת מורכבות - לא
+// סדר סופי לשמירה/קריאה: שכבת AI קודם (phaseTierOf - החלטת מייסד 16.8, "AI נמכר הכי טוב"), ואז
+// בתוך כל שכבה score (הציון הסופי, אחרי בונוס כאב/עונש ודאות/התאמת מורכבות - לא
 // lostWeightedPoints הגולמי ש-matchOpportunities ממיין לפיו) יורד, ואז שם קטלוג כשובר שוויון
 // יציב. השוואת מחרוזות רגילה (לא localeCompare) בכוונה - תוצאה זהה בכל סביבת ריצה
-function compareByScoreThenName(
-  a: { score: number; match: OpportunityMatch },
-  b: { score: number; match: OpportunityMatch },
+function compareAiFirstThenScoreThenName(
+  a: { score: number; phase: Phase; match: OpportunityMatch },
+  b: { score: number; phase: Phase; match: OpportunityMatch },
 ): number {
+  const tierDiff = phaseTierOf(a.phase) - phaseTierOf(b.phase);
+  if (tierDiff !== 0) return tierDiff;
   if (b.score !== a.score) return b.score - a.score;
   if (a.match.catalog.name < b.match.catalog.name) return -1;
   if (a.match.catalog.name > b.match.catalog.name) return 1;
@@ -119,8 +122,8 @@ export async function buildRoadmap(
   // הממצא החי פתוח (עסק שנסרק בלי ראיון, מודל נגזר-סריקה 25% שלמות, קיבל high על כל פריט)
   const hasInterviewModel = state.model !== null && Object.values(state.model.credits).some((c) => c >= 1);
   const ranked = matches
-    .map((match) => ({ match, ...scoreOpportunity(match, maxLostPoints, hasInterviewModel) }))
-    .sort(compareByScoreThenName);
+    .map((match) => ({ match, phase: phaseOf(match), ...scoreOpportunity(match, maxLostPoints, hasInterviewModel) }))
+    .sort(compareAiFirstThenScoreThenName);
 
   const reasoningInputs: ReasoningItemInput[] = ranked.map(({ match }) => ({
     problem: match.catalog.problem,
@@ -143,7 +146,7 @@ export async function buildRoadmap(
     catalogId: r.match.catalog.id,
     score: r.score,
     confidence: r.confidence,
-    phase: phaseOf(r.match),
+    phase: r.phase,
     reasoning: reasoning.sentences[i] ?? null,
   }));
 

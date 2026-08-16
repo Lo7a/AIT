@@ -192,6 +192,29 @@ describe("buildRoadmap - מסלול מלא", () => {
     expect(scans[0].scores).toBeDefined();
   });
 
+  // החלטת מייסד 16.8 ("AI נמכר הכי טוב"): פריט שלב ai נשמר ונקרא ראשון גם כשציון ההזדמנות שלו
+  // נמוך יותר. ציטוט הכאב מכוון לפריט התורים בלבד ("לתאם"/"תור" - בלי "טלפון", שהיה מנתב גם
+  // לבוט), כך שפריט התורים מקבל בונוס כאב ומורכבות low ועוקף את הבוט בציון - ובכל זאת הבוט
+  // (phase=ai לפי שמו האמיתי מהקטלוג) יוצא ראשון ברשימה
+  it("AI קודם: הבוט (ai) ראשון ברשימה גם כשפריט התורים עוקף אותו בציון", async () => {
+    const { db, diagnoses, scans, catalogs, models } = makeFakeDb() as any;
+    seedDiagnosis(diagnoses, "d1", "report_ready");
+    seedScan(scans, "d1");
+    const booking = seedBookingCatalog(catalogs);
+    const bot = seedWhatsappBotCatalog(catalogs);
+    seedModelWithPain(models, "d1", "קשה לי לתאם תור לכל לקוח");
+
+    await buildRoadmap(db, echoComplete, "d1");
+
+    const view = await getRoadmapView(db, "d1");
+    expect(view?.items.map((it) => it.name)).toEqual([bot.name, booking.name]);
+    const [botItem, bookingItem] = view!.items;
+    expect(botItem.phase).toBe("ai");
+    // התנאי המבחין: פריט התורים באמת גבוה יותר בציון - בלעדיו הבדיקה לא מוכיחה כלום על שכבת
+    // ה-AI (סדר לפי score לבדו היה נותן את אותה תוצאה)
+    expect(bookingItem.score).toBeGreaterThan(botItem.score);
+  });
+
   it("חישוב מחדש מ-roadmap_ready יוצר Roadmap שני ונשאר roadmap_ready (בלי מעבר סטטוס נוסף)", async () => {
     const { db, diagnoses, scans, catalogs, roadmaps, transitions } = makeFakeDb() as any;
     seedDiagnosis(diagnoses, "d1", "report_ready");

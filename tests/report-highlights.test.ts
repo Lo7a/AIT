@@ -158,4 +158,35 @@ describe("reportLossHighlights", () => {
     const second = reportLossHighlights(REPORT, null, [BOOKING_CATALOG, ANALYTICS_CATALOG, GBP_CATALOG]);
     expect(second).toEqual(first);
   });
+
+  // החלטת מייסד 16.8 ("AI נמכר הכי טוב"): גם בלוק ההפסד בדוח מרים פריטי ai לראש הרשימה - אותו
+  // עסק לא אמור לראות סדר אחד בדוח וסדר אחר ב-Roadmap. הבוט נכנס כאן על פער chat_widget יחיד
+  // (נקודות אבודות נמוכות משל analytics+fb_pixel) ובכל זאת מוביל את הבלוק
+  it("AI קודם: פריט ai מוביל את הבלוק גם כשפריט לא-ai סוגר יותר נקודות אבודות", () => {
+    const botCatalog: CatalogRowLite = {
+      id: "cat-bot",
+      name: "בוט וואטסאפ לשירות לקוחות",
+      problem: "שאלות חוזרות מעמיסות על הטלפון, ופניות מחוץ לשעות הפעילות אובדות",
+      solution: "בוט וואטסאפ שעונה על השאלות הנפוצות ומעביר שיחות מורכבות לצוות",
+      conditions: { gapKeys: ["chat_widget"] },
+      costRange: "הקמה ₪2,500-12,000 + ₪100-900 לחודש",
+      savingRange: "5-10 שעות מענה בשבוע",
+      complexity: "medium",
+      installTime: "1-6 שבועות לפי מורכבות",
+    };
+    const reportWithChatGap: ScoreReport = {
+      ...REPORT,
+      dimensions: [
+        ...REPORT.dimensions,
+        dim("process", 0.2, [rule("chat_widget", 20, true, false, "אין צאט באתר")]),
+      ],
+    };
+
+    const result = reportLossHighlights(reportWithChatGap, null, [BOOKING_CATALOG, ANALYTICS_CATALOG, botCatalog]);
+    expect(result.map((h) => h.itemName)).toEqual([
+      "בוט וואטסאפ לשירות לקוחות",
+      "התקנת מדידה (Analytics + פיקסל)",
+      "קביעת תורים אונליין",
+    ]);
+  });
 });

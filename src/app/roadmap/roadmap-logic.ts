@@ -7,11 +7,14 @@ import { lossHighlights, type LossHighlight } from "../../pipeline/roadmap/loss-
 // עתידית תחליף רק JSX/CSS בלי לגעת כאן. use-roadmap.ts הוא השכבה היחידה שקוראת ל-API ומתרגמת
 // תשובות שרת לפעולות על ה-reducer הזה. אותו דפוס בדיוק כמו interview/chat-logic.ts.
 
-export const PHASE_ORDER: Phase[] = ["quick_wins", "automation", "ai", "transformation"];
+// AI ראשון (החלטת מייסד 16.8, "AI נמכר הכי טוב") - קבוצת ה-AI מוצגת בראש המסך, לפני הניצחונות
+// המהירים; אותה החלטה שמרימה פריטי ai לראש רשימת הפריטים עצמה (phaseTierOf, opportunity-score.ts).
+// התווית משתמשת במילה "סוכני" במכוון - הלקוחות מחפשים בדיוק את המילים AI וסוכן
+export const PHASE_ORDER: Phase[] = ["ai", "quick_wins", "automation", "transformation"];
 export const PHASE_LABEL: Record<Phase, string> = {
   quick_wins: "Quick Wins",
   automation: "אוטומציה",
-  ai: "AI",
+  ai: "סוכני AI",
   transformation: "טרנספורמציה",
 };
 

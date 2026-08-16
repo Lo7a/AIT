@@ -40,18 +40,25 @@ describe("groupByPhase", () => {
       makeItem({ id: "b", phase: "ai" }),
     ];
     const groups = groupByPhase(items);
-    expect(groups.map((g) => g.phase)).toEqual(["quick_wins", "ai"]);
+    expect(groups.map((g) => g.phase)).toEqual(["ai", "quick_wins"]);
     expect(groups.every((g) => g.items.length > 0)).toBe(true);
   });
 
   it("סדר הקבוצות תמיד לפי PHASE_ORDER, לא לפי סדר הופעת הפריטים", () => {
     const items = [
-      makeItem({ id: "a", phase: "ai" }),
+      makeItem({ id: "a", phase: "automation" }),
       makeItem({ id: "b", phase: "quick_wins" }),
-      makeItem({ id: "c", phase: "automation" }),
+      makeItem({ id: "c", phase: "ai" }),
     ];
     const groups = groupByPhase(items);
-    expect(groups.map((g) => g.phase)).toEqual(["quick_wins", "automation", "ai"]);
+    expect(groups.map((g) => g.phase)).toEqual(["ai", "quick_wins", "automation"]);
+  });
+
+  // החלטת מייסד 16.8 ("AI נמכר הכי טוב") - קבוצת ה-AI בראש המסך, והתווית מוכרת עם המילים
+  // שהלקוחות מחפשים. בדיקה נעולה בכוונה: שינוי סדר/תווית הוא החלטה עסקית, לא ריפקטור
+  it("AI ראשון: PHASE_ORDER מתחיל ב-ai והתווית שלו היא סוכני AI", () => {
+    expect(PHASE_ORDER[0]).toBe("ai");
+    expect(PHASE_LABEL.ai).toBe("סוכני AI");
   });
 
   it("שומר על סדר הפריטים בתוך כל קבוצה כמו שהתקבל - לא ממיין מחדש", () => {

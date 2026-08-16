@@ -105,10 +105,24 @@ const PHASE_BY_CATALOG_NAME: Record<string, Phase> = {
   "חיבור וואטסאפ לאתר": "quick_wins",
   "התקנת מדידה (Analytics + פיקסל)": "automation",
   "חיבור לידים ל-CRM והתראות": "automation",
+  // פריט 11 (נזרע 16.8, docs/research/a11y-pricing-2026-08.md): הטמעת נגישות היא עבודה מתמשכת
+  // על האתר (הצהרה + תיקוני Lighthouse), לא לחיצת כפתור - automation, לא quick_win
+  "הנגשת אתר + הצהרת נגישות": "automation",
 };
 
 const DEFAULT_PHASE: Phase = "automation";
 
 export function phaseOf(match: OpportunityMatch): Phase {
   return PHASE_BY_CATALOG_NAME[match.catalog.name] ?? DEFAULT_PHASE;
+}
+
+// --- שכבת דירוג: AI מעל הכול (החלטת מייסד, 16.8.2026) ---
+// "אני רוצה שכל מה שקשור ל-AI יהיה מעל זה כי זה נמכר הכי טוב" - פריטי שלב "ai" מדורגים מעל כל
+// שאר הפריטים, בלי קשר לציון ההזדמנות שלהם. בתוך כל שכבה הסדר הקיים (score יורד, כאב-קודם דרך
+// בונוס הכאב שבתוכו, ואז שם קטלוג) נשאר בדיוק כפי שהיה. שלוש נקודות המיון (run-roadmap.ts בצד
+// הכתיבה, roadmap-repo.ts בצד הקריאה, report-highlights.ts בבלוק ההפסד של הדוח) משתמשות באותה
+// פונקציה הזו כדי שאי אפשר יהיה להזיז שכבה במקום אחד ולשכוח אחר.
+// שכבה נמוכה = מוקדם ברשימה; מיון עולה לפי הערך המוחזר.
+export function phaseTierOf(phase: Phase): number {
+  return phase === "ai" ? 0 : 1;
 }

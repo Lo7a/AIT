@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { scoreOpportunity, phaseOf } from "../src/pipeline/roadmap/opportunity-score";
+import { scoreOpportunity, phaseOf, phaseTierOf, type Phase } from "../src/pipeline/roadmap/opportunity-score";
 import type { CatalogRowLite, MatchEvidence, OpportunityMatch } from "../src/pipeline/roadmap/matching";
 
 // עוזר לבניית OpportunityMatch סינתטי - רק השדות שהפונקציות בקובץ הנבדק בפועל קוראות
@@ -162,7 +162,7 @@ describe("scoreOpportunity", () => {
 });
 
 describe("phaseOf", () => {
-  // 10 פריטי הקטלוג האמיתיים מ-prisma/seed.ts (מבנה CATALOG) - רק name/complexity/costRange
+  // 11 פריטי הקטלוג האמיתיים מ-prisma/seed.ts (מבנה CATALOG) - רק name/complexity/costRange
   // רלוונטיים לסיווג השלב; שאר השדות ממולאים בערכי דמה כדי לספק CatalogRowLite תקין.
   // עדכון מחירים/פריטים בזרע לא אמור לשנות את המיפוי הזה בלי החלטה מודעת - זו הסיבה
   // שהמבחן הזה קובע ציפייה מפורשת לכל שם, ולא רק "כל פריט מקבל איזשהו שלב".
@@ -177,10 +177,11 @@ describe("phaseOf", () => {
     { name: "חיבור וואטסאפ לאתר", complexity: "low", costRange: "₪300-800 חד-פעמי", expected: "quick_wins" },
     { name: "התקנת מדידה (Analytics + פיקסל)", complexity: "low", costRange: "₪800-3,500 חד-פעמי", expected: "automation" },
     { name: "חיבור לידים ל-CRM והתראות", complexity: "medium", costRange: "הקמה ₪1,500-8,000 + ₪100-500 לחודש", expected: "automation" },
+    { name: "הנגשת אתר + הצהרת נגישות", complexity: "medium", costRange: "תוסף + הצהרה ₪300-1,200 לשנה · הנגשה מלאה לפי התקן ₪1,500-10,000 חד-פעמי", expected: "automation" },
   ];
 
-  it("assigns every one of the 10 real catalog items a sensible, exact phase (no fallthrough)", () => {
-    expect(REAL_CATALOG_ITEMS).toHaveLength(10);
+  it("assigns every one of the 11 real catalog items a sensible, exact phase (no fallthrough)", () => {
+    expect(REAL_CATALOG_ITEMS).toHaveLength(11);
 
     for (const item of REAL_CATALOG_ITEMS) {
       const m = match({ catalog: catalogItem({ name: item.name, complexity: item.complexity, costRange: item.costRange }) });
@@ -214,5 +215,22 @@ describe("phaseOf", () => {
       const m = match({ catalog: catalogItem({ name: item.name, complexity: item.complexity, costRange: item.costRange }) });
       expect(phaseOf(m)).not.toBe("transformation");
     }
+  });
+});
+
+// החלטת מייסד 16.8 ("AI נמכר הכי טוב"): שכבת ai מעל כל השאר, ורק היא - השכבה היא הפונקציה
+// המשותפת היחידה לשלוש נקודות המיון (run-roadmap / roadmap-repo / report-highlights), אז
+// הבדיקה כאן נועלת את החוזה פעם אחת לכולן
+describe("phaseTierOf", () => {
+  it("ai הוא השכבה העליונה (0), כל שאר השלבים שכבה אחת (1)", () => {
+    expect(phaseTierOf("ai")).toBe(0);
+    const rest: Phase[] = ["quick_wins", "automation", "transformation"];
+    for (const phase of rest) expect(phaseTierOf(phase), `tier for "${phase}"`).toBe(1);
+  });
+
+  it("מיון עולה לפי השכבה מציב ai לפני כל שלב אחר", () => {
+    const phases: Phase[] = ["transformation", "quick_wins", "ai", "automation"];
+    const sorted = [...phases].sort((a, b) => phaseTierOf(a) - phaseTierOf(b));
+    expect(sorted[0]).toBe("ai");
   });
 });

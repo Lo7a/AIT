@@ -1,7 +1,7 @@
 import type { ScoreReport } from "../score/types";
 import type { BusinessModel } from "../model/business-model";
 import { matchOpportunities, type CatalogRowLite } from "./matching";
-import { scoreOpportunity } from "./opportunity-score";
+import { scoreOpportunity, phaseOf, phaseTierOf } from "./opportunity-score";
 import { lossHighlights, type LossHighlight } from "./loss-highlights";
 
 // "מה מונח על השולחן" למסך הדוח (loss leads, score measures - שלב א'): גרסה-בזיכרון-בלבד של
@@ -33,12 +33,14 @@ export function reportLossHighlights(
   );
   const interviewModel = hasInterviewModelOf(model);
 
-  // אותו שובר-שוויון בדיוק כמו compareByScoreThenName הפרטית ב-run-roadmap.ts: score יורד, ואז
-  // שם קטלוג. כפילות קטנה ומכוונת - זהו מודול pipeline טהור (בלי תלות בשרת), ו-run-roadmap.ts
-  // לא מייצא את ההשוואה הזו
+  // אותו סדר בדיוק כמו compareAiFirstThenScoreThenName הפרטית ב-run-roadmap.ts: שכבת AI קודם
+  // (phaseTierOf - החלטת מייסד 16.8), ואז score יורד, ואז שם קטלוג. כפילות קטנה ומכוונת - זהו
+  // מודול pipeline טהור (בלי תלות בשרת), ו-run-roadmap.ts לא מייצא את ההשוואה הזו. חשוב שבלוק
+  // ההפסד בדוח יסכים עם סדר ה-Roadmap - אותו עסק לא אמור לראות שני סדרים שונים בשני מסכים
   const ranked = matches
-    .map((match) => ({ match, score: scoreOpportunity(match, maxLostPoints, interviewModel).score }))
+    .map((match) => ({ match, tier: phaseTierOf(phaseOf(match)), score: scoreOpportunity(match, maxLostPoints, interviewModel).score }))
     .sort((a, b) => {
+      if (a.tier !== b.tier) return a.tier - b.tier;
       if (b.score !== a.score) return b.score - a.score;
       if (a.match.catalog.name < b.match.catalog.name) return -1;
       if (a.match.catalog.name > b.match.catalog.name) return 1;

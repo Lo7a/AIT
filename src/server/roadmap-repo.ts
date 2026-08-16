@@ -1,5 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
-import type { Confidence, Phase } from "../pipeline/roadmap/opportunity-score";
+import { phaseTierOf, type Confidence, type Phase } from "../pipeline/roadmap/opportunity-score";
 import type { CatalogRowLite } from "../pipeline/roadmap/matching";
 
 // שכבת השמירה של ה-Roadmap (אבן דרך 4, משימה 4): כתיבה אטומית (roadmap + כל פריטיו בטרנזקציה
@@ -118,10 +118,15 @@ export async function createRoadmap(
   });
 }
 
-// אותו סדר בדיוק שהקורא חישב וכתב (run-roadmap.ts, compareByScoreThenName): score יורד ואז שם
-// הקטלוג. השוואת מחרוזות רגילה (לא localeCompare עם לוקאל) בכוונה - התוצאה זהה בכל סביבת ריצה
+// אותו סדר בדיוק שהקורא חישב וכתב (run-roadmap.ts, compareAiFirstThenScoreThenName): שכבת AI
+// קודם (phaseTierOf - החלטת מייסד 16.8, "AI נמכר הכי טוב"), ואז score יורד ואז שם הקטלוג.
+// השוואת מחרוזות רגילה (לא localeCompare עם לוקאל) בכוונה - התוצאה זהה בכל סביבת ריצה.
+// המיון כאן חל גם על Roadmaps שנשמרו לפני ההחלטה - הקריאה מרימה את פריטי ה-AI שלהם למעלה בלי
+// צורך בבנייה מחדש
 function sortItems(items: RoadmapItemView[]): RoadmapItemView[] {
   return [...items].sort((a, b) => {
+    const tierDiff = phaseTierOf(a.phase) - phaseTierOf(b.phase);
+    if (tierDiff !== 0) return tierDiff;
     if (b.score !== a.score) return b.score - a.score;
     if (a.name < b.name) return -1;
     if (a.name > b.name) return 1;
@@ -146,8 +151,9 @@ export async function getRoadmapView(prisma: PrismaClient, diagnosisId: string):
   // ב-RoadmapItem בסכמה, אז לא נסמכים על סדר ההוספה בטבלה עצמה. ה-id בסכמה הוא uuid אקראי
   // (@default(uuid())), ולכן הוא שובר שוויון יציב אך שרירותי - שני פריטים באותו ציון היו
   // מתקבלים בסדר אקראי לכל Roadmap ולא בסדר שהקורא חישב (סקירה: אומת על uuid-ים אמיתיים).
-  // המיון הסופי לפי שם הקטלוג נעשה בזיכרון למטה, ולא כאן ב-SQL, כדי לא להיות תלוי בקולציית
-  // ה-DB לעברית - אותה השוואת מחרוזות בדיוק כמו בצד הכתיבה (run-roadmap.ts)
+  // הסדר הסופי המחייב (שכבת AI קודם + שם קטלוג כשובר שוויון) נקבע בזיכרון ב-sortItems למטה,
+  // לא כאן ב-SQL - גם כדי לא להיות תלוי בקולציית ה-DB לעברית, אותה השוואת מחרוזות בדיוק כמו
+  // בצד הכתיבה (run-roadmap.ts)
   const items = await prisma.roadmapItem.findMany({
     where: { roadmapId: roadmap.id },
     orderBy: [{ score: "desc" }, { id: "asc" }],
