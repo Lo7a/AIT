@@ -14,17 +14,64 @@ model Business {
   id         String      @id @default(uuid()) @db.Uuid
   name       String
   placeId    String?     @unique @map("place_id")
-  // זהות עסק אתר-בלבד: host מנורמל (websiteKeyOf) — upsert אטומי במקום findFirst+create
+  // זהות עסק אתר-בלבד: host מנורמל (websiteKeyOf) - upsert אטומי במקום findFirst+create
   websiteKey String?     @unique @map("website_key")
   website    String?
   phone      String?
   address    String?
   city       String?
+  // בעלות (סלף-סרוויס, אבן דרך "לצאת החוצה"): בעל עסק רואה רק את העסקים שלו, אדמין רואה הכול.
+  // nullable = אדיטיבי טהור - שורות הבדיקה הקיימות נשארות חוקיות עד ריצת הניקוי
+  ownerUserId String?    @map("owner_user_id") @db.Uuid
+  owner       User?      @relation(fields: [ownerUserId], references: [id])
   createdAt  DateTime    @default(now()) @map("created_at")
   updatedAt  DateTime    @default(now()) @updatedAt @map("updated_at")
   diagnoses  Diagnosis[]
 
+  @@index([ownerUserId])
   @@map("businesses")
+}
+
+// טבלת המראה של המשתמשים (החלטת ארכיטקטורה 16.8): הזהות המאומתת חיה ב-Supabase Auth (authId
+// מצביע עליה), וכל הקשרים העסקיים במערכת מפנים אך ורק לטבלה הזו - כך החלפת ספק אימות עתידית
+// נוגעת בשכבת הכניסה בלבד, לא בקשרים. role כמחרוזת פתוחה ("owner"/"admin" היום) - סוגי
+// משתמשים של שלב ב נכנסים בלי שינוי סכמה. authId/email nullable: השורות נוצרות בחיווט הכניסה,
+// והסכמה לא כופה סדר הקמה
+model User {
+  id          String       @id @default(uuid()) @db.Uuid
+  authId      String?      @unique @map("auth_id") @db.Uuid
+  email       String?      @unique
+  role        String       @default("owner")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @default(now()) @updatedAt @map("updated_at")
+  businesses  Business[]
+  events      UsageEvent[] @relation("event_subject")
+  actedEvents UsageEvent[] @relation("event_actor")
+
+  @@map("users")
+}
+
+// יומן פעולות (הוחלט 16.8): שלוש מטרות בטבלה אחת - היסטוריית משתמש, תשתית ההיטמאפס
+// והסטטיסטיקות של שלב ב, ויומן ביקורת (אודיט). הפרדת actor/user לטובת מצב ההתחזות של האדמין:
+// userId = בהקשר של איזה חשבון קרתה הפעולה, actorUserId = מי ביצע בפועל - שונים זה מזה רק
+// בהתחזות, וכך כל פעולת התחזות מתועדת מעצם המבנה. אין אכיפת מכסות עכשיו (החלטת מייסד - סביבת
+// טסט): הטבלה סופרת בלבד, והאכיפה תתחבר אליה בעתיד כמתג יחד עם המודל העסקי. שדות הישות
+// (entityType/entityId) מחרוזות חופשיות בכוונה - היומן שורד שינויי סכמה עתידיים בלי מיגרציה
+model UsageEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String?  @map("user_id") @db.Uuid
+  user        User?    @relation("event_subject", fields: [userId], references: [id])
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  actor       User?    @relation("event_actor", fields: [actorUserId], references: [id])
+  type        String
+  entityType  String?  @map("entity_type")
+  entityId    String?  @map("entity_id")
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@index([type, createdAt])
+  @@map("usage_events")
 }
 
 model Diagnosis {
