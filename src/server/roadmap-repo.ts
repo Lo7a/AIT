@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 import type { Confidence, Phase } from "../pipeline/roadmap/opportunity-score";
+import type { CatalogRowLite } from "../pipeline/roadmap/matching";
 
 // שכבת השמירה של ה-Roadmap (אבן דרך 4, משימה 4): כתיבה אטומית (roadmap + כל פריטיו בטרנזקציה
 // אחת) וקריאת "התצוגה האחרונה" בלבד. Roadmap חדש נוצר בכל חישוב מחדש (היסטוריה נשמרת - "מחושב
@@ -54,6 +55,39 @@ export interface RoadmapView {
   diagnosisId: string;
   createdAt: Date;
   items: RoadmapItemView[];
+}
+
+// conditions היא עמודת Json (schema.prisma) בלי אכיפת צורה ב-DB, ו-matching.ts מסתמך על gapKeys
+// כמערך. קאסט עיוור הפך שורת קטלוג פגומה אחת (conditions ריק/בלי gapKeys) לכשל TypeError שהפיל
+// את בניית ה-Roadmap של כל האבחונים במערכת (as-built, run-roadmap.ts). הנרמול כאן שומר על רדיוס
+// הנזק בגודל הפריט: שורה פגומה מקבלת gapKeys ריק, ולכן פשוט לא מתאימה לשום פער.
+function gapKeysOf(conditions: unknown): string[] {
+  const keys = (conditions as { gapKeys?: unknown } | null)?.gapKeys;
+  return Array.isArray(keys) ? keys.filter((k): k is string => typeof k === "string") : [];
+}
+
+// טעינה משותפת של שורת הקטלוג המצומצמת ל-matchOpportunities (matching.ts) - שני קוראים: הבנייה
+// המלאה של Roadmap (run-roadmap.ts) והחישוב-בזיכרון-בלבד של "מה מונח על השולחן" למסך הדוח
+// (report-highlights.ts, שלב א' "loss leads, score measures") צריכים בדיוק אותה שורה מצומצמת -
+// select צר בכוונה, בלי embedding/benchmarks הכבדים
+export async function loadCatalogLite(prisma: PrismaClient): Promise<CatalogRowLite[]> {
+  const rows = await prisma.opportunityCatalog.findMany({
+    select: {
+      id: true, name: true, problem: true, solution: true, conditions: true,
+      costRange: true, savingRange: true, complexity: true, installTime: true,
+    },
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    problem: r.problem,
+    solution: r.solution,
+    conditions: { gapKeys: gapKeysOf(r.conditions) },
+    costRange: r.costRange,
+    savingRange: r.savingRange,
+    complexity: r.complexity,
+    installTime: r.installTime,
+  }));
 }
 
 // טרנזקציה אינטראקטיבית (לא מערך) - כמו saveScanResult (diagnosis-repo.ts): כשל ביצירת פריט

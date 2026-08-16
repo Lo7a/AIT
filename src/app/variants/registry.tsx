@@ -13,7 +13,13 @@ export interface VariantScreens {
     // במקום לפתוח זרם סריקה חדש בתשלום; ראו ScanRunner.
     attach?: { diagnosisId: string; status: string };
   }>;
-  Report: ComponentType<{ report: NonNullable<Awaited<ReturnType<typeof import("../../server/diagnosis-read").getReport>>> }>;
+  Report: ComponentType<{
+    report: NonNullable<Awaited<ReturnType<typeof import("../../server/diagnosis-read").getReport>>>;
+    // "מה מונח על השולחן" (loss leads, score measures - שלב א') - מחושב ב-RSC (report/[id]/page.tsx)
+    // דרך report-highlights.ts, בזיכרון בלבד. אופציונלי: undefined/מערך ריק = נופל ללייאאוט
+    // מוביל-ציון כמו היום (ראו default-screens.tsx, DefaultReport)
+    lossHighlights?: import("../../pipeline/roadmap/loss-highlights").LossHighlight[];
+  }>;
   Interview: ComponentType<{ diagnosisId: string; initial: import("../../server/run-interview").InterviewSnapshot }>;
   Roadmap: ComponentType<{
     report: NonNullable<Awaited<ReturnType<typeof import("../../server/diagnosis-read").getReport>>>;

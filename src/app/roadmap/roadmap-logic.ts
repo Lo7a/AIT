@@ -1,5 +1,7 @@
 import type { RoadmapItemView, RoadmapView } from "../../server/roadmap-repo";
 import type { Phase } from "../../pipeline/roadmap/opportunity-score";
+import type { OpportunityMatch } from "../../pipeline/roadmap/matching";
+import { lossHighlights, type LossHighlight } from "../../pipeline/roadmap/loss-highlights";
 
 // לוגיקה טהורה של מסך ה-Roadmap (אבן דרך 4, משימה 8) - בלי React ובלי fetch, כך שגרסת עיצוב
 // עתידית תחליף רק JSX/CSS בלי לגעת כאן. use-roadmap.ts הוא השכבה היחידה שקוראת ל-API ומתרגמת
@@ -36,6 +38,30 @@ export function groupByPhase(items: RoadmapItemView[]): PhaseGroup[] {
 // את הטענה הזו). ה-reasoning מעוגן-הציטוט הוא הטקסט הכן היחיד לפריט כזה, בלי הטענה הגנרית לצידו.
 export function shouldShowCatalogProblem(item: Pick<RoadmapItemView, "confidence">): boolean {
   return item.confidence !== "low";
+}
+
+// מתאם דק ל-lossHighlights (pipeline/roadmap/loss-highlights.ts, שלב א' "loss leads, score
+// measures"): RoadmapItemView שטוח (name/savingRange ישירות על הפריט, לא מקונן תחת catalog כמו
+// OpportunityMatch) כי ה-Roadmap כבר שמור ומדורג - אין כאן שום התאמה/דירוג מחדש, רק "התחפשות"
+// לצורה ש-lossHighlights מצפה לה כדי לעשות שימוש חוזר בלוגיקת ה-verbatim/דדופ/תקרה בלי לשכפל
+// אותה. evidence/unknownKeys/painQuotes ריקים בכוונה - lossHighlights לא קורא אותם בכלל.
+function asOpportunityMatch(item: RoadmapItemView): OpportunityMatch {
+  return {
+    catalog: {
+      id: item.catalogId, name: item.name, problem: item.problem, solution: item.solution,
+      conditions: { gapKeys: [] }, costRange: item.costRange, savingRange: item.savingRange,
+      complexity: item.complexity, installTime: item.installTime,
+    },
+    evidence: [],
+    unknownKeys: [],
+    painQuotes: [],
+  };
+}
+
+// "מה מונח על השולחן" למסך ה-Roadmap: items מגיעים כבר ממוינים לפי score מ-getRoadmapView
+// (roadmap-repo.ts) - אין כאן מיון נוסף, רק חילוץ verbatim מהפריטים המובילים
+export function roadmapLossHighlights(items: RoadmapItemView[], limit = 3): LossHighlight[] {
+  return lossHighlights(items.map(asOpportunityMatch), limit);
 }
 
 export type BuildPhase = "idle" | "building" | "ready" | "error";

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  groupByPhase, initialRoadmapState, roadmapReducer, shouldShowCatalogProblem, PHASE_LABEL, PHASE_ORDER,
+  groupByPhase, initialRoadmapState, roadmapReducer, roadmapLossHighlights, shouldShowCatalogProblem,
+  PHASE_LABEL, PHASE_ORDER,
 } from "../src/app/roadmap/roadmap-logic";
 import type { RoadmapItemView, RoadmapView } from "../src/server/roadmap-repo";
 
@@ -90,6 +91,44 @@ describe("shouldShowCatalogProblem", () => {
 
   it("confidence='high' -> true (ללא שינוי מההתנהגות הקיימת)", () => {
     expect(shouldShowCatalogProblem(makeItem({ confidence: "high" }))).toBe(true);
+  });
+});
+
+// "מה מונח על השולחן" למסך ה-Roadmap (loss leads, score measures - שלב א'): מתאם דק מעל
+// lossHighlights (pipeline/roadmap/loss-highlights.ts) - הבדיקות כאן על ה"התחפשות" (name/
+// savingRange שטוחים -> catalog מקונן) ועל שמירת סדר הקלט; דדופ/verbatim/תקרה כבר נבדקים לעומק
+// ב-tests/loss-highlights.test.ts עצמו
+describe("roadmapLossHighlights", () => {
+  it("מערך פריטים ריק -> מערך ריק", () => {
+    expect(roadmapLossHighlights([])).toEqual([]);
+  });
+
+  it("שולף itemName+text verbatim (name/savingRange השטוחים של הפריט), בסדר הקלט", () => {
+    const items = [
+      makeItem({ id: "a", name: "קביעת תורים אונליין", savingRange: "2-5 שעות תיאומים בשבוע" }),
+      makeItem({ id: "b", name: "בוט וואטסאפ", savingRange: "5-10 שעות מענה בשבוע" }),
+    ];
+    expect(roadmapLossHighlights(items)).toEqual([
+      { itemName: "קביעת תורים אונליין", text: "2-5 שעות תיאומים בשבוע" },
+      { itemName: "בוט וואטסאפ", text: "5-10 שעות מענה בשבוע" },
+    ]);
+  });
+
+  it("מדדף savingRange זהה בין שני פריטים - רק הראשון (הכי גבוה בציון, כלומר ראשון ברשימה) נכנס", () => {
+    const sameText = "שעה בשבוע";
+    const items = [
+      makeItem({ id: "top", name: "פריט מוביל", savingRange: sameText, score: 90 }),
+      makeItem({ id: "dup", name: "פריט כפול", savingRange: sameText, score: 40 }),
+    ];
+    expect(roadmapLossHighlights(items)).toEqual([{ itemName: "פריט מוביל", text: sameText }]);
+  });
+
+  it("תקרת ברירת המחדל 3, ותקרה מותאמת מכובדת", () => {
+    const items = ["א", "ב", "ג", "ד"].map((letter, i) =>
+      makeItem({ id: `i${i}`, name: `פריט ${letter}`, savingRange: `טקסט ${letter}` }),
+    );
+    expect(roadmapLossHighlights(items).map((h) => h.itemName)).toEqual(["פריט א", "פריט ב", "פריט ג"]);
+    expect(roadmapLossHighlights(items, 1)).toEqual([{ itemName: "פריט א", text: "טקסט א" }]);
   });
 });
 

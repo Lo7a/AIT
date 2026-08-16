@@ -9,6 +9,7 @@ import {
 } from "../../pipeline/report/presenter";
 import type { DataStatus, RuleResult } from "../../pipeline/score/types";
 import type { DiagnosisStatus } from "../../server/status";
+import type { LossHighlight } from "../../pipeline/roadmap/loss-highlights";
 
 // הדוח קיים גם בזמן ראיון, הקישור לא נעלם
 const HAS_REPORT: DiagnosisStatus[] = ["report_ready", "interviewing", "roadmap_ready"];
@@ -188,7 +189,43 @@ function RuleLine({ rule }: { rule: RuleResult }) {
   return <span>{rule.text}</span>;
 }
 
-export function DefaultReport({ report }: { report: ReportView }) {
+// "מה מונח על השולחן" (loss leads, score measures - שלב א', החלטת מייסד נעולה): בלוק משותף
+// לדוח ולמסך ה-Roadmap - אותה שפה עיצובית בשני המקומות. highlights ריק -> שום דבר לא מוצג (אף
+// פעם לא בלוק ריק ומפחיד); הקורא כבר דואג שהמערך יגיע ריק כשאין התאמות אמיתיות
+// (report-highlights.ts / roadmap-logic.ts)
+export function LossHighlightsBlock({
+  highlights, className = "mt-10 animate-fade-up",
+}: {
+  highlights: LossHighlight[];
+  className?: string;
+}) {
+  if (highlights.length === 0) return null;
+  return (
+    <section className={`${className} rounded-lg border border-black/[0.06] bg-white p-6`}>
+      <h2 className="font-[family-name:var(--font-frank)] text-xl font-bold tracking-tight">
+        מה מונח על השולחן
+      </h2>
+      <ul className="mt-4 space-y-3">
+        {highlights.map((h) => (
+          <li key={`${h.itemName}-${h.text}`} className="flex items-start gap-2.5">
+            <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#9F2F2D]" />
+            <p className="leading-relaxed">
+              <span className="font-semibold">{h.itemName}</span>
+              <span className="text-[#6F6E6A]">{`: ${h.text}`}</span>
+            </p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+export function DefaultReport({
+  report, lossHighlights = [],
+}: {
+  report: ReportView;
+  lossHighlights?: LossHighlight[];
+}) {
   // הצעד הזה מבטיח מבחינת טיפוסים ש-report.scan אינו null: ה-RSC הקורא (report/[id]/page.tsx)
   // כבר מפעיל notFound() לפני שהוא מגיע לכאן כשאין סריקה, כך שזהו רק שער הגנה מקומי
   if (!report.scan) return null;
@@ -207,6 +244,10 @@ export function DefaultReport({ report }: { report: ReportView }) {
   const usedFallback = narrative?.usedFallback === true;
 
   const hasNoGbp = findings.partial.includes("no_gbp");
+  // "loss leads, score measures" (החלטת מייסד נעולה): כשיש מה להראות בלוק "מה מונח על השולחן"
+  // מוביל, והציון הגדול מצטמצם ל"מדד התקדמות" קומפקטי ליד הכותרת. highlights ריק (עסק חזק/אין
+  // סריקה) -> הלייאאוט חוזר בדיוק למוביל-ציון של היום, בלי שום בלוק ריק
+  const hasHighlights = lossHighlights.length > 0;
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-16">
@@ -223,22 +264,26 @@ export function DefaultReport({ report }: { report: ReportView }) {
         </span>
       </div>
 
-      <section className="mt-10 animate-fade-up" style={{ animationDelay: "80ms" }}>
+      {hasHighlights && <LossHighlightsBlock highlights={lossHighlights} />}
+
+      <section className={hasHighlights ? "mt-8 animate-fade-up" : "mt-10 animate-fade-up"} style={{ animationDelay: "80ms" }}>
         <div className="flex flex-wrap items-start gap-6">
-          <div className="shrink-0">
-            {overall == null ? (
-              <p className="font-[family-name:var(--font-frank)] text-4xl font-bold text-[#6F6E6A]">
-                אין די מידע
-              </p>
-            ) : (
-              <p
-                className={`font-[family-name:var(--font-frank)] text-7xl font-bold leading-none tabular-nums sm:text-8xl ${TONE_TEXT_CLASSES[tone]}`}
-              >
-                {overall}
-                <span className="text-2xl font-normal text-[#6F6E6A]">/100</span>
-              </p>
-            )}
-          </div>
+          {!hasHighlights && (
+            <div className="shrink-0">
+              {overall == null ? (
+                <p className="font-[family-name:var(--font-frank)] text-4xl font-bold text-[#6F6E6A]">
+                  אין די מידע
+                </p>
+              ) : (
+                <p
+                  className={`font-[family-name:var(--font-frank)] text-7xl font-bold leading-none tabular-nums sm:text-8xl ${TONE_TEXT_CLASSES[tone]}`}
+                >
+                  {overall}
+                  <span className="text-2xl font-normal text-[#6F6E6A]">/100</span>
+                </p>
+              )}
+            </div>
+          )}
           <div className="min-w-[240px] flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-[family-name:var(--font-frank)] text-3xl font-bold leading-tight sm:text-4xl">
@@ -252,6 +297,25 @@ export function DefaultReport({ report }: { report: ReportView }) {
             </div>
             {summary && (
               <p className="mt-2 text-lg leading-relaxed text-[#6F6E6A]">{summary}</p>
+            )}
+            {/* מדד ההתקדמות הקומפקטי: הגרסה המצומצמת של הציון הגדול, מוצג רק כשבלוק ההפסד כבר
+                תפס את תשומת הלב - זה מה שהבעלים חוזר אליו לשפר, לא מה שמוכר */}
+            {hasHighlights && (
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className="text-xs font-medium uppercase tracking-wide text-[#6F6E6A]">
+                  מדד התקדמות
+                </span>
+                {overall == null ? (
+                  <span className="text-sm font-medium text-[#6F6E6A]">אין די מידע</span>
+                ) : (
+                  <span
+                    className={`font-[family-name:var(--font-frank)] text-2xl font-bold tabular-nums ${TONE_TEXT_CLASSES[tone]}`}
+                  >
+                    {overall}
+                    <span className="text-xs font-normal text-[#6F6E6A]">/100</span>
+                  </span>
+                )}
+              </div>
             )}
           </div>
         </div>

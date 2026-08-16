@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoadmap, getRoadmapView } from "../src/server/roadmap-repo";
+import { createRoadmap, getRoadmapView, loadCatalogLite } from "../src/server/roadmap-repo";
 import { makeFakeDb } from "./fakes/fake-db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -59,6 +59,48 @@ describe("createRoadmap", () => {
 
     expect(roadmaps).toHaveLength(0);
     expect(roadmapItems).toHaveLength(0);
+  });
+});
+
+// loadCatalogLite שותפה בין run-roadmap.ts (בניית Roadmap מלאה) ו-report-highlights.ts (חישוב
+// "מה מונח על השולחן" בזיכרון למסך הדוח) - אותה נורמליזציה הגנתית של conditions.gapKeys, נבדקת
+// כאן פעם אחת במקום להישבר בשני מקומות
+describe("loadCatalogLite", () => {
+  it("ממפה שורת קטלוג תקינה לצורה המצומצמת המלאה", async () => {
+    const { db, catalogs } = makeFakeDb() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    seedCatalog(catalogs, { id: "cat-1", name: "קביעת תורים אונליין" });
+    catalogs[0].conditions = { gapKeys: ["online_booking"] };
+
+    const rows = await loadCatalogLite(db);
+    expect(rows).toEqual([{
+      id: "cat-1", name: "קביעת תורים אונליין",
+      problem: "כל תיאום דורש שיחת טלפון בשעות הפעילות",
+      solution: "יומן תורים אונליין מוטמע באתר ובפרופיל גוגל",
+      conditions: { gapKeys: ["online_booking"] },
+      costRange: "100-500 בחודש", savingRange: "2-5 שעות תיאומים בשבוע",
+      complexity: "low", installTime: "1-2 שבועות",
+    }]);
+  });
+
+  it.each([
+    ["conditions = null", null],
+    ["conditions בלי gapKeys", { note: "טרם הוגדר" }],
+    ["gapKeys שאינו מערך", { gapKeys: "online_booking" }],
+    ["gapKeys עם ערכים לא-string מעורבים", { gapKeys: ["online_booking", 5, null] }],
+  ])("שורת קטלוג פגומה (%s) - gapKeys מתנרמל בלי לזרוק", async (_label, conditions) => {
+    const { db, catalogs } = makeFakeDb() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    seedCatalog(catalogs, { id: "cat-broken" });
+    catalogs[0].conditions = conditions;
+
+    const rows = await loadCatalogLite(db);
+    expect(rows).toHaveLength(1);
+    const expected = _label === "gapKeys עם ערכים לא-string מעורבים" ? ["online_booking"] : [];
+    expect(rows[0].conditions.gapKeys).toEqual(expected);
+  });
+
+  it("קטלוג ריק -> מערך ריק", async () => {
+    const { db } = makeFakeDb() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    expect(await loadCatalogLite(db)).toEqual([]);
   });
 });
 

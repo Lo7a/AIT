@@ -3,14 +3,14 @@ import type { ScanFindings } from "../pipeline/types";
 import type { BusinessModel } from "../pipeline/model/business-model";
 import type { LlmUsage } from "../pipeline/llm/client";
 import { scoreWithModel } from "../pipeline/score/engine";
-import { matchOpportunities, type CatalogRowLite, type OpportunityMatch } from "../pipeline/roadmap/matching";
+import { matchOpportunities, type OpportunityMatch } from "../pipeline/roadmap/matching";
 import { scoreOpportunity, phaseOf } from "../pipeline/roadmap/opportunity-score";
 import { buildReasoning, type CompleteFn, type ReasoningItemInput } from "../pipeline/roadmap/reasoning";
 import { generateNarrative } from "../pipeline/report/narrative";
 import { InterviewError } from "../pipeline/interview/contract";
 import { toFindings, toModelView } from "./diagnosis-read";
 import { transitionDiagnosis } from "./diagnosis-repo";
-import { createRoadmap, type RoadmapItemInput } from "./roadmap-repo";
+import { createRoadmap, loadCatalogLite, type RoadmapItemInput } from "./roadmap-repo";
 import type { DiagnosisStatus } from "./status";
 
 // אורקסטרטור ה-Roadmap (אבן דרך 4, משימה 5): מחשב ציונים טריים מהממצאים האחרונים + המודל
@@ -76,36 +76,6 @@ async function reachStatusOrConflict(prisma: PrismaClient, diagnosisId: string, 
   }
 }
 
-// conditions היא עמודת Json (schema.prisma) בלי אכיפת צורה ב-DB, ו-matching.ts מסתמך על
-// gapKeys כמערך. קאסט עיוור הפך שורת קטלוג פגומה אחת (conditions ריק/בלי gapKeys - הוזנה ידנית,
-// או נוספה לפני שהוגדרו לה מפתחות) לכשל TypeError שהפיל את בניית ה-Roadmap של כל האבחונים
-// במערכת. הנרמול כאן שומר על רדיוס הנזק בגודל הפריט: שורה פגומה מקבלת gapKeys ריק, ולכן פשוט
-// לא מתאימה לשום פער ולא נכנסת ל-Roadmap, בעוד כל השאר ממשיכים כרגיל
-function gapKeysOf(conditions: unknown): string[] {
-  const keys = (conditions as { gapKeys?: unknown } | null)?.gapKeys;
-  return Array.isArray(keys) ? keys.filter((k): k is string => typeof k === "string") : [];
-}
-
-async function loadCatalog(prisma: PrismaClient): Promise<CatalogRowLite[]> {
-  const rows = await prisma.opportunityCatalog.findMany({
-    select: {
-      id: true, name: true, problem: true, solution: true, conditions: true,
-      costRange: true, savingRange: true, complexity: true, installTime: true,
-    },
-  });
-  return rows.map((r) => ({
-    id: r.id,
-    name: r.name,
-    problem: r.problem,
-    solution: r.solution,
-    conditions: { gapKeys: gapKeysOf(r.conditions) },
-    costRange: r.costRange,
-    savingRange: r.savingRange,
-    complexity: r.complexity,
-    installTime: r.installTime,
-  }));
-}
-
 // סדר סופי לשמירה/קריאה: score (הציון הסופי, אחרי בונוס כאב/עונש ודאות/התאמת מורכבות - לא
 // lostWeightedPoints הגולמי ש-matchOpportunities ממיין לפיו) יורד, ואז שם קטלוג כשובר שוויון
 // יציב. השוואת מחרוזות רגילה (לא localeCompare) בכוונה - תוצאה זהה בכל סביבת ריצה
@@ -132,7 +102,7 @@ export async function buildRoadmap(
   // ה-Roadmap צריך את התמונה העדכנית ביותר להתאמה עצמה - הציונים האלה גם נכתבים ל-scan.scores
   // בסוף הפונקציה (סגירת שער FAIL 2, שינוי 3), אחרי שהבנייה עצמה כבר הצליחה
   const scores = scoreWithModel(state.findings, state.model);
-  const catalog = await loadCatalog(prisma);
+  const catalog = await loadCatalogLite(prisma);
   const matches = matchOpportunities(scores, state.model, catalog);
 
   const maxLostPoints = matches.reduce(

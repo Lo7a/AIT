@@ -6,8 +6,10 @@ import type { RoadmapView, RoadmapItemView } from "../../server/roadmap-repo";
 import type { ScoreReport } from "../../pipeline/score/types";
 import { deriveBusinessMap, type StageStatus } from "../../pipeline/roadmap/business-map";
 import { useRoadmap } from "../roadmap/use-roadmap";
-import { PHASE_LABEL, shouldShowCatalogProblem, type ItemBriefStatus } from "../roadmap/roadmap-logic";
-import { TONE_TAG_CLASSES } from "./default-screens";
+import {
+  PHASE_LABEL, roadmapLossHighlights, shouldShowCatalogProblem, type ItemBriefStatus,
+} from "../roadmap/roadmap-logic";
+import { LossHighlightsBlock, TONE_TAG_CLASSES } from "./default-screens";
 import type { ScoreToneKind } from "../../pipeline/report/presenter";
 
 // מסך ה-Roadmap בשפת העיצוב הזמנית הקיימת (ראו default-screens.tsx/default-interview.tsx) - אין
@@ -232,6 +234,10 @@ export function DefaultRoadmap({
                 חישוב מחדש
               </button>
             </div>
+
+            {/* "מה מונח על השולחן" (loss leads, score measures - שלב א'): אותו בלוק כמו מסך הדוח,
+                מעל קבוצות השלב - מפת העסק ומד השלמות לא זזים ממקומם (ראו קריאה למעלה) */}
+            <LossHighlightsBlock highlights={roadmapLossHighlights(roadmap.items)} className="mt-6 animate-fade-up" />
 
             {roadmap.items.length === 0 ? (
               <div className="mt-4 animate-fade-up rounded-lg border border-black/[0.06] bg-[#EDF3EC] p-6 text-[#346538]">
