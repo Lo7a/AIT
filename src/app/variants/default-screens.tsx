@@ -19,9 +19,41 @@ const HAS_REPORT: DiagnosisStatus[] = ["report_ready", "interviewing", "roadmap_
 // re-export של אלה (ראו variants/{modern,dark,vivid}/index.tsx) עד שהיא מוחלפת במימוש
 // עצמאי משלה. אין כאן לוגיקה - רק תצוגה על גבי נתונים/הוקים משותפים.
 
-export function DefaultHome({ recent }: { recent: DiagnosisListItem[] }) {
+export function DefaultHome({
+  recent, session, loginEnabled,
+}: {
+  recent: DiagnosisListItem[];
+  session?: { email: string | null } | null;
+  loginEnabled?: boolean;
+}) {
   return (
     <main className="mx-auto max-w-2xl px-4 py-16">
+      {/* שורת הסשן: מחובר => אימייל + התנתקות (POST - ראו auth-handlers); אנונימי בסביבה
+          מוגדרת => קישור כניסה. בסביבה בלי מפתחות אין כלום - המסך נשאר כפי שהיה */}
+      {session != null ? (
+        <div className="mb-6 flex items-center justify-end gap-3 text-sm text-[#6F6E6A]">
+          <span>
+            מחובר בתור <span className="font-medium text-[#111111]" dir="ltr">{session.email ?? "משתמש ללא אימייל"}</span>
+          </span>
+          <form action="/auth/signout" method="post">
+            <button
+              type="submit"
+              className="font-medium text-[#111111] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
+            >
+              התנתקות
+            </button>
+          </form>
+        </div>
+      ) : loginEnabled ? (
+        <div className="mb-6 flex justify-end text-sm">
+          <Link
+            href="/login"
+            className="font-medium text-[#111111] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
+          >
+            כניסה
+          </Link>
+        </div>
+      ) : null}
       <h1 className="animate-fade-up font-[family-name:var(--font-frank)] text-4xl font-bold tracking-tight">
         כמה שווה הנוכחות הדיגיטלית של העסק שלך?
       </h1>

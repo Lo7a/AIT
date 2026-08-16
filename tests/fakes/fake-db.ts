@@ -30,6 +30,7 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
   const roadmaps: any[] = [];
   const roadmapItems: any[] = [];
   const briefs: any[] = [];
+  const users: any[] = [];
   // "from→to" לפי סדר - לב האסרטים על מכונת המצבים. נרשמים רק מעברים שהצליחו בפועל (count:1);
   // מעבר שנכשל (race מדומה דרך failTransitions, או סטטוס לא תואם) לא משאיר עקבות כאן
   const transitions: string[] = [];
@@ -305,6 +306,42 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
         return { ...b };
       },
     },
+    // תמיכה מינימלית ל-auth/session.ts (טבלת המראה users): שליפה לפי כל אחד מהמפתחות
+    // הייחודיים, יצירה עם אכיפת ייחודיות (authId/email - מדמה P2002 של Prisma האמיתי,
+    // מנגנון ההזרקה לבדיקת מרוץ היצירה הכפולה), ועדכון לפי id
+    user: {
+      findUnique: async ({ where }: any) => {
+        const found = users.find(
+          (u) => (where.id != null && u.id === where.id)
+            || (where.authId != null && u.authId === where.authId)
+            || (where.email != null && u.email === where.email),
+        );
+        return found ? { ...found } : null;
+      },
+      create: async ({ data }: any) => {
+        if (data.authId != null && users.some((u) => u.authId === data.authId)) {
+          throw new Error("user.create: authId כבר קיים (ייחודיות)");
+        }
+        if (data.email != null && users.some((u) => u.email === data.email)) {
+          throw new Error("user.create: email כבר קיים (ייחודיות)");
+        }
+        const row = {
+          id: genId("user"), authId: data.authId ?? null, email: data.email ?? null,
+          role: data.role ?? "owner", createdAt: new Date(), updatedAt: new Date(),
+        };
+        users.push(row);
+        return { ...row };
+      },
+      update: async ({ where, data }: any) => {
+        const u = users.find((x) => x.id === where.id);
+        if (!u) throw new Error("user not found");
+        if (data.email != null && users.some((x) => x.id !== u.id && x.email === data.email)) {
+          throw new Error("user.update: email כבר קיים (ייחודיות)");
+        }
+        Object.assign(u, data, { updatedAt: new Date() });
+        return { ...u };
+      },
+    },
     // שתי הצורות של $transaction נתמכות:
     // 1. מערך פרומיסים - הפרומיסים נבנים eager (הקריאות ל-.create/.upsert כבר רצות לפני
     //    שה-$transaction בכלל נקרא), ובניגוד ל-PrismaPromise האמיתי (lazy) הפייק רק מחכה למה
@@ -346,6 +383,6 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
 
   return {
     db: db as any, businesses, diagnoses, scans, models, messages, transitions,
-    catalogs, benchmarks, roadmaps, roadmapItems, briefs,
+    catalogs, benchmarks, roadmaps, roadmapItems, briefs, users,
   };
 }

@@ -6,7 +6,14 @@ import * as vivid from "./vivid/index";
 
 // כל גרסה מספקת חמישה מסכים; עד שגרסה נבנית - ה-fallback הוא רכיבי ברירת המחדל הקיימים
 export interface VariantScreens {
-  Home: ComponentType<{ recent: import("../../server/diagnosis-read").DiagnosisListItem[] }>;
+  Home: ComponentType<{
+    recent: import("../../server/diagnosis-read").DiagnosisListItem[];
+    // חיווט הכניסה (אבן דרך "לצאת החוצה"): session = המשתמש המחובר (null/חסר = אנונימי),
+    // loginEnabled = מפתחות Supabase קיימים ולכן קישור "כניסה" מוצג לאנונימיים. אופציונליים
+    // כדי שגרסאות עיצוב קיימות ימשיכו להתקמפל בלי שינוי
+    session?: { email: string | null } | null;
+    loginEnabled?: boolean;
+  }>;
   Scan: ComponentType<{
     target: { placeId?: string; name?: string; url?: string; city?: string };
     // כשקיים - הרענון/הכניסה החוזרת מתחברים לאבחון חי שכבר קיים ליעד (ראו diagnosis-lookup.ts)
