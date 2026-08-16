@@ -1,9 +1,12 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { prisma } from "../../../server/db";
 import { getInterviewState } from "../../../server/interview-repo";
 import { snapshotOf } from "../../../server/run-interview";
 import type { DiagnosisStatus } from "../../../server/status";
+import { getSessionUser } from "../../../server/auth/session";
+import { getServerClaims, hasAuthConfig } from "../../../server/auth/supabase-server";
+import { userCanAccessDiagnosis } from "../../../server/auth/guard";
 import { THEME_COOKIE, parseTheme } from "../../theme";
 import { getVariant } from "../../variants/registry";
 
@@ -17,6 +20,14 @@ const INTERVIEWABLE: DiagnosisStatus[] = ["report_ready", "interviewing", "roadm
 
 export default async function InterviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+
+  // תיחום בעלות - ראו ההערה ב-report/[id]/page.tsx
+  if (hasAuthConfig()) {
+    const user = await getSessionUser(prisma, getServerClaims);
+    if (user == null) redirect("/login");
+    if ((await userCanAccessDiagnosis(prisma, user, id).catch(() => null)) !== true) notFound();
+  }
+
   const [state, cookieStore] = await Promise.all([
     getInterviewState(prisma, id).catch(() => null),
     cookies(),

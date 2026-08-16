@@ -3,16 +3,25 @@ import { prisma } from "../server/db";
 import { listRecentDiagnoses } from "../server/diagnosis-read";
 import { getSessionUser } from "../server/auth/session";
 import { getServerClaims, hasAuthConfig } from "../server/auth/supabase-server";
+import { isAdmin } from "../server/auth/guard";
 import { THEME_COOKIE, parseTheme } from "./theme";
 import { getVariant } from "./variants/registry";
+import { LandingScreen } from "./landing-screen";
 
 export const dynamic = "force-dynamic"; // הרשימה חייבת להיות טרייה - בלי קאש סטטי
 
 export default async function HomePage() {
-  const [recent, cookieStore, user] = await Promise.all([
-    listRecentDiagnoses(prisma),
+  const user = await getSessionUser(prisma, getServerClaims);
+
+  // אנונימי בסביבה עם התחברות => דף הנחיתה (הכרעת מייסד 16.8). בסביבה בלי מפתחות Supabase
+  // (פיתוח טרום-הגדרה) אין בכלל מושג "מחובר" - מסך הבית המלא נשאר פתוח כמו קודם
+  if (user == null && hasAuthConfig()) return <LandingScreen />;
+
+  // הרשימה מתוחמת בעלות: אדמין רואה הכול (כולל שורות טסט ותיקות בלי בעלים), משתמש רגיל רק
+  // את העסקים שלו. user null כאן = מצב טרום-מפתחות בלבד
+  const [recent, cookieStore] = await Promise.all([
+    listRecentDiagnoses(prisma, user != null && !isAdmin(user) ? { ownerUserId: user.id } : {}),
     cookies(),
-    getSessionUser(prisma, getServerClaims),
   ]);
   const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
   const { Home } = getVariant(theme);

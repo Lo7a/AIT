@@ -5,6 +5,8 @@
 export interface FakeBizRow {
   id: string; name: string; placeId: string | null; websiteKey: string | null;
   website: string | null; phone: string | null; address: string | null; city: string | null;
+  // תיחום בעלות (אבן דרך "לצאת החוצה") - null = שורה ללא בעלים (נתוני טסט ותיקים)
+  ownerUserId: string | null;
 }
 
 export interface FakeDbOptions {
@@ -56,8 +58,11 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
         if (found) { Object.assign(found, update); return { ...found }; }
         const row: FakeBizRow = {
           id: genId("biz"), placeId: null, websiteKey: null, website: null, phone: null, address: null,
-          city: null, ...create,
+          city: null, ownerUserId: null, ...create,
         };
+        // Prisma האמיתי מתעלם משדה עם undefined ב-create (ברירת המחדל של העמודה נשארת);
+        // ה-spread כאן היה דורס את ה-null עם undefined - מנרמלים חזרה לאותה סמנטיקה
+        if (row.ownerUserId === undefined) row.ownerUserId = null;
         businesses.push(row);
         return { ...row };
       },
@@ -67,14 +72,26 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
         Object.assign(b, data);
         return { ...b };
       },
-      // תמיכה מינימלית ל-diagnosis-lookup.ts: חיפוש עסק לפי placeId או websiteKey (select נבלע -
-      // הפייק תמיד מחזיר את השורה המלאה, כמו upsert/update למעלה)
+      // תמיכה מינימלית ל-diagnosis-lookup.ts ול-auth/guard.ts: חיפוש עסק לפי placeId, websiteKey
+      // או id (select נבלע - הפייק תמיד מחזיר את השורה המלאה, כמו upsert/update למעלה)
       findUnique: async ({ where }: any) => {
         const found = businesses.find(
           (b) => (where.placeId != null && b.placeId === where.placeId)
-            || (where.websiteKey != null && b.websiteKey === where.websiteKey),
+            || (where.websiteKey != null && b.websiteKey === where.websiteKey)
+            || (where.id != null && b.id === where.id),
         );
         return found ? { ...found } : null;
+      },
+      // תמיכה מינימלית ל-resolveBusinessOwnership (diagnosis-repo.ts): תביעת עסק חסר-בעלים
+      // ב-CAS - העדכון מותנה ב-ownerUserId הנוכחי (null), בדיוק כמו updateMany של האבחונים
+      updateMany: async ({ where, data }: any) => {
+        const b = businesses.find(
+          (x) => x.id === where.id
+            && (!("ownerUserId" in where) || x.ownerUserId === where.ownerUserId),
+        );
+        if (!b) return { count: 0 };
+        Object.assign(b, data);
+        return { count: 1 };
       },
     },
     diagnosis: {
@@ -109,6 +126,29 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
         transitions.push(key);
         d.status = data.status;
         return { count: 1 };
+      },
+      // תמיכה מינימלית ל-listRecentDiagnoses (diagnosis-read.ts): כל האבחונים, חדש-לישן, עם
+      // תיחום בעלות דרך העסק (where.business.ownerUserId) - include נבלע, כל שורה מוחזרת עם
+      // business (שם) ו-scans (האחרונה, scores בלבד בפועל אצל האמיתי; כאן השורה המלאה)
+      findMany: async ({ where, orderBy, take }: any) => {
+        let rows = diagnoses.filter((d) => {
+          const wantedOwner = where?.business?.ownerUserId;
+          if (wantedOwner == null) return true;
+          const biz = businesses.find((b) => b.id === d.businessId);
+          return biz?.ownerUserId === wantedOwner;
+        });
+        if (orderBy?.createdAt === "desc") {
+          rows = [...rows].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        }
+        if (take != null) rows = rows.slice(0, take);
+        return rows.map((d) => {
+          const biz = businesses.find((b) => b.id === d.businessId);
+          const dScans = scans
+            .filter((s) => s.diagnosisId === d.id)
+            .sort((a, b) => (b.createdAt?.getTime?.() ?? 0) - (a.createdAt?.getTime?.() ?? 0))
+            .slice(0, 1);
+          return { ...d, business: biz ? { name: biz.name } : { name: "" }, scans: dScans.map((s) => ({ ...s })) };
+        });
       },
     },
     scan: {

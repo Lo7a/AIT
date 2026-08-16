@@ -14,6 +14,7 @@ import type { ScanFindings } from "../pipeline/types";
 import type { ScoreReport } from "../pipeline/score/types";
 import {
   createDiagnosisForBusiness, transitionDiagnosis, saveScanResult, toScanRow, enrichBusinessFromScan,
+  BusinessOwnedByOtherError,
 } from "./diagnosis-repo";
 import { websiteKeyOf } from "./website-key";
 import { socialPresenceOf, socialOnlyDetail } from "../pipeline/social-hosts";
@@ -41,6 +42,9 @@ export interface RunDiagnosisOptions {
   scanDeps?: ScanDeps;           // הזרקה בבדיקות - ברירת מחדל: הצנרת החיה
   websiteDeps?: WebsiteOnlyDeps;
   narrativeOptions?: NarrativeOptions;
+  // המשתמש המחובר (תיחום בעלות): מוטבע על העסק ביצירה; עסק של משתמש אחר נכשל עוד לפני
+  // שנוצרת שורת אבחון (ראו diagnosis-repo.ts). CLI ומסלולי פיתוח לא מעבירים - אין הטבעה
+  ownerUserId?: string;
 }
 
 // הסריקה נכשלה כולה והאבחון הוחזר ל-created - הודעה עברית ידידותית למסך/CLI
@@ -140,8 +144,13 @@ export async function runDiagnosis(
   // הוספת סוג שלישי ל-DiagnoseTarget תיכשל בקומפילציה כאן, לא תפיק undefined בשקט
   const businessName = target.kind === "url" ? websiteKeyOf(siteUrl!.href) : target.name;
   const created = await createDiagnosisForBusiness(prisma, target.kind === "url"
-    ? { name: businessName, website: urlSocial ? siteUrl!.href : siteUrl!.origin }
-    : { name: businessName, placeId: target.placeId, city: target.city });
+    ? { name: businessName, website: urlSocial ? siteUrl!.href : siteUrl!.origin, ownerUserId: opts.ownerUserId }
+    : { name: businessName, placeId: target.placeId, city: target.city, ownerUserId: opts.ownerUserId })
+    .catch((err) => {
+      // סירוב בעלות הוא הודעה למשתמש (עסק אחד = חשבון אחד), לא תקלת תשתית - עובר לזרם כלשונו
+      if (err instanceof BusinessOwnedByOtherError) throw new DiagnoseFailed(err.message);
+      throw err;
+    });
   emit({ type: "created", diagnosisId: created.diagnosisId, businessName });
 
   // שלב 2: סריקה תחת scanning; כל כישלון מחזיר ל-created עם השגיאה המקורית

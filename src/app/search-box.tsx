@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useBusinessSearch } from "./use-business-search";
+import { popPendingSearch } from "./landing-logic";
 
 const LISTBOX_ID = "candidate-listbox";
 const optionId = (placeId: string) => `candidate-option-${placeId}`;
@@ -26,6 +27,14 @@ export function SearchBox() {
   useEffect(() => {
     setActiveIndex(-1);
   }, [candidates]);
+
+  // כוונת חיפוש שנשמרה בדף הנחיתה לפני ההתחברות (landing-logic.ts) - ממלאת את השדה פעם
+  // אחת אחרי הכניסה; שליפה חד-פעמית, רענון לא ימלא שוב. setInput יציב (useState setter)
+  useEffect(() => {
+    const pending = popPendingSearch(window.sessionStorage);
+    if (pending != null) setInput(pending);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function onFilterChange(v: string) {
     setFilterText(v);

@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { prisma } from "../../../server/db";
 import { getReport } from "../../../server/diagnosis-read";
@@ -6,6 +6,9 @@ import { getRoadmapView } from "../../../server/roadmap-repo";
 import { getQuantityAnswers } from "../../../server/interview-repo";
 import { personalLossLine } from "../../../pipeline/roadmap/loss-calc";
 import type { DiagnosisStatus } from "../../../server/status";
+import { getSessionUser } from "../../../server/auth/session";
+import { getServerClaims, hasAuthConfig } from "../../../server/auth/supabase-server";
+import { userCanAccessDiagnosis } from "../../../server/auth/guard";
 import { THEME_COOKIE, parseTheme } from "../../theme";
 import { getVariant } from "../../variants/registry";
 
@@ -18,6 +21,14 @@ const ROADMAPABLE: DiagnosisStatus[] = ["report_ready", "interviewing", "roadmap
 
 export default async function RoadmapPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+
+  // תיחום בעלות - ראו ההערה ב-report/[id]/page.tsx
+  if (hasAuthConfig()) {
+    const user = await getSessionUser(prisma, getServerClaims);
+    if (user == null) redirect("/login");
+    if ((await userCanAccessDiagnosis(prisma, user, id).catch(() => null)) !== true) notFound();
+  }
+
   const [report, roadmap, answers, cookieStore] = await Promise.all([
     getReport(prisma, id).catch(() => null),
     getRoadmapView(prisma, id).catch(() => null),

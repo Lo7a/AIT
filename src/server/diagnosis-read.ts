@@ -140,11 +140,21 @@ export async function getReport(prisma: PrismaClient, diagnosisId: string): Prom
   };
 }
 
-// limit לא חובה - בלי limit מוחזרות כל השורות (מסך הבית גולל את הרשימה במקום לחתוך אותה)
-export async function listRecentDiagnoses(prisma: PrismaClient, limit?: number): Promise<DiagnosisListItem[]> {
+export interface ListDiagnosesOptions {
+  limit?: number; // בלי limit מוחזרות כל השורות (מסך הבית גולל את הרשימה במקום לחתוך אותה)
+  // תיחום בעלות (אבן דרך "לצאת החוצה"): כשמועבר - רק אבחונים של עסקים בבעלות המשתמש הזה.
+  // בלי הפרמטר (אדמין, CLI) - הכול. עסקים ללא בעלים לא נכללים באף תיחום - אדמין בלבד
+  ownerUserId?: string;
+}
+
+export async function listRecentDiagnoses(
+  prisma: PrismaClient,
+  opts: ListDiagnosesOptions = {},
+): Promise<DiagnosisListItem[]> {
   const rows = await prisma.diagnosis.findMany({
     orderBy: { createdAt: "desc" },
-    ...(limit != null ? { take: limit } : {}),
+    ...(opts.limit != null ? { take: opts.limit } : {}),
+    ...(opts.ownerUserId != null ? { where: { business: { ownerUserId: opts.ownerUserId } } } : {}),
     // select צר - הרשימה צריכה רק שם עסק וציון כולל, לא לגרור findings/narrative רב-KB לכל שורה
     include: {
       business: { select: { name: true } },

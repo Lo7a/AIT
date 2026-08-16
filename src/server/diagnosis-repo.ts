@@ -61,39 +61,77 @@ export interface NewDiagnosisInput {
   placeId?: string;
   website?: string;
   city?: string;
+  // המשתמש המחובר שמריץ את האבחון (תיחום בעלות, אבן דרך "לצאת החוצה"). לא מועבר במסלולי
+  // CLI/פיתוח - שם אין סשן והשורות נשארות ללא בעלים (גלויות לאדמין בלבד)
+  ownerUserId?: string;
+}
+
+// עסק שכבר משויך למשתמש אחר - עיקרון "עסק אחד = חשבון אחד" (הכרעת מייסד 16.8): החשבון הראשון
+// שסורק עסק הופך לבעליו, וכל חשבון אחר מקבל את הסירוב הזה במקום לשתף את אותו עסק. ההודעה
+// מוצגת למשתמש כלשונה (run-diagnosis עוטף אותה ב-DiagnoseFailed)
+export class BusinessOwnedByOtherError extends Error {
+  constructor() {
+    super("העסק הזה כבר משויך למשתמש אחר במערכת");
+  }
+}
+
+// קביעת הבעלות אחרי ה-upsert: שורה חדשה כבר נוצרה עם הבעלים; שורה קיימת בלי בעלים (נתוני
+// טסט ותיקים) נתבעת עכשיו; שורה של משתמש אחר נדחית. ה-updateMany המותנה הוא ה-CAS - שני
+// משתמשים שתובעים במקביל עסק חסר-בעלים: הראשון זוכה, השני מקבל את שגיאת הבעלות
+async function resolveBusinessOwnership(
+  prisma: PrismaClient,
+  business: { id: string; ownerUserId: string | null },
+  ownerUserId: string | undefined,
+): Promise<void> {
+  if (ownerUserId == null || business.ownerUserId === ownerUserId) return;
+  if (business.ownerUserId == null) {
+    const claimed = await prisma.business.updateMany({
+      where: { id: business.id, ownerUserId: null },
+      data: { ownerUserId },
+    });
+    if (claimed.count === 1) return;
+  }
+  throw new BusinessOwnedByOtherError();
 }
 
 export async function createDiagnosisForBusiness(
   prisma: PrismaClient,
   input: NewDiagnosisInput,
 ): Promise<{ businessId: string; diagnosisId: string }> {
-  let businessId: string;
+  let business: { id: string; ownerUserId: string | null };
   if (input.placeId) {
-    const business = await prisma.business.upsert({
+    business = await prisma.business.upsert({
       where: { placeId: input.placeId },
       update: { name: input.name, website: input.website, city: input.city },
-      create: { name: input.name, placeId: input.placeId, website: input.website, city: input.city },
+      create: {
+        name: input.name, placeId: input.placeId, website: input.website, city: input.city,
+        ownerUserId: input.ownerUserId,
+      },
     });
-    businessId = business.id;
   } else if (input.website) {
     // מסלול אתר-בלבד (no_gbp): upsert אטומי על מפתח מנורמל - כתיבים שונים של אותו אתר
     // מתלכדים לשורה אחת, ושתי ריצות מקבילות לא יוצרות כפיל (שער 2א, דרישה 3).
     // הערה: מסלול placeId לעולם לא קובע websiteKey - איחוד עסק שנסרק פעם דרך --url ופעם
     // דרך Places הוא בעיית מייל סטון 3+.
     const key = websiteKeyOf(input.website);
-    const business = await prisma.business.upsert({
+    business = await prisma.business.upsert({
       where: { websiteKey: key },
       // name לא ב-update בכוונה: השם שייך ליצירה בלבד - סריקה חוזרת לא תשנה בשקט את השם שכל הדוחות הקודמים מציגים
       update: { website: input.website, city: input.city },
-      create: { name: input.name, websiteKey: key, website: input.website, city: input.city },
+      create: {
+        name: input.name, websiteKey: key, website: input.website, city: input.city,
+        ownerUserId: input.ownerUserId,
+      },
     });
-    businessId = business.id;
   } else {
     // בלי אף מזהה - where ריק היה מחזיר עסק שרירותי ומצמיד לו אבחון של מישהו אחר
     throw new Error("createDiagnosisForBusiness: נדרש placeId או website");
   }
-  const diagnosis = await prisma.diagnosis.create({ data: { businessId } });
-  return { businessId, diagnosisId: diagnosis.id };
+  // הבעלות מוכרעת לפני יצירת האבחון - משתמש שנדחה לא משאיר אחריו שורת diagnosis יתומה
+  // על עסק של מישהו אחר
+  await resolveBusinessOwnership(prisma, business, input.ownerUserId);
+  const diagnosis = await prisma.diagnosis.create({ data: { businessId: business.id } });
+  return { businessId: business.id, diagnosisId: diagnosis.id };
 }
 
 export async function transitionDiagnosis(

@@ -142,14 +142,14 @@ describe("getReport", () => {
 describe("listRecentDiagnoses", () => {
   it("ממפה לשורות רשימה עם שם עסק, סטטוס וציון כולל מהסריקה האחרונה, וקוראת ל-findMany עם ה-limit", async () => {
     const db = fakeDb(null, [diagRow()]);
-    const rows = await listRecentDiagnoses(db as never, 8);
+    const rows = await listRecentDiagnoses(db as never, { limit: 8 });
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ id: "d1", status: "report_ready", businessName: "עסק בדיקה", overall: 77 });
     expect(db.diagnosis.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 8 }));
   });
 
   it("אבחון בלי סריקה - overall null", async () => {
-    const rows = await listRecentDiagnoses(fakeDb(null, [diagRow({ scans: [] })]) as never, 8);
+    const rows = await listRecentDiagnoses(fakeDb(null, [diagRow({ scans: [] })]) as never, { limit: 8 });
     expect(rows[0].overall).toBeNull();
   });
 

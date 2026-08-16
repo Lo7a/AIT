@@ -22,7 +22,7 @@ describe("findLatestDiagnosis", () => {
     const { db, businesses } = makeFakeDb();
     businesses.push({
       id: "biz-1", name: "עסק", placeId: "p1", websiteKey: null, website: null, phone: null,
-      address: null, city: null,
+      address: null, city: null, ownerUserId: null,
     });
     expect(await findLatestDiagnosis(db, { placeId: "p1" })).toBeNull();
   });
@@ -31,7 +31,7 @@ describe("findLatestDiagnosis", () => {
     const { db, businesses, diagnoses } = makeFakeDb();
     businesses.push({
       id: "biz-1", name: "עסק", placeId: "p1", websiteKey: null, website: null, phone: null,
-      address: null, city: null,
+      address: null, city: null, ownerUserId: null,
     });
     const now = new Date("2026-08-14T12:00:00.000Z");
     diagnoses.push({
@@ -50,7 +50,7 @@ describe("findLatestDiagnosis", () => {
     const { db, businesses, diagnoses } = makeFakeDb();
     businesses.push({
       id: "biz-2", name: "עסק אתר", placeId: null, websiteKey: "x.co.il",
-      website: "https://x.co.il", phone: null, address: null, city: null,
+      website: "https://x.co.il", phone: null, address: null, city: null, ownerUserId: null,
     });
     const now = new Date("2026-08-14T12:00:00.000Z");
     diagnoses.push({

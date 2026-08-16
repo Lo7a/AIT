@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { prisma } from "../../server/db";
 import { findLatestDiagnosis } from "../../server/diagnosis-lookup";
+import { getSessionUser } from "../../server/auth/session";
+import { getServerClaims, hasAuthConfig } from "../../server/auth/supabase-server";
+import { userCanAccessDiagnosis } from "../../server/auth/guard";
 import { THEME_COOKIE, parseTheme } from "../theme";
 import { getVariant } from "../variants/registry";
 
@@ -19,6 +22,12 @@ export default async function ScanPage({
   searchParams: Promise<{ placeId?: string; name?: string; url?: string; city?: string }>;
 }) {
   const params = await searchParams;
+
+  // סריקה דורשת התחברות (כל סריקה עולה כסף ונקשרת לבעלים) - אנונימי מופנה לכניסה.
+  // בסביבה בלי מפתחות Supabase (מצב פיתוח) המסך פתוח כמו קודם
+  const user = hasAuthConfig() ? await getSessionUser(prisma, getServerClaims) : null;
+  if (hasAuthConfig() && user == null) redirect("/login");
+
   const hasPlace = !!params.placeId && !!params.name;
   const hasUrl = !!params.url;
   if (!hasPlace && !hasUrl) {
@@ -45,8 +54,14 @@ export default async function ScanPage({
     : { placeId: params.placeId, name: params.name, city: params.city };
 
   // מציאת עבודה קיימת ליעד הזה לפני שבכלל שוקלים לרנדר את הרצת הסריקה - כדי שרענון/כניסה
-  // חוזרת יתחברו לאבחון שכבר רץ או הסתיים במקום לירות סריקה כפולה בתשלום (עיקר התיקון הזה)
-  const latest = await findLatestDiagnosis(prisma, target).catch(() => null);
+  // חוזרת יתחברו לאבחון שכבר רץ או הסתיים במקום לירות סריקה כפולה בתשלום (עיקר התיקון הזה).
+  // תיחום בעלות: אבחון קיים של משתמש אחר לא מוצע לחיבור ולא מפנה לדוח שלו - מבחינת המשתמש
+  // הזה הוא לא קיים (הסריקה החדשה שתירה תיכשל בהודעת הבעלות הכנה מהזרם, ראו diagnosis-repo)
+  let latest = await findLatestDiagnosis(prisma, target).catch(() => null);
+  if (latest != null && user != null
+    && (await userCanAccessDiagnosis(prisma, user, latest.diagnosisId).catch(() => null)) !== true) {
+    latest = null;
+  }
 
   if (latest?.status === "report_ready" && latest.ageSeconds < REPORT_READY_MAX_AGE_SECONDS) {
     redirect(`/report/${latest.diagnosisId}`);
