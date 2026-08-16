@@ -8,6 +8,7 @@
 // כאן היא התיעוד החי ומקור האמת לצד הקורא (מסכי האדמין בהמשך)
 export const USAGE_EVENT_TYPES = [
   "login",              // כניסה מוצלחת (metadata.method: magic_link / oauth)
+  "search",             // חיפוש עסק (Places, בתשלום; metadata.query - גם נתון מוצרי מעניין)
   "diagnosis_created",  // נוצר אבחון חדש (מאירוע created של זרם הסריקה)
   "scan_completed",     // סריקה הסתיימה ונשמרה (מאירוע done של הזרם)
   "interview_started",

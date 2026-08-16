@@ -9,6 +9,8 @@ import { getSessionUser } from "../../../../server/auth/session";
 import { getServerClaims } from "../../../../server/auth/supabase-server";
 import { assertDiagnosisAccess, unauthorizedResponse } from "../../../../server/auth/guard";
 import { emitUsageEvent } from "../../../../server/usage-events";
+import { guardApiRequest } from "../../../../server/api/request-guards";
+import { enforceRateLimit, RATE_RULES } from "../../../../server/rate-limit";
 
 // עוטף את completeJSON כ-CompleteFn - אותו דפוס בדיוק כמו ברירת המחדל הפנימית ב-extract.ts/
 // narrative.ts (opts.complete ?? completeJSON), רק שכאן זה חובה: buildRoadmap מקבל complete
@@ -24,9 +26,13 @@ const complete: CompleteFn = async (prompt) => {
 // { roadmapId } בלבד בתשובה - buildRoadmap מחזיר גם usage (למטרות מדידה פנימיות), אבל הצורה
 // הציבורית של ה-API מצומצמת בכוונה (ראו האפיון של המשימה); ה-destructuring כאן הוא נקודת החיתוך
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const guard = guardApiRequest(req);
+  if (guard != null) return guard;
   const { id } = await ctx.params;
   const user = await getSessionUser(prisma, getServerClaims);
   if (user == null) return unauthorizedResponse();
+  const limited = await enforceRateLimit(prisma, user, RATE_RULES.roadmapBuild);
+  if (limited != null) return limited;
   const handler = makeBuildHandler(async (diagnosisId) => {
     await assertDiagnosisAccess(prisma, user, diagnosisId);
     const { roadmapId } = await buildRoadmap(prisma, complete, diagnosisId);

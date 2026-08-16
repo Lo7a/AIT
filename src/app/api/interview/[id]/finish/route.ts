@@ -5,9 +5,12 @@ import { getSessionUser } from "../../../../../server/auth/session";
 import { getServerClaims } from "../../../../../server/auth/supabase-server";
 import { assertDiagnosisAccess, unauthorizedResponse } from "../../../../../server/auth/guard";
 import { emitUsageEvent } from "../../../../../server/usage-events";
+import { guardApiRequest } from "../../../../../server/api/request-guards";
 
 // תיחום בעלות בתוך ה-closure - ראו ההערה ב-interview/[id]/route.ts
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const guard = guardApiRequest(req);
+  if (guard != null) return guard;
   const { id } = await ctx.params;
   const user = await getSessionUser(prisma, getServerClaims);
   if (user == null) return unauthorizedResponse();

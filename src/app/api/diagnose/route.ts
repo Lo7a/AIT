@@ -5,6 +5,8 @@ import { logDiagnoseEvent } from "../../../server/api/diagnose-log";
 import { getSessionUser } from "../../../server/auth/session";
 import { getServerClaims } from "../../../server/auth/supabase-server";
 import { unauthorizedResponse } from "../../../server/auth/guard";
+import { guardApiRequest } from "../../../server/api/request-guards";
+import { enforceRateLimit, RATE_RULES } from "../../../server/rate-limit";
 import { emitUsageEvent, usageEventForDiagnoseEvent } from "../../../server/usage-events";
 
 // סריקה מלאה יכולה לקחת עד ~90 שניות (תקציב PSI) - רלוונטי ל-Vercel בעתיד, לא מקומית
@@ -15,8 +17,12 @@ export const maxDuration = 300;
 // יומן השימוש נגזר מזרם האירועים עצמו (created/done -> usage-events.ts) - בלי לגעת בצנרת;
 // onEvent סינכרוני בחוזה (diagnose-events.ts), אז הרישום נורה-ונשכח וכשל בו נבלע בתפר
 export async function POST(req: Request) {
+  const guard = guardApiRequest(req, { requireJson: true });
+  if (guard != null) return guard;
   const user = await getSessionUser(prisma, getServerClaims);
   if (user == null) return unauthorizedResponse();
+  const limited = await enforceRateLimit(prisma, user, RATE_RULES.scan);
+  if (limited != null) return limited;
   const handler = makeDiagnoseHandler((target, onEvent) => runDiagnosis(prisma, target, {
     ownerUserId: user.id,
     onEvent: (e) => {

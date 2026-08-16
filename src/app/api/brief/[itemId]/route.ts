@@ -6,14 +6,20 @@ import { getSessionUser } from "../../../../server/auth/session";
 import { getServerClaims } from "../../../../server/auth/supabase-server";
 import { assertDiagnosisAccess, unauthorizedResponse } from "../../../../server/auth/guard";
 import { emitUsageEvent } from "../../../../server/usage-events";
+import { guardApiRequest } from "../../../../server/api/request-guards";
+import { enforceRateLimit, RATE_RULES } from "../../../../server/rate-limit";
 
 // חיווט קונקרטי (prisma + מימוש dev של התובלה) - כשיהיה ספק מייל אמיתי (Resend) מחליפים כאן
 // בלבד את consoleBriefTransport. תיחום בעלות: הפריט שייך ל-roadmap ששייך לאבחון - העלייה
 // בשרשרת קורית כאן (שאילתת select צרה) והבדיקה עצמה ב-guard, עם אותו not_found אחיד
 export async function POST(req: Request, ctx: { params: Promise<{ itemId: string }> }) {
+  const guard = guardApiRequest(req);
+  if (guard != null) return guard;
   const { itemId } = await ctx.params;
   const user = await getSessionUser(prisma, getServerClaims);
   if (user == null) return unauthorizedResponse();
+  const limited = await enforceRateLimit(prisma, user, RATE_RULES.brief);
+  if (limited != null) return limited;
   const handler = makeBriefHandler(async (id) => {
     const item = await prisma.roadmapItem.findUnique({
       where: { id },

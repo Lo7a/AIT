@@ -347,18 +347,24 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
         return { ...b };
       },
     },
-    // תמיכה מינימלית ל-usage-events.ts (יומן הפעולות): create בלבד - הצד הקורא (מסכי אדמין)
-    // יגיע בשלב האדמין ויוסיף כאן findMany לפי הצורך
+    // תמיכה מינימלית ל-usage-events.ts (יומן הפעולות) ול-rate-limit.ts (ספירה בחלון זמן):
+    // create + count - הצד הקורא המלא (מסכי אדמין) יגיע בשלב האדמין ויוסיף findMany לפי הצורך
     usageEvent: {
       create: async ({ data }: any) => {
         const row = {
           id: genId("evt"), type: data.type, userId: data.userId ?? null,
           actorUserId: data.actorUserId ?? null, entityType: data.entityType ?? null,
-          entityId: data.entityId ?? null, metadata: data.metadata ?? null, createdAt: new Date(),
+          entityId: data.entityId ?? null, metadata: data.metadata ?? null,
+          createdAt: data.createdAt ?? new Date(),
         };
         usageEvents.push(row);
         return { ...row };
       },
+      count: async ({ where }: any) => usageEvents.filter(
+        (e) => (where?.userId == null || e.userId === where.userId)
+          && (where?.type == null || e.type === where.type)
+          && (where?.createdAt?.gte == null || e.createdAt >= where.createdAt.gte),
+      ).length,
     },
     // תמיכה מינימלית ל-auth/session.ts (טבלת המראה users): שליפה לפי כל אחד מהמפתחות
     // הייחודיים, יצירה עם אכיפת ייחודיות (authId/email - מדמה P2002 של Prisma האמיתי,
