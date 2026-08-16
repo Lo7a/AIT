@@ -6,8 +6,7 @@ import { getRoadmapView } from "../../../server/roadmap-repo";
 import { getQuantityAnswers } from "../../../server/interview-repo";
 import { personalLossLine } from "../../../pipeline/roadmap/loss-calc";
 import type { DiagnosisStatus } from "../../../server/status";
-import { getSessionUser } from "../../../server/auth/session";
-import { getServerClaims, hasAuthConfig } from "../../../server/auth/supabase-server";
+import { currentActingUser, hasAuthConfig } from "../../../server/auth/supabase-server";
 import { userCanAccessDiagnosis } from "../../../server/auth/guard";
 import { emitUsageEvent } from "../../../server/usage-events";
 import { THEME_COOKIE, parseTheme } from "../../theme";
@@ -23,11 +22,11 @@ const ROADMAPABLE: DiagnosisStatus[] = ["report_ready", "interviewing", "roadmap
 export default async function RoadmapPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  // תיחום בעלות - ראו ההערה ב-report/[id]/page.tsx
-  const user = hasAuthConfig() ? await getSessionUser(prisma, getServerClaims) : null;
+  // תיחום בעלות + זהות פועלת - ראו ההערה ב-report/[id]/page.tsx
+  const acting = hasAuthConfig() ? await currentActingUser(prisma) : null;
   if (hasAuthConfig()) {
-    if (user == null) redirect("/login");
-    if ((await userCanAccessDiagnosis(prisma, user, id).catch(() => null)) !== true) notFound();
+    if (acting == null) redirect("/login");
+    if ((await userCanAccessDiagnosis(prisma, acting!.user, id).catch(() => null)) !== true) notFound();
   }
 
   const [report, roadmap, answers, cookieStore] = await Promise.all([
@@ -41,8 +40,11 @@ export default async function RoadmapPage({ params }: { params: Promise<{ id: st
   if (!report || !report.scan || !ROADMAPABLE.includes(report.status)) notFound();
 
   // צפייה ב-Roadmap נרשמת ביומן - ראו ההערה המקבילה ב-report/[id]/page.tsx
-  if (user != null) {
-    await emitUsageEvent(prisma, { type: "roadmap_viewed", userId: user.id, entityType: "diagnosis", entityId: id });
+  if (acting != null) {
+    await emitUsageEvent(prisma, {
+      type: "roadmap_viewed", userId: acting.user.id, actorUserId: acting.actor.id,
+      entityType: "diagnosis", entityId: id,
+    });
   }
 
   const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);

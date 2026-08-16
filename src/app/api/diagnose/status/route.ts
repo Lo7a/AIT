@@ -1,15 +1,15 @@
 import { prisma } from "../../../../server/db";
 import { makeStatusHandler } from "../../../../server/api/diagnose-status";
 import { findLatestDiagnosis } from "../../../../server/diagnosis-lookup";
-import { getSessionUser } from "../../../../server/auth/session";
-import { getServerClaims } from "../../../../server/auth/supabase-server";
+import { currentActingUser } from "../../../../server/auth/supabase-server";
 import { unauthorizedResponse, userCanAccessDiagnosis } from "../../../../server/auth/guard";
 
 // סטטוס מתוחם בעלות: אבחון זר מוחזר כ"לא נמצא" - אותה תשובה בדיוק כמו אבחון שלא קיים,
 // בלי להסגיר שה-uuid או היעד קיימים אצל משתמש אחר
 export async function GET(req: Request) {
-  const user = await getSessionUser(prisma, getServerClaims);
-  if (user == null) return unauthorizedResponse();
+  const acting = await currentActingUser(prisma);
+  if (acting == null) return unauthorizedResponse();
+  const user = acting.user;
   const handler = makeStatusHandler(
     async (id) => {
       if ((await userCanAccessDiagnosis(prisma, user, id).catch(() => null)) !== true) return null;

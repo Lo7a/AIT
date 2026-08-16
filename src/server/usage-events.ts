@@ -18,6 +18,10 @@ export const USAGE_EVENT_TYPES = [
   "brief_sent",         // metadata.sent: האם השליחה בפועל הצליחה
   "report_viewed",
   "roadmap_viewed",
+  // אירועי מסגרת של מצב ההתחזות (impersonation.ts): userId = המשתמש שמתחזים אליו,
+  // actorUserId = האדמין. הפעולות שבתוך המצב ממילא נושאות actor שונה - אלה רק סימני הפתיחה והסגירה
+  "impersonation_started",
+  "impersonation_stopped",
 ] as const;
 
 export type UsageEventType = (typeof USAGE_EVENT_TYPES)[number];

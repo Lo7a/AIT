@@ -1,8 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "../../server/db";
-import { getSessionUser } from "../../server/auth/session";
-import { getServerClaims } from "../../server/auth/supabase-server";
+import { currentActingUser } from "../../server/auth/supabase-server";
+import { isImpersonating } from "../../server/auth/impersonation";
 import { isAdmin } from "../../server/auth/guard";
 import {
   getAdminOverview, listAllDiagnoses, listRecentBriefs, listRecentEvents, listUsersWithActivity,
@@ -25,6 +25,8 @@ const EVENT_LABEL: Record<string, string> = {
   brief_sent: "Brief נשלח",
   report_viewed: "צפייה בדוח",
   roadmap_viewed: "צפייה ב-Roadmap",
+  impersonation_started: "התחזות התחילה",
+  impersonation_stopped: "התחזות הסתיימה",
 };
 
 const DATE_FMT = new Intl.DateTimeFormat("he-IL", { dateStyle: "short", timeStyle: "short" });
@@ -33,9 +35,11 @@ const DATE_FMT = new Intl.DateTimeFormat("he-IL", { dateStyle: "short", timeStyl
 // פעולות ו-Briefs - עמוד אחד רזה. השער: אדמין בלבד; לכל אחד אחר העמוד "לא קיים" (notFound,
 // לא 403) - אין מה להסגיר. אנונימי מופנה לכניסה כמו בכל המסכים
 export default async function AdminPage() {
-  const user = await getSessionUser(prisma, getServerClaims);
-  if (user == null) redirect("/login");
-  if (!isAdmin(user)) notFound();
+  // השער לפי הזהות האמיתית (actor): אדמין באמצע התחזות לא מאבד את עמוד הניהול - ממנו הוא
+  // גם עוצר את ההתחזות
+  const acting = await currentActingUser(prisma);
+  if (acting == null) redirect("/login");
+  if (!isAdmin(acting.actor)) notFound();
 
   const [overview, diagnoses, users, events, briefs] = await Promise.all([
     getAdminOverview(prisma),
@@ -56,6 +60,18 @@ export default async function AdminPage() {
           חזרה לעמוד הראשי
         </Link>
       </div>
+
+      {isImpersonating(acting) && (
+        <div className="mb-6 flex items-center justify-between rounded-lg bg-[#FBF3DB] px-4 py-2 text-sm text-[#956400]">
+          <span>
+            מצב התחזות פעיל: אתה רואה את המערכת בתור <span className="font-medium" dir="ltr">{acting.user.email ?? "משתמש ללא אימייל"}</span>
+          </span>
+          <form action="/api/admin/impersonate" method="post">
+            <input type="hidden" name="action" value="stop" />
+            <button type="submit" className="font-medium underline-offset-4 hover:underline">חזרה לעצמי</button>
+          </form>
+        </div>
+      )}
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
@@ -104,6 +120,7 @@ export default async function AdminPage() {
                 <th className="px-3 py-2 text-start font-medium">עסקים</th>
                 <th className="px-3 py-2 text-start font-medium">פעולות</th>
                 <th className="px-3 py-2 text-start font-medium">נראה לאחרונה</th>
+                <th className="px-3 py-2 text-start font-medium"></th>
               </tr>
             </thead>
             <tbody>
@@ -114,6 +131,18 @@ export default async function AdminPage() {
                   <td className="px-3 py-2 tabular-nums">{u.businessCount}</td>
                   <td className="px-3 py-2 tabular-nums">{u.eventCount}</td>
                   <td className="px-3 py-2">{u.lastEventAt != null ? DATE_FMT.format(u.lastEventAt) : "-"}</td>
+                  <td className="px-3 py-2">
+                    {/* התחזות לעצמך היא no-op - אין כפתור לשורה של האדמין המחובר */}
+                    {u.id !== acting.actor.id && (
+                      <form action="/api/admin/impersonate" method="post">
+                        <input type="hidden" name="action" value="start" />
+                        <input type="hidden" name="userId" value={u.id} />
+                        <button type="submit" className="font-medium underline-offset-4 hover:underline">
+                          התחזות
+                        </button>
+                      </form>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

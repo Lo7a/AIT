@@ -2,7 +2,8 @@
 // ושליפת claims מאומתים ממנו. כל הלוגיקה העסקית חיה ב-session.ts ומקבלת את אלה מוזרקים.
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
-import type { AuthClaims } from "./session";
+import { getSessionUser, type AuthClaims } from "./session";
+import { IMPERSONATE_COOKIE, resolveActingUser, type ActingUser } from "./impersonation";
 
 // env חסר => האפליקציה רצה בלי התחברות בכלל (מצב טרום-מפתחות): אין קריסה, getServerClaims
 // מחזיר null בכל מקום, ומסך הכניסה מציג הודעת הגדרה כנה במקום טופס מת
@@ -31,6 +32,19 @@ export async function createSupabaseServerClient() {
       },
     },
   );
+}
+
+// הזהות הפועלת של הבקשה הנוכחית - הכניסה האחת של כל המסכים וה-API משכבת ההתחזות והלאה:
+// user = בעיני מי המערכת פועלת (תיחום, אירועים), actor = מי מחובר בפועל (אדמין בהתחזות).
+// null = אין סשן. הכרעת ההתחזות עצמה טהורה ונבדקת (impersonation.ts) - כאן רק ההרכבה
+// מול ה-cookies של הבקשה
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export async function currentActingUser(db: { user: any }): Promise<ActingUser | null> {
+  const real = await getSessionUser(db, getServerClaims);
+  if (real == null) return null;
+  const cookieStore = await cookies();
+  const impersonatedId = cookieStore.get(IMPERSONATE_COOKIE)?.value ?? null;
+  return resolveActingUser(db, real, impersonatedId);
 }
 
 // אימות ה-JWT ושליפת ה-claims: getClaims מאמת חתימה מקומית מול מפתחות החתימה של הפרויקט

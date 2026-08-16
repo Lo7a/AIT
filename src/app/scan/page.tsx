@@ -2,8 +2,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { prisma } from "../../server/db";
 import { findLatestDiagnosis, isRecentInFlight } from "../../server/diagnosis-lookup";
-import { getSessionUser } from "../../server/auth/session";
-import { getServerClaims, hasAuthConfig } from "../../server/auth/supabase-server";
+import { currentActingUser, hasAuthConfig } from "../../server/auth/supabase-server";
 import { userCanAccessDiagnosis } from "../../server/auth/guard";
 import { THEME_COOKIE, parseTheme } from "../theme";
 import { getVariant } from "../variants/registry";
@@ -22,8 +21,10 @@ export default async function ScanPage({
   const params = await searchParams;
 
   // סריקה דורשת התחברות (כל סריקה עולה כסף ונקשרת לבעלים) - אנונימי מופנה לכניסה.
-  // בסביבה בלי מפתחות Supabase (מצב פיתוח) המסך פתוח כמו קודם
-  const user = hasAuthConfig() ? await getSessionUser(prisma, getServerClaims) : null;
+  // בסביבה בלי מפתחות Supabase (מצב פיתוח) המסך פתוח כמו קודם. זהות פועלת: בהתחזות
+  // גם הסריקה מתנהגת (ונרשמת) בתור המשתמש שצופים בו
+  const acting = hasAuthConfig() ? await currentActingUser(prisma) : null;
+  const user = acting?.user ?? null;
   if (hasAuthConfig() && user == null) redirect("/login");
 
   const hasPlace = !!params.placeId && !!params.name;

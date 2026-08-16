@@ -4,11 +4,10 @@ import { runDiagnosis } from "../../../server/run-diagnosis";
 import { makeDiagnoseHandler } from "../../../server/api/diagnose-stream";
 import { logDiagnoseEvent } from "../../../server/api/diagnose-log";
 import { findLatestDiagnosis, isRecentInFlight } from "../../../server/diagnosis-lookup";
-import { getSessionUser } from "../../../server/auth/session";
-import { getServerClaims } from "../../../server/auth/supabase-server";
+import { currentActingUser } from "../../../server/auth/supabase-server";
 import { unauthorizedResponse, userCanAccessDiagnosis } from "../../../server/auth/guard";
 import { guardApiRequest } from "../../../server/api/request-guards";
-import { enforceRateLimit, RATE_RULES } from "../../../server/rate-limit";
+import { enforceGlobalCap, enforceRateLimit, GLOBAL_RULES, RATE_RULES } from "../../../server/rate-limit";
 import { emitUsageEvent, usageEventForDiagnoseEvent } from "../../../server/usage-events";
 
 // סריקה מלאה יכולה לקחת עד ~90 שניות (תקציב PSI) - רלוונטי ל-Vercel בעתיד, לא מקומית
@@ -21,17 +20,22 @@ export const maxDuration = 300;
 export async function POST(req: Request) {
   const guard = guardApiRequest(req, { requireJson: true });
   if (guard != null) return guard;
-  const user = await getSessionUser(prisma, getServerClaims);
-  if (user == null) return unauthorizedResponse();
+  const acting = await currentActingUser(prisma);
+  if (acting == null) return unauthorizedResponse();
+  const { user, actor } = acting;
   const limited = await enforceRateLimit(prisma, user, RATE_RULES.scan);
   if (limited != null) return limited;
+  // הבלם הגלובלי (אחרי המגבלה האישית): תקרת סריקות כלל-מערכתית ליום - הגנה על תקציב ה-API
+  // גם מול ריבוי חשבונות (ראו rate-limit.ts, GLOBAL_RULES)
+  const capped = await enforceGlobalCap(prisma, user, GLOBAL_RULES.scansPerDay);
+  if (capped != null) return capped;
   const handler = makeDiagnoseHandler(
     (target, onEvent) => runDiagnosis(prisma, target, {
       ownerUserId: user.id,
       onEvent: (e) => {
         logDiagnoseEvent(e);
         const usage = usageEventForDiagnoseEvent(e, user.id);
-        if (usage != null) void emitUsageEvent(prisma, usage);
+        if (usage != null) void emitUsageEvent(prisma, { ...usage, actorUserId: actor.id });
         onEvent(e);
       },
     }),

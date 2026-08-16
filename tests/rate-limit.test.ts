@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { enforceRateLimit, RATE_RULES, type RateRule } from "../src/server/rate-limit";
+import { enforceGlobalCap, enforceRateLimit, GLOBAL_RULES, RATE_RULES, type RateRule } from "../src/server/rate-limit";
 import type { SessionUser } from "../src/server/auth/session";
 import { makeFakeDb } from "./fakes/fake-db";
 
@@ -53,9 +53,46 @@ describe("enforceRateLimit", () => {
   it("כללי האמת מצביעים על סוגי אירועים שקיימים ביומן", () => {
     // שומר סנכרון: כל rule.type חייב להיות ערך חוקי של USAGE_EVENT_TYPES - נאכף בטיפוסים,
     // וכאן רק מוודאים שהחוקים סבירים (limit חיובי, חלון חיובי)
-    for (const rule of Object.values(RATE_RULES)) {
+    for (const rule of Object.values({ ...RATE_RULES, ...GLOBAL_RULES })) {
       expect(rule.limit).toBeGreaterThan(0);
       expect(rule.windowSeconds).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("enforceGlobalCap - הבלם הכלל-מערכתי", () => {
+  const CAP: RateRule = { type: "diagnosis_created", limit: 3, windowSeconds: 24 * 3600 };
+
+  it("סופר את כל המשתמשים יחד: שלושה חשבונות שונים ממלאים את התקרה לרביעי", async () => {
+    const fake = makeFakeDb();
+    const now = new Date("2026-08-16T12:00:00Z");
+    for (const uid of ["u1", "u2", "u3"]) {
+      fake.usageEvents.push({
+        id: `evt-${uid}`, type: CAP.type, userId: uid, actorUserId: uid,
+        entityType: null, entityId: null, metadata: null, createdAt: new Date("2026-08-16T10:00:00Z"),
+      });
+    }
+    const blocked = await enforceGlobalCap(fake.db, USER, CAP, now);
+    expect(blocked?.status).toBe(429);
+    expect((await blocked!.json()).error).toContain("מכסת");
+  });
+
+  it("אדמין פטור גם מהבלם הגלובלי; מתחת לתקרה עוברים; fail-open על כשל ספירה", async () => {
+    const fake = makeFakeDb();
+    const now = new Date("2026-08-16T12:00:00Z");
+    fake.usageEvents.push({
+      id: "evt-1", type: CAP.type, userId: "u1", actorUserId: "u1",
+      entityType: null, entityId: null, metadata: null, createdAt: new Date("2026-08-16T10:00:00Z"),
+    });
+    expect(await enforceGlobalCap(fake.db, USER, CAP, now)).toBeNull();
+    for (const uid of ["u2", "u3"]) {
+      fake.usageEvents.push({
+        id: `evt-${uid}`, type: CAP.type, userId: uid, actorUserId: uid,
+        entityType: null, entityId: null, metadata: null, createdAt: new Date("2026-08-16T10:00:00Z"),
+      });
+    }
+    expect(await enforceGlobalCap(fake.db, ADMIN, CAP, now)).toBeNull();
+    const failing = { usageEvent: { count: async () => { throw new Error("db down"); } } };
+    expect(await enforceGlobalCap(failing, USER, CAP)).toBeNull();
   });
 });

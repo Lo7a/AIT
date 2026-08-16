@@ -6,8 +6,7 @@ import { loadCatalogLite } from "../../../server/roadmap-repo";
 import { getQuantityAnswers } from "../../../server/interview-repo";
 import { reportLossHighlights } from "../../../pipeline/roadmap/report-highlights";
 import { personalLossLine } from "../../../pipeline/roadmap/loss-calc";
-import { getSessionUser } from "../../../server/auth/session";
-import { getServerClaims, hasAuthConfig } from "../../../server/auth/supabase-server";
+import { currentActingUser, hasAuthConfig } from "../../../server/auth/supabase-server";
 import { userCanAccessDiagnosis } from "../../../server/auth/guard";
 import { emitUsageEvent } from "../../../server/usage-events";
 import { THEME_COOKIE, parseTheme } from "../../theme";
@@ -19,8 +18,10 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
   const { id } = await params;
 
   // תיחום בעלות (כמו בכל מסכי ה-[id]): אנונימי מופנה לכניסה, אבחון זר מקבל בדיוק את אותו
-  // 404 כמו אבחון שלא קיים. בסביבה בלי מפתחות Supabase המסכים נשארים פתוחים (מצב פיתוח)
-  const user = hasAuthConfig() ? await getSessionUser(prisma, getServerClaims) : null;
+  // 404 כמו אבחון שלא קיים. בסביבה בלי מפתחות Supabase המסכים נשארים פתוחים (מצב פיתוח).
+  // הזהות הפועלת (acting): בהתחזות התיחום לפי המשתמש שצופים בו - אדמין רואה בדיוק מה שהוא רואה
+  const acting = hasAuthConfig() ? await currentActingUser(prisma) : null;
+  const user = acting?.user ?? null;
   if (hasAuthConfig()) {
     if (user == null) redirect("/login");
     if ((await userCanAccessDiagnosis(prisma, user, id).catch(() => null)) !== true) notFound();
@@ -31,8 +32,11 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
 
   // צפייה בדוח נרשמת ביומן (usage-events) - הבסיס להיסטוריה, לסטטיסטיקות ולשימוש המכירתי
   // של שלב ב (מי צפה במה = למי מתקשרים). רק אחרי שהגישה אושרה והדוח באמת קיים
-  if (user != null) {
-    await emitUsageEvent(prisma, { type: "report_viewed", userId: user.id, entityType: "diagnosis", entityId: id });
+  if (acting != null) {
+    await emitUsageEvent(prisma, {
+      type: "report_viewed", userId: acting.user.id, actorUserId: acting.actor.id,
+      entityType: "diagnosis", entityId: id,
+    });
   }
 
   const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);

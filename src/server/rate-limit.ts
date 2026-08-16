@@ -26,6 +26,14 @@ export const RATE_RULES = {
   brief: { type: "brief_sent", limit: 10, windowSeconds: 3600 },
 } as const satisfies Record<string, RateRule>;
 
+// הבלם הגלובלי (שאלת מייסד 16.8: "שלא יעקצו לי שימושי API"): תקרה כלל-מערכתית ליום על
+// הפעולה היקרה - סוגרת את מסלול "הרבה חשבונות מזויפים, מכסה טרייה לכל אחד". אדמין פטור
+// (המייסדים בודקים בלי חיכוך; תוקף אינו אדמין). הגבול נדיב פי כמה מהשימוש האמיתי של
+// תקופת הטסט, ומכוונן במקום אחד
+export const GLOBAL_RULES = {
+  scansPerDay: { type: "diagnosis_created", limit: 60, windowSeconds: 24 * 3600 },
+} as const satisfies Record<string, RateRule>;
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type CountDb = { usageEvent: any };
 
@@ -49,6 +57,31 @@ export async function enforceRateLimit(
     );
   } catch (err) {
     console.error("rate-limit: ספירה נכשלה (fail-open, הבקשה עוברת):", err);
+    return null;
+  }
+}
+
+// הבלם הגלובלי: אותה ספירה, בלי סינון משתמש - כלל האירועים מהסוג הזה בחלון, מכל החשבונות
+// יחד. אותם עקרונות: אדמין פטור, fail-open, הודעה כנה (זו מגבלת תקופת הניסוי, לא תקלה)
+export async function enforceGlobalCap(
+  db: CountDb,
+  user: SessionUser,
+  rule: RateRule,
+  now: Date = new Date(),
+): Promise<Response | null> {
+  if (isAdmin(user)) return null;
+  try {
+    const since = new Date(now.getTime() - rule.windowSeconds * 1000);
+    const count = await db.usageEvent.count({
+      where: { type: rule.type, createdAt: { gte: since } },
+    });
+    if (count < rule.limit) return null;
+    return Response.json(
+      { error: "מכסת האבחונים היומית של תקופת הניסוי הסתיימה, נסו שוב מחר" },
+      { status: 429 },
+    );
+  } catch (err) {
+    console.error("rate-limit: ספירת הבלם הגלובלי נכשלה (fail-open):", err);
     return null;
   }
 }

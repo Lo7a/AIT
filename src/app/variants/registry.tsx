@@ -14,6 +14,8 @@ export interface VariantScreens {
     session?: { email: string | null } | null;
     loginEnabled?: boolean;
     isAdminUser?: boolean;
+    // מצב התחזות פעיל: email = המשתמש שצופים בו; המסך מציג פס אזהרה עם כפתור יציאה
+    impersonating?: { email: string | null } | null;
   }>;
   Scan: ComponentType<{
     target: { placeId?: string; name?: string; url?: string; city?: string };

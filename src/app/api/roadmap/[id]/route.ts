@@ -5,8 +5,7 @@ import { buildRoadmap } from "../../../../server/run-roadmap";
 import { getRoadmapView } from "../../../../server/roadmap-repo";
 import { InterviewError } from "../../../../pipeline/interview/contract";
 import { makeBuildHandler, makeViewHandler } from "../../../../server/api/roadmap-handlers";
-import { getSessionUser } from "../../../../server/auth/session";
-import { getServerClaims } from "../../../../server/auth/supabase-server";
+import { currentActingUser } from "../../../../server/auth/supabase-server";
 import { assertDiagnosisAccess, unauthorizedResponse } from "../../../../server/auth/guard";
 import { emitUsageEvent } from "../../../../server/usage-events";
 import { guardApiRequest } from "../../../../server/api/request-guards";
@@ -29,15 +28,16 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const guard = guardApiRequest(req);
   if (guard != null) return guard;
   const { id } = await ctx.params;
-  const user = await getSessionUser(prisma, getServerClaims);
-  if (user == null) return unauthorizedResponse();
-  const limited = await enforceRateLimit(prisma, user, RATE_RULES.roadmapBuild);
+  const acting = await currentActingUser(prisma);
+  if (acting == null) return unauthorizedResponse();
+  const limited = await enforceRateLimit(prisma, acting.user, RATE_RULES.roadmapBuild);
   if (limited != null) return limited;
   const handler = makeBuildHandler(async (diagnosisId) => {
-    await assertDiagnosisAccess(prisma, user, diagnosisId);
+    await assertDiagnosisAccess(prisma, acting.user, diagnosisId);
     const { roadmapId } = await buildRoadmap(prisma, complete, diagnosisId);
     await emitUsageEvent(prisma, {
-      type: "roadmap_built", userId: user.id, entityType: "diagnosis", entityId: diagnosisId,
+      type: "roadmap_built", userId: acting.user.id, actorUserId: acting.actor.id,
+      entityType: "diagnosis", entityId: diagnosisId,
     });
     return { roadmapId };
   });
@@ -48,10 +48,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 // וה-route הוא שממיר את זה ל-InterviewError("not_found") כדי לקבל 404 עקבי עם שאר ה-API
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const user = await getSessionUser(prisma, getServerClaims);
-  if (user == null) return unauthorizedResponse();
+  const acting = await currentActingUser(prisma);
+  if (acting == null) return unauthorizedResponse();
   const handler = makeViewHandler(async (diagnosisId) => {
-    await assertDiagnosisAccess(prisma, user, diagnosisId);
+    await assertDiagnosisAccess(prisma, acting.user, diagnosisId);
     const view = await getRoadmapView(prisma, diagnosisId);
     if (!view) throw new InterviewError("אין Roadmap לאבחון הזה", "not_found");
     return view;
