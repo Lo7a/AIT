@@ -44,7 +44,17 @@ export function parseDiagnoseBody(body: unknown): DiagnoseTarget | { error: stri
   };
 }
 
-export function makeDiagnoseHandler(run: DiagnoseRunner) {
+export interface DiagnoseHandlerOptions {
+  // דה-דופליקציה בצד שרת (חסם-Vercel מותנה, מפת "לצאת החוצה"): רץ אחרי הולידציה ולפני פתיחת
+  // הזרם - תשובה שחוזרת מכאן (למשל 409 "כבר רץ") נשלחת במקום סריקה חדשה בתשלום. null = להמשיך
+  preflight?: (target: DiagnoseTarget) => Promise<Response | null>;
+  // הישרדות על serverless (Vercel): ה-route מוסר לכאן את after() של Next - הפונקציה מקבלת את
+  // הבטחת הסריקה כולה, והפלטפורמה מחזיקה את האינסטנס חי עד שהיא נגמרת גם אם הלקוח התנתק
+  // באמצע הזרם. מקומית (שרת Node ארוך-טווח) זה מיותר אך לא מזיק - הסריקה ממשיכה ממילא
+  keepAlive?: (work: Promise<unknown>) => void;
+}
+
+export function makeDiagnoseHandler(run: DiagnoseRunner, opts: DiagnoseHandlerOptions = {}) {
   return async function handle(req: Request): Promise<Response> {
     let body: unknown;
     try {
@@ -54,6 +64,11 @@ export function makeDiagnoseHandler(run: DiagnoseRunner) {
     }
     const target = parseDiagnoseBody(body);
     if ("error" in target) return Response.json(target, { status: 400 });
+
+    if (opts.preflight != null) {
+      const blocked = await opts.preflight(target);
+      if (blocked != null) return blocked;
+    }
 
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
@@ -76,7 +91,7 @@ export function makeDiagnoseHandler(run: DiagnoseRunner) {
         // done נפלט על ידי ה-runner עצמו (בעלות האירועים מתועדת ב-diagnose-events) - כאן רק error וסגירה
         // Promise.resolve().then(...) עוטף גם קריאה שזורקת סינכרונית (לפני הגעה ל-await ראשון) -
         // בלי זה, run(target, emit) עצמה הייתה זורקת בתוך start() ומפילה את בניית הזרם (500), לא NDJSON נקי
-        Promise.resolve()
+        const work = Promise.resolve()
           .then(() => run(target, emit))
           .catch((err) => {
             // שגיאות מוכרות שלנו (עברית, נכתבו למשתמש) עוברות; כל השאר - גנרית + לוג מלא בצד שרת
@@ -92,6 +107,8 @@ export function makeDiagnoseHandler(run: DiagnoseRunner) {
               try { controller.close(); } catch { /* כבר נסגר */ }
             }
           });
+        // ההבטחה כבר עטופה כולה (catch+finally למעלה) - מה שנמסר ל-keepAlive לעולם לא דוחה
+        opts.keepAlive?.(work);
       },
     });
     return new Response(stream, {

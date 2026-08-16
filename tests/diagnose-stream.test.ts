@@ -87,6 +87,43 @@ describe("parseDiagnoseBody", () => {
   });
 });
 
+describe("makeDiagnoseHandler - preflight (דדופ צד שרת) + keepAlive (הישרדות serverless)", () => {
+  it("preflight שמחזיר תשובה עוצר הכול - ה-runner לא נקרא בכלל, התשובה חוזרת כלשונה", async () => {
+    let ran = false;
+    const handler = makeDiagnoseHandler(
+      async () => { ran = true; return { diagnosisId: "d1" }; },
+      { preflight: async () => Response.json({ error: "כבר רץ", diagnosisId: "d9" }, { status: 409 }) },
+    );
+    const res = await handler(req({ placeId: "p1", name: "עסק" }));
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: "כבר רץ", diagnosisId: "d9" });
+    expect(ran).toBe(false);
+  });
+
+  it("preflight שמחזיר null - הזרם נפתח כרגיל; ה-preflight מקבל את היעד המפורסר", async () => {
+    let seenTarget: DiagnoseTarget | null = null;
+    const handler = makeDiagnoseHandler(
+      async (_t, onEvent) => { onEvent({ type: "done", diagnosisId: "d1" }); return { diagnosisId: "d1" }; },
+      { preflight: async (target) => { seenTarget = target; return null; } },
+    );
+    const res = await handler(req({ placeId: "p1", name: "עסק" }));
+    expect(res.status).toBe(200);
+    expect(seenTarget).toEqual({ kind: "places", placeId: "p1", name: "עסק", city: undefined });
+  });
+
+  it("keepAlive מקבל הבטחה שמסתיימת עם העבודה - וגם כשהיא נכשלת ההבטחה לא דוחה (עטופה)", async () => {
+    let captured: Promise<unknown> | null = null;
+    const handler = makeDiagnoseHandler(
+      async () => { throw new Error("קריסה"); },
+      { keepAlive: (work) => { captured = work; } },
+    );
+    const res = await handler(req({ placeId: "p1", name: "עסק" }));
+    await res.text(); // מרוקן את הזרם
+    expect(captured).not.toBeNull();
+    await expect(captured).resolves.toBeUndefined();
+  });
+});
+
 describe("makeDiagnoseHandler", () => {
   // ה-runner (runDiagnosis) הוא האחראי הבלעדי לאירוע done - הוא פולט אותו אחרי ה-backfill.
   // ה-handler רק מזרים וסוגר; לכן ה-fake כאן פולט done בעצמו, וה-handler לא מוסיף אחד משלו

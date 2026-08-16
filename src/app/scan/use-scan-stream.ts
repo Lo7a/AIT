@@ -113,9 +113,11 @@ export function useScanStream(target: Target): ScanStreamState {
       }
       if (!res.ok || !res.body) {
         const data = (await res.json().catch(() => null)) as { error?: string } | null;
-        // שגיאות 400 הן מחרוזות עברית שלנו; כל השאר מקבל הודעה גנרית
+        // כל שגיאות ה-4xx שלנו נושאות הודעה עברית כתובה למשתמש (ולידציה 400, בעלות/דדופ 409,
+        // מגבלת קצב 429, שומרי בקשה 401/403/415) - מציגים אותה כלשונה; כל השאר גנרית
         if (!cancelled) {
-          setError(res.status === 400 && data?.error ? data.error : "האבחון נכשל, נסו שוב");
+          const clientError = res.status >= 400 && res.status < 500;
+          setError(clientError && data?.error ? data.error : "האבחון נכשל, נסו שוב");
         }
         release();
         return;

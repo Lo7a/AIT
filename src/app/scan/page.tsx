@@ -1,18 +1,16 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { prisma } from "../../server/db";
-import { findLatestDiagnosis } from "../../server/diagnosis-lookup";
+import { findLatestDiagnosis, isRecentInFlight } from "../../server/diagnosis-lookup";
 import { getSessionUser } from "../../server/auth/session";
 import { getServerClaims, hasAuthConfig } from "../../server/auth/supabase-server";
 import { userCanAccessDiagnosis } from "../../server/auth/guard";
 import { THEME_COOKIE, parseTheme } from "../theme";
 import { getVariant } from "../variants/registry";
 
-// טרי מספיק כדי לחבר במקום לירות סריקה חדשה, אבל לא נצחי: אבחון ישן שנתקע ב-scanning/scanned
-// (תקלה בעבר) לא אמור לנעול לצמיתות ניסיון חדש לאותו יעד
-const ATTACH_MAX_AGE_SECONDS = 180;
 // חלון קצר בהרבה לניתוב אוטומטי לדוח מוכן - רק "בדיוק סיימנו ורעננו" תופס; דוח ישן יותר לא
-// אמור לחטוף רענון-אחזור בלי שהמשתמש ביקש לסרוק שוב במפורש
+// אמור לחטוף רענון-אחזור בלי שהמשתמש ביקש לסרוק שוב במפורש. חלון החיבור לסריקה חיה עבר
+// ל-diagnosis-lookup.ts (isRecentInFlight) - משותף עם ה-dedup בצד השרת
 const REPORT_READY_MAX_AGE_SECONDS = 600;
 
 // searchParams ב-Next 15 הוא Promise; העמוד דינמי מטבעו
@@ -71,11 +69,7 @@ export default async function ScanPage({
   const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
   const { Scan } = getVariant(theme);
 
-  if (
-    latest
-    && (latest.status === "scanning" || latest.status === "scanned")
-    && latest.ageSeconds < ATTACH_MAX_AGE_SECONDS
-  ) {
+  if (isRecentInFlight(latest)) {
     return <Scan target={target} attach={{ diagnosisId: latest.diagnosisId, status: latest.status }} />;
   }
 
