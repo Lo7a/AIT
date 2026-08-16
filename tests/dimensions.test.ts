@@ -407,6 +407,81 @@ describe("accessibility: a11y_statement + site_a11y (הצהרת נגישות ו�
   });
 });
 
+// דיווח מייסד (edrieng.co.il): אתר Vue, ה-HTML הגולמי לא מכיל אף <form>/<input> כי הטופס האמיתי
+// מרונדר בצד לקוח - "אין טופס יצירת קשר" הייתה הגזמה, פשוט לא ראינו. כשזוהתה תשתית קליינט
+// (clientFramework) וסיגנל שלילי, החוק הופך "לא נבדק" במקום פער מבוטח. גילוי חיובי תמיד ידוע -
+// ומודעה גם חוקי whatsapp/phone/email לא זזים (הקישורים האלה בקליפה, לא בתוכן הדינמי)
+describe("clientFramework: אי-ידיעה כנה לאתרי SPA (Vue/React/Angular) - במקום פער מבוטח", () => {
+  const withFramework = (over: Partial<import("../src/pipeline/types").WebsiteSignals> = {}): ScanFindings => ({
+    business: { placeId: "p20", name: "עסק SPA", phone: "03-000", website: "https://spa.co.il" },
+    websiteSignals: {
+      pagesCrawled: 1, crawledUrls: [], hasContactForm: false, hasWhatsappLink: false,
+      hasPhoneLink: false, hasEmailLink: false, hasOnlineBooking: false, hasChatWidget: false,
+      hasFacebookPixel: false, hasGoogleAnalytics: false, clientFramework: "vue", jsRendered: false,
+      ...over,
+    },
+    partial: [],
+    meta: META,
+  });
+  const ruleOf = (f: ScanFindings, key: string) =>
+    scoreFindings(DIMENSIONS, f).dimensions.flatMap((d) => d.rules).find((r) => r.key === key)!;
+
+  it.each(["contact_form", "online_booking", "chat_widget"] as const)(
+    "%s: clientFramework מזוהה + סיגנל false -> known=false (לא נבדק, לא פער)",
+    (key) => {
+      const rule = ruleOf(withFramework(), key);
+      expect(rule.known).toBe(false);
+    },
+  );
+
+  it.each(["contact_form", "online_booking", "chat_widget"] as const)(
+    "%s: clientFramework מזוהה אבל סיגנל true -> earned, תמיד ידוע (עדות שנמצאה בשרת אמינה)",
+    (key) => {
+      const signalField = { contact_form: "hasContactForm", online_booking: "hasOnlineBooking", chat_widget: "hasChatWidget" }[key];
+      const rule = ruleOf(withFramework({ [signalField]: true }), key);
+      expect(rule.known).toBe(true);
+      expect(rule.earned).toBe(true);
+    },
+  );
+
+  it.each(["contact_form", "online_booking", "chat_widget"] as const)(
+    "%s: בלי clientFramework וסיגנל false - רגרסיה: known=true (crawlUsable), פער כרגיל",
+    (key) => {
+      const rule = ruleOf(withFramework({ clientFramework: undefined }), key);
+      expect(rule.known).toBe(true);
+      expect(rule.earned).toBe(false);
+    },
+  );
+
+  it("whatsapp/phone/email/a11y_statement לא זזים - הקישורים האלה בקליפה, לא בתוכן הדינמי", () => {
+    const f = withFramework({ hasWhatsappLink: true, hasPhoneLink: true, hasEmailLink: true, hasAccessibilityStatement: true });
+    for (const key of ["whatsapp", "phone_available", "email_link", "a11y_statement"]) {
+      const rule = ruleOf(f, key);
+      expect(rule.known, key).toBe(true);
+      expect(rule.earned, key).toBe(true);
+    }
+    // ובלי הסיגנלים - עדיין known=true (crawlUsable), פער רגיל - לא הופך "לא נבדק" בגלל clientFramework.
+    // business.phone מוסר מפורשות כאן: phone_available נהנה גם מטלפון ב-GBP (לא רק מהאתר), אז
+    // השארתו היה הופך את phone_available ל-earned תמיד בטעות ולא בודק בכלל את הנתיב הזה
+    const noSignals: ScanFindings = { ...withFramework(), business: { ...withFramework().business, phone: undefined } };
+    for (const key of ["whatsapp", "phone_available", "email_link", "a11y_statement"]) {
+      const rule = ruleOf(noSignals, key);
+      expect(rule.known, key).toBe(true);
+      expect(rule.earned, key).toBe(false);
+    }
+  });
+
+  // דיווח מייסד - התרחיש החי המדויק: Vue, וואטסאפ+טלפון+הצהרת נגישות בקליפה, אין טפסים
+  it("live-shaped edrieng fixture: contact_form לא נבדק, whatsapp/a11y_statement earned", () => {
+    const edrieng = withFramework({
+      hasWhatsappLink: true, hasPhoneLink: true, hasAccessibilityStatement: true,
+    });
+    expect(ruleOf(edrieng, "contact_form").known).toBe(false);
+    expect(ruleOf(edrieng, "whatsapp").earned).toBe(true);
+    expect(ruleOf(edrieng, "a11y_statement").earned).toBe(true);
+  });
+});
+
 // ------- ממד "בשלות תהליכים" (אבן דרך 4, משימה 1) - נגזר ממודל העסק, לא מ-ScanFindings -------
 
 function makeModel(

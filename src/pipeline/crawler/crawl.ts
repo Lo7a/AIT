@@ -150,6 +150,7 @@ export async function crawlWebsite(
       const signals = extractSignals(page.html, finalUrl);
       for (const key of BOOL_KEYS) merged[key] = merged[key] || signals[key];
       merged.platform = merged.platform ?? signals.platform;
+      merged.clientFramework = merged.clientFramework ?? signals.clientFramework;
       crawledUrls.push(finalUrl);
     } catch {
       // עמוד פנימי שנפל לא מפיל את הסריקה
@@ -170,6 +171,7 @@ export async function crawlWebsite(
     hasAccessibilityStatement: merged.hasAccessibilityStatement,
     hasAccessibilityWidget: merged.hasAccessibilityWidget,
     platform: merged.platform,
+    clientFramework: merged.clientFramework,
     jsRendered,
   };
 }

@@ -44,6 +44,11 @@ export interface WebsiteSignals {
   // fixtures קיימים של WebsiteSignals בכל הבדיקות; crawl.ts תמיד ממלא ערך אמיתי (true/false) בפועל
   hasAccessibilityStatement?: boolean;
   hasAccessibilityWidget?: boolean;
+  // תשתית קליינט מזוהה (vue/react/angular) - טביעת אצבע בסמנים ידועים, לא ניחוש (ראו signals.ts).
+  // דיווח מייסד (edrieng.co.il): אתר Vue שהטופס האמיתי שלו מרונדר בדפדפן - ה-HTML הגולמי לא מכיל
+  // אף <form>. כשהשדה הזה מוגדר וסיגנל שלילי (contact_form/online_booking/chat_widget) לא נמצא,
+  // dimensions.ts מדווח "לא נבדק" במקום פער מבוטח - אסור לטעון "אין" ממה שפשוט לא ראינו
+  clientFramework?: string;
 }
 
 // גרסה מקוצצת של גוף PSI - קטגוריות+ציונים, מדדי ליבה (כולל LCP), ו-loadingExperience אם קיים.

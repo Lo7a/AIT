@@ -40,6 +40,22 @@ const NON_CONTACT_FORM_RE = /(?:^|[^a-z])(search|newsletter|subscribe|mc4wp|logi
 // קישורים לקבצים — לא עמודים, לא נכנסים לתור הסריקה
 const ASSET_EXT_RE = /\.(jpe?g|png|gif|webp|svg|avif|pdf|docx?|xlsx?|pptx?|zip|rar|mp4|mp3|csv)$/i;
 
+// זיהוי תשתית קליינט (Vue/React/Angular) - טביעת אצבע לפי סמנים ידועים בקוד הגולמי, לא ניחוש
+// (אותה פילוסופיה כמו platform למעלה). המקרה החי: edrieng.co.il, אתר Vue שהטופס האמיתי שלו
+// מרונדר בדפדפן - ה-HTML הגולמי לא מכיל אף <form>/<input>. data-v-XXXXXXXX הוא ה-hash שVue
+// מזריק לכל אלמנט עם scoped style; __NUXT__/_nuxt/ הם סמני Nuxt (Vue). מארקרי React/Next
+// זהים בכוונה ל-JS_APP_ROOT_RE ב-crawl.ts (jsRendered) - כאן ברמת עמוד בודד, לא רמת אתר
+const VUE_MARKER_RE = /data-v-[0-9a-f]{6,10}\b|__NUXT__|\/_nuxt\/|vue-router|Vue\.createApp/i;
+const REACT_MARKER_RE = /__NEXT_DATA__|self\.__next_f|\/_next\/static\/|data-reactroot|\bid=["']?__next\b/i;
+const ANGULAR_MARKER_RE = /\bng-version=/i;
+
+function detectClientFramework(html: string): string | undefined {
+  if (VUE_MARKER_RE.test(html)) return "vue";
+  if (REACT_MARKER_RE.test(html)) return "react";
+  if (ANGULAR_MARKER_RE.test(html)) return "angular";
+  return undefined;
+}
+
 // פונקציה טהורה: HTML פנימה, סיגנלים החוצה. בלי רשת, בלי מצב.
 // baseUrl = כתובת העמוד הזה עצמו — משמשת לפתרון קישורים יחסיים ולבדיקת same-origin
 export function extractSignals(html: string, baseUrl: string): PageSignals {
@@ -137,6 +153,7 @@ export function extractSignals(html: string, baseUrl: string): PageSignals {
     hasAccessibilityStatement,
     hasAccessibilityWidget: A11Y_WIDGET_RE.test(lowerHtml),
     platform,
+    clientFramework: detectClientFramework(html),
     internalLinks: [...new Set(internalLinks)],
   };
 }

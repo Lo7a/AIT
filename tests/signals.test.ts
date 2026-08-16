@@ -238,3 +238,52 @@ describe("accessibility statement + widget detection", () => {
     expect(extractSignals(`<div class="userway-widget"></div>`, BASE).hasAccessibilityWidget).toBe(true);
   });
 });
+
+// זיהוי תשתית קליינט (Vue/React/Angular) - המקרה החי: edrieng.co.il, אתר Vue שה-HTML הגולמי שלו
+// לא מכיל אף <form>/<input> כי הטופס האמיתי מרונדר בדפדפן. בלי הזיהוי הזה הדוח טוען בביטחון
+// "אין טופס יצירת קשר" - הגזמה, פשוט לא ראינו
+describe("clientFramework detection", () => {
+  it("detects Vue via the data-v- scoped-style attribute", () => {
+    const html = `<div data-v-7a7a37b1 class="app"></div>`;
+    expect(extractSignals(html, BASE).clientFramework).toBe("vue");
+  });
+
+  it("detects Vue/Nuxt via the __NUXT__ marker", () => {
+    const html = `<script>window.__NUXT__={}</script>`;
+    expect(extractSignals(html, BASE).clientFramework).toBe("vue");
+  });
+
+  it("detects Vue/Nuxt via the /_nuxt/ build path", () => {
+    const html = `<script src="/_nuxt/entry.abc123.js"></script>`;
+    expect(extractSignals(html, BASE).clientFramework).toBe("vue");
+  });
+
+  it("detects React/Next via __NEXT_DATA__", () => {
+    const html = `<script id="__NEXT_DATA__" type="application/json">{}</script>`;
+    expect(extractSignals(html, BASE).clientFramework).toBe("react");
+  });
+
+  it("detects React/Next via /_next/static/ (App Router shape)", () => {
+    const html = `<script src="/_next/static/chunks/webpack-abc.js"></script>`;
+    expect(extractSignals(html, BASE).clientFramework).toBe("react");
+  });
+
+  it("detects React via the data-reactroot marker", () => {
+    const html = `<div id="root" data-reactroot=""></div>`;
+    expect(extractSignals(html, BASE).clientFramework).toBe("react");
+  });
+
+  it("detects Angular via ng-version", () => {
+    const html = `<app-root ng-version="17.0.0"></app-root>`;
+    expect(extractSignals(html, BASE).clientFramework).toBe("angular");
+  });
+
+  it("plain server-rendered HTML has no clientFramework", () => {
+    const html = `<html><body><h1>ברוכים הבאים</h1><p>טלפון: 03-1234567</p></body></html>`;
+    expect(extractSignals(html, BASE).clientFramework).toBeUndefined();
+  });
+
+  it("a WordPress site with no JS-framework markers has no clientFramework", () => {
+    expect(extractSignals(RICH_HTML, BASE).clientFramework).toBeUndefined();
+  });
+});

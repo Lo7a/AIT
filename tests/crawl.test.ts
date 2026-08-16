@@ -241,6 +241,99 @@ describe("crawlWebsite", () => {
   });
 });
 
+// זיהוי תשתית קליינט (Vue/React/Angular) ברמת האתר - מיזוג "ראשון שאינו null", כמו platform
+describe("clientFramework site-level merge", () => {
+  it("home page carries the marker - clientFramework מדווח ברמת האתר", async () => {
+    const vueHome = `<html><body><div data-v-1234abcd><a href="/gallery">גלריה</a></div></body></html>`;
+    const fetchImpl = vi.fn(async (url: RequestInfo | URL) => {
+      const u = url.toString();
+      if (u.includes("/gallery")) return htmlResponse(GALLERY);
+      return htmlResponse(vueHome);
+    });
+    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 2 });
+    expect(signals.clientFramework).toBe("vue");
+  });
+
+  it("marker found only on an inner page - עדיין ממוזג לרמת האתר (כמו platform)", async () => {
+    const nextContact = `<html><head><script id="__NEXT_DATA__" type="application/json">{}</script></head>
+      <body><a href="https://wa.me/972501234567">וו</a></body></html>`;
+    const fetchImpl = vi.fn(async (url: RequestInfo | URL) => {
+      const u = url.toString();
+      if (u.includes("/contact")) return htmlResponse(nextContact);
+      if (u.includes("/gallery")) return htmlResponse(GALLERY);
+      return htmlResponse(HOME);
+    });
+    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 3 });
+    expect(signals.clientFramework).toBe("react");
+  });
+
+  it("no marker anywhere - clientFramework נשאר undefined (רגרסיה)", async () => {
+    const fetchImpl = vi.fn(async (url: RequestInfo | URL) => {
+      const u = url.toString();
+      if (u.includes("/contact")) return htmlResponse(CONTACT);
+      return htmlResponse(HOME);
+    });
+    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 2 });
+    expect(signals.clientFramework).toBeUndefined();
+  });
+});
+
+// דיווח מייסד: קפסולת maxPages (8) חתכה עמוד צור-קשר שנמצא רק במקום ה-10 בסדר הגילוי בקישורי
+// עמוד הבית, ולכן לעולם לא נסרק. תור העדיפות (priorityOf/PRIORITY_KEYWORDS) כבר קיים בקוד -
+// הבדיקה הזו נועלת את ההתנהגות המפורשת שהמייסד ביקש: עמוד "צור קשר" שמתגלה עשירי עדיין נכנס
+// לתחת ה-cap, והמיון יציב (סדר יחסי בין עמודים שאינם contact-ish נשמר)
+describe("crawl queue prioritizes contact-ish pages beyond the cap (founder report)", () => {
+  it("a contact page discovered 10th is still crawled within the default 8-page cap", async () => {
+    const links = Array.from({ length: 9 }, (_, i) => `<a href="/p${i}">עמוד ${i}</a>`).join("");
+    const home = `<html><body>${links}<a href="/contact">צור קשר</a></body></html>`;
+    const fetchImpl = vi.fn(async (url: RequestInfo | URL) => {
+      const u = url.toString();
+      if (u.includes("/contact")) return htmlResponse(CONTACT);
+      if (u.includes("/p")) return htmlResponse(GALLERY);
+      return htmlResponse(home);
+    });
+    const signals = await crawlWebsite("https://example.co.il", { fetchImpl }); // maxPages ברירת מחדל = 8
+    expect(signals.pagesCrawled).toBe(8);
+    expect(signals.crawledUrls.some((u) => u.includes("/contact"))).toBe(true);
+    expect(signals.hasWhatsappLink).toBe(true); // האות מ-/contact נאסף בפועל
+  });
+
+  it("ordering is stable: among non-priority pages, discovery order is preserved", async () => {
+    const home = `<html><body><a href="/zeta">ז</a><a href="/alpha">א</a><a href="/contact">צור קשר</a><a href="/beta">ב</a></body></html>`;
+    const fetchImpl = vi.fn(async (url: RequestInfo | URL) => {
+      const u = url.toString();
+      if (u.includes("/contact")) return htmlResponse(CONTACT);
+      return htmlResponse(GALLERY);
+    });
+    fetchImpl.mockImplementationOnce(async () => htmlResponse(home));
+    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 4 });
+    // contact-ish קודם, ואז zeta/alpha/beta בסדר הגילוי המקורי שלהם (לא אלפביתי, לא הפוך)
+    const paths = signals.crawledUrls.map((u) => new URL(u).pathname);
+    expect(paths).toEqual(["/", "/contact", "/zeta", "/alpha"]);
+  });
+});
+
+// המקרה החי (edrieng.co.il): אתר Vue, ה-HTML הגולמי לא מכיל אף <form>/<input> - הטופס האמיתי
+// מרונדר בצד לקוח. וואטסאפ/טלפון/קישור הצהרת נגישות כן בקליפה (server-rendered) ולכן נמצאים
+describe("live-shaped fixture: Vue SPA with a server shell (edrieng.co.il case)", () => {
+  it("crawlWebsite reports clientFramework=vue, no contact form, whatsapp+a11y-statement found", async () => {
+    const vueHome = `<html><body>
+      <div id="app" data-v-4a1f9c2e>
+        <a href="https://wa.me/972501234567">וואטסאפ</a>
+        <a href="tel:03-1234567">התקשרו</a>
+        <a href="/accessibility-statement">הצהרת נגישות</a>
+      </div>
+    </body></html>`;
+    const fetchImpl = vi.fn().mockResolvedValue(htmlResponse(vueHome));
+    const signals = await crawlWebsite("https://edrieng.co.il", { fetchImpl });
+    expect(signals.clientFramework).toBe("vue");
+    expect(signals.hasContactForm).toBe(false);
+    expect(signals.hasWhatsappLink).toBe(true);
+    expect(signals.hasPhoneLink).toBe(true);
+    expect(signals.hasAccessibilityStatement).toBe(true);
+  });
+});
+
 // באג מאומת (דוח SSRF): בדיקת המארח רצה רק בשכבת ה-API על הכתובת שהוגשה, ו-fetchPage עקב
 // אחרי הפניות עם redirect ברירת המחדל - מארח ציבורי שמחזיר 302 ל-127.0.0.1 גרר את הסורק
 // לרשת הפנימית וגם לקישורים שנמצאו שם. ההגנה עברה לשכבת ה-fetch: כל כתובת, בכל קפיצה

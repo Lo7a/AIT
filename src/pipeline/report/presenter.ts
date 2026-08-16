@@ -26,6 +26,45 @@ export const DIAGNOSIS_STATUS_LABEL: Record<DiagnosisStatus, string> = {
   roadmap_ready: "Roadmap מוכן",
 };
 
+// תווית עברית קצרה, פונה לבעל העסק, לכל מפתח חוק אמיתי (DIMENSIONS + processRules(null) ב-
+// dimensions.ts). דיווח מייסד: הדוח הציג "לא נבדק - אין מידע (no_problem_themes)" - שם המשתנה
+// הגולמי במקום עברית. חוק חדש בלי תווית כאן ייכשל בבדיקה (tests/presenter.test.ts), לא בפרודקשן -
+// ראו RuleLine ב-default-screens.tsx, שמשתמש כאן עם נפילה חזרה על rule.key אם המפה פיגרה בכל זאת
+export const RULE_LABEL_HE: Record<string, string> = {
+  // process (בשלות תהליכים)
+  lead_handling: "טיפול בפניות",
+  manual_tasks: "עבודה ידנית חוזרת",
+  internal_tools: "כלי ניהול פנימי",
+  // visibility (נראות דיגיטלית)
+  gbp_exists: "פרופיל עסקי בגוגל",
+  has_website: "קיום אתר",
+  own_website: "אתר עצמאי",
+  perf: "מהירות האתר",
+  lcp: "זמן טעינה ראשוני",
+  seo: "בסיס SEO",
+  gbp_phone: "טלפון בפרופיל גוגל",
+  gbp_rating: "דירוג בגוגל",
+  // reputation (מוניטין וביקורות)
+  has_reviews: "ביקורות בגוגל",
+  review_volume: "היקף ביקורות",
+  rating_good: "רמת הדירוג",
+  no_problem_themes: "בעיות חוזרות בביקורות",
+  positive_themes: "נקודות חוזק בביקורות",
+  // accessibility (נגישות ללקוח)
+  phone_available: "טלפון נגיש ללקוח",
+  whatsapp: "וואטסאפ באתר",
+  contact_form: "טופס יצירת קשר",
+  online_booking: "קביעת תור אונליין",
+  email_link: "אימייל נגיש",
+  a11y_statement: "הצהרת נגישות",
+  site_a11y: "נגישות האתר",
+  // infrastructure (תשתית דיגיטלית)
+  analytics: "מדידת תנועה באתר",
+  fb_pixel: "פיקסל פייסבוק",
+  chat_widget: "צ'אט באתר",
+  multi_page: "אתר רב-עמודי",
+};
+
 export const PARTIAL_FLAG_LABEL: Record<PartialFlag, string> = {
   no_website: "אין אתר לעסק",
   few_reviews: "מעט ביקורות",

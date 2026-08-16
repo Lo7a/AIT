@@ -6,6 +6,19 @@ import type { BusinessModel, ModelSection } from "../model/business-model";
 
 // עזר "ידוע" מקומי לממד הזה בלבד — לא משותף (רק accessibility צריך אותו)
 const phoneFound = (f: ScanFindings) => !!f.business.phone || !!f.websiteSignals?.hasPhoneLink;
+
+// אות שלילי שמקורו ב-crawl (contact_form/online_booking/chat_widget - התכונה שהם בודקים
+// מרונדרת ב-JS לעתים): "לא נמצא" אמין רק כשה-crawl שמיש וגם לא זוהתה תשתית קליינט (Vue/React/
+// Angular). המקרה החי: edrieng.co.il - אתר Vue, טופס יצירת קשר אמיתי קיים אך מרונדר בצד לקוח,
+// ה-HTML הגולמי לא מכיל אף <form>/<input>. "אין טופס יצירת קשר" הייתה הגזמה - פשוט לא ראינו.
+// גילוי חיובי (signal=true) תמיד ידוע, גם עם clientFramework - עדות שנמצאה בשרת אמינה בכל מקרה.
+// whatsapp/phone_available/email_link לא עוברים דרך העזר הזה בכוונה - הקישורים האלה בקליפה
+// (shell), לא בתוכן הדינמי, אז "לא נמצא" עדיין אמין גם באתר SPA
+const knownCrawlNegative = (f: ScanFindings, signal: boolean | undefined): boolean => {
+  if (signal) return true;
+  if (f.websiteSignals?.clientFramework) return false;
+  return crawlUsable(f);
+};
 // "חוזרת" = עולה יותר מפעם אחת במדגם שנבדק, לא כל תמה שצוינה
 const recurringProblems = (f: ScanFindings) =>
   (f.reviewInsights?.problemThemes ?? []).filter((t) => t.count >= 2);
@@ -80,8 +93,10 @@ const reportedText = (model: BusinessModel | null, section: ModelSection): strin
     .join(" ");
 };
 
-// מילות מפתח לנפילת פניות - מופיעות בטקסט המדווח בכל שם שדה (לא רק leadDrop)
-const LEAD_DROP_RE = /מתפספס|מתפספסת|מתפספסים|נופל|נופלת|נופלות|נופלים|הולך לאיבוד|הולכת לאיבוד|הולכים לאיבוד|הולכות לאיבוד|לא חוזרים|לא חוזרות|מפספס|מפספסת|מפספסים/i;
+// מילות מפתח לנפילת פניות - מופיעות בטקסט המדווח בכל שם שדה (לא רק leadDrop). מיוצא כדי
+// שבדיקות על ניסוח אפשרויות הבחירה המרובה בבנק השאלות (questions.ts) יוכלו להצליב מול הרג'קס
+// עצמו ולא רק לצטט אותו - ראו interview-questions.test.ts
+export const LEAD_DROP_RE = /מתפספס|מתפספסת|מתפספסים|נופל|נופלת|נופלות|נופלים|הולך לאיבוד|הולכת לאיבוד|הולכים לאיבוד|הולכות לאיבוד|לא חוזרים|לא חוזרות|מפספס|מפספסת|מפספסים/i;
 
 // "אין עבודה ידנית" מפורש - שלילה מפורשת, לא רק היעדר טקסט
 const NO_MANUAL_TASKS_RE = /אין משימות ידניות|אין עבודה ידנית|אין עבודה ידנית חוזרת|הכל אוטומטי|הכל אוטומטית|בלי עבודה ידנית|בלי משימות ידניות/i;
@@ -297,14 +312,14 @@ export const DIMENSIONS: DimensionDef[] = [
       },
       {
         key: "contact_form", points: 15,
-        known: (f) => crawlUsable(f) || !!f.websiteSignals?.hasContactForm,
+        known: (f) => knownCrawlNegative(f, f.websiteSignals?.hasContactForm),
         earned: (f) => !!f.websiteSignals?.hasContactForm,
         gapText: () => "אין טופס יצירת קשר באתר, לידים הולכים לאיבוד",
         okText: () => "יש טופס יצירת קשר",
       },
       {
         key: "online_booking", points: 30,
-        known: (f) => crawlUsable(f) || !!f.websiteSignals?.hasOnlineBooking,
+        known: (f) => knownCrawlNegative(f, f.websiteSignals?.hasOnlineBooking),
         earned: (f) => !!f.websiteSignals?.hasOnlineBooking,
         gapText: () => "אין קביעת תור/הזמנה אונליין, כל תיאום דורש טלפון בשעות הפעילות",
         okText: () => "יש קביעת תור אונליין",
@@ -320,6 +335,11 @@ export const DIMENSIONS: DimensionDef[] = [
         key: "a11y_statement", points: 15,
         // תקנות נגישות השירות (חוק שוויון זכויות לאנשים עם מוגבלות) מחייבות עסקים בישראל בהצהרת
         // נגישות נגישה באתר - זו דרישה חוקית שעסקים נתבעים עליה בפועל, וקל יחסית לסגור אותה
+        //
+        // בכוונה לא עובר דרך knownCrawlNegative (clientFramework): קישור הצהרת נגישות הוא בדרך
+        // כלל חלק מהקליפה (header/footer), server-rendered גם באתרי SPA - נבדק אמפירית במקרה
+        // החי (edrieng.co.il, אתר Vue): קישור ההצהרה כן נמצא ב-HTML הגולמי. "לא נמצא" כאן עדיין
+        // אמין כשה-crawl שמיש, גם אם זוהתה תשתית קליינט - לא נכון להפוך את זה ל"לא נבדק" בסתם
         known: (f) => crawlUsable(f),
         earned: (f) => !!f.websiteSignals?.hasAccessibilityStatement,
         gapText: () => "אין הצהרת נגישות באתר - דרישה חוקית בישראל שעסקים נתבעים עליה, וקל לסגור אותה",
@@ -358,7 +378,7 @@ export const DIMENSIONS: DimensionDef[] = [
       },
       {
         key: "chat_widget", points: 20,
-        known: (f) => crawlUsable(f) || !!f.websiteSignals?.hasChatWidget,
+        known: (f) => knownCrawlNegative(f, f.websiteSignals?.hasChatWidget),
         earned: (f) => !!f.websiteSignals?.hasChatWidget,
         // כשיש כפתור וואטסאפ הבעלים רואה "צ'אט" באתר שלו - הניסוח חייב להכיר בזה,
         // אחרת הדוח נשמע טועה (ממצא מייסד על פיצה סבא אדוארד: בועת וואטסאפ נראית כמו צ'אט)

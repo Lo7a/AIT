@@ -5,7 +5,7 @@ import type { Target } from "../scan/use-scan-stream";
 import { DIAGNOSIS_STATUS_LABEL } from "../../pipeline/report/presenter";
 import type { DiagnosisListItem, ReportView } from "../../server/diagnosis-read";
 import {
-  DATA_STATUS_LABEL, PARTIAL_FLAG_LABEL, scoreTone, type ScoreToneKind,
+  DATA_STATUS_LABEL, PARTIAL_FLAG_LABEL, RULE_LABEL_HE, scoreTone, type ScoreToneKind,
 } from "../../pipeline/report/presenter";
 import type { DataStatus, RuleResult } from "../../pipeline/score/types";
 import type { DiagnosisStatus } from "../../server/status";
@@ -177,12 +177,11 @@ function RuleIcon({ rule }: { rule: RuleResult }) {
 
 function RuleLine({ rule }: { rule: RuleResult }) {
   if (!rule.known) {
+    // שם עברי לבעל העסק, לא מפתח החוק הגולמי (דיווח מייסד) - נפילה חזרה על rule.key רק אם
+    // המפה פיגרה אחרי dimensions.ts (לא אמור לקרות, tests/presenter.test.ts נועל את זה)
     return (
       <span className="text-[#6F6E6A]">
-        לא נבדק - אין מידע{" "}
-        <span className="font-mono text-xs" dir="ltr">
-          ({rule.key})
-        </span>
+        לא נבדק - אין מידע ({RULE_LABEL_HE[rule.key] ?? rule.key})
       </span>
     );
   }
