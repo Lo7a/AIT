@@ -9,6 +9,7 @@ import { personalLossLine } from "../../../pipeline/roadmap/loss-calc";
 import { getSessionUser } from "../../../server/auth/session";
 import { getServerClaims, hasAuthConfig } from "../../../server/auth/supabase-server";
 import { userCanAccessDiagnosis } from "../../../server/auth/guard";
+import { emitUsageEvent } from "../../../server/usage-events";
 import { THEME_COOKIE, parseTheme } from "../../theme";
 import { getVariant } from "../../variants/registry";
 
@@ -19,14 +20,20 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
 
   // תיחום בעלות (כמו בכל מסכי ה-[id]): אנונימי מופנה לכניסה, אבחון זר מקבל בדיוק את אותו
   // 404 כמו אבחון שלא קיים. בסביבה בלי מפתחות Supabase המסכים נשארים פתוחים (מצב פיתוח)
+  const user = hasAuthConfig() ? await getSessionUser(prisma, getServerClaims) : null;
   if (hasAuthConfig()) {
-    const user = await getSessionUser(prisma, getServerClaims);
     if (user == null) redirect("/login");
     if ((await userCanAccessDiagnosis(prisma, user, id).catch(() => null)) !== true) notFound();
   }
 
   const [report, cookieStore] = await Promise.all([getReport(prisma, id).catch(() => null), cookies()]);
   if (!report || !report.scan) notFound();
+
+  // צפייה בדוח נרשמת ביומן (usage-events) - הבסיס להיסטוריה, לסטטיסטיקות ולשימוש המכירתי
+  // של שלב ב (מי צפה במה = למי מתקשרים). רק אחרי שהגישה אושרה והדוח באמת קיים
+  if (user != null) {
+    await emitUsageEvent(prisma, { type: "report_viewed", userId: user.id, entityType: "diagnosis", entityId: id });
+  }
 
   const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
   const { Report } = getVariant(theme);

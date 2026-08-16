@@ -33,6 +33,7 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
   const roadmapItems: any[] = [];
   const briefs: any[] = [];
   const users: any[] = [];
+  const usageEvents: any[] = [];
   // "from→to" לפי סדר - לב האסרטים על מכונת המצבים. נרשמים רק מעברים שהצליחו בפועל (count:1);
   // מעבר שנכשל (race מדומה דרך failTransitions, או סטטוס לא תואם) לא משאיר עקבות כאן
   const transitions: string[] = [];
@@ -346,6 +347,19 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
         return { ...b };
       },
     },
+    // תמיכה מינימלית ל-usage-events.ts (יומן הפעולות): create בלבד - הצד הקורא (מסכי אדמין)
+    // יגיע בשלב האדמין ויוסיף כאן findMany לפי הצורך
+    usageEvent: {
+      create: async ({ data }: any) => {
+        const row = {
+          id: genId("evt"), type: data.type, userId: data.userId ?? null,
+          actorUserId: data.actorUserId ?? null, entityType: data.entityType ?? null,
+          entityId: data.entityId ?? null, metadata: data.metadata ?? null, createdAt: new Date(),
+        };
+        usageEvents.push(row);
+        return { ...row };
+      },
+    },
     // תמיכה מינימלית ל-auth/session.ts (טבלת המראה users): שליפה לפי כל אחד מהמפתחות
     // הייחודיים, יצירה עם אכיפת ייחודיות (authId/email - מדמה P2002 של Prisma האמיתי,
     // מנגנון ההזרקה לבדיקת מרוץ היצירה הכפולה), ועדכון לפי id
@@ -423,6 +437,6 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
 
   return {
     db: db as any, businesses, diagnoses, scans, models, messages, transitions,
-    catalogs, benchmarks, roadmaps, roadmapItems, briefs, users,
+    catalogs, benchmarks, roadmaps, roadmapItems, briefs, users, usageEvents,
   };
 }

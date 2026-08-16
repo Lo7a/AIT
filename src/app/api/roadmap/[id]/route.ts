@@ -8,6 +8,7 @@ import { makeBuildHandler, makeViewHandler } from "../../../../server/api/roadma
 import { getSessionUser } from "../../../../server/auth/session";
 import { getServerClaims } from "../../../../server/auth/supabase-server";
 import { assertDiagnosisAccess, unauthorizedResponse } from "../../../../server/auth/guard";
+import { emitUsageEvent } from "../../../../server/usage-events";
 
 // עוטף את completeJSON כ-CompleteFn - אותו דפוס בדיוק כמו ברירת המחדל הפנימית ב-extract.ts/
 // narrative.ts (opts.complete ?? completeJSON), רק שכאן זה חובה: buildRoadmap מקבל complete
@@ -29,6 +30,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const handler = makeBuildHandler(async (diagnosisId) => {
     await assertDiagnosisAccess(prisma, user, diagnosisId);
     const { roadmapId } = await buildRoadmap(prisma, complete, diagnosisId);
+    await emitUsageEvent(prisma, {
+      type: "roadmap_built", userId: user.id, entityType: "diagnosis", entityId: diagnosisId,
+    });
     return { roadmapId };
   });
   return handler(req, id);

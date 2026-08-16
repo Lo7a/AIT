@@ -5,6 +5,7 @@ import { InterviewError } from "../../../../pipeline/interview/contract";
 import { getSessionUser } from "../../../../server/auth/session";
 import { getServerClaims } from "../../../../server/auth/supabase-server";
 import { assertDiagnosisAccess, unauthorizedResponse } from "../../../../server/auth/guard";
+import { emitUsageEvent } from "../../../../server/usage-events";
 
 // חיווט קונקרטי (prisma + מימוש dev של התובלה) - כשיהיה ספק מייל אמיתי (Resend) מחליפים כאן
 // בלבד את consoleBriefTransport. תיחום בעלות: הפריט שייך ל-roadmap ששייך לאבחון - העלייה
@@ -21,7 +22,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ itemId: string
     const diagnosisId = item?.roadmap?.diagnosisId;
     if (diagnosisId == null) throw new InterviewError("הפריט לא נמצא", "not_found");
     await assertDiagnosisAccess(prisma, user, diagnosisId);
-    return sendBrief(prisma, consoleBriefTransport, id);
+    const result = await sendBrief(prisma, consoleBriefTransport, id);
+    await emitUsageEvent(prisma, {
+      type: "brief_sent", userId: user.id, entityType: "roadmap_item", entityId: id,
+      metadata: { sent: result.sent },
+    });
+    return result;
   });
   return handler(req, itemId);
 }
