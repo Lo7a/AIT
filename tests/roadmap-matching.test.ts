@@ -200,6 +200,52 @@ describe("matchOpportunities", () => {
     expect(negative.map((m) => m.catalog.id).sort()).toEqual(["c4", "c7"]);
   });
 
+  // ניתובי סבב ה-AI (16.8): manual_tasks נהיה מפתח מבוקש (סוכן התוכן וסוכן הצעות המחיר),
+  // וכאב טלפוני מנותב גם ל-lead_handling (הסוכן הקולי)
+  describe("ניתובי כאב לפריטי ה-AI החדשים", () => {
+    const VOICE_ITEM = catalogItem("c8", "סוכן AI קולי למענה טלפוני", ["lead_handling"]);
+    const CONTENT_ITEM = catalogItem("c9", "סוכן AI לתוכן ורשתות חברתיות", ["manual_tasks"]);
+    const PROPOSAL_ITEM = catalogItem("c10", "סוכן AI להצעות מחיר", ["manual_tasks"]);
+
+    it("כאב טלפוני מצרף את הציטוט גם לסוכן הקולי (lead_handling), לא רק לבוט", () => {
+      const quote = "הטלפון לא מפסיק לצלצל ואנחנו מפספסים שיחות";
+      const result = matchOpportunities(REPORT_KAMPAI, modelWithPains({ ownerNotes: quote }), [VOICE_ITEM]);
+      expect(result).toHaveLength(1);
+      expect(result[0].painQuotes).toEqual([quote]);
+      expect(result[0].evidence).toEqual([]); // כניסה על כאב בלבד - lead_handling לא בדוח הסינתטי
+    });
+
+    it("כאב על רשתות חברתיות מנותב ל-manual_tasks - סוכן התוכן נכנס על הציטוט", () => {
+      const quote = "אין לי זמן להעלות פוסטים לאינסטגרם";
+      const result = matchOpportunities(REPORT_KAMPAI, modelWithPains({ ownerNotes: quote }), [CONTENT_ITEM]);
+      expect(result).toHaveLength(1);
+      expect(result[0].painQuotes).toEqual([quote]);
+    });
+
+    it("כאב על הצעות מחיר (ביטוי דו-מילי) מנותב ל-manual_tasks - פריט ההצעות נכנס", () => {
+      const quote = "לוקח לי ימים להוציא הצעת מחיר ללקוח";
+      const result = matchOpportunities(REPORT_KAMPAI, modelWithPains({ ownerNotes: quote }), [PROPOSAL_ITEM]);
+      expect(result).toHaveLength(1);
+      expect(result[0].painQuotes).toEqual([quote]);
+    });
+
+    it("כאב עבודה ידנית באקסל מגיע עכשיו גם לפריטי manual_tasks, לא רק ל-CRM", () => {
+      const quote = "אני מקליד הכול ידנית לאקסל";
+      const result = matchOpportunities(
+        REPORT_KAMPAI, modelWithPains({ ownerNotes: quote }), [CRM_ITEM, PROPOSAL_ITEM],
+      );
+      expect(result.map((m) => m.catalog.id).sort()).toEqual(["c10", "c6"]);
+      expect(result.every((m) => m.painQuotes.includes(quote))).toBe(true);
+    });
+
+    it("כאב שלא נוגע לסושיאל/הצעות לא מצרף את הפריטים החדשים", () => {
+      const result = matchOpportunities(
+        REPORT_KAMPAI, modelWithPains({ ownerNotes: "קשה לתאם תור" }), [CONTENT_ITEM, PROPOSAL_ITEM],
+      );
+      expect(result).toEqual([]);
+    });
+  });
+
   it("survives a stored model row that has no pains section at all", () => {
     const legacy = { data: { profile: {} }, fieldSources: {}, credits: {}, completenessPct: 0 } as unknown as BusinessModel;
     const result = matchOpportunities(REPORT_KAMPAI, legacy, [ANALYTICS_ITEM, REVIEWS_ITEM]);

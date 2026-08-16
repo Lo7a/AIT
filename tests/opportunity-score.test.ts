@@ -162,7 +162,7 @@ describe("scoreOpportunity", () => {
 });
 
 describe("phaseOf", () => {
-  // 11 פריטי הקטלוג האמיתיים מ-prisma/seed.ts (מבנה CATALOG) - רק name/complexity/costRange
+  // 14 פריטי הקטלוג האמיתיים מ-prisma/seed.ts (מבנה CATALOG) - רק name/complexity/costRange
   // רלוונטיים לסיווג השלב; שאר השדות ממולאים בערכי דמה כדי לספק CatalogRowLite תקין.
   // עדכון מחירים/פריטים בזרע לא אמור לשנות את המיפוי הזה בלי החלטה מודעת - זו הסיבה
   // שהמבחן הזה קובע ציפייה מפורשת לכל שם, ולא רק "כל פריט מקבל איזשהו שלב".
@@ -178,10 +178,13 @@ describe("phaseOf", () => {
     { name: "התקנת מדידה (Analytics + פיקסל)", complexity: "low", costRange: "₪800-3,500 חד-פעמי", expected: "automation" },
     { name: "חיבור לידים ל-CRM והתראות", complexity: "medium", costRange: "הקמה ₪1,500-8,000 + ₪100-500 לחודש", expected: "automation" },
     { name: "הנגשת אתר + הצהרת נגישות", complexity: "medium", costRange: "תוסף + הצהרה ₪300-1,200 לשנה · הנגשה מלאה לפי התקן ₪1,500-10,000 חד-פעמי", expected: "automation" },
+    { name: "סוכן AI קולי למענה טלפוני", complexity: "medium", costRange: "הקמה ₪0-3,500 + ₪500-2,500 לחודש לפי חבילת דקות", expected: "ai" },
+    { name: "סוכן AI לתוכן ורשתות חברתיות", complexity: "medium", costRange: "כלי בניהול עצמי ₪50-120 לחודש · סוכן מותאם: הקמה ₪3,500-12,500 + ₪100-800 לחודש", expected: "ai" },
+    { name: "סוכן AI להצעות מחיר", complexity: "low", costRange: "מודול בתוכנת ניהול ₪29-155 לחודש · תוכנה ייעודית עם AI ₪65-167 למשתמש לחודש", expected: "ai" },
   ];
 
-  it("assigns every one of the 11 real catalog items a sensible, exact phase (no fallthrough)", () => {
-    expect(REAL_CATALOG_ITEMS).toHaveLength(11);
+  it("assigns every one of the 14 real catalog items a sensible, exact phase (no fallthrough)", () => {
+    expect(REAL_CATALOG_ITEMS).toHaveLength(14);
 
     for (const item of REAL_CATALOG_ITEMS) {
       const m = match({ catalog: catalogItem({ name: item.name, complexity: item.complexity, costRange: item.costRange }) });
