@@ -1,5 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
-import { crawlWebsite } from "../src/pipeline/crawler/crawl";
+import { crawlWebsite, type CrawlOptions } from "../src/pipeline/crawler/crawl";
+
+// כל הבדיקות כאן אופליין: resolver מזויף שתמיד מחזיר כתובת ציבורית מחליף את ברירת המחדל
+// (dns.promises.lookup האמיתי) - לעולם לא DNS אמיתי בבדיקות. בדיקות הקשחת ה-DNS למטה
+// מזריקות resolver משלהן דרך crawlWebsite ישירות
+const publicLookup = async () => [{ address: "203.0.113.10", family: 4 }];
+const crawl = (url: string, opts: CrawlOptions = {}) =>
+  crawlWebsite(url, { lookupImpl: publicLookup, ...opts });
 
 const HOME = `<html><body>
   <a href="/gallery">גלריה</a>
@@ -24,6 +31,14 @@ function htmlResponse(html: string, url = "") {
   } as unknown as Response;
 }
 
+function redirectResponse(status: number, location: string | null, url = "") {
+  return {
+    ok: false, status, url,
+    headers: { get: (name: string) => (name.toLowerCase() === "location" ? location : null) },
+    text: async () => "",
+  } as unknown as Response;
+}
+
 describe("crawlWebsite", () => {
   it("crawls home + prioritized pages and merges signals with OR", async () => {
     const fetchImpl = vi.fn(async (url: RequestInfo | URL, _init?: RequestInit) => {
@@ -32,7 +47,7 @@ describe("crawlWebsite", () => {
       if (u.includes("/gallery")) return htmlResponse(GALLERY);
       return htmlResponse(HOME);
     });
-    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 3 });
+    const signals = await crawl("https://example.co.il", { fetchImpl, maxPages: 3 });
     expect(signals.pagesCrawled).toBe(3);
     expect(signals.hasContactForm).toBe(true);
     expect(signals.hasWhatsappLink).toBe(true);
@@ -52,7 +67,7 @@ describe("crawlWebsite", () => {
       if (u.includes("/gallery")) return htmlResponse(GALLERY);
       return htmlResponse(home);
     });
-    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 2 });
+    const signals = await crawl("https://example.co.il", { fetchImpl, maxPages: 2 });
     expect(signals.pagesCrawled).toBe(2);
     expect(signals.hasWhatsappLink).toBe(true); // העמוד המקודד בעברית נבחר ראשון
   });
@@ -65,7 +80,7 @@ describe("crawlWebsite", () => {
       if (u.includes("/sale")) return htmlResponse(GALLERY);
       return htmlResponse(home);
     });
-    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 3 });
+    const signals = await crawl("https://example.co.il", { fetchImpl, maxPages: 3 });
     expect(signals.hasWhatsappLink).toBe(true); // הסריקה לא קרסה ו"צור קשר" נסרק
   });
 
@@ -76,7 +91,7 @@ describe("crawlWebsite", () => {
       if (u.includes("/contact")) return htmlResponse(CONTACT, "https://www.example.co.il/contact");
       return htmlResponse(homeAbs, "https://www.example.co.il/");
     });
-    const signals = await crawlWebsite("http://example.co.il", { fetchImpl, maxPages: 3 });
+    const signals = await crawl("http://example.co.il", { fetchImpl, maxPages: 3 });
     expect(signals.pagesCrawled).toBe(2);
     expect(signals.hasWhatsappLink).toBe(true);
   });
@@ -87,7 +102,7 @@ describe("crawlWebsite", () => {
     const home = `<html><body><a href="/about">אודות</a><a href="/contact">צור קשר</a>
       <a href="/services">שירותים</a></body></html>`;
     const fetchImpl = vi.fn(async () => htmlResponse(home, "https://example.co.il/"));
-    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 8 });
+    const signals = await crawl("https://example.co.il", { fetchImpl, maxPages: 8 });
     expect(signals.pagesCrawled).toBe(1);
     expect(signals.crawledUrls).toEqual(["https://example.co.il/"]);
     expect(new Set(signals.crawledUrls).size).toBe(signals.crawledUrls.length);
@@ -100,7 +115,7 @@ describe("crawlWebsite", () => {
       if (u.includes("/p")) throw new Error("timeout");
       return htmlResponse(`<html><body>${links}</body></html>`);
     });
-    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 8 });
+    const signals = await crawl("https://example.co.il", { fetchImpl, maxPages: 8 });
     expect(signals.pagesCrawled).toBe(1);
     expect(fetchImpl.mock.calls.length).toBeLessThanOrEqual(1 + 8 + 4);
   });
@@ -119,7 +134,7 @@ describe("crawlWebsite", () => {
       if (u.includes("/contact")) return htmlResponse(CONTACT);
       return htmlResponse(home);
     });
-    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 4 });
+    const signals = await crawl("https://example.co.il", { fetchImpl, maxPages: 4 });
     expect(signals.hasFacebookPixel).toBe(false); // ה-PDF לא נסרק כ-HTML
     expect(signals.hasWhatsappLink).toBe(true);
     expect(signals.crawledUrls.some((u) => u.includes("brochure"))).toBe(false);
@@ -131,7 +146,7 @@ describe("crawlWebsite", () => {
       if (u.includes("/contact")) return htmlResponse(CONTACT);
       return htmlResponse(HOME);
     });
-    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 2 });
+    const signals = await crawl("https://example.co.il", { fetchImpl, maxPages: 2 });
     expect(signals.pagesCrawled).toBe(2);
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
@@ -143,7 +158,7 @@ describe("crawlWebsite", () => {
       if (u.includes("/gallery")) return htmlResponse(GALLERY);
       return htmlResponse(HOME);
     });
-    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 3 });
+    const signals = await crawl("https://example.co.il", { fetchImpl, maxPages: 3 });
     expect(signals.pagesCrawled).toBe(2); // בית + גלריה; צור קשר נכשל בשקט
     expect(signals.hasWhatsappLink).toBe(false);
   });
@@ -152,13 +167,13 @@ describe("crawlWebsite", () => {
     const fetchImpl = vi.fn(async () => {
       throw new Error("ENOTFOUND");
     });
-    await expect(crawlWebsite("https://down.example", { fetchImpl })).rejects.toThrow();
+    await expect(crawl("https://down.example", { fetchImpl })).rejects.toThrow();
   });
 
   it("throws a clear error on a non-OK homepage", async () => {
     const fetchImpl = vi.fn(async () =>
       ({ ok: false, status: 503, text: async () => "maintenance" } as unknown as Response));
-    await expect(crawlWebsite("https://example.co.il", { fetchImpl })).rejects.toThrow(/503/);
+    await expect(crawl("https://example.co.il", { fetchImpl })).rejects.toThrow(/503/);
   });
 
   it("accepts uppercase content-type header casing", async () => {
@@ -170,7 +185,7 @@ describe("crawlWebsite", () => {
       };
       return res;
     });
-    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 2 });
+    const signals = await crawl("https://example.co.il", { fetchImpl, maxPages: 2 });
     expect(signals.pagesCrawled).toBe(2);
   });
 
@@ -180,7 +195,7 @@ describe("crawlWebsite", () => {
       if (u.includes("/contact")) return htmlResponse(CONTACT);
       return htmlResponse(HOME);
     });
-    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 3, budgetMs: -1 });
+    const signals = await crawl("https://example.co.il", { fetchImpl, maxPages: 3, budgetMs: -1 });
     expect(signals.pagesCrawled).toBe(1); // רק עמוד הבית - התקציב נגמר
   });
 
@@ -197,7 +212,7 @@ describe("crawlWebsite", () => {
       if (u.includes("/gallery")) return htmlResponse(GALLERY);
       return htmlResponse(HOME);
     });
-    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 3 });
+    const signals = await crawl("https://example.co.il", { fetchImpl, maxPages: 3 });
     expect(signals.hasAccessibilityStatement).toBe(true);
     expect(signals.hasAccessibilityWidget).toBe(true);
   });
@@ -210,33 +225,33 @@ describe("crawlWebsite", () => {
       if (u.includes("/gallery")) return htmlResponse(GALLERY);
       return htmlResponse(HOME);
     });
-    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 3 });
+    const signals = await crawl("https://example.co.il", { fetchImpl, maxPages: 3 });
     expect(signals.platform).toBe("wordpress");
   });
 
   it("flags jsRendered on a link-less page with a JS-app root marker", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(htmlResponse(NEXT_HTML));
-    const signals = await crawlWebsite("https://spa.co.il", { fetchImpl });
+    const signals = await crawl("https://spa.co.il", { fetchImpl });
     expect(signals.jsRendered).toBe(true);
     expect(signals.pagesCrawled).toBe(1);
   });
 
   it("does NOT flag a plain single-page brochure site", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(htmlResponse(BROCHURE_HTML));
-    const signals = await crawlWebsite("https://simple.co.il", { fetchImpl });
+    const signals = await crawl("https://simple.co.il", { fetchImpl });
     expect(signals.jsRendered).toBe(false);
   });
 
   it("flags jsRendered on a Next.js App Router skeleton (the real Lavan Group shape)", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(htmlResponse(APP_ROUTER_HTML));
-    const signals = await crawlWebsite("https://approuter.co.il", { fetchImpl });
+    const signals = await crawl("https://approuter.co.il", { fetchImpl });
     expect(signals.jsRendered).toBe(true);
   });
 
   it("does NOT flag a JS-marker page that still has internal links", async () => {
     const withLinks = `<html><body><div id="__next"></div><a href="/about">אודות</a><a href="/contact">צור קשר</a></body></html>`;
     const fetchImpl = vi.fn().mockResolvedValue(htmlResponse(withLinks));
-    const signals = await crawlWebsite("https://hybrid.co.il", { fetchImpl });
+    const signals = await crawl("https://hybrid.co.il", { fetchImpl });
     expect(signals.jsRendered).toBe(false);
   });
 });
@@ -250,7 +265,7 @@ describe("clientFramework site-level merge", () => {
       if (u.includes("/gallery")) return htmlResponse(GALLERY);
       return htmlResponse(vueHome);
     });
-    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 2 });
+    const signals = await crawl("https://example.co.il", { fetchImpl, maxPages: 2 });
     expect(signals.clientFramework).toBe("vue");
   });
 
@@ -263,7 +278,7 @@ describe("clientFramework site-level merge", () => {
       if (u.includes("/gallery")) return htmlResponse(GALLERY);
       return htmlResponse(HOME);
     });
-    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 3 });
+    const signals = await crawl("https://example.co.il", { fetchImpl, maxPages: 3 });
     expect(signals.clientFramework).toBe("react");
   });
 
@@ -273,7 +288,7 @@ describe("clientFramework site-level merge", () => {
       if (u.includes("/contact")) return htmlResponse(CONTACT);
       return htmlResponse(HOME);
     });
-    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 2 });
+    const signals = await crawl("https://example.co.il", { fetchImpl, maxPages: 2 });
     expect(signals.clientFramework).toBeUndefined();
   });
 });
@@ -292,7 +307,7 @@ describe("crawl queue prioritizes contact-ish pages beyond the cap (founder repo
       if (u.includes("/p")) return htmlResponse(GALLERY);
       return htmlResponse(home);
     });
-    const signals = await crawlWebsite("https://example.co.il", { fetchImpl }); // maxPages ברירת מחדל = 8
+    const signals = await crawl("https://example.co.il", { fetchImpl }); // maxPages ברירת מחדל = 8
     expect(signals.pagesCrawled).toBe(8);
     expect(signals.crawledUrls.some((u) => u.includes("/contact"))).toBe(true);
     expect(signals.hasWhatsappLink).toBe(true); // האות מ-/contact נאסף בפועל
@@ -306,7 +321,7 @@ describe("crawl queue prioritizes contact-ish pages beyond the cap (founder repo
       return htmlResponse(GALLERY);
     });
     fetchImpl.mockImplementationOnce(async () => htmlResponse(home));
-    const signals = await crawlWebsite("https://example.co.il", { fetchImpl, maxPages: 4 });
+    const signals = await crawl("https://example.co.il", { fetchImpl, maxPages: 4 });
     // contact-ish קודם, ואז zeta/alpha/beta בסדר הגילוי המקורי שלהם (לא אלפביתי, לא הפוך)
     const paths = signals.crawledUrls.map((u) => new URL(u).pathname);
     expect(paths).toEqual(["/", "/contact", "/zeta", "/alpha"]);
@@ -325,7 +340,7 @@ describe("live-shaped fixture: Vue SPA with a server shell (edrieng.co.il case)"
       </div>
     </body></html>`;
     const fetchImpl = vi.fn().mockResolvedValue(htmlResponse(vueHome));
-    const signals = await crawlWebsite("https://edrieng.co.il", { fetchImpl });
+    const signals = await crawl("https://edrieng.co.il", { fetchImpl });
     expect(signals.clientFramework).toBe("vue");
     expect(signals.hasContactForm).toBe(false);
     expect(signals.hasWhatsappLink).toBe(true);
@@ -338,13 +353,6 @@ describe("live-shaped fixture: Vue SPA with a server shell (edrieng.co.il case)"
 // אחרי הפניות עם redirect ברירת המחדל - מארח ציבורי שמחזיר 302 ל-127.0.0.1 גרר את הסורק
 // לרשת הפנימית וגם לקישורים שנמצאו שם. ההגנה עברה לשכבת ה-fetch: כל כתובת, בכל קפיצה
 describe("crawlWebsite - חסימת מארחים פנימיים בשכבת ה-fetch", () => {
-  function redirectResponse(status: number, location: string | null, url = "") {
-    return {
-      ok: false, status, url,
-      headers: { get: (name: string) => (name.toLowerCase() === "location" ? location : null) },
-      text: async () => "",
-    } as unknown as Response;
-  }
   const calledUrls = (fetchImpl: { mock: { calls: unknown[][] } }) =>
     fetchImpl.mock.calls.map((c) => String(c[0]));
 
@@ -355,7 +363,7 @@ describe("crawlWebsite - חסימת מארחים פנימיים בשכבת ה-fe
       if (u.includes("attacker.example")) return redirectResponse(302, "http://127.0.0.1:6379/");
       return htmlResponse(INTERNAL, u);
     });
-    await expect(crawlWebsite("https://attacker.example", { fetchImpl })).rejects.toThrow(/127\.0\.0\.1/);
+    await expect(crawl("https://attacker.example", { fetchImpl })).rejects.toThrow(/127\.0\.0\.1/);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(calledUrls(fetchImpl).some((u) => u.includes("127.0.0.1"))).toBe(false);
   });
@@ -368,7 +376,7 @@ describe("crawlWebsite - חסימת מארחים פנימיים בשכבת ה-fe
       if (u.includes("/contact")) return htmlResponse(CONTACT, u);
       return htmlResponse(home, u);
     });
-    const signals = await crawlWebsite("https://example.co.il/", { fetchImpl, maxPages: 5 });
+    const signals = await crawl("https://example.co.il/", { fetchImpl, maxPages: 5 });
     expect(signals.hasWhatsappLink).toBe(true); // צור קשר כן נסרק
     expect(signals.crawledUrls.some((u) => u.includes("127.0.0.1"))).toBe(false);
     expect(calledUrls(fetchImpl).some((u) => u.includes("127.0.0.1"))).toBe(false);
@@ -381,7 +389,7 @@ describe("crawlWebsite - חסימת מארחים פנימיים בשכבת ה-fe
       if (u === "https://example.co.il/step2") return redirectResponse(302, "https://www.example.co.il/final");
       return htmlResponse(GALLERY, ""); // url ריק - ה-finalUrl מגיע ממעקב ההפניות שלנו
     });
-    const signals = await crawlWebsite("https://example.co.il/", { fetchImpl, maxPages: 1 });
+    const signals = await crawl("https://example.co.il/", { fetchImpl, maxPages: 1 });
     expect(fetchImpl).toHaveBeenCalledTimes(3);
     expect(signals.crawledUrls).toEqual(["https://www.example.co.il/final"]);
   });
@@ -389,20 +397,20 @@ describe("crawlWebsite - חסימת מארחים פנימיים בשכבת ה-fe
   it("שרשרת ארוכה מהחסם נכשלת אחרי 5 קפיצות", async () => {
     let n = 0;
     const fetchImpl = vi.fn(async () => redirectResponse(302, `https://example.co.il/hop${++n}`));
-    await expect(crawlWebsite("https://example.co.il/", { fetchImpl })).rejects.toThrow(/הפניות/);
+    await expect(crawl("https://example.co.il/", { fetchImpl })).rejects.toThrow(/הפניות/);
     expect(fetchImpl).toHaveBeenCalledTimes(6); // בקשה ראשונה + 5 קפיצות מותרות
   });
 
   it("כתובת פתיחה עם מארח חסום נדחית לפני כל בקשה", async () => {
     const fetchImpl = vi.fn();
-    await expect(crawlWebsite("http://169.254.169.254/latest/meta-data/", { fetchImpl }))
+    await expect(crawl("http://169.254.169.254/latest/meta-data/", { fetchImpl }))
       .rejects.toThrow(/169\.254\.169\.254/);
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
   it("Location שאינו http/https (file://) נדחה ולא נחשף בהודעה", async () => {
     const fetchImpl = vi.fn(async () => redirectResponse(302, "file:///etc/passwd"));
-    const err = await crawlWebsite("https://example.co.il/", { fetchImpl }).catch((e: Error) => e);
+    const err = await crawl("https://example.co.il/", { fetchImpl }).catch((e: Error) => e);
     expect(err).toBeInstanceOf(Error);
     expect((err as Error).message).not.toContain("passwd");
     expect(fetchImpl).toHaveBeenCalledTimes(1);
@@ -410,7 +418,50 @@ describe("crawlWebsite - חסימת מארחים פנימיים בשכבת ה-fe
 
   it("הפניה בלי כותרת Location נכשלת בהודעה ברורה", async () => {
     const fetchImpl = vi.fn(async () => redirectResponse(302, null));
-    await expect(crawlWebsite("https://example.co.il/", { fetchImpl })).rejects.toThrow(/Location/);
+    await expect(crawl("https://example.co.il/", { fetchImpl })).rejects.toThrow(/Location/);
+  });
+});
+
+// סגירת חסם-ה-deploy המתועד (resolve-guard.ts): שם ציבורי שנפתר לכתובת פנימית נדחה
+// בשכבת ה-fetch, לפני הבקשה - גם בכתובת הפתיחה וגם בכל קפיצת הפניה. ה-resolver מוזרק
+// (מזויף) כי הבדיקות אופליין בלבד
+describe("crawlWebsite - הקשחת DNS בשכבת ה-fetch", () => {
+  it("שם ציבורי שנפתר לכתובת פרטית נדחה לפני שנשלחת בקשה בכלל", async () => {
+    const fetchImpl = vi.fn();
+    const lookupImpl = vi.fn(async () => [{ address: "10.0.0.5", family: 4 }]);
+    await expect(crawlWebsite("https://rebind.example/", { fetchImpl, lookupImpl }))
+      .rejects.toThrow(/rebind\.example/);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("קפיצת הפניה לשם שנפתר לכתובת פנימית נכשלת באמצע השרשרת - אין בקשה ליעד", async () => {
+    const fetchImpl = vi.fn(async () => redirectResponse(302, "https://evil.example/"));
+    const lookupImpl = vi.fn(async (hostname: string) =>
+      hostname === "evil.example"
+        ? [{ address: "169.254.169.254", family: 4 }]
+        : [{ address: "203.0.113.10", family: 4 }]);
+    await expect(crawlWebsite("https://example.co.il/", { fetchImpl, lookupImpl }))
+      .rejects.toThrow(/evil\.example/);
+    expect(fetchImpl).toHaveBeenCalledTimes(1); // רק הבקשה הראשונה - היעד הזדוני לא נשלח
+    expect(lookupImpl).toHaveBeenCalledWith("evil.example", { all: true });
+  });
+
+  it("כתובת פתיחה שהיא ליטרל IP ציבורי לא נשלחת ל-resolver בכלל", async () => {
+    const fetchImpl = vi.fn(async () => htmlResponse(BROCHURE_HTML, "http://203.0.113.7/"));
+    const lookupImpl = vi.fn(async () => [{ address: "203.0.113.7", family: 4 }]);
+    const signals = await crawlWebsite("http://203.0.113.7/", { fetchImpl, lookupImpl });
+    expect(signals.pagesCrawled).toBe(1);
+    expect(lookupImpl).not.toHaveBeenCalled();
+  });
+
+  it("כשל DNS על עמוד הבית מתנהג כמו כשל fetch על מארח לא קיים - הסריקה נכשלת", async () => {
+    const fetchImpl = vi.fn();
+    const lookupImpl = vi.fn(async () => {
+      throw new Error("getaddrinfo ENOTFOUND missing.example");
+    });
+    await expect(crawlWebsite("https://missing.example/", { fetchImpl, lookupImpl }))
+      .rejects.toThrow(/ENOTFOUND/);
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 });
 
@@ -421,7 +472,7 @@ describe("homepage timeout retry", () => {
     const fetchImpl = vi.fn()
       .mockRejectedValueOnce(timeoutError())
       .mockResolvedValue(htmlResponse(CONTACT));
-    const signals = await crawlWebsite("https://slow.co.il", { fetchImpl, timeoutMs: 1000 });
+    const signals = await crawl("https://slow.co.il", { fetchImpl, timeoutMs: 1000 });
     expect(fetchImpl).toHaveBeenCalledTimes(2);
     expect(signals.pagesCrawled).toBe(1);
     expect(signals.hasWhatsappLink).toBe(true); // האותות נאספו למרות שהניסיון הראשון קרס
@@ -431,13 +482,13 @@ describe("homepage timeout retry", () => {
     const fetchImpl = vi.fn().mockResolvedValue({
       ok: false, status: 500, url: "", headers: { get: () => null }, text: async () => "",
     } as unknown as Response);
-    await expect(crawlWebsite("https://down.co.il", { fetchImpl })).rejects.toThrow("HTTP 500");
+    await expect(crawl("https://down.co.il", { fetchImpl })).rejects.toThrow("HTTP 500");
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
   it("gives up when the patient retry also times out", async () => {
     const fetchImpl = vi.fn().mockRejectedValue(timeoutError());
-    await expect(crawlWebsite("https://dead.co.il", { fetchImpl })).rejects.toThrow("timeout");
+    await expect(crawl("https://dead.co.il", { fetchImpl })).rejects.toThrow("timeout");
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 });

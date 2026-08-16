@@ -1,10 +1,12 @@
 import type { WebsiteSignals } from "../types";
 import { defaultFetch, type FetchLike } from "../http";
 import { assertFetchableUrl } from "../forbidden-host";
+import { assertResolvesPublic, defaultLookup, type LookupLike } from "../resolve-guard";
 import { extractSignals, type PageSignals } from "./signals";
 
 export interface CrawlOptions {
   fetchImpl?: FetchLike;
+  lookupImpl?: LookupLike;
   maxPages?: number;
   timeoutMs?: number;
   budgetMs?: number;
@@ -64,11 +66,15 @@ interface FetchedPage {
 async function fetchPage(
   url: string,
   fetchImpl: FetchLike,
+  lookupImpl: LookupLike,
   timeoutMs: number,
 ): Promise<FetchedPage> {
   let currentUrl = url; // המחרוזת המקורית נשמרת כמות שהיא; רק קפיצות הפניה מנורמלות
   for (let hop = 0; ; hop++) {
     const current = assertFetchableUrl(currentUrl); // בדיקת מארח לפני כל בקשה, בלי יוצא מן הכלל
+    // הקשחת DNS: גם שם ציבורי חייב להיפתר לכתובות ציבוריות בלבד, ומחדש בכל קפיצה - כל hop
+    // מביא מארח שטרם נבדק (ראו resolve-guard.ts, כולל חלון ה-rebinding שנשאר במודע)
+    await assertResolvesPublic(current, lookupImpl);
     const res = await fetchImpl(currentUrl, {
       headers: { "User-Agent": "AIT-Scanner/0.1 (+business diagnosis)" },
       redirect: "manual",
@@ -101,6 +107,7 @@ export async function crawlWebsite(
   opts: CrawlOptions = {},
 ): Promise<WebsiteSignals> {
   const fetchImpl = opts.fetchImpl ?? defaultFetch;
+  const lookupImpl = opts.lookupImpl ?? defaultLookup;
   const maxPages = opts.maxPages ?? DEFAULT_MAX_PAGES;
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const deadline = Date.now() + (opts.budgetMs ?? 40_000); // תקציב זמן כולל לסריקה - יעד ה-KPI הוא אבחון שלם מתחת ל-90 שניות
@@ -109,10 +116,10 @@ export async function crawlWebsite(
   // או תוכן) מקבל ניסיון שני סבלני לפני שמוותרים על האתר כולו
   let homePage: FetchedPage;
   try {
-    homePage = await fetchPage(siteUrl, fetchImpl, timeoutMs);
+    homePage = await fetchPage(siteUrl, fetchImpl, lookupImpl, timeoutMs);
   } catch (err) {
     if (!(err instanceof DOMException && err.name === "TimeoutError")) throw err;
-    homePage = await fetchPage(siteUrl, fetchImpl, timeoutMs * HOME_RETRY_MULTIPLIER);
+    homePage = await fetchPage(siteUrl, fetchImpl, lookupImpl, timeoutMs * HOME_RETRY_MULTIPLIER);
   }
   // עובדים עם הכתובת הסופית (אחרי redirect) - אחרת בדיקת same-origin פוסלת את כל הקישורים
   const homeUrl = homePage.finalUrl;
@@ -137,7 +144,7 @@ export async function crawlWebsite(
     visited.add(url);
     attempts++;
     try {
-      const page = await fetchPage(url, fetchImpl, timeoutMs);
+      const page = await fetchPage(url, fetchImpl, lookupImpl, timeoutMs);
       const finalUrl = page.finalUrl || url; // res.url ריק במוקים של המבחנים
       // דדופ על הכתובת הסופית ולא רק על כתובת התור: כשכמה נתיבים מפנים (redirect) לאותו עמוד,
       // הם עמוד אחד ולא כמה. בלי זה /about,/contact,/services שכולם מפנים לעמוד הבית נספרו

@@ -21,6 +21,15 @@ describe("isForbiddenHost", () => {
     }
   });
 
+  it("חוסם ליטרל v6 ממופה לכתובת v4 פנימית - נקודתי וגם hex (הסריאל של new URL)", () => {
+    for (const bad of ["[::ffff:127.0.0.1]", "[::ffff:7f00:1]", "[::ffff:a00:1]", "::ffff:10.0.0.1"]) {
+      expect(isForbiddenHost(bad), bad).toBe(true);
+    }
+    // ליטרל ממופה לכתובת ציבורית (8.8.8.8) נשאר מותר בשתי הצורות
+    expect(isForbiddenHost("[::ffff:8.8.8.8]")).toBe(false);
+    expect(isForbiddenHost("[::ffff:808:808]")).toBe(false);
+  });
+
   it("לא חוסם דומיינים ציבוריים שמתחילים ב-fc/fd/fe80 (הבאג של fcbarcelona)", () => {
     for (const good of [
       "fcbarcelona.com", "fdny.org", "fe80shop.co.il", "x.co.il", "example.com",

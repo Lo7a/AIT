@@ -73,8 +73,10 @@ describe("scanWebsiteOnly", () => {
   // האמיתית היא בשכבת ה-fetch. הסריקה נכשלת בחן ומחזירה דוח עם crawl_failed במקום לקרוס
   it("refuses an internal host at the fetch layer and degrades to crawl_failed", async () => {
     const fetchImpl = vi.fn();
+    // ליטרל פנימי נופל בשער התחבירי עוד לפני DNS; ה-resolver המזויף רק מבטיח אופליין
+    const lookupImpl = vi.fn(async () => [{ address: "203.0.113.10", family: 4 }]);
     const findings = await scanWebsiteOnly("http://192.168.1.1/", {
-      crawl: (siteUrl) => crawlWebsite(siteUrl, { fetchImpl }),
+      crawl: (siteUrl) => crawlWebsite(siteUrl, { fetchImpl, lookupImpl }),
       pagespeed: async () => PSI,
     });
     expect(fetchImpl).not.toHaveBeenCalled();

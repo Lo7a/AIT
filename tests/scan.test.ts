@@ -121,9 +121,11 @@ describe("runScan", () => {
   // ההגנה היחידה שמכסה אותו היא בשכבת ה-fetch, ולכן היא נבדקת כאן מקצה לקצה
   it("refuses a Places-sourced website that points at an internal host, and still returns a report", async () => {
     const fetchImpl = vi.fn();
+    // ליטרל פנימי נופל בשער התחבירי עוד לפני DNS; ה-resolver המזויף רק מבטיח אופליין
+    const lookupImpl = vi.fn(async () => [{ address: "203.0.113.10", family: 4 }]);
     const deps = richDeps({
       details: vi.fn().mockResolvedValue({ ...RICH_DETAILS, website: "http://127.0.0.1:6379/" }),
-      crawl: (siteUrl: string) => crawlWebsite(siteUrl, { fetchImpl }),
+      crawl: (siteUrl: string) => crawlWebsite(siteUrl, { fetchImpl, lookupImpl }),
     });
     const findings = await runScan("pid-1", deps);
     expect(fetchImpl).not.toHaveBeenCalled();

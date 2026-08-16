@@ -22,7 +22,7 @@
 - **ראיון** (interview/ + server/run-interview.ts): שאלות אמריקאיות עם אופציות מהבנק (questions.ts), חילוץ LLM עם delimiters ו-stripFenceMarkers, מודל עסק עם credits (0.5=סריקה, 1=תשובת ראיון). כל תשובה מרעננת scan.scores מיד ("הדוח חי").
 - **Roadmap** (pipeline/roadmap/ + server/run-roadmap.ts): התאמה טהורה לפי gapKeys + ציטוטי כאב (מיפוי מילות מפתח סטטי עם נרמול אותיות סופיות), דירוג כאב-קודם (+20 דומיננטי), נימוק LLM ללא ספרות, שמירה אטומית, brief דטרמיניסטי.
 - **שגיאות API:** InterviewError מתויג (kind: not_found/conflict/invalid) -> מיפוי סטטוסים ב-handlers מוזרקים. כל השאר 500 גנרי בלי דליפה.
-- **אבטחה:** isForbiddenHost בשכבת ה-fetch (pipeline/forbidden-host.ts), הפניות ידניות עם בדיקה לכל hop. הקשחת DNS = חוסם פריסה מתועד.
+- **אבטחה:** isForbiddenHost בשכבת ה-fetch (pipeline/forbidden-host.ts) + assertResolvesPublic (pipeline/resolve-guard.ts, resolver מוזרק בבדיקות) - בדיקת כל הכתובות שה-DNS מחזיר, על כל hop של הפניה. מגבלה ידועה ומתועדת: חלון DNS rebinding קטן בין הבדיקה לבקשה (סגירה מלאה = lookup ברמת ה-agent, נדחה במודע).
 - **מסכים** (app/variants/): עיצוב placeholder עד שלב ב. כל הלוגיקה ב-hooks/reducers טהורים, JSX דק. ההפסד מוביל ("מה מונח על השולחן"), הציון = מדד התקדמות.
 
 ## תהליך
