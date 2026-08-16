@@ -17,7 +17,8 @@ interface CatalogSeed {
   savingRange: string;
   complexity: "low" | "medium" | "high";
   installTime: string;
-  benchmarks?: { metric: string; range: string; source: string }[];
+  // verifiedAt פר-בנצ'מרק: פריטים שנחקרו בסבב מאוחר לא "יורשים" את תאריך האימות הגלובלי הישן
+  benchmarks?: { metric: string; range: string; source: string; verifiedAt?: Date }[];
 }
 
 const CATALOG: CatalogSeed[] = [
@@ -161,6 +162,30 @@ const CATALOG: CatalogSeed[] = [
       { metric: "מנויי פלטפורמה שוטפים (Make/Zapier/WhatsApp API)", range: "₪100-500 לחודש", source: "bizrunner.co.il · achiya-automation.com (08/2026)" },
     ],
   },
+  {
+    // אושר על ידי המייסדים 16.8 על בסיס docs/research/a11y-pricing-2026-08.md (כל מספר ממוקור שם).
+    // הסתייגות פתוחה שאושרה ביודעין: המספר 50,000 מגובה במקורות משפטיים משניים בלבד -
+    // לאמת מול נוסח החוק הרשמי ברענון הבא
+    name: "הנגשת אתר + הצהרת נגישות",
+    problem: "האתר לא עומד בתקן הנגישות הישראלי ואין בו הצהרת נגישות - חשיפה לתביעה, ולקוחות שלא מצליחים להשתמש באתר",
+    solution: "תוסף נגישות + הצהרת נגישות משפטית מותאמת, ובאתרים שדורשים זאת גם תיקוני קוד ידניים לתקן 5568 ברמת AA",
+    conditions: { gapKeys: ["a11y_statement", "site_a11y"] },
+    costRange: "תוסף + הצהרה ₪300-1,200 לשנה · הנגשה מלאה לפי התקן ₪1,500-10,000 חד-פעמי",
+    savingRange: "הסרת חשיפה לפיצוי של עד ₪50,000 ללא הוכחת נזק בכל תביעה + אתר שכל לקוח יכול להשתמש בו",
+    complexity: "medium",
+    installTime: "תוסף והצהרה: ימים בודדים · הנגשה מלאה: 1-2 שבועות לאתר קטן, 3-6 שבועות לחנות",
+    benchmarks: [
+      { metric: "רישיון תוסף נגישות שנתי (ספק ישראלי, אתר עסק קטן)", range: "₪299-1,200 לשנה (לפני מע\"מ)", source: "enable.co.il ₪299 · vee.co.il ₪500-1,200 · accessible.org.il ₪480 (08/2026)", verifiedAt: new Date("2026-08-16") },
+      { metric: "מנוי תוסף נגישות חודשי (ישראל)", range: "₪49-250 לחודש", source: "tabnav.com מ-₪60 · accessible.org.il ₪60-79 (סתירה בין עמודי הספק) · digitouch.co.il מ-₪250 · ziko.co.il ₪49-169 (08/2026)", verifiedAt: new Date("2026-08-16") },
+      { metric: "וידג'ט בינלאומי - מחיר מדף", range: "$490-3,990 לשנה (accessiBe) · UserWay מ-$49 לחודש", source: "accessibe.com/pricing · userway.org (08/2026) - לא הומר לשקלים", verifiedAt: new Date("2026-08-16") },
+      { metric: "הקמה + ניסוח הצהרת נגישות משפטית", range: "₪450-1,000 חד-פעמי", source: "accessible.org.il ₪450 (הקמה + נוסח + הצהרה) · nagishbareshet.co.il ₪1,000 (הטמעת תיקון 13) - שני מחירי מדף בלבד (08/2026)", verifiedAt: new Date("2026-08-16") },
+      { metric: "הנגשה מלאה לתקן 5568 AA - אתר תדמית 5-15 עמודים", range: "₪1,500-10,000 חד-פעמי", source: "sgo.co.il ₪1,500-4,000 (עד 10 עמודים) / ₪4,000-10,000 (בינוני) · accessible.org.il ₪3,500-8,600 · tabnav.com ₪800-2,000 לתבנית (08/2026)", verifiedAt: new Date("2026-08-16") },
+      { metric: "זמן ביצוע הנגשה מלאה", range: "1-2 שבועות לאתר קטן · 3-6 שבועות לחנות אונליין", source: "sgo.co.il (08/2026)", verifiedAt: new Date("2026-08-16") },
+      { metric: "דוח או ביקורת נגישות תקופתית", range: "₪299-3,000", source: "nagishbareshet.co.il ₪299 דוח חד-פעמי · ziko.co.il ₪1,000-3,000 ביקורת שנתית (08/2026)", verifiedAt: new Date("2026-08-16") },
+      { metric: "חשיפה משפטית - פיצוי ללא הוכחת נזק", range: "עד ₪50,000 לתביעה", source: "חוק שוויון זכויות לאנשים עם מוגבלות - מקורות משפטיים משניים: isoc.org.il · din.co.il · jstlaw.co.il (08/2026, טרם אומת מול הנוסח הרשמי)", verifiedAt: new Date("2026-08-16") },
+      { metric: "סף פטור מחובת הנגשה לפי מחזור", range: "אתר קיים: עד ₪1,000,000 · אתר שהוקם מ-27.10.2017: עד ₪100,000", source: "isoc.org.il (איגוד האינטרנט הישראלי) · aisrael.org (08/2026)", verifiedAt: new Date("2026-08-16") },
+    ],
+  },
 ];
 
 async function main() {
@@ -175,7 +200,8 @@ async function main() {
     // אחרת שורות בשם ישן היו נשארות לצד החדשות (אידמפוטנטי לכל ריצה)
     await prisma.benchmark.deleteMany({ where: { catalogId: row.id } });
     for (const b of benchmarks ?? []) {
-      await prisma.benchmark.create({ data: { ...b, catalogId: row.id, verifiedAt: VERIFIED } });
+      const { verifiedAt, ...bench } = b;
+      await prisma.benchmark.create({ data: { ...bench, catalogId: row.id, verifiedAt: verifiedAt ?? VERIFIED } });
     }
   }
   const count = await prisma.opportunityCatalog.count();
