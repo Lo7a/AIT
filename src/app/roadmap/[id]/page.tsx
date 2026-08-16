@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { prisma } from "../../../server/db";
 import { getReport } from "../../../server/diagnosis-read";
 import { getRoadmapView } from "../../../server/roadmap-repo";
+import { getQuantityAnswers } from "../../../server/interview-repo";
+import { personalLossLine } from "../../../pipeline/roadmap/loss-calc";
 import type { DiagnosisStatus } from "../../../server/status";
 import { THEME_COOKIE, parseTheme } from "../../theme";
 import { getVariant } from "../../variants/registry";
@@ -16,14 +18,17 @@ const ROADMAPABLE: DiagnosisStatus[] = ["report_ready", "interviewing", "roadmap
 
 export default async function RoadmapPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [report, roadmap, cookieStore] = await Promise.all([
+  const [report, roadmap, answers, cookieStore] = await Promise.all([
     getReport(prisma, id).catch(() => null),
     getRoadmapView(prisma, id).catch(() => null),
+    // השורה האישית (מדרגה ב, loss-calc.ts) - תשובות הכמות לא משתנות בבנייה מחדש של Roadmap,
+    // אז חישוב חד-פעמי ב-RSC מספיק; כשל קריאה נופל בשקט ל-null והבלוק מוצג בלי השורה
+    getQuantityAnswers(prisma, id).catch(() => ({ volume: null, responseTime: null })),
     cookies(),
   ]);
   if (!report || !report.scan || !ROADMAPABLE.includes(report.status)) notFound();
 
   const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
   const { Roadmap } = getVariant(theme);
-  return <Roadmap report={report} initialRoadmap={roadmap} />;
+  return <Roadmap report={report} initialRoadmap={roadmap} personalLoss={personalLossLine(answers.volume, answers.responseTime)} />;
 }

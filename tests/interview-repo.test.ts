@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appendExchange, getInterviewState } from "../src/server/interview-repo";
+import { appendExchange, getInterviewState, getQuantityAnswers } from "../src/server/interview-repo";
 import { deriveBusinessModel } from "../src/pipeline/model/business-model";
 import { makeFakeDb } from "./fakes/fake-db";
 import type { ScanFindings } from "../src/pipeline/types";
@@ -51,6 +51,47 @@ describe("appendExchange", () => {
       expect(msgs[i + 1].role).toBe("assistant");
       expect(msgs[i].createdAt.getTime()).toBeLessThan(msgs[i + 1].createdAt.getTime());
     }
+  });
+});
+
+// תשובות הכמות לשורת ההפסד האישי (מדרגה ב, loss-calc.ts) - נקראות לפי questionKey מההודעות,
+// לא מהמודל שה-LLM חילץ
+describe("getQuantityAnswers", () => {
+  const exchange = (content: string, questionKey: string) => ({
+    user: { content, questionKey, isFreeText: false },
+    assistant: { content: "רשמתי" },
+  });
+
+  it("אין אף הודעה - שתי התשובות null", async () => {
+    const { db, diagnoses, scans } = makeFakeDb() as any;
+    seedDiagnosis(diagnoses, scans);
+    expect(await getQuantityAnswers(db, "d1")).toEqual({ volume: null, responseTime: null });
+  });
+
+  it("שולף את שתי התשובות כלשונן לפי questionKey, ומתעלם משאלות אחרות", async () => {
+    const { db, diagnoses, scans } = makeFakeDb() as any;
+    seedDiagnosis(diagnoses, scans);
+    const model = deriveBusinessModel(findings);
+    await appendExchange(db, "d1", exchange("דנה מטפלת", "lead_flow_intake"), model);
+    await appendExchange(db, "d1", exchange("10-30", "lead_flow_volume"), model);
+    await appendExchange(db, "d1", exchange("באותו יום", "lead_flow_response_time"), model);
+    expect(await getQuantityAnswers(db, "d1")).toEqual({ volume: "10-30", responseTime: "באותו יום" });
+  });
+
+  it("נענתה רק שאלת הכמות - זמן התגובה נשאר null", async () => {
+    const { db, diagnoses, scans } = makeFakeDb() as any;
+    seedDiagnosis(diagnoses, scans);
+    await appendExchange(db, "d1", exchange("מעל 100", "lead_flow_volume"), deriveBusinessModel(findings));
+    expect(await getQuantityAnswers(db, "d1")).toEqual({ volume: "מעל 100", responseTime: null });
+  });
+
+  it("תשובה חוזרת לאותה שאלה - האחרונה מנצחת (ראיון שחוזרים אליו)", async () => {
+    const { db, diagnoses, scans } = makeFakeDb() as any;
+    seedDiagnosis(diagnoses, scans);
+    const model = deriveBusinessModel(findings);
+    await appendExchange(db, "d1", exchange("עד 10", "lead_flow_volume"), model);
+    await appendExchange(db, "d1", exchange("30-100", "lead_flow_volume"), model);
+    expect((await getQuantityAnswers(db, "d1")).volume).toBe("30-100");
   });
 });
 

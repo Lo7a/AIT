@@ -10,6 +10,7 @@ import {
   PHASE_LABEL, roadmapLossHighlights, shouldShowCatalogProblem, type ItemBriefStatus,
 } from "../roadmap/roadmap-logic";
 import { LossHighlightsBlock, TONE_TAG_CLASSES } from "./default-screens";
+import type { PersonalLossLine } from "../../pipeline/roadmap/loss-calc";
 import type { ScoreToneKind } from "../../pipeline/report/presenter";
 
 // מסך ה-Roadmap בשפת העיצוב הזמנית הקיימת (ראו default-screens.tsx/default-interview.tsx) - אין
@@ -170,10 +171,11 @@ function ItemCard({
 }
 
 export function DefaultRoadmap({
-  report, initialRoadmap,
+  report, initialRoadmap, personalLoss = null,
 }: {
   report: ReportView;
   initialRoadmap: RoadmapView | null;
+  personalLoss?: PersonalLossLine | null;
 }) {
   const {
     buildPhase, roadmap, error, itemBrief, itemError, groups, rebuild, requestBrief,
@@ -237,7 +239,7 @@ export function DefaultRoadmap({
 
             {/* "מה מונח על השולחן" (loss leads, score measures - שלב א'): אותו בלוק כמו מסך הדוח,
                 מעל קבוצות השלב - מפת העסק ומד השלמות לא זזים ממקומם (ראו קריאה למעלה) */}
-            <LossHighlightsBlock highlights={roadmapLossHighlights(roadmap.items)} className="mt-6 animate-fade-up" />
+            <LossHighlightsBlock highlights={roadmapLossHighlights(roadmap.items)} personal={personalLoss} className="mt-6 animate-fade-up" />
 
             {roadmap.items.length === 0 ? (
               <div className="mt-4 animate-fade-up rounded-lg border border-black/[0.06] bg-[#EDF3EC] p-6 text-[#346538]">

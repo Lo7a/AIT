@@ -103,3 +103,26 @@ export async function getInterviewState(
   )];
   return { diagnosisId: d.id, status: d.status as DiagnosisStatus, messages, askedKeys, model, findings, scanId: scan.id };
 }
+
+// תשובות הכמות מהראיון (מדרגה ב של "ההפסד מוביל", loss-calc.ts): התשובה האחרונה של בעל העסק
+// לכל אחת משתי שאלות הכמות, לפי questionKey שנשמר על ההודעה עצמה - מקור דטרמיניסטי, בלי תלות
+// בשמות השדות שה-LLM בחר בחילוץ למודל. הסינון על role/questionKey נעשה בזיכרון בכוונה:
+// ה-fake בבדיקות מסנן findMany רק לפי diagnosisId, ו-where עשיר יותר היה עובר שם בשקט בלי
+// לסנן באמת (הראיון חסום ב-12 שאלות - עשרות שורות לכל היותר, אין כאן בעיית נפח)
+export interface QuantityAnswers {
+  volume: string | null;       // תשובת lead_flow_volume כלשונה (למשל "10-30"), null אם לא נענתה
+  responseTime: string | null; // תשובת lead_flow_response_time כלשונה, null אם לא נענתה
+}
+
+export async function getQuantityAnswers(prisma: PrismaClient, diagnosisId: string): Promise<QuantityAnswers> {
+  const rows = await prisma.interviewMessage.findMany({
+    where: { diagnosisId }, orderBy: [{ createdAt: "asc" }],
+  });
+  const answers: QuantityAnswers = { volume: null, responseTime: null };
+  for (const m of rows) {
+    if (m.role !== "user") continue;
+    if (m.questionKey === "lead_flow_volume") answers.volume = m.content;
+    if (m.questionKey === "lead_flow_response_time") answers.responseTime = m.content;
+  }
+  return answers;
+}

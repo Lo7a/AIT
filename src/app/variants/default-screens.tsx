@@ -10,6 +10,7 @@ import {
 import type { DataStatus, RuleResult } from "../../pipeline/score/types";
 import type { DiagnosisStatus } from "../../server/status";
 import type { LossHighlight } from "../../pipeline/roadmap/loss-highlights";
+import type { PersonalLossLine } from "../../pipeline/roadmap/loss-calc";
 
 // הדוח קיים גם בזמן ראיון, הקישור לא נעלם
 const HAS_REPORT: DiagnosisStatus[] = ["report_ready", "interviewing", "roadmap_ready"];
@@ -190,41 +191,59 @@ function RuleLine({ rule }: { rule: RuleResult }) {
 }
 
 // "מה מונח על השולחן" (loss leads, score measures - שלב א', החלטת מייסד נעולה): בלוק משותף
-// לדוח ולמסך ה-Roadmap - אותה שפה עיצובית בשני המקומות. highlights ריק -> שום דבר לא מוצג (אף
-// פעם לא בלוק ריק ומפחיד); הקורא כבר דואג שהמערך יגיע ריק כשאין התאמות אמיתיות
-// (report-highlights.ts / roadmap-logic.ts)
+// לדוח ולמסך ה-Roadmap - אותה שפה עיצובית בשני המקומות. highlights ריק וגם אין שורה אישית ->
+// שום דבר לא מוצג (אף פעם לא בלוק ריק ומפחיד); הקורא כבר דואג שהמערך יגיע ריק כשאין התאמות
+// אמיתיות (report-highlights.ts / roadmap-logic.ts).
+// personal (מדרגה ב, loss-calc.ts): שורת החישוב האישי מתשובות הראיון - סיכון (אדום, מוביל את
+// הבלוק) או פרגון לעסק שעונה מהר (ירוק). null כשאין שתי תשובות תואמות - הבלוק נראה כמו בשלב א'
 export function LossHighlightsBlock({
-  highlights, className = "mt-10 animate-fade-up",
+  highlights, personal = null, className = "mt-10 animate-fade-up",
 }: {
   highlights: LossHighlight[];
+  personal?: PersonalLossLine | null;
   className?: string;
 }) {
-  if (highlights.length === 0) return null;
+  if (highlights.length === 0 && !personal) return null;
   return (
     <section className={`${className} rounded-lg border border-black/[0.06] bg-white p-6`}>
       <h2 className="font-[family-name:var(--font-frank)] text-xl font-bold tracking-tight">
         מה מונח על השולחן
       </h2>
-      <ul className="mt-4 space-y-3">
-        {highlights.map((h) => (
-          <li key={`${h.itemName}-${h.text}`} className="flex items-start gap-2.5">
-            <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#9F2F2D]" />
-            <p className="leading-relaxed">
-              <span className="font-semibold">{h.itemName}</span>
-              <span className="text-[#6F6E6A]">{`: ${h.text}`}</span>
-            </p>
-          </li>
-        ))}
-      </ul>
+      {personal && (
+        <div
+          className={`mt-4 rounded-md p-4 ${
+            personal.kind === "praise" ? "bg-[#EDF3EC]" : "bg-[#FAF1F0]"
+          }`}
+        >
+          <p className={`font-semibold leading-relaxed ${personal.kind === "praise" ? "text-[#346538]" : "text-[#9F2F2D]"}`}>
+            {personal.lead}
+          </p>
+          <p className="mt-1 text-sm leading-relaxed text-[#6F6E6A]">{personal.anchor}</p>
+        </div>
+      )}
+      {highlights.length > 0 && (
+        <ul className="mt-4 space-y-3">
+          {highlights.map((h) => (
+            <li key={`${h.itemName}-${h.text}`} className="flex items-start gap-2.5">
+              <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#9F2F2D]" />
+              <p className="leading-relaxed">
+                <span className="font-semibold">{h.itemName}</span>
+                <span className="text-[#6F6E6A]">{`: ${h.text}`}</span>
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
 
 export function DefaultReport({
-  report, lossHighlights = [],
+  report, lossHighlights = [], personalLoss = null,
 }: {
   report: ReportView;
   lossHighlights?: LossHighlight[];
+  personalLoss?: PersonalLossLine | null;
 }) {
   // הצעד הזה מבטיח מבחינת טיפוסים ש-report.scan אינו null: ה-RSC הקורא (report/[id]/page.tsx)
   // כבר מפעיל notFound() לפני שהוא מגיע לכאן כשאין סריקה, כך שזהו רק שער הגנה מקומי
@@ -245,9 +264,9 @@ export function DefaultReport({
 
   const hasNoGbp = findings.partial.includes("no_gbp");
   // "loss leads, score measures" (החלטת מייסד נעולה): כשיש מה להראות בלוק "מה מונח על השולחן"
-  // מוביל, והציון הגדול מצטמצם ל"מדד התקדמות" קומפקטי ליד הכותרת. highlights ריק (עסק חזק/אין
-  // סריקה) -> הלייאאוט חוזר בדיוק למוביל-ציון של היום, בלי שום בלוק ריק
-  const hasHighlights = lossHighlights.length > 0;
+  // מוביל, והציון הגדול מצטמצם ל"מדד התקדמות" קומפקטי ליד הכותרת. גם השורה האישית (מדרגה ב)
+  // לבדה מצדיקה את הבלוק. אין כלום -> הלייאאוט חוזר בדיוק למוביל-ציון של היום, בלי בלוק ריק
+  const hasHighlights = lossHighlights.length > 0 || personalLoss !== null;
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-16">
@@ -264,7 +283,7 @@ export function DefaultReport({
         </span>
       </div>
 
-      {hasHighlights && <LossHighlightsBlock highlights={lossHighlights} />}
+      {hasHighlights && <LossHighlightsBlock highlights={lossHighlights} personal={personalLoss} />}
 
       <section className={hasHighlights ? "mt-8 animate-fade-up" : "mt-10 animate-fade-up"} style={{ animationDelay: "80ms" }}>
         <div className="flex flex-wrap items-start gap-6">

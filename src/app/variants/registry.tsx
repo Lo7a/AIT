@@ -19,11 +19,14 @@ export interface VariantScreens {
     // דרך report-highlights.ts, בזיכרון בלבד. אופציונלי: undefined/מערך ריק = נופל ללייאאוט
     // מוביל-ציון כמו היום (ראו default-screens.tsx, DefaultReport)
     lossHighlights?: import("../../pipeline/roadmap/loss-highlights").LossHighlight[];
+    // השורה האישית (מדרגה ב, loss-calc.ts) - מחושבת ב-RSC מתשובות הכמות בראיון; null = אין שורה
+    personalLoss?: import("../../pipeline/roadmap/loss-calc").PersonalLossLine | null;
   }>;
   Interview: ComponentType<{ diagnosisId: string; initial: import("../../server/run-interview").InterviewSnapshot }>;
   Roadmap: ComponentType<{
     report: NonNullable<Awaited<ReturnType<typeof import("../../server/diagnosis-read").getReport>>>;
     initialRoadmap: import("../../server/roadmap-repo").RoadmapView | null;
+    personalLoss?: import("../../pipeline/roadmap/loss-calc").PersonalLossLine | null;
   }>;
 }
 
