@@ -7,3 +7,5 @@ tsconfig.tsbuildinfo
 
 # צילומי מסך של סשני עבודה (דפדפן מנוהל) - לא נכנסים לריפו
 /screenshots/
+.vercel
+.env*
