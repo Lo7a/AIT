@@ -246,6 +246,34 @@ describe("matchOpportunities", () => {
     });
   });
 
+  // ניתובי סבב האתרים והמערכות (17.8): internal_tools נהיה מפתח מבוקש (פריט ה-CRM),
+  // וכאב על אתר מנותב לפריט הקמת האתר
+  describe("ניתובי כאב לפריטי האתרים והמערכות", () => {
+    const SITE_ITEM = catalogItem("c11", "הקמת אתר ראשון לעסק", ["has_website", "own_website"]);
+    const CRM_TOOLS_ITEM = catalogItem("c12", "מערכת CRM לניהול לקוחות", ["internal_tools"]);
+
+    it("כאב על היעדר אתר מצרף את הציטוט לפריט הקמת האתר", () => {
+      const quote = "אין לנו בכלל אתר, הכול דרך פייסבוק";
+      const result = matchOpportunities(REPORT_KAMPAI, modelWithPains({ ownerNotes: quote }), [SITE_ITEM]);
+      expect(result).toHaveLength(1);
+      expect(result[0].painQuotes).toEqual([quote]);
+    });
+
+    it("כאב על היעדר מערכת מסודרת מנותב ל-internal_tools - פריט ה-CRM נכנס", () => {
+      const quote = "אין לנו מערכת מסודרת ללקוחות, הכול בראש";
+      const result = matchOpportunities(REPORT_KAMPAI, modelWithPains({ ownerNotes: quote }), [CRM_TOOLS_ITEM]);
+      expect(result).toHaveLength(1);
+      expect(result[0].painQuotes).toEqual([quote]);
+    });
+
+    it("כאב אקסל מגיע גם לפריט ה-CRM החדש (internal_tools) דרך כלל הידני", () => {
+      const quote = "אני מקליד הכול ידנית לאקסל";
+      const result = matchOpportunities(REPORT_KAMPAI, modelWithPains({ ownerNotes: quote }), [CRM_TOOLS_ITEM]);
+      expect(result).toHaveLength(1);
+      expect(result[0].painQuotes).toEqual([quote]);
+    });
+  });
+
   it("survives a stored model row that has no pains section at all", () => {
     const legacy = { data: { profile: {} }, fieldSources: {}, credits: {}, completenessPct: 0 } as unknown as BusinessModel;
     const result = matchOpportunities(REPORT_KAMPAI, legacy, [ANALYTICS_ITEM, REVIEWS_ITEM]);

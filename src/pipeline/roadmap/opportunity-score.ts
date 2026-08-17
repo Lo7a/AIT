@@ -115,6 +115,11 @@ const PHASE_BY_CATALOG_NAME: Record<string, Phase> = {
   "סוכן AI קולי למענה טלפוני": "ai",
   "סוכן AI לתוכן ורשתות חברתיות": "ai",
   "סוכן AI להצעות מחיר": "ai",
+  // פריטים 15-17 (סבב אתרים ומערכות, נזרעו 17.8, docs/research/website-and-systems-pricing-2026-08.md):
+  // שלושתם הקמת מערכת/נכס מתמשך עם הטמעה אמיתית - automation לפי הכלל העסקי, לא quick_win
+  "הקמת אתר ראשון לעסק": "automation",
+  "מערכת CRM לניהול לקוחות": "automation",
+  "אוטומציה בין המערכות הקיימות": "automation",
 };
 
 const DEFAULT_PHASE: Phase = "automation";
