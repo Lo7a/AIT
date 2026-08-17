@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 // מסך כניסה - עיצוב placeholder כמו כל המסכים (העיצוב האמיתי בשלב ב). JSX דק בלבד:
 // כל הלוגיקה ב-use-login.ts + login-logic.ts.
 import { useLogin } from "./use-login";
@@ -37,7 +37,7 @@ export function LoginScreen({
         <button
           type="button"
           onClick={resetToForm}
-          className="mt-6 text-sm font-medium text-[#111111] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
+          className="mt-6 cursor-pointer text-sm font-medium text-[#111111] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
         >
           לא הגיע? לשלוח שוב
         </button>
@@ -79,7 +79,7 @@ export function LoginScreen({
         <button
           type="submit"
           disabled={state.phase === "sending"}
-          className="mt-4 w-full rounded-lg bg-[#111111] px-4 py-3 font-medium text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111] disabled:opacity-60"
+          className="mt-4 w-full cursor-pointer rounded-lg bg-[#111111] px-4 py-3 font-medium text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111] disabled:opacity-60"
         >
           {state.phase === "sending" ? "שולחים קישור" : "שלחו לי קישור כניסה"}
         </button>
@@ -89,7 +89,7 @@ export function LoginScreen({
         <button
           type="button"
           onClick={() => void signInWithGoogle()}
-          className="mt-4 w-full rounded-lg border border-black/[0.12] bg-white px-4 py-3 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
+          className="mt-4 w-full cursor-pointer rounded-lg border border-black/[0.12] bg-white px-4 py-3 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
         >
           כניסה עם Google
         </button>

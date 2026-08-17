@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 // דף הנחיתה לאנונימיים (הכרעת מייסד 16.8): המבקר מתרשם ממה שהמערכת נותנת, ולחיצה על
 // "אבחן את העסק שלי" מובילה לכניסה/הרשמה - הסריקה עצמה תמיד מאחורי התחברות (כל סריקה
 // עולה כסף וכל עסק נקשר לבעליו). עיצוב placeholder כמו כל המסכים - הלוק האמיתי בשלב
@@ -67,7 +67,7 @@ export function LandingScreen() {
           />
           <button
             type="submit"
-            className="shrink-0 rounded-lg bg-[#111111] px-5 py-3 font-medium text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
+            className="shrink-0 cursor-pointer rounded-lg bg-[#111111] px-5 py-3 font-medium text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
           >
             אבחן את העסק שלי
           </button>
