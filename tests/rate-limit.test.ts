@@ -7,7 +7,7 @@ import { makeFakeDb } from "./fakes/fake-db";
 
 const USER: SessionUser = { id: "user-1", authId: "a1", email: "a@example.com", role: "owner" };
 const ADMIN: SessionUser = { id: "user-9", authId: "a9", email: "x@example.com", role: "admin" };
-const RULE: RateRule = { type: "search", limit: 3, windowSeconds: 3600 };
+const RULE: RateRule = { type: "search", limit: 3, windowSeconds: 3600, settingKey: "rate.search" };
 
 function seedEvents(fake: ReturnType<typeof makeFakeDb>, n: number, createdAt: Date, userId = USER.id) {
   for (let i = 0; i < n; i++) {
@@ -46,7 +46,7 @@ describe("enforceRateLimit", () => {
   });
 
   it("fail-open: כשל ספירה מעביר את הבקשה (זמינות קודמת לחסימה)", async () => {
-    const failing = { usageEvent: { count: async () => { throw new Error("db down"); } } };
+    const failing = { usageEvent: { count: async () => { throw new Error("db down"); } }, appSetting: {} };
     expect(await enforceRateLimit(failing, USER, RULE)).toBeNull();
   });
 
@@ -61,7 +61,7 @@ describe("enforceRateLimit", () => {
 });
 
 describe("enforceGlobalCap - הבלם הכלל-מערכתי", () => {
-  const CAP: RateRule = { type: "diagnosis_created", limit: 3, windowSeconds: 24 * 3600 };
+  const CAP: RateRule = { type: "diagnosis_created", limit: 3, windowSeconds: 24 * 3600, settingKey: "global.scansPerDay" };
 
   it("סופר את כל המשתמשים יחד: שלושה חשבונות שונים ממלאים את התקרה לרביעי", async () => {
     const fake = makeFakeDb();
@@ -92,7 +92,48 @@ describe("enforceGlobalCap - הבלם הכלל-מערכתי", () => {
       });
     }
     expect(await enforceGlobalCap(fake.db, ADMIN, CAP, now)).toBeNull();
-    const failing = { usageEvent: { count: async () => { throw new Error("db down"); } } };
+    const failing = { usageEvent: { count: async () => { throw new Error("db down"); } }, appSetting: {} };
     expect(await enforceGlobalCap(failing, USER, CAP)).toBeNull();
+  });
+});
+
+describe("דריסות מהניהול (app_settings)", () => {
+  const now = new Date("2026-08-16T12:00:00Z");
+
+  it("דריסה מקטינה את הגבול: 1 במקום 3 חוסם כבר אחרי אירוע אחד", async () => {
+    const fake = makeFakeDb();
+    fake.appSettings.push({ key: "rate.search", value: "1", updatedAt: now });
+    seedEvents(fake, 1, new Date("2026-08-16T11:50:00Z"));
+    const blocked = await enforceRateLimit(fake.db, USER, RULE, now);
+    expect(blocked?.status).toBe(429);
+  });
+
+  it("דריסה 0 = חסימה מלאה (מתג חירום) גם בלי שום אירוע", async () => {
+    const fake = makeFakeDb();
+    fake.appSettings.push({ key: "rate.search", value: "0", updatedAt: now });
+    const blocked = await enforceRateLimit(fake.db, USER, RULE, now);
+    expect(blocked?.status).toBe(429);
+  });
+
+  it("דריסה מגדילה את הגבול; ערך פסול מתעלמים ממנו וחוזרים לברירת המחדל", async () => {
+    const fake = makeFakeDb();
+    fake.appSettings.push({ key: "rate.search", value: "10", updatedAt: now });
+    seedEvents(fake, 5, new Date("2026-08-16T11:50:00Z"));
+    expect(await enforceRateLimit(fake.db, USER, RULE, now)).toBeNull();
+    fake.appSettings[0].value = "בטח שלא מספר";
+    const blocked = await enforceRateLimit(fake.db, USER, RULE, now);
+    expect(blocked?.status).toBe(429); // 5 אירועים מול ברירת המחדל 3
+  });
+
+  it("הדריסה חלה גם על הבלם הגלובלי", async () => {
+    const fake = makeFakeDb();
+    fake.appSettings.push({ key: "global.scansPerDay", value: "1", updatedAt: now });
+    fake.usageEvents.push({
+      id: "evt-g", type: "diagnosis_created", userId: "u2", actorUserId: "u2",
+      entityType: null, entityId: null, metadata: null, createdAt: new Date("2026-08-16T11:00:00Z"),
+    });
+    const cap = { type: "diagnosis_created", limit: 60, windowSeconds: 24 * 3600, settingKey: "global.scansPerDay" } as const;
+    const blocked = await enforceGlobalCap(fake.db, USER, cap, now);
+    expect(blocked?.status).toBe(429);
   });
 });

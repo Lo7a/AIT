@@ -6,8 +6,9 @@ import { isImpersonating } from "../../server/auth/impersonation";
 import { isAdmin } from "../../server/auth/guard";
 import {
   getAdminOverview, getExternalCallsSummary, listAllDiagnoses, listRecentBriefs, listRecentEvents,
-  listUsersWithActivity,
+  listSettingOverrides, listUsersWithActivity,
 } from "../../server/admin-read";
+import { EDITABLE_SETTINGS } from "../../server/api/admin-settings-handler";
 import { DIAGNOSIS_STATUS_LABEL } from "../../pipeline/report/presenter";
 import type { DiagnosisStatus } from "../../server/status";
 
@@ -28,6 +29,17 @@ const EVENT_LABEL: Record<string, string> = {
   roadmap_viewed: "צפייה ב-Roadmap",
   impersonation_started: "התחזות התחילה",
   impersonation_stopped: "התחזות הסתיימה",
+  settings_changed: "הגדרה עודכנה",
+};
+
+// תוויות עברית למגבלות הניתנות לעריכה (rate-limit.ts) - הסדר כאן הוא סדר התצוגה
+const SETTING_LABEL: Record<string, string> = {
+  "rate.scan": "סריקות לשעה למשתמש",
+  "rate.search": "חיפושים לשעה למשתמש",
+  "rate.interviewMessage": "תשובות ראיון לשעה למשתמש",
+  "rate.roadmapBuild": "בניות Roadmap לשעה למשתמש",
+  "rate.brief": "שליחות Brief לשעה למשתמש",
+  "global.scansPerDay": "סריקות ליום, כל המערכת יחד (הבלם הגלובלי)",
 };
 
 const DATE_FMT = new Intl.DateTimeFormat("he-IL", { dateStyle: "short", timeStyle: "short" });
@@ -42,13 +54,14 @@ export default async function AdminPage() {
   if (acting == null) redirect("/login");
   if (!isAdmin(acting.actor)) notFound();
 
-  const [overview, diagnoses, users, events, briefs, externalCalls] = await Promise.all([
+  const [overview, diagnoses, users, events, briefs, externalCalls, overrides] = await Promise.all([
     getAdminOverview(prisma),
     listAllDiagnoses(prisma),
     listUsersWithActivity(prisma),
     listRecentEvents(prisma),
     listRecentBriefs(prisma),
     getExternalCallsSummary(prisma),
+    listSettingOverrides(prisma, EDITABLE_SETTINGS.map((s) => s.settingKey)),
   ]);
 
   return (
@@ -109,6 +122,40 @@ export default async function AdminPage() {
             </span>
           ))}
         </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="font-[family-name:var(--font-frank)] text-lg font-bold">מגבלות קצב</h2>
+        <p className="mt-1 text-sm text-[#6F6E6A]">
+          שדה ריק = ברירת המחדל שבקוד. 0 = חסימה מלאה של הפעולה (מתג חירום). כל שינוי נרשם ביומן.
+        </p>
+        <form method="post" action="/api/admin/settings" className="mt-3 rounded-lg border border-black/[0.06] bg-white p-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {EDITABLE_SETTINGS.map(({ settingKey, defaultLimit }) => (
+              <label key={settingKey} className="flex items-center justify-between gap-3 text-sm">
+                <span>
+                  {SETTING_LABEL[settingKey] ?? settingKey}
+                  <span className="text-[#6F6E6A]"> (ברירת מחדל: {defaultLimit})</span>
+                </span>
+                <input
+                  type="number"
+                  name={settingKey}
+                  min={0}
+                  step={1}
+                  defaultValue={overrides[settingKey] ?? ""}
+                  placeholder={String(defaultLimit)}
+                  className="w-24 shrink-0 rounded-lg border border-black/[0.12] bg-white px-3 py-1.5 text-start tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
+                />
+              </label>
+            ))}
+          </div>
+          <button
+            type="submit"
+            className="mt-4 cursor-pointer rounded-lg bg-[#111111] px-4 py-2 text-sm font-medium text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
+          >
+            שמירת מגבלות
+          </button>
+        </form>
       </section>
 
       <section className="mt-10">

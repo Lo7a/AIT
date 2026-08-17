@@ -35,6 +35,7 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
   const users: any[] = [];
   const usageEvents: any[] = [];
   const externalCalls: any[] = [];
+  const appSettings: any[] = [];
   // "from→to" לפי סדר - לב האסרטים על מכונת המצבים. נרשמים רק מעברים שהצליחו בפועל (count:1);
   // מעבר שנכשל (race מדומה דרך failTransitions, או סטטוס לא תואם) לא משאיר עקבות כאן
   const transitions: string[] = [];
@@ -367,6 +368,31 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
           && (where?.createdAt?.gte == null || e.createdAt >= where.createdAt.gte),
       ).length,
     },
+    // הגדרות מערכת (הכרעת מייסד 17.8): דריסות מגבלות קצב מהניהול - rate-limit.ts קורא
+    // findUnique, ה-handler כותב upsert/deleteMany, מסך האדמין קורא findMany עם key.in
+    appSetting: {
+      findUnique: async ({ where }: any) => {
+        const s = appSettings.find((x) => x.key === where.key);
+        return s ? { ...s } : null;
+      },
+      findMany: async ({ where }: any = {}) => appSettings
+        .filter((s) => where?.key?.in == null || where.key.in.includes(s.key))
+        .map((s) => ({ ...s })),
+      upsert: async ({ where, update, create }: any) => {
+        const s = appSettings.find((x) => x.key === where.key);
+        if (s) { Object.assign(s, update, { updatedAt: new Date() }); return { ...s }; }
+        const row = { key: create.key, value: create.value, updatedAt: new Date() };
+        appSettings.push(row);
+        return { ...row };
+      },
+      deleteMany: async ({ where }: any) => {
+        const before = appSettings.length;
+        for (let i = appSettings.length - 1; i >= 0; i--) {
+          if (appSettings[i].key === where.key) appSettings.splice(i, 1);
+        }
+        return { count: before - appSettings.length };
+      },
+    },
     // ארכיון הקריאות החיצוניות (הכרעת מייסד 17.8): create ל-sink של external-log,
     // findMany עם סינון createdAt.gte לצד הקריאה של האדמין
     externalCall: {
@@ -461,7 +487,7 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
   };
 
   return {
-    db: db as any, businesses, diagnoses, scans, models, messages, transitions, externalCalls,
+    db: db as any, businesses, diagnoses, scans, models, messages, transitions, externalCalls, appSettings,
     catalogs, benchmarks, roadmaps, roadmapItems, briefs, users, usageEvents,
   };
 }

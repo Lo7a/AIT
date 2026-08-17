@@ -13,17 +13,20 @@ import type { UsageEventType } from "./usage-events";
 
 export interface RateRule {
   type: UsageEventType; // סוג האירוע שנספר (= מה שהפעולה עצמה רושמת ביומן)
-  limit: number;        // מקסימום אירועים בחלון
+  limit: number;        // ברירת המחדל שבקוד - דריסת אדמין ב-app_settings גוברת (ראו למטה)
   windowSeconds: number;
+  // מפתח הדריסה בטבלת app_settings (הכרעת מייסד 17.8: אדמין עורך מגבלות מהניהול).
+  // ערך שלם >= 0 בטבלה גובר על limit; 0 = חסימה מלאה (מתג חירום); שורה חסרה/פסולה = ברירת המחדל
+  settingKey: string;
 }
 
 // הגבולות במקום אחד - כיוונון עתידי נוגע רק כאן. נדיבים בכוונה (ראו למעלה)
 export const RATE_RULES = {
-  scan: { type: "diagnosis_created", limit: 15, windowSeconds: 3600 },
-  search: { type: "search", limit: 60, windowSeconds: 3600 },
-  interviewMessage: { type: "interview_answer", limit: 90, windowSeconds: 3600 },
-  roadmapBuild: { type: "roadmap_built", limit: 20, windowSeconds: 3600 },
-  brief: { type: "brief_sent", limit: 10, windowSeconds: 3600 },
+  scan: { type: "diagnosis_created", limit: 15, windowSeconds: 3600, settingKey: "rate.scan" },
+  search: { type: "search", limit: 60, windowSeconds: 3600, settingKey: "rate.search" },
+  interviewMessage: { type: "interview_answer", limit: 90, windowSeconds: 3600, settingKey: "rate.interviewMessage" },
+  roadmapBuild: { type: "roadmap_built", limit: 20, windowSeconds: 3600, settingKey: "rate.roadmapBuild" },
+  brief: { type: "brief_sent", limit: 10, windowSeconds: 3600, settingKey: "rate.brief" },
 } as const satisfies Record<string, RateRule>;
 
 // הבלם הגלובלי (שאלת מייסד 16.8: "שלא יעקצו לי שימושי API"): תקרה כלל-מערכתית ליום על
@@ -31,11 +34,25 @@ export const RATE_RULES = {
 // (המייסדים בודקים בלי חיכוך; תוקף אינו אדמין). הגבול נדיב פי כמה מהשימוש האמיתי של
 // תקופת הטסט, ומכוונן במקום אחד
 export const GLOBAL_RULES = {
-  scansPerDay: { type: "diagnosis_created", limit: 60, windowSeconds: 24 * 3600 },
+  scansPerDay: { type: "diagnosis_created", limit: 60, windowSeconds: 24 * 3600, settingKey: "global.scansPerDay" },
 } as const satisfies Record<string, RateRule>;
 
+// הדריסה מהניהול: קריאת המפתח מ-app_settings. ערך לא-מספרי/שלילי/לא-שלם מתעלמים ממנו
+// (fail-open לברירת המחדל שבקוד) - אותו עיקרון זמינות כמו הספירה עצמה. עלות: שאילתת מפתח
+// בודד באינדקס הראשי - זניחה ליד ספירת האירועים שכבר רצה כאן ממילא
+async function effectiveLimit(db: CountDb, rule: RateRule): Promise<number> {
+  try {
+    const row = await db.appSetting.findUnique({ where: { key: rule.settingKey } });
+    if (row == null) return rule.limit;
+    const n = Number(row.value);
+    return Number.isInteger(n) && n >= 0 ? n : rule.limit;
+  } catch {
+    return rule.limit;
+  }
+}
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
-type CountDb = { usageEvent: any };
+type CountDb = { usageEvent: any; appSetting: any };
 
 // null = מותר להמשיך; אחרת - תשובת 429 מוכנה. אדמין לא מוגבל (הצד שלנו בודק ומדגים בלי חיכוך)
 export async function enforceRateLimit(
@@ -46,11 +63,12 @@ export async function enforceRateLimit(
 ): Promise<Response | null> {
   if (isAdmin(user)) return null;
   try {
+    const limit = await effectiveLimit(db, rule);
     const since = new Date(now.getTime() - rule.windowSeconds * 1000);
     const count = await db.usageEvent.count({
       where: { userId: user.id, type: rule.type, createdAt: { gte: since } },
     });
-    if (count < rule.limit) return null;
+    if (count < limit) return null;
     return Response.json(
       { error: "יותר מדי פעולות בפרק זמן קצר, נסו שוב מאוחר יותר" },
       { status: 429 },
@@ -71,11 +89,12 @@ export async function enforceGlobalCap(
 ): Promise<Response | null> {
   if (isAdmin(user)) return null;
   try {
+    const limit = await effectiveLimit(db, rule);
     const since = new Date(now.getTime() - rule.windowSeconds * 1000);
     const count = await db.usageEvent.count({
       where: { type: rule.type, createdAt: { gte: since } },
     });
-    if (count < rule.limit) return null;
+    if (count < limit) return null;
     return Response.json(
       { error: "מכסת האבחונים היומית של תקופת הניסוי הסתיימה, נסו שוב מחר" },
       { status: 429 },

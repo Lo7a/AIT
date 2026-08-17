@@ -22,6 +22,8 @@ export const USAGE_EVENT_TYPES = [
   // actorUserId = האדמין. הפעולות שבתוך המצב ממילא נושאות actor שונה - אלה רק סימני הפתיחה והסגירה
   "impersonation_started",
   "impersonation_stopped",
+  // אדמין שינה הגדרת מערכת (מגבלות קצב וכו'): metadata = {key, from, to}; userId = האדמין עצמו
+  "settings_changed",
 ] as const;
 
 export type UsageEventType = (typeof USAGE_EVENT_TYPES)[number];

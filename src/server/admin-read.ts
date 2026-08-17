@@ -203,6 +203,12 @@ export async function getExternalCallsSummary(
   return aggregateExternalCalls(rows, dayAgo);
 }
 
+// דריסות ההגדרות הקיימות עבור מסך המגבלות (admin) - מפתח -> ערך, רק למפתחות המבוקשים
+export async function listSettingOverrides(prisma: PrismaClient, keys: string[]): Promise<Record<string, string>> {
+  const rows = await prisma.appSetting.findMany({ where: { key: { in: keys } } });
+  return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+}
+
 export interface AdminBriefRow {
   id: string;
   itemName: string;
