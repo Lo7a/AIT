@@ -242,13 +242,25 @@ export function DefaultRoadmap({
             <LossHighlightsBlock highlights={roadmapLossHighlights(roadmap.items)} personal={personalLoss} className="mt-6 animate-fade-up" />
 
             {roadmap.items.length === 0 ? (
-              <div className="mt-4 animate-fade-up rounded-lg border border-black/[0.06] bg-[#EDF3EC] p-6 text-[#346538]">
-                <p className="font-medium">לא זיהינו הזדמנויות דחופות כרגע</p>
-                <p className="mt-1">
-                  לפי מה שידוע לנו על העסק היום, הבסיס הדיגיטלי כבר די חזק. השלמת הראיון עשויה עדיין
-                  לחשוף הזדמנויות שלא נראות מהסריקה בלבד.
-                </p>
-              </div>
+              // כנות לפני רושם (ממצא מייסד 17.8, מסעדת האחים): תוכנית ריקה כשיש פערים בדוח
+              // אינה "הבסיס חזק" - זה פער כיסוי של ספריית הפתרונות שלנו, ואומרים את זה ביושר
+              scores.topGaps.length > 0 ? (
+                <div className="mt-4 animate-fade-up rounded-lg border border-black/[0.06] bg-[#FBF3DB] p-6 text-[#956400]">
+                  <p className="font-medium">זיהינו פערים, אבל אין עדיין התאמה בספריית הפתרונות שלנו</p>
+                  <p className="mt-1">
+                    הדוח מצא נקודות לשיפור, וספריית הפתרונות שלנו מתרחבת כל הזמן - כשיתווספו פתרונות
+                    שמתאימים לעסק הזה, התוכנית כאן תתעדכן. השלמת הראיון תעזור לנו לדייק את ההתאמה.
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-4 animate-fade-up rounded-lg border border-black/[0.06] bg-[#EDF3EC] p-6 text-[#346538]">
+                  <p className="font-medium">לא זיהינו הזדמנויות דחופות כרגע</p>
+                  <p className="mt-1">
+                    לפי מה שידוע לנו על העסק היום, הבסיס הדיגיטלי כבר די חזק. השלמת הראיון עשויה עדיין
+                    לחשוף הזדמנויות שלא נראות מהסריקה בלבד.
+                  </p>
+                </div>
+              )
             ) : (
               <div className="mt-4 space-y-10">
                 {groups.map((g, gi) => (
