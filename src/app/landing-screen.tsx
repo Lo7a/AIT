@@ -56,7 +56,8 @@ export function LandingScreen() {
         onSubmit={(e) => { e.preventDefault(); startDiagnosis(); }}
       >
         <label htmlFor="landing-query" className="block text-sm font-medium">שם העסק או כתובת האתר</label>
-        <div className="mt-2 flex gap-2">
+        {/* נערם לשתי שורות במובייל (הכלל הקבוע: כל מסך מותאם טלפון) - אותו דפוס כמו SearchBox */}
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
           <input
             id="landing-query"
             type="text"
