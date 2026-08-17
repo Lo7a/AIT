@@ -1,5 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
-import { pickNextQuestion, QUESTION_BANK, MAX_GUIDED_QUESTIONS } from "../pipeline/interview/questions";
+import { pickNextQuestion, QUESTION_BANK, MAX_GUIDED_QUESTIONS, staticUpdateFor } from "../pipeline/interview/questions";
 import { extractAnswer, type ExtractOptions } from "../pipeline/interview/extract";
 import { applyInterviewUpdates } from "../pipeline/interview/merge";
 import { InterviewError, NOT_ACTIVE_MESSAGE } from "../pipeline/interview/contract";
@@ -30,6 +30,9 @@ export interface InterviewSnapshot {
 }
 
 export interface TurnInput { content: string; questionKey?: string; isFreeText: boolean; }
+
+// אישורי הנתיב הסטטי - קצרים, חמים, בלי הד לתשובה (אותו חוזה no-echo כמו הפרומפט של extract.ts)
+const STATIC_REPLIES = ["מעולה, ממשיכים.", "רשמתי.", "הבנתי, הלאה.", "טוב, נמשיך."];
 
 export interface TurnResult {
   reply: string;
@@ -116,10 +119,20 @@ export async function runInterviewTurn(
   const extractQuestion = question
     ? { key: question.key, section: question.section, text: question.text(state.findings, state.model) }
     : null;
-  const result = await extractAnswer(
-    { findings: state.findings, model: state.model, question: extractQuestion, answer: content },
-    opts,
-  );
+  // הנתיב הסטטי (הכרעת מייסד 17.8): תשובת צ'יפים טהורה ממופה דטרמיניסטית בלי LLM בכלל -
+  // התור מיידי. כל דבר אחר (טקסט חופשי, "אחר", ניסוח לא תואם, שאלת הסיכום) ממשיך ל-extractAnswer
+  const staticUpdate = !input.isFreeText && question != null ? staticUpdateFor(question, content) : null;
+  const result = staticUpdate != null
+    ? {
+      updates: [staticUpdate],
+      // גיוון דטרמיניסטי (בלי אקראיות - בדיקות יציבות), באותה רוח של דרישת הגיוון בפרומפט
+      reply: STATIC_REPLIES[state.askedKeys.length % STATIC_REPLIES.length],
+      usedFallback: false,
+    }
+    : await extractAnswer(
+      { findings: state.findings, model: state.model, question: extractQuestion, answer: content },
+      opts,
+    );
   const source = input.isFreeText ? "free_text" as const : "interview" as const;
   const updated = applyInterviewUpdates(state.model, result.updates, source);
 
