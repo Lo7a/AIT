@@ -13,6 +13,9 @@ export async function GET(req: Request) {
     async (code) => {
       const supabase = await createSupabaseServerClient();
       const { error } = await supabase.auth.exchangeCodeForSession(code);
+      // פירוט הכשל בלוג השרת בלבד (הלקוח מקבל את הודעת הקישור הגנרית) - בלעדיו אי אפשר
+      // להבדיל בין code שכבר מומש, verifier שחסר (דפדפן אחר באמצע הזרימה) או תקלת ספק
+      if (error != null) console.error("auth callback: exchange failed:", error.message);
       return error == null;
     },
     async () => {
