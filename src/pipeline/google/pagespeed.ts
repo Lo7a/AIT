@@ -1,7 +1,7 @@
 import type { PageSpeedRawTrimmed, PageSpeedResult } from "../types";
 import { defaultFetch, readErrorBody, type FetchLike } from "../http";
 import { forbiddenHostOf } from "../forbidden-host";
-import { reportExternalCall, stripHeavyStrings } from "../observe";
+import { reportExternalCall } from "../observe";
 
 export interface PageSpeedOptions {
   apiKey?: string;
@@ -88,12 +88,12 @@ async function attemptPageSpeed(
   const body = (await res.json()) as PsiResponseBody;
   // PSI מחזיר 200 גם כשהוא נכשל לטעון את האתר - runtimeError הוא הכישלון האמיתי.
   // הארכיון (הכרעת מייסד 17.8) שומר את עץ ה-Lighthouse המלא בשני המקרים - בניגוד ל-trimRaw
-  // שגוזר ל-findings רק את מדדי הליבה. צילומי המסך (base64 ענק) נחתכים ע"י stripHeavyStrings;
-  // יעד עתידי: העלאתם לבאקט Storage במקום חיתוך
+  // שגוזר ל-findings רק את מדדי הליבה. הפיילוד נשלח כפי שהוא: צילומי המסך (base64 ענק)
+  // מוסטים לבאקט scan-artifacts בצד הכותב (offloadHeavyPayload ב-external-log.ts), לא כאן
   const runtimeError = body.lighthouseResult?.runtimeError;
   reportExternalCall({
     service: "pagespeed", context: "psi", ok: runtimeError == null, durationMs: Date.now() - startedAt,
-    payload: { url: normalizedUrl, body: stripHeavyStrings(body) },
+    payload: { url: normalizedUrl, body },
   });
   if (runtimeError) {
     throw new Error(`PageSpeed runtime error: ${runtimeError.code ?? "unknown"}`);

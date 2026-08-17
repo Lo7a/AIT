@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   reportExternalCall, setExternalCallSink, stripHeavyStrings,
 } from "../src/pipeline/observe";
-import { installExternalCallSink, withCallContext } from "../src/server/external-log";
+import { installExternalCallSink, offloadHeavyPayload, withCallContext } from "../src/server/external-log";
 
 // ארכיון הקריאות החיצוניות (הכרעת מייסד 17.8): התפר הטהור (observe) + הצד הכותב (external-log).
 // חוקי הברזל הנבדקים: תצפית לעולם לא זורקת, ההקשר (משתמש/אבחון) מתמזג נכון, ו-blobs נחתכים.
@@ -71,5 +71,39 @@ describe("external-log - הצד הכותב", () => {
     installExternalCallSink({ externalCall: { create: async () => { throw new Error("DB נפל"); } } });
     expect(() => reportExternalCall({ service: "places", context: "t", ok: true, durationMs: 1 })).not.toThrow();
     await new Promise((r) => setImmediate(r));
+  });
+});
+
+describe("offloadHeavyPayload - הסטת צילומי מסך לבאקט", () => {
+  const bigImage = "data:image/jpeg;base64," + "A".repeat(20_000);
+
+  it("תמונת base64 ענקית עולה לבאקט ומוחלפת במצביע storage", async () => {
+    const uploads: { path: string; contentType: string; size: number }[] = [];
+    const upload = async (path: string, bytes: Uint8Array, contentType: string) => {
+      uploads.push({ path, contentType, size: bytes.length });
+      return true;
+    };
+    const out = await offloadHeavyPayload({ body: { audits: { shot: bigImage, keep: "רגיל" } } }, upload) as any;
+    expect(uploads).toHaveLength(1);
+    expect(uploads[0].contentType).toBe("image/jpeg");
+    expect(uploads[0].path).toMatch(/^psi\/\d{4}-\d{2}-\d{2}\/[0-9a-f-]+\.jpeg$/);
+    expect(uploads[0].size).toBeGreaterThan(10_000);
+    expect(out.body.audits.shot).toBe(`storage://scan-artifacts/${uploads[0].path}`);
+    expect(out.body.audits.keep).toBe("רגיל");
+  });
+
+  it("העלאה שנכשלת - נופלים לחיתוך, לא לזריקה ולא לשמירת הענק", async () => {
+    const out = await offloadHeavyPayload({ shot: bigImage }, async () => false) as any;
+    expect(out.shot).toMatch(/^\[stripped \d+ chars\]$/);
+  });
+
+  it("מחרוזת ענקית שאינה תמונה נחתכת; תמונה קטנה נשארת כמו שהיא", async () => {
+    const upload = async () => { throw new Error("לא אמור לעלות"); };
+    const out = await offloadHeavyPayload({
+      text: "y".repeat(30_000),
+      smallImage: "data:image/png;base64,AAAA",
+    }, upload as any) as any;
+    expect(out.text).toBe("[stripped 30000 chars]");
+    expect(out.smallImage).toBe("data:image/png;base64,AAAA");
   });
 });
