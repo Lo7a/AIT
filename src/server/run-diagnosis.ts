@@ -17,6 +17,7 @@ import {
   BusinessOwnedByOtherError,
 } from "./diagnosis-repo";
 import { websiteKeyOf } from "./website-key";
+import { withCallContext } from "./external-log";
 import { socialPresenceOf, socialOnlyDetail } from "../pipeline/social-hosts";
 import type { DiagnoseEvent, DiagnoseStepKey } from "./diagnose-events";
 
@@ -161,9 +162,11 @@ export async function runDiagnosis(
     // אבל בלי הפולט הזה מסך הסריקה החיה לא היה מקבל בכלל אירועי crawl/pagespeed (שני ה-deps
     // הנחוצים ל-wrapWebsiteDeps כדי לפלוט אותם פשוט לא נקראים)
     if (urlSocial) emitSkippedCrawlPsi(emit, socialOnlyDetail(urlSocial.platform));
-    findings = target.kind === "url"
-      ? await scanWebsiteOnly(siteUrl!.href, wrapWebsiteDeps(opts.websiteDeps ?? defaultWebsiteOnlyDeps, emit))
-      : await runScan(target.placeId, wrapScanDeps(opts.scanDeps ?? defaultDeps, emit), { priorPlacesCalls: 1 });
+    // withCallContext: קריאות Places/PSI/ניתוח-ביקורות של הסריקה נרשמות בארכיון עם האבחון
+    // שנוצר הרגע (המשתמש כבר בהקשר מהעטיפה ב-route של diagnose)
+    findings = await withCallContext({ diagnosisId: created.diagnosisId }, () => target.kind === "url"
+      ? scanWebsiteOnly(siteUrl!.href, wrapWebsiteDeps(opts.websiteDeps ?? defaultWebsiteOnlyDeps, emit))
+      : runScan(target.placeId, wrapScanDeps(opts.scanDeps ?? defaultDeps, emit), { priorPlacesCalls: 1 }));
 
     // מסלול URL: כישלון כפול (גם crawl וגם PSI) = אין שום ממצא - נבדק לפני scanned
     if (target.kind === "url" && findings.partial.includes("crawl_failed") && findings.partial.includes("pagespeed_failed")) {
@@ -190,7 +193,7 @@ export async function runDiagnosis(
     detail: score.overall == null ? "אין מספיק מידע לציון כולל" : `ציון כולל ${score.overall}/100`,
   });
   const narrative = await step(emit, "narrative", "כותבים את הדוח",
-    () => generateNarrative(findings, score, opts.narrativeOptions),
+    () => withCallContext({ diagnosisId: created.diagnosisId }, () => generateNarrative(findings, score, opts.narrativeOptions)),
     (n) => n.usedFallback ? "נרטיב תבנית (LLM לא אושר)" : "הנרטיב מוכן");
 
   // שלב 4: שמירה אטומית - הסריקה, מודל העסק והמעבר ל-report_ready באותה טרנזקציה

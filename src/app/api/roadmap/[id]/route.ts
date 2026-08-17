@@ -10,12 +10,13 @@ import { assertDiagnosisAccess, unauthorizedResponse } from "../../../../server/
 import { emitUsageEvent } from "../../../../server/usage-events";
 import { guardApiRequest } from "../../../../server/api/request-guards";
 import { enforceRateLimit, RATE_RULES } from "../../../../server/rate-limit";
+import { withCallContext } from "../../../../server/external-log";
 
 // עוטף את completeJSON כ-CompleteFn - אותו דפוס בדיוק כמו ברירת המחדל הפנימית ב-extract.ts/
 // narrative.ts (opts.complete ?? completeJSON), רק שכאן זה חובה: buildRoadmap מקבל complete
 // כפרמטר חיוני (לא אופציונלי) כי אין לו נקודת קריאה נוספת שמזריקה ברירת מחדל בעצמה
 const complete: CompleteFn = async (prompt) => {
-  const r = await completeJSON<unknown>(prompt);
+  const r = await completeJSON<unknown>(prompt, { context: "roadmap_reasoning" });
   return { data: r.data, usage: r.usage };
 };
 
@@ -34,7 +35,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (limited != null) return limited;
   const handler = makeBuildHandler(async (diagnosisId) => {
     await assertDiagnosisAccess(prisma, acting.user, diagnosisId);
-    const { roadmapId } = await buildRoadmap(prisma, complete, diagnosisId);
+    // הקשר לארכיון הקריאות: נימוקי ה-roadmap נרשמים עם המשתמש והאבחון
+    const { roadmapId } = await withCallContext(
+      { userId: acting.user.id, diagnosisId },
+      () => buildRoadmap(prisma, complete, diagnosisId),
+    );
     await emitUsageEvent(prisma, {
       type: "roadmap_built", userId: acting.user.id, actorUserId: acting.actor.id,
       entityType: "diagnosis", entityId: diagnosisId,

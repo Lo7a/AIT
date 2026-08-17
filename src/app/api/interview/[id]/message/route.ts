@@ -6,6 +6,7 @@ import { assertDiagnosisAccess, unauthorizedResponse } from "../../../../../serv
 import { emitUsageEvent } from "../../../../../server/usage-events";
 import { guardApiRequest } from "../../../../../server/api/request-guards";
 import { enforceRateLimit, RATE_RULES } from "../../../../../server/rate-limit";
+import { withCallContext } from "../../../../../server/external-log";
 
 // תיחום בעלות בתוך ה-closure - ראו ההערה ב-interview/[id]/route.ts
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -18,7 +19,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (limited != null) return limited;
   const handler = makeMessageHandler(async (diagnosisId, input) => {
     await assertDiagnosisAccess(prisma, acting.user, diagnosisId);
-    const result = await runInterviewTurn(prisma, diagnosisId, input);
+    // הקשר לארכיון הקריאות: שורת ה-interview_extract נרשמת עם המשתמש והאבחון
+    const result = await withCallContext(
+      { userId: acting.user.id, diagnosisId },
+      () => runInterviewTurn(prisma, diagnosisId, input),
+    );
     await emitUsageEvent(prisma, {
       type: "interview_answer", userId: acting.user.id, actorUserId: acting.actor.id,
       entityType: "diagnosis", entityId: diagnosisId,

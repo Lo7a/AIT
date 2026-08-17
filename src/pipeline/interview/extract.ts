@@ -154,7 +154,7 @@ export async function extractAnswer(
 ): Promise<ExtractResult> {
   const complete: CompleteFn = opts.complete
     ?? (async (prompt) => {
-      const r = await completeJSON<unknown>(prompt);
+      const r = await completeJSON<unknown>(prompt, { context: "interview_extract" });
       return { data: r.data, usage: r.usage };
     });
   try {

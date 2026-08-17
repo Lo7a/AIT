@@ -1,6 +1,7 @@
 import type { BusinessCandidate, PlaceDetails, Review } from "../types";
 import type { FetchLike } from "../http";
 import { defaultFetch, readErrorBody } from "../http";
+import { reportExternalCall } from "../observe";
 
 export interface PlacesOptions {
   apiKey?: string;
@@ -23,6 +24,7 @@ export async function searchBusiness(
   opts: PlacesOptions = {},
 ): Promise<BusinessCandidate[]> {
   const { apiKey, fetchImpl } = resolveOpts(opts);
+  const startedAt = Date.now();
   const res = await fetchImpl(SEARCH_URL, {
     method: "POST",
     headers: {
@@ -34,7 +36,14 @@ export async function searchBusiness(
     body: JSON.stringify({ textQuery: query, languageCode: "he", regionCode: "IL" }),
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
-  if (!res.ok) throw new Error(`Places search HTTP ${res.status}: ${await readErrorBody(res)}`);
+  if (!res.ok) {
+    const errText = await readErrorBody(res);
+    reportExternalCall({
+      service: "places", context: "places_search", ok: false, durationMs: Date.now() - startedAt,
+      payload: { query, status: res.status, error: errText },
+    });
+    throw new Error(`Places search HTTP ${res.status}: ${errText}`);
+  }
   const body = (await res.json()) as {
     places?: {
       id: string;
@@ -44,6 +53,11 @@ export async function searchBusiness(
       userRatingCount?: number;
     }[];
   };
+  // הארכיון (הכרעת מייסד 17.8): הפיילוד המלא נשמר - כולל שדות שהיום לא נצרכים
+  reportExternalCall({
+    service: "places", context: "places_search", ok: true, durationMs: Date.now() - startedAt,
+    payload: { query, body },
+  });
   return (body.places ?? []).map((p) => ({
     placeId: p.id,
     name: p.displayName?.text ?? "",
@@ -58,6 +72,7 @@ export async function getPlaceDetails(
   opts: PlacesOptions = {},
 ): Promise<PlaceDetails> {
   const { apiKey, fetchImpl } = resolveOpts(opts);
+  const startedAt = Date.now();
   // formattedAddress נוסף לגזירת עיר/כתובת (אבן דרך 4, משימה 0.7) - אותה רמת חיוב, ה-Contact SKU
   // כבר פעיל בגלל nationalPhoneNumber
   const fieldMask =
@@ -69,7 +84,14 @@ export async function getPlaceDetails(
       signal: AbortSignal.timeout(TIMEOUT_MS),
     },
   );
-  if (!res.ok) throw new Error(`Places details HTTP ${res.status}: ${await readErrorBody(res)}`);
+  if (!res.ok) {
+    const errText = await readErrorBody(res);
+    reportExternalCall({
+      service: "places", context: "places_details", ok: false, durationMs: Date.now() - startedAt,
+      payload: { placeId, status: res.status, error: errText },
+    });
+    throw new Error(`Places details HTTP ${res.status}: ${errText}`);
+  }
   const body = (await res.json()) as {
     id: string;
     displayName?: { text?: string };
@@ -85,6 +107,12 @@ export async function getPlaceDetails(
       relativePublishTimeDescription?: string;
     }[];
   };
+  // הארכיון (הכרעת מייסד 17.8) מכבד את האילוץ המשפטי הקיים (תנאי Google, ראו analyze/reviews.ts):
+  // טקסט ביקורות לעולם לא נשמר - הפיילוד נארכב בלעדיו, עם ספירה בלבד
+  reportExternalCall({
+    service: "places", context: "places_details", ok: true, durationMs: Date.now() - startedAt,
+    payload: { placeId, body: { ...body, reviews: `[${(body.reviews ?? []).length} reviews - text not stored per Google ToS]` } },
+  });
   const reviews: Review[] = (body.reviews ?? [])
     .map((r) => ({
       // 0 = ערך זקיף לביקורת ללא דירוג (ה-API כמעט תמיד מחזיר 1-5)

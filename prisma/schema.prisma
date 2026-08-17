@@ -74,6 +74,31 @@ model UsageEvent {
   @@map("usage_events")
 }
 
+// ארכיון קריאות חיצוניות (הכרעת מייסד 17.8): כל קריאה לשירות חיצוני (LLM, Places, PageSpeed
+// וכל שירות עתידי) נשמרת במלואה - הפיילוד הוא הארכיון שממנו ממלאים עמודות ייעודיות בעתיד
+// בלי לקרוא לשירות שוב ובלי לאבד נתון שכבר שולם עליו. שורות LLM נושאות גם ספירת טוקנים
+// (נכנסים/יוצאים) לניתוח עלויות באדמין. בכוונה בלי קשרי FK: הארכיון שורד ניקוי אבחונים
+// ומשתמשים - היסטוריה לא נמחקת עם הישות (אותו היגיון כמו שדות הישות החופשיים ב-UsageEvent).
+// blobs בינאריים בתוך פיילודים (צילומי המסך של PSI) נחתכים לפני שמירה - יעד עתידי: באקט Storage
+model ExternalCall {
+  id           String   @id @default(uuid()) @db.Uuid
+  service      String // gemini | places | pagespeed | שירותים עתידיים
+  context      String // interview_extract | narrative | roadmap_reasoning | places_search | places_details | psi | ...
+  diagnosisId  String?  @map("diagnosis_id") @db.Uuid
+  userId       String?  @map("user_id") @db.Uuid
+  ok           Boolean
+  durationMs   Int      @map("duration_ms")
+  inputTokens  Int?     @map("input_tokens")
+  outputTokens Int?     @map("output_tokens")
+  payload      Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([service, createdAt])
+  @@index([userId, createdAt])
+  @@index([diagnosisId])
+  @@map("external_calls")
+}
+
 model Diagnosis {
   id                String             @id @default(uuid()) @db.Uuid
   businessId        String             @map("business_id") @db.Uuid

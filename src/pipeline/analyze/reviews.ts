@@ -42,7 +42,9 @@ export async function analyzeReviews(
   reviews: Review[],
   deps: AnalyzeDeps = {},
 ): Promise<{ insights: ReviewInsights; usage: LlmUsage }> {
-  const complete = deps.complete ?? completeJSON;
+  // תיוג הקשר לארכיון הקריאות - רק כשנופלים ל-completeJSON האמיתי (complete מוזרק לא מדווח)
+  const complete = deps.complete
+    ?? (<T>(prompt: string, o?: LlmOptions) => completeJSON<T>(prompt, { context: "reviews_analysis", ...o }));
   const withText = reviews.filter((r) => r.text.trim().length > 0);
   if (withText.length === 0) {
     return {

@@ -7,6 +7,7 @@ import { findLatestDiagnosis, isRecentInFlight } from "../../../server/diagnosis
 import { currentActingUser } from "../../../server/auth/supabase-server";
 import { unauthorizedResponse, userCanAccessDiagnosis } from "../../../server/auth/guard";
 import { guardApiRequest } from "../../../server/api/request-guards";
+import { withCallContext } from "../../../server/external-log";
 import { enforceGlobalCap, enforceRateLimit, GLOBAL_RULES, RATE_RULES } from "../../../server/rate-limit";
 import { emitUsageEvent, usageEventForDiagnoseEvent } from "../../../server/usage-events";
 
@@ -30,7 +31,9 @@ export async function POST(req: Request) {
   const capped = await enforceGlobalCap(prisma, user, GLOBAL_RULES.scansPerDay);
   if (capped != null) return capped;
   const handler = makeDiagnoseHandler(
-    (target, onEvent) => runDiagnosis(prisma, target, {
+    // withCallContext: קריאות Places/PSI/LLM של הסריקה נרשמות בארכיון עם המשתמש הסורק
+    // (האבחון מצטרף להקשר בתוך runDiagnosis ברגע שהוא נוצר)
+    (target, onEvent) => withCallContext({ userId: user.id }, () => runDiagnosis(prisma, target, {
       ownerUserId: user.id,
       onEvent: (e) => {
         logDiagnoseEvent(e);
@@ -38,7 +41,7 @@ export async function POST(req: Request) {
         if (usage != null) void emitUsageEvent(prisma, { ...usage, actorUserId: actor.id });
         onEvent(e);
       },
-    }),
+    })),
     {
       // דה-דופליקציה בצד שרת: סריקה חיה ליעד הזה (של המשתמש עצמו) => 409 במקום סריקה כפולה
       // בתשלום. סריקה חיה של משתמש אחר לא נחשפת כאן - הבקשה ממשיכה ונופלת על שומר הבעלות

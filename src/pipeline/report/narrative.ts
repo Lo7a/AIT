@@ -169,7 +169,9 @@ export async function generateNarrative(
   score: ScoreReport,
   opts: NarrativeOptions = {},
 ): Promise<NarrativeResult> {
-  const complete = opts.complete ?? completeJSON;
+  // תיוג הקשר לארכיון הקריאות - רק כשנופלים ל-completeJSON האמיתי (complete מוזרק לא מדווח)
+  const complete = opts.complete
+    ?? ((prompt: string) => completeJSON<unknown>(prompt, { context: "narrative" }));
   const allowed = allowedNumbers(f, score);
   const validRuleKeys = new Set(score.topGaps.map((g) => g.ruleKey));
   let usage: LlmUsage = { inputTokens: 0, outputTokens: 0 };

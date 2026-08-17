@@ -1,4 +1,5 @@
 import { readErrorBody, defaultFetch, type FetchLike } from "../http";
+import { reportExternalCall } from "../observe";
 export type { FetchLike } from "../http";
 
 export interface LlmUsage {
@@ -15,6 +16,9 @@ export interface LlmOptions {
   apiKey?: string;
   model?: string;
   fetchImpl?: FetchLike;
+  // תווית ההקשר לארכיון הקריאות (external_calls): כל אתר קריאה מזדהה - interview_extract,
+  // narrative, roadmap_reasoning, reviews_analysis. חסר = "llm" גנרי (עדיף לתייג תמיד)
+  context?: string;
 }
 
 const BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
@@ -27,11 +31,36 @@ export function stripFenceMarkers(text: string): string {
   return text.replace(/<<<|>>>/g, "");
 }
 
-// נקודת ההחלפה היחידה של ספק ה-LLM. כל הצנרת קוראת רק לפונקציה הזו.
+// נקודת ההחלפה היחידה של ספק ה-LLM. כל הצנרת קוראת רק לפונקציה הזו - ולכן זו גם נקודת
+// המדידה היחידה של הארכיון (external_calls): טוקנים, משך, והפיילוד המלא נרשמים כאן פעם אחת
+// לכל קריאה אמיתית (complete מוזרק בבדיקות עוקף את הפונקציה כולה - בדיקות נשארות שקטות).
 export async function completeJSON<T>(
   prompt: string,
   opts: LlmOptions = {},
 ): Promise<LlmJsonResult<T>> {
+  const startedAt = Date.now();
+  const context = opts.context ?? "llm";
+  try {
+    const result = await completeJSONInner<T>(prompt, opts);
+    reportExternalCall({
+      service: "gemini", context, ok: true, durationMs: Date.now() - startedAt,
+      inputTokens: result.usage.inputTokens, outputTokens: result.usage.outputTokens,
+      payload: { prompt, body: result.rawBody },
+    });
+    return { data: result.data, usage: result.usage };
+  } catch (err) {
+    reportExternalCall({
+      service: "gemini", context, ok: false, durationMs: Date.now() - startedAt,
+      payload: { prompt, error: err instanceof Error ? err.message : String(err) },
+    });
+    throw err;
+  }
+}
+
+async function completeJSONInner<T>(
+  prompt: string,
+  opts: LlmOptions,
+): Promise<LlmJsonResult<T> & { rawBody: unknown }> {
   const apiKey = opts.apiKey ?? process.env.GEMINI_API_KEY;
   const model = opts.model ?? process.env.LLM_MODEL ?? "gemini-3.6-flash";
   const fetchImpl: FetchLike = opts.fetchImpl ?? defaultFetch;
@@ -75,6 +104,7 @@ export async function completeJSON<T>(
   }
   return {
     data,
+    rawBody: body,
     usage: {
       inputTokens: body.usageMetadata?.promptTokenCount ?? 0,
       outputTokens: (body.usageMetadata?.candidatesTokenCount ?? 0) + (body.usageMetadata?.thoughtsTokenCount ?? 0),
