@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIT · מרכז העסק - גלריה</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  .sc-new.wide{grid-column:span 12;flex-direction:row;min-height:72px;gap:14px}
+  .sc-new.wide .plus{width:34px;height:34px}
+  .scan-grid-cell{grid-column:span 4}
+  @media (max-width:1060px){.scan-grid-cell{grid-column:span 6}}
+  @media (max-width:760px){.scan-grid-cell{grid-column:span 12}}
+  @media (max-width:640px){
+    .g-top .chip.live{display:none}
+    .g-title{display:none}
+  }
+</style>
+</head>
+<body class="nav-gallery">
+
+<div class="orbs" aria-hidden="true"><div class="orb a"></div><div class="orb b"></div><div class="orb c"></div></div>
+<div class="grid-tex" aria-hidden="true"></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="gsc" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#34d399"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<!-- ===== שורת הכותרת: מיקום בגלריה במרכז ===== -->
+<header class="g-top">
+  <div class="brand">
+    <span class="brand-mark">AIT</span>
+    <span class="brand-txt"><small>מרכז העסק</small><b>אופטיקה בק בע"מ</b></span>
+  </div>
+  <div class="g-center">
+    <span class="g-title" id="gTitle">מרכז העסק</span>
+    <div class="g-dots" role="tablist" aria-label="עמודים">
+      <button class="g-dot on" data-go="0" aria-label="מרכז העסק"></button>
+      <button class="g-dot" data-go="1" aria-label="תוכנית העבודה"></button>
+      <button class="g-dot" data-go="2" aria-label="סריקות נוספות"></button>
+    </div>
+  </div>
+  <div class="side">
+    <span class="g-count num" id="gCount">1 / 3</span>
+    <span class="chip live"><span class="dot"></span>דוח חי</span>
+  </div>
+</header>
+
+<!-- ===== הבמה: שלושה עמודים בהחלקה ===== -->
+<div class="stage" id="stage">
+  <div class="g-track" id="track">
+
+    <!-- עמוד 1: מרכז העסק -->
+    <section class="page" aria-label="מרכז העסק">
+      <div class="page-inner">
+
+        <div class="shell rv d1 c8">
+          <div class="core loss-core card-pad">
+            <span class="loss-tag">מה מונח על השולחן</span>
+            <h2>פנייה שנכנסת בשמונה בערב מחכה עד הבוקר. לקוח שמחכה <span class="hl">כבר התקשר למתחרה</span>.</h2>
+            <p>זה מה שעלה מהסריקה ומהתשובות שלך עד כאן. הפערים שמתחת מסודרים לפי מה שעולה הכי הרבה.</p>
+          </div>
+        </div>
+
+        <div class="shell rv d2 c4">
+          <div class="core score-core card-pad">
+            <div class="dial">
+              <svg width="172" height="172" viewBox="0 0 172 172">
+                <circle class="track" cx="86" cy="86" r="70"/>
+                <circle class="fill" cx="86" cy="86" r="70"/>
+              </svg>
+              <div class="mid">
+                <span class="big num" data-count="73">0</span>
+                <small>מתוך 100</small>
+              </div>
+            </div>
+            <span class="dial-cap">הציון עולה עם כל פער שנסגר</span>
+            <div class="know">
+              <div class="know-top">
+                <b>כמה מהתמונה בידיים שלנו</b>
+                <span class="pct num"><span data-count="64">0</span><small>%</small></span>
+              </div>
+              <div class="know-rail" aria-hidden="true">
+                <span class="kseg full" style="--i:0"><i></i></span>
+                <span class="kseg full" style="--i:1"><i></i></span>
+                <span class="kseg full" style="--i:2"><i></i></span>
+                <span class="kseg part" style="--i:3"><i></i></span>
+                <span class="kseg" style="--i:4"><i></i></span>
+              </div>
+              <p class="know-hint">עוד 4 תשובות ישלימו אותה. <a href="#">עונים עכשיו</a> או ממשיכים - שום שלב לא נועל אותך.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="shell rv d3 c8">
+          <div class="core card-pad">
+            <div class="card-title">הפערים שעולים כסף</div>
+
+            <div class="gap-row">
+              <span class="gap-no num" aria-hidden="true">1</span>
+              <h3>אי אפשר לקבוע תור בלי להתקשר</h3>
+              <p class="pain">הביקורות מזכירות המתנה בטלפון, ובאתר אין קביעת תור. מי שמנסה בערב נשאר בלי מענה.</p>
+              <div class="door">
+                <a class="door-link" href="#" data-nav="1">
+                  הפתרון בעמוד התוכנית
+                  <span class="cap">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+                  </span>
+                </a>
+                <span class="step num">צעד 1 מתוך 3</span>
+              </div>
+            </div>
+
+            <div class="gap-row">
+              <span class="gap-no num" aria-hidden="true">2</span>
+              <h3>האתר איטי במובייל</h3>
+              <p class="pain">טעינה ארוכה בנייד מבריחה מבקרים לפני שראו משהו, ורוב החיפושים מתחילים בטלפון.</p>
+              <div class="door">
+                <a class="door-link" href="#" data-nav="1">
+                  הפתרון בעמוד התוכנית
+                  <span class="cap">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+                  </span>
+                </a>
+                <span class="step num">צעד 2 מתוך 3</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="shell rv d4 c4">
+          <div class="core int-core card-pad">
+            <span class="live-tag"><span class="dot"></span>הדוח חי</span>
+            <h3>עוד 4 שאלות, והתמונה מתחדדת</h3>
+            <p>כל תשובה מעדכנת את הדוח באותו רגע. עונים כשנוח, עוצרים מתי שרוצים וחוזרים אחר כך.</p>
+            <div class="int-meter">
+              <span class="num">64%</span>
+              <span class="bar"><i></i></span>
+              <span class="num">100%</span>
+            </div>
+            <div class="int-actions">
+              <button class="btn sm">
+                ממשיכים בראיון
+                <span class="cap">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+                </span>
+              </button>
+              <button class="btn-quiet">אחר כך</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- עמוד 2: תוכנית העבודה -->
+    <section class="page" aria-label="תוכנית העבודה">
+      <div class="page-inner">
+
+        <div class="plan-page-head">
+          <div class="mini">תוכנית העבודה</div>
+          <h2>שלושה צעדים, מסודרים לפי מה שכואב קודם</h2>
+          <p>כל צעד אומר מה הוא פותר ומה הוא עולה, עם מקור גלוי לכל מספר. חלק מהצעדים אפשר להזמין ישירות דרכנו.</p>
+        </div>
+
+        <div class="shell rv d2 c4">
+          <div class="core step-core card-pad">
+            <span class="step-no num">1</span>
+            <h3>מערכת תורים אונליין</h3>
+            <p>לקוח קובע תור לבד, גם בשמונה בערב. הפניות מפסיקות ללכת לאיבוד והטלפון מתפנה.</p>
+            <span class="step-solves">סוגר את הפער הראשון</span>
+            <div class="step-foot">
+              <a class="door-link" href="#">
+                פרטים והזמנה
+                <span class="cap">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+                </span>
+              </a>
+              <span class="st">מומלץ להתחיל כאן</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="shell rv d3 c4">
+          <div class="core step-core card-pad">
+            <span class="step-no num">2</span>
+            <h3>האצת האתר במובייל</h3>
+            <p>האתר נטען מהר בטלפון, ומי שמחפש נשאר. שיפור שמורגש בכל ביקור, בלי לבנות אתר חדש.</p>
+            <span class="step-solves">סוגר את הפער השני</span>
+            <div class="step-foot">
+              <a class="door-link" href="#">
+                פרטים והזמנה
+                <span class="cap">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+                </span>
+              </a>
+              <span class="st">אפשר במקביל לצעד 1</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="shell rv d4 c4">
+          <div class="core step-core card-pad">
+            <span class="step-no num">3</span>
+            <h3>ניהול פניות מסודר</h3>
+            <p>כל פנייה מתועדת עם אחראי ותאריך חזרה. רואים אילו לידים נסגרו ולמה, והבאים לא הולכים לאיבוד.</p>
+            <span class="step-solves">מונע את הפער הבא</span>
+            <div class="step-foot">
+              <a class="door-link" href="#">
+                פרטים והזמנה
+                <span class="cap">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+                </span>
+              </a>
+              <span class="st">השלב שאחרי</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- עמוד 3: סריקות נוספות -->
+    <section class="page" aria-label="סריקות נוספות">
+      <div class="page-inner">
+
+        <div class="plan-page-head">
+          <div class="mini">סריקות נוספות</div>
+          <h2>כל סריקה נשמרת, ואפשר להשוות אותה לעסק שלך</h2>
+          <p>מתחרה, ספק או סתם סקרנות. חוזרים לכל סריקה, מרעננים אותה ורואים מי מוביל במה.</p>
+        </div>
+
+        <div class="shell rv d2 scan-grid-cell">
+          <div class="core scan-card">
+            <div class="scan-row" style="border:none;padding-inline:0">
+              <span class="sc-avatar">במ</span>
+              <span class="who"><b>בית מאפה ברכת רחל</b><i>נסרק לפני 3 ימים</i></span>
+              <span class="miniring">
+                <svg width="40" height="40" viewBox="0 0 40 40">
+                  <circle class="t" cx="20" cy="20" r="16"/>
+                  <circle class="f" cx="20" cy="20" r="16" stroke-dasharray="100" stroke-dashoffset="16"/>
+                </svg>
+                <span class="v num">84</span>
+              </span>
+            </div>
+            <div class="sc-foot">
+              <button class="pill">פתח דוח</button>
+              <button class="ghost-act">סרוק שוב</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="shell rv d3 scan-grid-cell">
+          <div class="core scan-card">
+            <div class="scan-row" style="border:none;padding-inline:0">
+              <span class="sc-avatar">מא</span>
+              <span class="who"><b>מסעדת האחים</b><i>נסרק אתמול</i></span>
+              <span class="miniring">
+                <svg width="40" height="40" viewBox="0 0 40 40">
+                  <circle class="t" cx="20" cy="20" r="16"/>
+                  <circle class="f w" cx="20" cy="20" r="16" stroke-dasharray="100" stroke-dashoffset="59"/>
+                </svg>
+                <span class="v num">41</span>
+              </span>
+            </div>
+            <div class="sc-foot">
+              <button class="pill">פתח דוח</button>
+              <button class="ghost-act">סרוק שוב</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="shell rv d4 scan-grid-cell">
+          <div class="core scan-card">
+            <div class="scan-row" style="border:none;padding-inline:0">
+              <span class="sc-avatar">lv</span>
+              <span class="who"><b><span dir="ltr">lavangroup.co.il</span></b><i>נסרק לפני שבועיים</i></span>
+              <span class="miniring">
+                <svg width="40" height="40" viewBox="0 0 40 40">
+                  <circle class="t" cx="20" cy="20" r="16"/>
+                  <circle class="f" cx="20" cy="20" r="16" stroke-dasharray="100" stroke-dashoffset="37"/>
+                </svg>
+                <span class="v num">63</span>
+              </span>
+            </div>
+            <div class="sc-foot">
+              <button class="pill">פתח דוח</button>
+              <button class="ghost-act">סרוק שוב</button>
+            </div>
+          </div>
+        </div>
+
+        <button class="sc-new wide rv d5">
+          <span class="plus" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          </span>
+          <b>סרוק עסק חדש</b>
+          <span>מתחרה, ספק, או סתם סקרנות</span>
+        </button>
+
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ===== החצים ===== -->
+  <button class="pager next" id="pgNext" aria-label="לעמוד הבא">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+  </button>
+  <button class="pager prev" id="pgPrev" aria-label="לעמוד הקודם" disabled>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+  </button>
+</div>
+
+<script src="script.js"></script>
+<script>
+/* גלריה: מעבר בין עמודים בחצים, נקודות, מקלדת והחלקה */
+(function(){
+  var track=document.getElementById("track");
+  var titleEl=document.getElementById("gTitle");
+  var countEl=document.getElementById("gCount");
+  var next=document.getElementById("pgNext");
+  var prev=document.getElementById("pgPrev");
+  var dots=Array.prototype.slice.call(document.querySelectorAll(".g-dot"));
+  var titles=["מרכז העסק","תוכנית העבודה","סריקות נוספות"];
+  var N=3, page=0;
+
+  function go(i){
+    page=Math.max(0,Math.min(N-1,i));
+    track.style.transform="translateX("+(page*100)+"%)";
+    titleEl.textContent=titles[page];
+    countEl.textContent=(page+1)+" / "+N;
+    next.disabled=(page===N-1);
+    prev.disabled=(page===0);
+    dots.forEach(function(d,j){d.classList.toggle("on",j===page)});
+  }
+
+  next.addEventListener("click",function(){go(page+1)});
+  prev.addEventListener("click",function(){go(page-1)});
+  dots.forEach(function(d){
+    d.addEventListener("click",function(){go(parseInt(d.getAttribute("data-go"),10))});
+  });
+  document.querySelectorAll("[data-nav]").forEach(function(a){
+    a.addEventListener("click",function(e){
+      e.preventDefault();
+      go(parseInt(a.getAttribute("data-nav"),10));
+    });
+  });
+  /* בממשק עברי קדימה = שמאלה */
+  document.addEventListener("keydown",function(e){
+    if(e.key==="ArrowLeft")go(page+1);
+    if(e.key==="ArrowRight")go(page-1);
+  });
+  /* החלקה במגע: גרירה ימינה חושפת את העמוד הבא */
+  var sx=null,st=null;
+  var stage=document.getElementById("stage");
+  stage.addEventListener("pointerdown",function(e){sx=e.clientX;st=Date.now()},{passive:true});
+  stage.addEventListener("pointerup",function(e){
+    if(sx===null)return;
+    var dx=e.clientX-sx;
+    var vel=Math.abs(dx)/Math.max(Date.now()-st,1);
+    if(dx>60||(dx>24&&vel>0.11))go(page+1);
+    else if(dx<-60||(dx<-24&&vel>0.11))go(page-1);
+    sx=null;
+  },{passive:true});
+
+  go(0);
+})();
+</script>
+</body>
+</html>

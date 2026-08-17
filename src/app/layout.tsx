@@ -4,7 +4,9 @@ import {
   Frank_Ruhl_Libre, Assistant, Rubik, Heebo, Secular_One, Space_Grotesk,
 } from "next/font/google";
 import { THEME_COOKIE, parseTheme } from "./theme";
-import { ThemeSwitcher } from "./theme-switcher";
+import { MODE_COOKIE, parseMode } from "./mode";
+import { ModeToggle } from "./mode-toggle";
+import { Ambient, GscDefs } from "./ui/ambient";
 import "./globals.css";
 
 // כל הפונטים של שלוש הגרסאות נטענים כאן ברמת ה-layout (משותף), כדי שכל תת-עץ
@@ -64,18 +66,22 @@ const FONT_VARIABLES = [
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
   const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
+  // מצב תצוגה (כהה ברירת מחדל / בהיר) - נקבע בשרת מהעוגייה כדי שלא יהיה הבזק בטעינה
+  const mode = parseMode(cookieStore.get(MODE_COOKIE)?.value);
 
   return (
-    <html lang="he" dir="rtl" data-theme={theme}>
+    <html lang="he" dir="rtl" data-theme={theme} data-mode={mode}>
       {/* suppressHydrationWarning על body בלבד: תוספי דפדפן (Grammarly וכד') מזריקים תכונות
           ל-body לפני ש-React נטען ומייצרים אזהרת hydration מדומה בפיתוח; אזהרות אמיתיות בעומק
           העץ לא מושתקות */}
       <body
-        className={`${FONT_VARIABLES} font-[family-name:var(--font-assistant)] min-h-screen antialiased`}
+        className={`${FONT_VARIABLES} font-[family-name:var(--font-rubik)] min-h-screen antialiased`}
         suppressHydrationWarning
       >
+        <Ambient />
+        <GscDefs />
         {children}
-        <ThemeSwitcher active={theme} />
+        <ModeToggle />
       </body>
     </html>
   );

@@ -1,33 +1,39 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import type { InterviewSnapshot } from "../../server/run-interview";
 import { useInterviewChat } from "../interview/use-interview-chat";
 import type { ChatMessage, SectionProgressItem } from "../interview/chat-logic";
+import { AppShell } from "../ui/app-shell";
+import { FillBar } from "../ui/motion";
 
-// מסך הראיון בשפת העיצוב הזמנית הקיימת (ראו default-screens.tsx) - אין כאן שום לוגיקת עסק,
-// רק תצוגה על גבי useInterviewChat. גרסת עיצוב עתידית מחליפה את הקובץ הזה בלבד. ניהול פוקוס
+// מסך הראיון בשפת העיצוב הנבחרת (הכרעת מייסד 18.8: כהה פרמיום, סגול וברקת, Rubik - ראו
+// globals.css) - אין כאן שום לוגיקת עסק, רק תצוגה על גבי useInterviewChat. ניהול פוקוס
 // כן חי כאן (ולא בהוק): הוא תלוי-DOM/תזמון-רינדור, לא כלל עסקי - ראו ההערות ליד ה-effect למטה.
+// כללי החלקים המונפשים: מחלקות .rv יושבות רק על עטיפות סטטיות שנטענות פעם אחת עם המסך -
+// אף פעם לא על הודעות/פאנלים שמתחלפים עם ה-state, כדי ששינוי state לא יריץ כניסה מחדש.
 
-const SECONDARY_BTN =
-  "rounded-md border border-black/[0.12] px-4 py-2 text-sm text-[#111111] hover:bg-[#F1F0EE] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]";
-const QUIET_BTN =
-  "px-4 py-2 text-sm text-[#6F6E6A] underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]";
-// צ'יפ אפשרות (אפיון מחדש-ראיון, החלטה D): גבול עגול תמיד, מילוי כהה רק כשנבחר (בחירה מרובה
-// בלבד - בבחירה בודדת לחיצה שולחת מיד ואין מצב "נבחר" קבוע להראות)
-const OPTION_CHIP_BTN =
-  "rounded-full border px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]";
-const OPTION_CHIP_IDLE = "border-black/[0.12] text-[#111111] hover:bg-[#F1F0EE]";
-const OPTION_CHIP_SELECTED = "border-[#111111] bg-[#111111] text-white";
-const OPTION_CHIP_OTHER = "border-dashed border-black/[0.25] text-[#6F6E6A] hover:bg-[#F1F0EE]";
+// עקיפות צבע ישירות ב-style ולא במחלקות utility: כללי globals.css (כמו .pill) אינם בשכבת
+// tailwind ולכן גוברים על utilities בקסקדה - style הוא הדרך האמינה לעקוף אותם נקודתית
+const PILL_SELECTED_STYLE: CSSProperties = {
+  background: "linear-gradient(135deg,var(--acc-deep1),var(--acc-deep2))",
+  color: "#fff",
+  borderColor: "transparent",
+};
+const PILL_OTHER_STYLE: CSSProperties = {
+  background: "transparent",
+  color: "var(--mut)",
+  borderStyle: "dashed",
+  borderColor: "var(--hair)",
+};
 
 // הבדל מלא/חלקי/כלום לא נשען על צבע בלבד: full מלא ובגבול רציף, partial בגבול מקווקו
-// (border-dashed) עם נקודה מוקפת, none בגבול רציף דהוי בלי נקודה בכלל - ניתן להבחין גם
+// עם נקודה מוקפת, none בגבול רציף דהוי בלי נקודה בכלל - ניתן להבחין גם
 // בגווני אפור/עיוורון צבעים
-const CHIP_CLASSES: Record<SectionProgressItem["state"], string> = {
-  full: "border-solid border-[#111111] bg-[#111111] text-white",
-  partial: "border-dashed border-[#111111]/50 bg-[#F1F0EE] text-[#111111]",
-  none: "border-solid border-black/[0.12] text-[#6F6E6A]",
+const SECTION_CHIP_STYLE: Record<SectionProgressItem["state"], CSSProperties> = {
+  full: { color: "var(--acc2-soft)", background: "rgba(var(--acc2-rgb),.09)", borderColor: "rgba(var(--acc2-rgb),.35)" },
+  partial: { color: "var(--txt)", background: "var(--surface-1)", borderStyle: "dashed", borderColor: "rgba(var(--acc-rgb),.5)" },
+  none: { color: "var(--dim)", background: "transparent", borderColor: "var(--hair-soft)" },
 };
 const STATE_LABEL: Record<SectionProgressItem["state"], string> = {
   full: "הושלם",
@@ -35,10 +41,14 @@ const STATE_LABEL: Record<SectionProgressItem["state"], string> = {
   none: "עוד לא",
 };
 
+// כפתור-קו שקט (סיום הראיון): ghost-act מ-globals בלי מצב disabled משלו, אז מוסיפים כאן
+const GHOST_BTN = "ghost-act disabled:cursor-not-allowed disabled:opacity-40";
+
 function SectionChip({ item }: { item: SectionProgressItem }) {
   return (
     <li
-      className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${CHIP_CLASSES[item.state]}`}
+      className="flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"
+      style={SECTION_CHIP_STYLE[item.state]}
       aria-label={`${item.label}: ${STATE_LABEL[item.state]}`}
     >
       {item.state !== "none" && (
@@ -52,16 +62,28 @@ function SectionChip({ item }: { item: SectionProgressItem }) {
   );
 }
 
+// החץ בעיגול של כפתורי .btn (globals) - בממשק עברי קדימה = שמאלה
+function CapArrow() {
+  return (
+    <span className="cap" aria-hidden="true">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M19 12H5" />
+        <path d="m12 19-7-7 7-7" />
+      </svg>
+    </span>
+  );
+}
+
 function TypingDots() {
   return (
     // הטקסט "חושב" נשאר נגיש (לא aria-hidden) כדי שהוא ייקרא בתוך אזור ה-aria-live של
     // ההודעות - רק הנקודות המונפשות עצמן דקורטיביות
-    <div className="flex max-w-[85%] animate-fade-up items-center gap-2 self-start rounded-lg border border-black/[0.06] bg-white px-4 py-2.5 text-sm text-[#6F6E6A]">
+    <div className="flex max-w-[85%] animate-fade-up items-center gap-2 self-start rounded-2xl border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-4 py-2.5 text-sm text-[color:var(--mut)]">
       <span>חושב</span>
       <span className="flex items-end gap-0.5" aria-hidden="true">
-        <span className="h-1 w-1 animate-bounce rounded-full bg-[#6F6E6A]" style={{ animationDelay: "0ms" }} />
-        <span className="h-1 w-1 animate-bounce rounded-full bg-[#6F6E6A]" style={{ animationDelay: "150ms" }} />
-        <span className="h-1 w-1 animate-bounce rounded-full bg-[#6F6E6A]" style={{ animationDelay: "300ms" }} />
+        <span className="h-1 w-1 animate-bounce rounded-full bg-[color:var(--acc)]" style={{ animationDelay: "0ms" }} />
+        <span className="h-1 w-1 animate-bounce rounded-full bg-[color:var(--acc)]" style={{ animationDelay: "150ms" }} />
+        <span className="h-1 w-1 animate-bounce rounded-full bg-[color:var(--acc)]" style={{ animationDelay: "300ms" }} />
       </span>
     </div>
   );
@@ -70,13 +92,13 @@ function TypingDots() {
 function Bubble({ message }: { message: ChatMessage }) {
   if (message.role === "user") {
     return (
-      <div className="max-w-[85%] self-end whitespace-pre-wrap break-words rounded-lg bg-[#111111] px-4 py-2.5 text-white">
+      <div className="max-w-[85%] self-end whitespace-pre-wrap break-words rounded-2xl border border-[rgba(var(--acc-rgb),.3)] bg-[rgba(var(--acc-rgb),.14)] px-4 py-2.5">
         {message.content}
       </div>
     );
   }
   return (
-    <div className="max-w-[85%] self-start whitespace-pre-wrap break-words rounded-lg border border-black/[0.06] bg-white px-4 py-2.5">
+    <div className="max-w-[85%] self-start whitespace-pre-wrap break-words rounded-2xl border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-4 py-2.5">
       {message.content}
     </div>
   );
@@ -155,184 +177,204 @@ export function DefaultInterview({
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-16" aria-busy={starting || busy || finishing}>
-      <h1 className="animate-fade-up font-[family-name:var(--font-frank)] text-4xl font-bold tracking-tight">
-        ראיון קצר על העסק
-      </h1>
-      <p className="mt-3 animate-fade-up text-lg text-[#6F6E6A]" style={{ animationDelay: "80ms" }}>
-        כמה שאלות ממוקדות שיעזרו לדייק את ההמלצות. אפשר לדלג, לעבור לכתיבה חופשית ולסיים מתי שרוצים.
-      </p>
-
-      <section className="mt-8 animate-fade-up" style={{ animationDelay: "120ms" }}>
-        <div
-          role="progressbar"
-          aria-valuenow={completenessPct}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-label="שלמות האבחון"
-          className="h-[2px] w-full overflow-hidden rounded-full bg-[#F1F0EE]"
-        >
-          <div
-            className="h-[2px] rounded-full bg-[#111111] transition-[width] duration-500"
-            style={{ width: `${completenessPct}%` }}
-          />
-        </div>
-        <ul className="mt-4 flex flex-wrap gap-2">
-          {sections.map((s) => (
-            <SectionChip key={s.key} item={s} />
-          ))}
-        </ul>
-      </section>
-
-      <section
-        aria-live="polite"
-        className="mt-8 flex animate-fade-up flex-col gap-3"
-        style={{ animationDelay: "160ms" }}
+    <AppShell active="interview" diagnosisId={diagnosisId}>
+      <main
+        className="mx-auto w-full max-w-[760px] flex-1 px-4 pb-16 pt-8 sm:pt-10"
+        aria-busy={starting || busy || finishing}
       >
-        {messages.map((m) => (
-          <Bubble key={m.id} message={m} />
-        ))}
-        {(busy || starting) && <TypingDots />}
-        <div ref={bottomRef} />
-      </section>
+        <header className="rv">
+          {/* "הדוח חי" - אמת מערכתית, לא סיסמה: כל תשובה מרעננת את scan.scores מיד (run-interview) */}
+          <span className="live-tag">
+            <span className="dot" aria-hidden="true" />
+            הדוח חי
+          </span>
+          <h1 className="mt-4 text-[clamp(26px,4.2vw,36px)] font-extrabold leading-tight tracking-[-.015em]">
+            ראיון קצר על העסק
+          </h1>
+          <p className="mt-2 max-w-[52ch] text-[14.5px] text-[color:var(--mut)]">
+            כמה שאלות ממוקדות שיעזרו לדייק את ההמלצות. אפשר לדלג, לעבור לכתיבה חופשית ולסיים מתי שרוצים.
+          </p>
+        </header>
 
-      <div className="mt-6 animate-fade-up" style={{ animationDelay: "200ms" }}>
-        {freeText ? (
-          <div className="rounded-lg border border-black/[0.06] bg-white p-5">
-            <p className="text-lg font-medium">ספרו לי על העסק במילים שלכם</p>
-            {visible == null && (
-              <p className="mt-1 text-sm text-[#6F6E6A]">אפשר להמשיך בכתיבה חופשית או לסיים</p>
-            )}
-            <div className="mt-4 flex flex-wrap gap-3">
-              {visible != null && (
-                <button
-                  type="button"
-                  className={SECONDARY_BTN}
-                  disabled={!canSkip}
-                  onClick={() => handleSetFreeText(false)}
-                >
-                  חזרה לשאלות
-                </button>
-              )}
-              <button type="button" className={QUIET_BTN} disabled={!canFinish} onClick={() => void finish()}>
-                סיום הראיון
-              </button>
-            </div>
-          </div>
-        ) : showChips && visible?.options ? (
-          <div className="rounded-lg border border-black/[0.06] bg-white p-5">
-            <p className="text-lg font-medium">{visible.text}</p>
-            <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="אפשרויות תשובה">
-              {visible.options.map((label) => {
-                const selected = !!visible.multiSelect && selectedOptions.includes(label);
-                return (
-                  <button
-                    key={label}
-                    type="button"
-                    aria-pressed={visible.multiSelect ? selected : undefined}
-                    disabled={!canAnswer}
-                    onClick={() => (visible.multiSelect ? toggleOption(label) : selectOption(label))}
-                    className={`${OPTION_CHIP_BTN} ${selected ? OPTION_CHIP_SELECTED : OPTION_CHIP_IDLE}`}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-              <button
-                type="button"
-                disabled={!canAnswer}
-                onClick={() => openCustomInput()}
-                className={`${OPTION_CHIP_BTN} ${OPTION_CHIP_OTHER}`}
-              >
-                אחר - אכתוב בעצמי
-              </button>
-            </div>
-            {visible.multiSelect && (
-              <div className="mt-3">
-                <button
-                  type="button"
-                  className={SECONDARY_BTN}
-                  disabled={!canConfirmOptions}
-                  onClick={() => void confirmOptions()}
-                >
-                  שליחה
-                </button>
-              </div>
-            )}
-            <div className="mt-4 flex flex-wrap gap-3">
-              <button type="button" className={SECONDARY_BTN} disabled={!canSkip} onClick={handleSkip}>
-                דלג
-              </button>
-              <button
-                type="button"
-                className={SECONDARY_BTN}
-                disabled={!canSkip}
-                onClick={() => handleSetFreeText(true)}
-              >
-                כתיבה חופשית
-              </button>
-              <button type="button" className={QUIET_BTN} disabled={!canFinish} onClick={() => void finish()}>
-                סיום הראיון
-              </button>
-            </div>
-          </div>
-        ) : (
-          visible && (
-            <div className="rounded-lg border border-black/[0.06] bg-white p-5">
-              <p className="text-lg font-medium">{visible.text}</p>
-              {visible.options != null && customInputOpen && (
-                <p className="mt-1 text-sm text-[#6F6E6A]">אפשר לכתוב את התשובה למטה</p>
-              )}
-              <div className="mt-4 flex flex-wrap gap-3">
-                <button type="button" className={SECONDARY_BTN} disabled={!canSkip} onClick={handleSkip}>
-                  דלג
-                </button>
-                <button
-                  type="button"
-                  className={SECONDARY_BTN}
-                  disabled={!canSkip}
-                  onClick={() => handleSetFreeText(true)}
-                >
-                  כתיבה חופשית
-                </button>
-                <button type="button" className={QUIET_BTN} disabled={!canFinish} onClick={() => void finish()}>
-                  סיום הראיון
-                </button>
-              </div>
-            </div>
-          )
-        )}
-      </div>
-
-      {error && (
-        <p className="mt-4 animate-fade-up text-sm text-[#B3261E]" role="alert">
-          {error}
-        </p>
-      )}
-
-      {showTextInput && (
-        <div className="mt-4 flex animate-fade-up items-end gap-3" style={{ animationDelay: "240ms" }}>
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={inputDisabled}
-            rows={2}
-            placeholder="כתבו כאן"
-            aria-label="הודעה לראיון"
-            className="min-h-[3rem] flex-1 resize-none rounded-lg border border-black/[0.12] bg-white px-4 py-2.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111] disabled:cursor-not-allowed disabled:opacity-60"
-          />
-          <button
-            type="button"
-            onClick={() => void send()}
-            disabled={!canSend}
-            className="shrink-0 rounded-md bg-[#111111] px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
+        <section className="rv d1 mt-7">
+          <div
+            role="progressbar"
+            aria-valuenow={completenessPct}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="שלמות האבחון"
+            className="flex items-center gap-3"
           >
-            שליחה
-          </button>
+            <span className="shrink-0 text-[11px] font-semibold tracking-[.05em] text-[color:var(--dim)]">
+              שלמות האבחון
+            </span>
+            <FillBar percent={completenessPct} />
+            <span className="num shrink-0 text-sm font-bold text-[color:var(--acc-soft)]">{completenessPct}%</span>
+          </div>
+          <ul className="mt-3.5 flex flex-wrap gap-2">
+            {sections.map((s) => (
+              <SectionChip key={s.key} item={s} />
+            ))}
+          </ul>
+        </section>
+
+        <section aria-live="polite" className="rv d2 mt-7 flex flex-col gap-3">
+          {messages.map((m) => (
+            <Bubble key={m.id} message={m} />
+          ))}
+          {(busy || starting) && <TypingDots />}
+          <div ref={bottomRef} />
+        </section>
+
+        {/* העטיפה כאן סטטית (תמיד מרונדרת) - רק התוכן הפנימי מתחלף בין המצבים, כך שהחלפת
+            פאנל לא מריצה שוב את אנימציית הכניסה */}
+        <div className="rv d3 mt-6">
+          {freeText ? (
+            <div className="shell">
+              <div className="core card-pad">
+                <p className="text-[16.5px] font-bold leading-snug tracking-[-.01em]">ספרו לי על העסק במילים שלכם</p>
+                {visible == null && (
+                  <p className="mt-1 text-[12.5px] text-[color:var(--mut)]">אפשר להמשיך בכתיבה חופשית או לסיים</p>
+                )}
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  {visible != null && (
+                    <button
+                      type="button"
+                      className="btn-quiet"
+                      disabled={!canSkip}
+                      onClick={() => handleSetFreeText(false)}
+                    >
+                      חזרה לשאלות
+                    </button>
+                  )}
+                  <button type="button" className={GHOST_BTN} disabled={!canFinish} onClick={() => void finish()}>
+                    סיום הראיון
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : showChips && visible?.options ? (
+            <div className="shell">
+              <div className="core card-pad">
+                <p className="text-[16.5px] font-bold leading-snug tracking-[-.01em]">{visible.text}</p>
+                {/* צ'יפ אפשרות (אפיון מחדש-ראיון, החלטה D): מילוי סגול רק כשנבחר (בחירה מרובה
+                    בלבד - בבחירה בודדת לחיצה שולחת מיד ואין מצב "נבחר" קבוע להראות) */}
+                <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="אפשרויות תשובה">
+                  {visible.options.map((label) => {
+                    const selected = !!visible.multiSelect && selectedOptions.includes(label);
+                    return (
+                      <button
+                        key={label}
+                        type="button"
+                        aria-pressed={visible.multiSelect ? selected : undefined}
+                        disabled={!canAnswer}
+                        onClick={() => (visible.multiSelect ? toggleOption(label) : selectOption(label))}
+                        className="pill disabled:cursor-not-allowed disabled:opacity-40"
+                        style={selected ? PILL_SELECTED_STYLE : undefined}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    disabled={!canAnswer}
+                    onClick={() => openCustomInput()}
+                    className="pill disabled:cursor-not-allowed disabled:opacity-40"
+                    style={PILL_OTHER_STYLE}
+                  >
+                    אחר - אכתוב בעצמי
+                  </button>
+                </div>
+                {visible.multiSelect && (
+                  <div className="mt-4">
+                    <button
+                      type="button"
+                      className="btn sm"
+                      disabled={!canConfirmOptions}
+                      onClick={() => void confirmOptions()}
+                    >
+                      שליחה
+                      <CapArrow />
+                    </button>
+                  </div>
+                )}
+                <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-dashed border-[color:var(--hair)] pt-4">
+                  <button type="button" className="btn-quiet" disabled={!canSkip} onClick={handleSkip}>
+                    דלג
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-quiet"
+                    disabled={!canSkip}
+                    onClick={() => handleSetFreeText(true)}
+                  >
+                    כתיבה חופשית
+                  </button>
+                  <button type="button" className={GHOST_BTN} disabled={!canFinish} onClick={() => void finish()}>
+                    סיום הראיון
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            visible && (
+              <div className="shell">
+                <div className="core card-pad">
+                  <p className="text-[16.5px] font-bold leading-snug tracking-[-.01em]">{visible.text}</p>
+                  {visible.options != null && customInputOpen && (
+                    <p className="mt-1 text-[12.5px] text-[color:var(--mut)]">אפשר לכתוב את התשובה למטה</p>
+                  )}
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <button type="button" className="btn-quiet" disabled={!canSkip} onClick={handleSkip}>
+                      דלג
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-quiet"
+                      disabled={!canSkip}
+                      onClick={() => handleSetFreeText(true)}
+                    >
+                      כתיבה חופשית
+                    </button>
+                    <button type="button" className={GHOST_BTN} disabled={!canFinish} onClick={() => void finish()}>
+                      סיום הראיון
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          )}
         </div>
-      )}
-    </main>
+
+        {error && (
+          <p className="form-error mt-4" role="alert">
+            {error}
+          </p>
+        )}
+
+        {showTextInput && (
+          <div className="rv d4 mt-4 flex items-end gap-3">
+            {/* .field שב-globals מעצב input בלבד - התיבה כאן היא textarea (שורות + Enter לשליחה),
+                אז אותו מראה מיושם ב-utilities בלי לגעת ב-CSS המשותף */}
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={inputDisabled}
+              rows={2}
+              placeholder="כתבו כאן"
+              aria-label="הודעה לראיון"
+              className="min-h-[3.2rem] flex-1 resize-none rounded-[14px] border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-4 py-3 text-[15px] outline-none transition placeholder:text-[color:var(--dim)] focus:border-[rgba(var(--acc-rgb),.55)] focus:bg-[rgba(var(--acc-rgb),.06)] focus:shadow-[0_0_0_4px_rgba(var(--acc-rgb),.12)] disabled:cursor-not-allowed disabled:opacity-60"
+            />
+            <button type="button" className="btn sm shrink-0" onClick={() => void send()} disabled={!canSend}>
+              שליחה
+              <CapArrow />
+            </button>
+          </div>
+        )}
+      </main>
+    </AppShell>
   );
 }

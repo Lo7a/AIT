@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIT · שלוש דרכי ניווט</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  .hall{position:relative;z-index:1;min-height:100dvh;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;padding:40px 20px;gap:0}
+  .hall .kick{font-size:11px;font-weight:700;letter-spacing:.22em;color:var(--acc-soft);margin-bottom:14px}
+  .hall h1{font-size:clamp(28px,4vw,44px);letter-spacing:-.015em;line-height:1.2;text-align:center;max-width:22ch}
+  .hall .sub{font-size:14px;color:var(--mut);margin-top:12px;text-align:center;max-width:52ch}
+  .opts{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:44px;width:100%;max-width:980px}
+  @media (max-width:880px){.opts{grid-template-columns:1fr;max-width:440px}}
+  .opt{display:block;text-decoration:none;color:inherit;transition:transform .35s var(--ease-out)}
+  .opt:hover{transform:translateY(-5px)}
+  .opt .core{padding:26px 24px 22px;display:flex;flex-direction:column;gap:12px}
+  .opt .pic{
+    height:120px;border-radius:13px;border:1px solid var(--hair-soft);
+    background:rgba(255,255,255,.03);position:relative;overflow:hidden;
+  }
+  .opt .no{font-size:11px;font-weight:700;letter-spacing:.16em;color:var(--dim)}
+  .opt h2{font-size:18px;letter-spacing:-.01em}
+  .opt p{font-size:12.5px;color:var(--mut);flex:1}
+  .opt .go{
+    display:inline-flex;align-items:center;gap:9px;align-self:flex-start;
+    font-size:13px;font-weight:700;color:var(--acc-soft);margin-top:4px;
+  }
+  .opt .go .cap{
+    width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
+    background:rgba(var(--acc-rgb),.1);border:1px solid rgba(var(--acc-rgb),.3);
+    transition:transform .3s var(--ease-out),background .3s,color .3s;
+  }
+  .opt:hover .go .cap{transform:translateX(-4px);
+    background:linear-gradient(135deg,var(--acc-deep1),var(--acc-deep2));color:#fff;border-color:transparent}
+  /* איורי מיני של שלושת הדפוסים */
+  .mini-side{position:absolute;inset:12px;display:flex;gap:7px}
+  .mini-side .rail{width:22%;border-radius:7px;background:rgba(var(--acc-rgb),.18);border:1px solid rgba(var(--acc-rgb),.3)}
+  .mini-side .body{flex:1;display:grid;grid-template-columns:2fr 1fr;grid-auto-rows:1fr;gap:6px}
+  .mini-side .body i,.mini-bot .body i{border-radius:6px;background:rgba(255,255,255,.06);border:1px solid var(--hair-soft)}
+  .mini-bot{position:absolute;inset:12px;display:flex;flex-direction:column;gap:7px}
+  .mini-bot .body{flex:1;display:grid;grid-template-columns:2fr 1fr;gap:6px}
+  .mini-bot .bar{height:16px;width:62%;margin:0 auto;border-radius:99px;
+    background:rgba(var(--acc-rgb),.18);border:1px solid rgba(var(--acc-rgb),.3)}
+  .mini-gal{position:absolute;inset:12px;display:flex;align-items:center;gap:8px}
+  .mini-gal .pg{flex:1;height:100%;border-radius:7px;background:rgba(255,255,255,.06);border:1px solid var(--hair-soft)}
+  .mini-gal .pg.c{background:rgba(var(--acc-rgb),.16);border-color:rgba(var(--acc-rgb),.3)}
+  .mini-gal .ar{width:18px;height:18px;border-radius:50%;flex:none;
+    border:1px solid rgba(var(--acc-rgb),.4);background:rgba(var(--acc-rgb),.12)}
+  .hall .note{margin-top:30px;font-size:11.5px;color:var(--dim)}
+</style>
+</head>
+<body>
+
+<div class="orbs" aria-hidden="true"><div class="orb a"></div><div class="orb b"></div><div class="orb c"></div></div>
+<div class="grid-tex" aria-hidden="true"></div>
+
+<main class="hall">
+  <span class="kick rv d1">AIT · דמו ניווט</span>
+  <h1 class="rv d1">אותו דשבורד, שלוש דרכים לנוע בו</h1>
+  <p class="sub rv d2">כהה פרמיום, סגול וברקת, Rubik. פתח כל אחת מהאפשרויות, הרגש את התנועה, ותבחר את הדרך.</p>
+
+  <div class="opts">
+    <a class="opt shell rv d3" href="sidebar.html">
+      <span class="core">
+        <span class="pic"><span class="mini-side"><span class="rail"></span><span class="body"><i></i><i></i><i></i><i></i></span></span></span>
+        <span class="no num">01</span>
+        <h2>סיידבר</h2>
+        <p>ניווט קבוע בצד ימין, כמו מערכת מקצועית. במובייל הופך לטאבים למעלה.</p>
+        <span class="go">לצפייה
+          <span class="cap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg></span>
+        </span>
+      </span>
+    </a>
+
+    <a class="opt shell rv d4" href="bottomnav.html">
+      <span class="core">
+        <span class="pic"><span class="mini-bot"><span class="body"><i></i><i></i></span><span class="bar"></span></span></span>
+        <span class="no num">02</span>
+        <h2>נאבבר צף למטה</h2>
+        <p>גלולת זכוכית צפה בתחתית המסך. התוכן מקבל את כל הרוחב, ההרגשה של אפליקציה.</p>
+        <span class="go">לצפייה
+          <span class="cap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg></span>
+        </span>
+      </span>
+    </a>
+
+    <a class="opt shell rv d5" href="gallery.html">
+      <span class="core">
+        <span class="pic"><span class="mini-gal"><span class="ar"></span><span class="pg c"></span><span class="pg"></span><span class="ar"></span></span></span>
+        <span class="no num">03</span>
+        <h2>גלריה עם חצים</h2>
+        <p>המערכת כעמודים שמחליקים ימינה ושמאלה, עם חצים, נקודות, מקלדת והחלקה במגע.</p>
+        <span class="go">לצפייה
+          <span class="cap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg></span>
+        </span>
+      </span>
+    </a>
+  </div>
+
+  <span class="note rv d6">הנתונים להמחשה בלבד · אותו תוכן בדיוק בשלוש הדוגמאות, כדי שההשוואה תהיה נקייה</span>
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>

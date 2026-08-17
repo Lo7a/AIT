@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import type { ReportView } from "../../server/diagnosis-read";
 import type { RoadmapView, RoadmapItemView } from "../../server/roadmap-repo";
 import type { ScoreReport } from "../../pipeline/score/types";
@@ -9,82 +10,165 @@ import { useRoadmap } from "../roadmap/use-roadmap";
 import {
   PHASE_LABEL, roadmapLossHighlights, shouldShowCatalogProblem, type ItemBriefStatus,
 } from "../roadmap/roadmap-logic";
-import { LossHighlightsBlock, TONE_TAG_CLASSES } from "./default-screens";
+import type { LossHighlight } from "../../pipeline/roadmap/loss-highlights";
 import type { PersonalLossLine } from "../../pipeline/roadmap/loss-calc";
-import type { ScoreToneKind } from "../../pipeline/report/presenter";
+import { AppShell } from "../ui/app-shell";
+import { FillBar } from "../ui/motion";
 
-// מסך ה-Roadmap בשפת העיצוב הזמנית הקיימת (ראו default-screens.tsx/default-interview.tsx) - אין
-// כאן שום לוגיקת עסק, רק תצוגה על גבי useRoadmap. גרסת עיצוב עתידית מחליפה את הקובץ הזה בלבד.
+// מסך ה-Roadmap בשפת העיצוב הנבחרת (הכרעת מייסד 18.8: כהה פרמיום, סגול וברקת, Rubik - ראו
+// globals.css) - אין כאן שום לוגיקת עסק, רק תצוגה על גבי useRoadmap. הצבעים/הפאנלים של
+// ההפסד וההצלחה מיושמים כאן מקומית (לא נשענים על default-screens.tsx) כדי שכל מסך יחיה
+// בקובץ שלו בזמן שהמסכים האחרים מעוצבים במקביל.
 
 const EMPTY_SCORES: ScoreReport = { overall: null, dimensions: [], topGaps: [], topStrengths: [] };
 
-// אותה שפת צבע good/mid/low/unknown כמו שאר המסך - תקין/חלש/חסר/אין מידע מתורגמים אליה
-const STAGE_TONE: Record<StageStatus, ScoreToneKind> = {
-  healthy: "good", weak: "mid", missing: "low", unknown: "unknown",
+// אותה שפת צבע תקין/חלש/חסר/אין-מידע כמו שאר המערכת (scoreTone: good/mid/low/unknown) -
+// מיושמת ישירות על טוקני הצבע של מערכת העיצוב. עקיפות ב-style ולא ב-utilities: כללי globals
+// אינם בשכבת tailwind ולכן גוברים על utilities בקסקדה
+const STAGE_TAG_STYLE: Record<StageStatus, CSSProperties> = {
+  healthy: { color: "var(--acc2-soft)", background: "rgba(var(--acc2-rgb),.09)", borderColor: "rgba(var(--acc2-rgb),.3)" },
+  weak: { color: "var(--warn)", background: "rgba(var(--warn-rgb),.09)", borderColor: "rgba(var(--warn-rgb),.3)" },
+  missing: { color: "var(--bad)", background: "rgba(var(--bad-rgb),.08)", borderColor: "rgba(var(--bad-rgb),.32)" },
+  unknown: { color: "var(--dim)", background: "var(--surface-1)", borderColor: "var(--hair-soft)" },
 };
 
-const SECONDARY_BTN =
-  "rounded-md border border-black/[0.06] px-4 py-2 text-sm text-[#111111] hover:bg-[#F1F0EE] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]";
+// רקעים מוטים לפאנלים המיוחדים - אותו דפוס בדיוק כמו .cta-core ב-globals (שכבת גרדיאנט מעל var(--core-bg))
+const AMBER_CORE_STYLE: CSSProperties = {
+  borderColor: "rgba(var(--warn-rgb),.28)",
+  background: "radial-gradient(420px 200px at 50% 0%, rgba(var(--warn-rgb),.09), transparent 65%), var(--core-bg)",
+};
+const GREEN_CORE_STYLE: CSSProperties = {
+  borderColor: "rgba(var(--acc2-rgb),.28)",
+  background: "radial-gradient(420px 200px at 50% 0%, rgba(var(--acc2-rgb),.09), transparent 65%), var(--core-bg)",
+};
+const PRAISE_LINE_STYLE: CSSProperties = {
+  background: "rgba(var(--acc2-rgb),.07)",
+  borderColor: "rgba(var(--acc2-rgb),.3)",
+};
+const RISK_LINE_STYLE: CSSProperties = {
+  background: "rgba(var(--bad-rgb),.06)",
+  borderColor: "rgba(var(--bad-rgb),.3)",
+};
+
+// החץ בעיגול של קישורי .door-link (globals) - בממשק עברי קדימה = שמאלה
+function CapArrow() {
+  return (
+    <span className="cap" aria-hidden="true">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M19 12H5" />
+        <path d="m12 19-7-7 7-7" />
+      </svg>
+    </span>
+  );
+}
 
 function BusinessMap({ scores, model }: { scores: ScoreReport; model: ReportView["model"] }) {
   const stages = deriveBusinessMap(scores, model);
   return (
-    <section className="mt-12 animate-fade-up" style={{ animationDelay: "80ms" }}>
-      <h2 className="font-[family-name:var(--font-frank)] text-xl font-bold tracking-tight">
-        מפת העסק
-      </h2>
-      <p className="mt-1 text-sm text-[#6F6E6A]">שרשרת הערך של העסק, שלב אחר שלב</p>
-      <ol className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
-        {stages.map((s, i) => (
-          <li
-            key={s.key}
-            className="animate-fade-up rounded-lg border border-black/[0.06] bg-white p-3 text-center"
-            style={{ animationDelay: `${120 + i * 60}ms` }}
-          >
-            <p className="text-sm font-medium">{s.label}</p>
-            <span className={`mt-2 inline-block rounded-full px-2 py-0.5 text-xs ${TONE_TAG_CLASSES[STAGE_TONE[s.status]]}`}>
-              {s.statusLabel}
-            </span>
-          </li>
-        ))}
-      </ol>
-    </section>
+    <div className="shell c12 rv d1">
+      <section className="core card-pad">
+        <h2 className="card-title">מפת העסק</h2>
+        <p className="mb-4 mt-[-8px] text-[12.5px] text-[color:var(--mut)]">שרשרת הערך של העסק, שלב אחר שלב</p>
+        <ol className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-6">
+          {stages.map((s) => (
+            <li
+              key={s.key}
+              className="rounded-2xl border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] p-3 text-center"
+            >
+              <p className="text-[13px] font-semibold">{s.label}</p>
+              <span
+                className="mt-2 inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-semibold"
+                style={STAGE_TAG_STYLE[s.status]}
+              >
+                {s.statusLabel}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </section>
+    </div>
   );
 }
 
 function CompletenessMeter({ diagnosisId, model }: { diagnosisId: string; model: NonNullable<ReportView["model"]> }) {
   return (
-    <section className="mt-10 animate-fade-up rounded-lg border border-black/[0.06] bg-white p-5" style={{ animationDelay: "160ms" }}>
-      <div className="flex items-baseline justify-between gap-4">
-        <h2 className="font-[family-name:var(--font-frank)] text-lg font-bold tracking-tight">שלמות האבחון</h2>
-        <span className="font-[family-name:var(--font-frank)] text-2xl font-bold tabular-nums">{model.completenessPct}%</span>
-      </div>
-      <div
-        role="progressbar"
-        aria-valuenow={model.completenessPct}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-label="שלמות האבחון"
-        className="mt-3 h-[2px] w-full overflow-hidden rounded-full bg-[#F1F0EE]"
-      >
-        <div className="h-[2px] rounded-full bg-[#111111]" style={{ width: `${model.completenessPct}%` }} />
-      </div>
-      <Link
-        href={`/interview/${diagnosisId}`}
-        className="mt-4 inline-block text-sm font-medium text-[#111111] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
-      >
-        שפר את הדיוק - ראיון קצר
-      </Link>
-    </section>
+    <div className="shell c12 rv d2">
+      <section className="core card-pad">
+        <div className="flex items-baseline justify-between gap-4">
+          <h2 className="text-[15px] font-bold">שלמות האבחון</h2>
+          <span className="num text-2xl font-extrabold tracking-[-.02em] text-[color:var(--acc-soft)]">
+            {model.completenessPct}%
+          </span>
+        </div>
+        <div
+          role="progressbar"
+          aria-valuenow={model.completenessPct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="שלמות האבחון"
+          className="mt-3 flex"
+        >
+          <FillBar percent={model.completenessPct} />
+        </div>
+        <Link href={`/interview/${diagnosisId}`} className="door-link mt-4">
+          שפר את הדיוק - ראיון קצר
+          <CapArrow />
+        </Link>
+      </section>
+    </div>
   );
 }
 
 function ConfidenceTag({ confidence }: { confidence: RoadmapItemView["confidence"] }) {
   if (confidence === "high") return null;
   return (
-    <span className={`rounded-full px-2 py-0.5 text-xs ${TONE_TAG_CLASSES.mid}`}>
+    <span
+      className="rounded-full border px-2.5 py-0.5 text-[11px] font-semibold"
+      style={STAGE_TAG_STYLE.weak}
+    >
       דיוק ישתפר עם עוד מידע
     </span>
+  );
+}
+
+// הפסד וחיסכון בראש התוכנית (loss leads, score measures - שלב א'): personal = השורה האישית
+// מתשובות הראיון (מדרגה ב, loss-calc.ts), highlights = שורות ה-savingRange כלשונן מהקטלוג
+// הנחקר. highlights ריק וגם אין שורה אישית -> שום דבר לא מוצג (אף פעם לא בלוק ריק ומפחיד)
+function LossPanel({ highlights, personal }: { highlights: LossHighlight[]; personal: PersonalLossLine | null }) {
+  if (highlights.length === 0 && !personal) return null;
+  return (
+    <div className="shell rv d1 mt-5">
+      <section className="core card-pad">
+        {personal && (
+          <div className="rounded-2xl border p-4" style={personal.kind === "praise" ? PRAISE_LINE_STYLE : RISK_LINE_STYLE}>
+            <p
+              className="font-bold leading-relaxed"
+              style={{ color: personal.kind === "praise" ? "var(--acc2-soft)" : "var(--bad)" }}
+            >
+              {personal.lead}
+            </p>
+            <p className="mt-1 text-[12.5px] leading-relaxed text-[color:var(--mut)]">{personal.anchor}</p>
+          </div>
+        )}
+        {highlights.length > 0 && (
+          <>
+            {/* אותה תווית בדיוק כמו בשדה הפריט למטה - זה מה שהשורות האלה הן: savingRange מהקטלוג */}
+            <h3 className={personal ? "card-title mt-5" : "card-title"}>חיסכון משוער</h3>
+            <ul className="space-y-3">
+              {highlights.map((h) => (
+                <li key={`${h.itemName}-${h.text}`} className="flex items-start gap-2.5">
+                  <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[color:var(--acc2)]" />
+                  <p className="text-[13.5px] leading-relaxed">
+                    <span className="font-bold">{h.itemName}</span>
+                    <span className="text-[color:var(--mut)]">{`: ${h.text}`}</span>
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </section>
+    </div>
   );
 }
 
@@ -97,7 +181,10 @@ function BriefButton({
 }) {
   if (status === "requested") {
     return (
-      <span className="rounded-md bg-[#EDF3EC] px-4 py-2 text-sm font-medium text-[#346538]">
+      <span
+        className="inline-flex items-center rounded-full border px-3.5 py-1.5 text-xs font-bold text-[color:var(--acc2-soft)]"
+        style={PRAISE_LINE_STYLE}
+      >
         קיבלנו - ניצור קשר בהקדם
       </span>
     );
@@ -105,66 +192,80 @@ function BriefButton({
   return (
     <button
       type="button"
-      className="rounded-md bg-[#111111] px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
+      className="btn sm"
       disabled={status === "sending"}
       onClick={onRequest}
       aria-label={`אני רוצה להטמיע את ${item.name}`}
     >
       {status === "sending" ? "שולח" : "אני רוצה להטמיע את זה"}
+      <CapArrow />
     </button>
   );
 }
 
 function ItemCard({
-  item, briefStatus, briefError, onRequest,
+  item, order, briefStatus, briefError, onRequest,
 }: {
   item: RoadmapItemView;
+  // המיקום בתוכנית כולה (1 והלאה) - נגזר מסדר הפריטים כפי שהגיע מהשרת, לא מחושב כאן
+  order: number;
   briefStatus: ItemBriefStatus;
   briefError: string | undefined;
   onRequest: () => void;
 }) {
   return (
-    <li className="rounded-lg border border-black/[0.06] bg-white p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-[family-name:var(--font-frank)] text-lg font-semibold">{item.name}</h3>
-            <ConfidenceTag confidence={item.confidence} />
-          </div>
-          {/* תיקון ממצא שער יציאה אבן דרך 4, בדיקה 2: item.problem הוא ניסוח תחום כללי מהקטלוג
-              שיכול לסתור את מצב העסק בפועל (מקרה חי: עסק עם וואטסאפ קיבל "אין דרך מהירה לפנות") -
-              מוסתר לפריט כאב-בלבד (confidence="low"), שם ה-reasoning המעוגן-ציטוט הוא הסיפור הכן
-              היחיד. ראו shouldShowCatalogProblem, roadmap-logic.ts */}
-          {shouldShowCatalogProblem(item) && <p className="mt-1 text-[#6F6E6A]">{item.problem}</p>}
+    <li className="shell c4">
+      <div className="core card-pad flex h-full flex-col gap-2.5">
+        <div className="flex items-start justify-between gap-3">
+          <span
+            aria-hidden="true"
+            className="num text-[34px] font-extrabold leading-none text-[color:var(--acc-soft)]"
+            style={{ textShadow: "var(--num-glow)" }}
+          >
+            {order}
+          </span>
+          <span className="num text-[15px] font-bold">
+            {item.score}
+            <span className="text-[11px] font-medium text-[color:var(--dim)]">/100</span>
+          </span>
         </div>
-        <span className="shrink-0 tabular-nums text-lg font-semibold">
-          {item.score}
-          <span className="text-sm font-normal text-[#6F6E6A]">/100</span>
-        </span>
-      </div>
 
-      {item.reasoning && <p className="mt-3 text-sm leading-relaxed">{item.reasoning}</p>}
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="text-[17px] font-bold leading-snug tracking-[-.01em]">{item.name}</h3>
+          <ConfidenceTag confidence={item.confidence} />
+        </div>
 
-      <dl className="mt-4 grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
-        <div>
-          <dt className="text-[#6F6E6A]">עלות</dt>
-          <dd className="font-medium">{item.costRange}</dd>
-        </div>
-        <div>
-          <dt className="text-[#6F6E6A]">חיסכון משוער</dt>
-          <dd className="font-medium">{item.savingRange}</dd>
-        </div>
-        <div>
-          <dt className="text-[#6F6E6A]">זמן הטמעה</dt>
-          <dd className="font-medium">{item.installTime}</dd>
-        </div>
-      </dl>
-
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <BriefButton item={item} status={briefStatus} onRequest={onRequest} />
-        {briefStatus === "error" && briefError && (
-          <span className="text-sm text-[#9F2F2D]" role="alert">{briefError}</span>
+        {/* תיקון ממצא שער יציאה אבן דרך 4, בדיקה 2: item.problem הוא ניסוח תחום כללי מהקטלוג
+            שיכול לסתור את מצב העסק בפועל (מקרה חי: עסק עם וואטסאפ קיבל "אין דרך מהירה לפנות") -
+            מוסתר לפריט כאב-בלבד (confidence="low"), שם ה-reasoning המעוגן-ציטוט הוא הסיפור הכן
+            היחיד. ראו shouldShowCatalogProblem, roadmap-logic.ts */}
+        {shouldShowCatalogProblem(item) && (
+          <p className="text-[12.5px] text-[color:var(--mut)]">{item.problem}</p>
         )}
+
+        {item.reasoning && <p className="text-[13px] leading-relaxed">{item.reasoning}</p>}
+
+        <dl className="mt-1 grid flex-1 grid-cols-1 content-start gap-x-3 gap-y-2 sm:grid-cols-3">
+          <div>
+            <dt className="text-[11px] text-[color:var(--dim)]">עלות</dt>
+            <dd className="num mt-0.5 text-[12.5px] font-semibold leading-snug">{item.costRange}</dd>
+          </div>
+          <div>
+            <dt className="text-[11px] text-[color:var(--dim)]">חיסכון משוער</dt>
+            <dd className="num mt-0.5 text-[12.5px] font-semibold leading-snug">{item.savingRange}</dd>
+          </div>
+          <div>
+            <dt className="text-[11px] text-[color:var(--dim)]">זמן הטמעה</dt>
+            <dd className="num mt-0.5 text-[12.5px] font-semibold leading-snug">{item.installTime}</dd>
+          </div>
+        </dl>
+
+        <div className="mt-1 flex flex-wrap items-center gap-3 border-t border-dashed border-[color:var(--hair)] pt-3.5">
+          <BriefButton item={item} status={briefStatus} onRequest={onRequest} />
+          {briefStatus === "error" && briefError && (
+            <span className="text-[12.5px] text-[color:var(--bad)]" role="alert">{briefError}</span>
+          )}
+        </div>
       </div>
     </li>
   );
@@ -186,106 +287,141 @@ export function DefaultRoadmap({
   // Roadmap כלל) - מציגים את מצב הבנייה כבר עכשיו כדי שלא יהיה רגע של תוכן ריק לפני שהבקשה יוצאת
   const building = buildPhase === "building" || buildPhase === "idle";
 
+  // המיקום הכולל של כל פריט בתוכנית (הקבוצות שומרות על סדר הרשימה השטוחה - ראו groupByPhase):
+  // המספר הגדול על הכרטיס הוא סדר תצוגה בלבד, לא ציון
+  const orderOf = new Map<string, number>();
+  roadmap?.items.forEach((it, i) => orderOf.set(it.id, i + 1));
+
   return (
-    <main className="mx-auto max-w-3xl px-4 py-16" aria-busy={building}>
-      <div className="flex animate-fade-up items-center justify-between">
-        <Link
-          href={`/report/${report.id}`}
-          className="text-sm text-[#111111] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
-        >
-          חזרה לדוח
-        </Link>
-        <span className="text-sm text-[#6F6E6A]">{report.business.name}</span>
-      </div>
-
-      <h1 className="mt-6 animate-fade-up font-[family-name:var(--font-frank)] text-4xl font-bold tracking-tight" style={{ animationDelay: "40ms" }}>
-        Roadmap להטמעה
-      </h1>
-      <p className="mt-3 animate-fade-up text-lg text-[#6F6E6A]" style={{ animationDelay: "80ms" }}>
-        ההזדמנויות הכי משתלמות לעסק, מדורגות לפי כמה קל ליישם וכמה זה כואב לבעל העסק
-      </p>
-
-      <BusinessMap scores={scores} model={report.model} />
-
-      {report.model && <CompletenessMeter diagnosisId={report.id} model={report.model} />}
-
-      <section aria-live="polite" className="mt-12">
-        {building && (
-          <div className="animate-fade-up rounded-lg border border-black/[0.06] bg-white p-8 text-center">
-            <p className="font-medium">
-              {roadmap ? "מחשבים Roadmap מעודכן" : "בונים Roadmap - מתאימים הזדמנויות מהקטלוג לעסק שלכם"}
-            </p>
-            <p className="mt-1 text-sm text-[#6F6E6A]">זה לוקח כמה שניות</p>
-          </div>
-        )}
-
-        {buildPhase === "error" && (
-          <div className="animate-fade-up rounded-lg border border-black/[0.06] bg-[#FDEBEC] p-6 text-[#9F2F2D]">
-            <p role="alert">{error}</p>
-            <button type="button" className={`mt-3 ${SECONDARY_BTN}`} onClick={() => void rebuild()}>
-              נסו שוב
-            </button>
-          </div>
-        )}
-
-        {buildPhase === "ready" && roadmap && (
-          <>
-            <div className="flex animate-fade-up items-center justify-between">
-              <h2 className="font-[family-name:var(--font-frank)] text-xl font-bold tracking-tight">הזדמנויות</h2>
-              <button type="button" className={SECONDARY_BTN} disabled={building} onClick={() => void rebuild()}>
-                חישוב מחדש
-              </button>
+    <AppShell active="roadmap" diagnosisId={report.id} userLabel={report.business.name}>
+      <main aria-busy={building} className="flex-1">
+        <div className="board">
+          <header className="c12 rv flex flex-wrap items-end justify-between gap-4 px-1 pt-2">
+            <div>
+              <h1 className="text-[clamp(26px,3.4vw,38px)] font-extrabold leading-tight tracking-[-.015em]">
+                תוכנית העבודה
+              </h1>
+              <p className="mt-2 max-w-[56ch] text-[13.5px] text-[color:var(--mut)]">
+                ההזדמנויות הכי משתלמות לעסק, מדורגות לפי הצרכים של העסק וקלות היישום
+              </p>
             </div>
+            <div className="flex items-center gap-3 pb-1">
+              <span className="chip">{report.business.name}</span>
+              <Link href={`/report/${report.id}`} className="door-link">
+                חזרה לדוח
+                <CapArrow />
+              </Link>
+            </div>
+          </header>
 
-            {/* "מה מונח על השולחן" (loss leads, score measures - שלב א'): אותו בלוק כמו מסך הדוח,
-                מעל קבוצות השלב - מפת העסק ומד השלמות לא זזים ממקומם (ראו קריאה למעלה) */}
-            <LossHighlightsBlock highlights={roadmapLossHighlights(roadmap.items)} personal={personalLoss} className="mt-6 animate-fade-up" />
+          <BusinessMap scores={scores} model={report.model} />
 
-            {roadmap.items.length === 0 ? (
-              // כנות לפני רושם (ממצא מייסד 17.8, מסעדת האחים): תוכנית ריקה כשיש פערים בדוח
-              // אינה "הבסיס חזק" - זה פער כיסוי של ספריית הפתרונות שלנו, ואומרים את זה ביושר
-              scores.topGaps.length > 0 ? (
-                <div className="mt-4 animate-fade-up rounded-lg border border-black/[0.06] bg-[#FBF3DB] p-6 text-[#956400]">
-                  <p className="font-medium">זיהינו פערים, אבל אין עדיין התאמה בספריית הפתרונות שלנו</p>
-                  <p className="mt-1">
-                    הדוח מצא נקודות לשיפור, וספריית הפתרונות שלנו מתרחבת כל הזמן - כשיתווספו פתרונות
-                    שמתאימים לעסק הזה, התוכנית כאן תתעדכן. השלמת הראיון תעזור לנו לדייק את ההתאמה.
+          {report.model && <CompletenessMeter diagnosisId={report.id} model={report.model} />}
+
+          <section aria-live="polite" className="c12 mt-2">
+            {building && (
+              <div className="shell rv">
+                <div className="core card-pad flex flex-col items-center gap-3 py-12 text-center">
+                  <span
+                    aria-hidden="true"
+                    className="h-9 w-9 rounded-full border-[3px] border-[rgba(var(--acc-rgb),.25)]"
+                    style={{ borderTopColor: "var(--acc)", animation: "rot .8s linear infinite" }}
+                  />
+                  <p className="font-bold">
+                    {roadmap ? "מחשבים Roadmap מעודכן" : "בונים Roadmap - מתאימים הזדמנויות מהקטלוג לעסק שלכם"}
                   </p>
+                  <p className="text-[12.5px] text-[color:var(--mut)]">זה לוקח כמה שניות</p>
                 </div>
-              ) : (
-                <div className="mt-4 animate-fade-up rounded-lg border border-black/[0.06] bg-[#EDF3EC] p-6 text-[#346538]">
-                  <p className="font-medium">לא זיהינו הזדמנויות דחופות כרגע</p>
-                  <p className="mt-1">
-                    לפי מה שידוע לנו על העסק היום, הבסיס הדיגיטלי כבר די חזק. השלמת הראיון עשויה עדיין
-                    לחשוף הזדמנויות שלא נראות מהסריקה בלבד.
-                  </p>
-                </div>
-              )
-            ) : (
-              <div className="mt-4 space-y-10">
-                {groups.map((g, gi) => (
-                  <section key={g.phase} className="animate-fade-up" style={{ animationDelay: `${Math.min(gi, 3) * 80}ms` }}>
-                    <h3 className="font-[family-name:var(--font-frank)] text-lg font-semibold tracking-tight">
-                      {PHASE_LABEL[g.phase]}
-                    </h3>
-                    <ul className="mt-3 space-y-3">
-                      {g.items.map((item) => (
-                        <ItemCard
-                          key={item.id}
-                          item={item}
-                          briefStatus={itemBrief[item.id] ?? "idle"}
-                          briefError={itemError[item.id]}
-                          onRequest={() => void requestBrief(item.id)}
-                        />
-                      ))}
-                    </ul>
-                  </section>
-                ))}
               </div>
             )}
-          </>
-        )}
-      </section>
-    </main>
+
+            {buildPhase === "error" && (
+              <div className="shell rv">
+                <div className="core card-pad" style={{ borderColor: "rgba(var(--bad-rgb),.3)" }}>
+                  <p role="alert" className="font-semibold text-[color:var(--bad)]">{error}</p>
+                  <button type="button" className="btn-quiet mt-3" onClick={() => void rebuild()}>
+                    נסו שוב
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {buildPhase === "ready" && roadmap && (
+              <>
+                <div className="rv flex flex-wrap items-center justify-between gap-3 px-1">
+                  <h2 className="text-lg font-bold tracking-[-.01em]">הזדמנויות</h2>
+                  <button type="button" className="btn-quiet" disabled={building} onClick={() => void rebuild()}>
+                    חישוב מחדש
+                  </button>
+                </div>
+
+                {/* ההפסד והחיסכון מובילים (שלב א'): מעל קבוצות השלב - מפת העסק ומד השלמות
+                    לא זזים ממקומם (ראו קריאה למעלה) */}
+                <LossPanel highlights={roadmapLossHighlights(roadmap.items)} personal={personalLoss} />
+
+                {roadmap.items.length === 0 ? (
+                  // כנות לפני רושם (ממצא מייסד 17.8, מסעדת האחים): תוכנית ריקה כשיש פערים בדוח
+                  // אינה "הבסיס חזק" - זה פער כיסוי של ספריית הפתרונות שלנו, ואומרים את זה ביושר
+                  scores.topGaps.length > 0 ? (
+                    <div className="shell rv d1 mt-5">
+                      <div
+                        className="core card-pad flex flex-col items-center gap-2 py-10 text-center"
+                        style={AMBER_CORE_STYLE}
+                      >
+                        <p className="font-bold text-[color:var(--warn)]">
+                          זיהינו פערים, אבל אין עדיין התאמה בספריית הפתרונות שלנו
+                        </p>
+                        <p className="max-w-[52ch] text-[13px] leading-relaxed text-[color:var(--mut)]">
+                          הדוח מצא נקודות לשיפור, וספריית הפתרונות שלנו מתרחבת כל הזמן - כשיתווספו פתרונות
+                          שמתאימים לעסק הזה, התוכנית כאן תתעדכן. השלמת הראיון תעזור לנו לדייק את ההתאמה.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="shell rv d1 mt-5">
+                      <div
+                        className="core card-pad flex flex-col items-center gap-2 py-10 text-center"
+                        style={GREEN_CORE_STYLE}
+                      >
+                        <p className="font-bold text-[color:var(--acc2-soft)]">
+                          לא זיהינו הזדמנויות דחופות כרגע
+                        </p>
+                        <p className="max-w-[52ch] text-[13px] leading-relaxed text-[color:var(--mut)]">
+                          לפי מה שידוע לנו על העסק היום, הבסיס הדיגיטלי כבר די חזק. השלמת הראיון עשויה עדיין
+                          לחשוף הזדמנויות שלא נראות מהסריקה בלבד.
+                        </p>
+                      </div>
+                    </div>
+                  )
+                ) : (
+                  <div className="mt-5 space-y-9">
+                    {groups.map((g, gi) => (
+                      <section key={g.phase} className={gi === 0 ? "rv d2" : "rv d3"}>
+                        <h3 className="mb-3 flex items-center gap-3 px-1 text-[13px] font-bold tracking-[.08em] text-[color:var(--acc-soft)]">
+                          {PHASE_LABEL[g.phase]}
+                          <span className="h-px flex-1 bg-[color:var(--hair-soft)]" aria-hidden="true" />
+                        </h3>
+                        <ul className="grid grid-cols-12 gap-3.5">
+                          {g.items.map((item) => (
+                            <ItemCard
+                              key={item.id}
+                              item={item}
+                              order={orderOf.get(item.id) ?? 0}
+                              briefStatus={itemBrief[item.id] ?? "idle"}
+                              briefError={itemError[item.id]}
+                              onRequest={() => void requestBrief(item.id)}
+                            />
+                          ))}
+                        </ul>
+                      </section>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+        </div>
+      </main>
+    </AppShell>
   );
 }

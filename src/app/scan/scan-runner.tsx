@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useAttachWait, useBlockedWait, useScanStream, type StepLine, type Target } from "./use-scan-stream";
 
 export type ScanAttach = { diagnosisId: string; status: string };
@@ -8,10 +9,10 @@ function CheckIcon() {
   return (
     <svg
       viewBox="0 0 16 16"
-      className="h-4 w-4"
+      className="h-3 w-3"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.5"
+      strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -25,10 +26,10 @@ function FailIcon() {
   return (
     <svg
       viewBox="0 0 16 16"
-      className="h-4 w-4"
+      className="h-3 w-3"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.5"
+      strokeWidth="2"
       strokeLinecap="round"
       aria-hidden="true"
     >
@@ -37,25 +38,62 @@ function FailIcon() {
   );
 }
 
-function StepIndicator({ step }: { step: StepLine }) {
-  if (!step.done) {
-    return (
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center" aria-hidden="true">
-        <span className="h-2 w-2 rounded-full bg-[#111111] animate-pulse" />
-      </span>
-    );
-  }
-  if (step.ok) {
-    return (
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#EDF3EC] text-[#346538]">
-        <CheckIcon />
-      </span>
-    );
-  }
+// מסגרת משותפת לכל מצבי מסך הסריקה: שורת מותג עליונה עם היעד הנסרק (שם העסק האמיתי
+// מה-target, או ה-URL כשאין שם) ועמודה ממורכזת צרה. aria-busy עובר מהמצב הקורא
+function ScanFrame({ target, busy, children }: { target: Target; busy: boolean; children: ReactNode }) {
+  const chip = target.name ?? target.url ?? null;
   return (
-    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#FDEBEC] text-[#9F2F2D]">
-      <FailIcon />
-    </span>
+    <div className="above-ambient flex min-h-dvh flex-col">
+      <header className="topbar">
+        <span className="brand">
+          <span className="brand-mark">AIT</span>
+          <span className="brand-txt"><small>יועץ דיגיטלי</small><b>אבחון דיגיטלי</b></span>
+        </span>
+        <div className="side">
+          {chip != null && (
+            <span
+              className="chip"
+              dir={target.name ? undefined : "ltr"}
+              style={{ maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+            >
+              {chip}
+            </span>
+          )}
+        </div>
+      </header>
+      <main className="mx-auto w-full max-w-165 flex-1 px-4 py-12" aria-busy={busy}>
+        {children}
+      </main>
+    </div>
+  );
+}
+
+// שורת שלב מהזרם האמיתי: רץ (ספינר), הסתיים בהצלחה (וי + שורת תוצאה כשיש), נכשל (איקס אדום).
+// אין מצב "ממתין" - הזרם מוסיף שלב רק כשהוא מתחיל לרוץ, אז idle קיים רק כעוגן לאנימציית המעבר
+function StepRow({ step }: { step: StepLine }) {
+  const failed = step.done && step.ok === false;
+  return (
+    <li className={step.done ? "sl done" : "sl act"}>
+      <span className="st" aria-hidden="true">
+        <span className="idle" />
+        <span className="spin"><i /></span>
+        <span className="chk">
+          <span
+            style={failed
+              ? { background: "rgba(var(--bad-rgb),.12)", borderColor: "rgba(var(--bad-rgb),.4)", color: "var(--bad)" }
+              : undefined}
+          >
+            {failed ? <FailIcon /> : <CheckIcon />}
+          </span>
+        </span>
+      </span>
+      <div className="tx">
+        <span className="main-lb">{step.label}</span>
+        {step.done && step.detail && (
+          <span className="res num" style={failed ? { color: "var(--mut)" } : undefined}>{step.detail}</span>
+        )}
+      </div>
+    </li>
   );
 }
 
@@ -63,53 +101,42 @@ function StepIndicator({ step }: { step: StepLine }) {
 // אבחון חי) וגם blocked (המנעול בצד לקוח תפס mount שני לאותו יעד באותו טעינת עמוד). בשני
 // המקרים אין הצדקה לסריקה נוספת בתשלום - רק מציגים שמשהו קורה ברקע.
 function WaitingScreen({
-  message, showHomeLink,
+  target, message, showHomeLink,
 }: {
+  target: Target;
   message: string;
   showHomeLink?: boolean;
 }) {
   return (
-    <main className="mx-auto max-w-2xl px-4 py-16" aria-busy="true">
-      <h1 className="animate-fade-up font-[family-name:var(--font-frank)] text-3xl font-bold tracking-tight">
-        הסריקה כבר רצה ברקע
-      </h1>
-      <p className="mt-2 animate-fade-up text-[#6F6E6A]" style={{ animationDelay: "80ms" }}>
-        {message}
-      </p>
-      <div
-        role="status"
-        aria-live="polite"
-        className="mt-10 flex animate-fade-up items-center gap-3"
-        style={{ animationDelay: "160ms" }}
-      >
-        <span className="h-2 w-2 rounded-full bg-[#111111] animate-pulse" aria-hidden="true" />
-        <span className="text-sm text-[#6F6E6A]">בודקים כל כמה שניות אם הדוח מוכן</span>
-      </div>
-      {showHomeLink && (
-        <a
-          href="/"
-          className="mt-6 inline-block animate-fade-up text-[#111111] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
-          style={{ animationDelay: "240ms" }}
-        >
-          חזרה לעמוד הראשי
-        </a>
-      )}
-    </main>
+    <ScanFrame target={target} busy={true}>
+      <section className="shell rv d1">
+        <div className="core card-pad">
+          <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">הסריקה כבר רצה ברקע</h1>
+          <p className="mt-1 text-sm" style={{ color: "var(--mut)" }}>{message}</p>
+          <div role="status" aria-live="polite" className="mt-6">
+            <span className="chip live"><span className="dot" />בודקים כל כמה שניות אם הדוח מוכן</span>
+          </div>
+          {showHomeLink && (
+            <a href="/" className="btn-quiet mt-6 inline-flex">חזרה לעמוד הראשי</a>
+          )}
+        </div>
+      </section>
+    </ScanFrame>
   );
 }
 
 // מצב attach: page.tsx כבר קבע (בצד שרת, לפני שהמסך הזה בכלל התרנדר) שיש אבחון חי ליעד -
 // לא פותחים POST /api/diagnose חדש בשום תנאי, רק שואלים כל 3 שניות אם הוא הגיע ל-report_ready.
-function AttachedScan({ diagnosisId }: { diagnosisId: string }) {
+function AttachedScan({ target, diagnosisId }: { target: Target; diagnosisId: string }) {
   useAttachWait(diagnosisId);
-  return <WaitingScreen message="מתחברים אליה, הדוח ייפתח אוטומטית כשיהיה מוכן" />;
+  return <WaitingScreen target={target} message="מתחברים אליה, הדוח ייפתח אוטומטית כשיהיה מוכן" />;
 }
 
 // המסך החסום מנוטר לפי היעד (אין לו diagnosisId): ברגע שהסריקה שרצה ברקע מסיימת - מנווטים
 // לדוח, בדיוק כמו attach. בלי זה המסך היה נשאר תקוע לנצח גם כשהדוח כבר מוכן (באג קמפאי 15.8)
 function BlockedScan({ target }: { target: Target }) {
   useBlockedWait(target);
-  return <WaitingScreen message="סריקה לעסק הזה כבר רצה בחלון אחר" showHomeLink />;
+  return <WaitingScreen target={target} message="סריקה לעסק הזה כבר רצה בחלון אחר" showHomeLink />;
 }
 
 function LiveScan({ target }: { target: Target }) {
@@ -119,58 +146,48 @@ function LiveScan({ target }: { target: Target }) {
     return <BlockedScan target={target} />;
   }
 
+  // מונה כן בלבד: הזרם לא מדווח אחוז התקדמות ולא ידוע כמה שלבים יגיעו בסך הכול, אז מציגים
+  // רק מה שקרה באמת - כמה מהשלבים שכבר הופיעו הסתיימו. בלי אחוז מומצא
+  const doneCount = steps.filter((s) => s.done).length;
+
   return (
-    <main className="mx-auto max-w-2xl px-4 py-16" aria-busy={error == null}>
-      <h1 className="animate-fade-up font-[family-name:var(--font-frank)] text-3xl font-bold tracking-tight">
-        {title}
-      </h1>
-      <p className="mt-2 animate-fade-up text-[#6F6E6A]" style={{ animationDelay: "80ms" }}>
-        בדרך כלל זה לוקח פחות מדקה
-      </p>
+    <ScanFrame target={target} busy={error == null}>
+      <section className="shell rv d1">
+        <div className="core card-pad">
+          <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">{title}</h1>
+          <p className="mt-1 text-sm" style={{ color: "var(--mut)" }}>בדרך כלל זה לוקח פחות מדקה</p>
 
-      {error && (
-        <div
-          role="alert"
-          className="mt-8 animate-fade-up rounded-lg border border-black/[0.06] bg-[#FDEBEC] p-5 text-[#9F2F2D]"
-        >
-          <p>{error}</p>
-          <a
-            href="/"
-            className="mt-2 inline-block text-[#111111] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
-          >
-            חזרה לעמוד הראשי
-          </a>
-        </div>
-      )}
-
-      {steps.length > 0 && (
-        <ul
-          role="status"
-          aria-live="polite"
-          className="mt-10 divide-y divide-black/[0.06] border-t border-black/[0.06]"
-        >
-          {steps.map((s, i) => (
-            <li
-              key={s.key}
-              className="flex animate-fade-up items-center gap-4 py-4"
-              style={{ animationDelay: `${i * 80}ms` }}
-            >
-              <StepIndicator step={s} />
-              <div className="min-w-0 flex-1">
-                <p>{s.label}</p>
-                {s.done && s.detail && (
-                  <p className="mt-0.5 text-sm tabular-nums text-[#6F6E6A]">{s.detail}</p>
-                )}
+          {error && (
+            <div role="alert" className="form-error mt-6">
+              <div>
+                <p>{error}</p>
+                <a href="/" className="mt-2 inline-block font-bold underline underline-offset-4" style={{ color: "var(--txt)" }}>
+                  חזרה לעמוד הראשי
+                </a>
               </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </main>
+            </div>
+          )}
+
+          {steps.length > 0 && (
+            <>
+              <div className="scan-top mt-6">
+                <span className="pct-big num">{doneCount}/{steps.length}</span>
+                <span className="text-sm font-semibold" style={{ color: "var(--mut)" }}>שלבים הושלמו</span>
+              </div>
+              <ul role="status" aria-live="polite" className="mt-1">
+                {steps.map((s) => (
+                  <StepRow key={s.key} step={s} />
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      </section>
+    </ScanFrame>
   );
 }
 
 export function ScanRunner({ target, attach }: { target: Target; attach?: ScanAttach }) {
-  if (attach) return <AttachedScan diagnosisId={attach.diagnosisId} />;
+  if (attach) return <AttachedScan target={target} diagnosisId={attach.diagnosisId} />;
   return <LiveScan target={target} />;
 }

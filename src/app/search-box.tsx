@@ -7,6 +7,39 @@ import { popPendingSearch } from "./landing-logic";
 const LISTBOX_ID = "candidate-listbox";
 const optionId = (placeId: string) => `candidate-option-${placeId}`;
 
+// אייקונים קטנים לשדות ולכפתור - תצוגה בלבד, בשפת העיצוב הנבחרת (כהה פרמיום, סגול וברקת)
+function SearchIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" /><path d="M20 20l-3.2-3.2" />
+    </svg>
+  );
+}
+
+function PinIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 21s7-5.1 7-11a7 7 0 1 0-14 0c0 5.9 7 11 7 11z" /><circle cx="12" cy="10" r="2.5" />
+    </svg>
+  );
+}
+
+function CapArrow() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M19 12H5" /><path d="m12 19-7-7 7-7" />
+    </svg>
+  );
+}
+
+function AlertIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="mt-0.5 shrink-0" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" /><path d="M12 8v4" /><path d="M12 16h.01" />
+    </svg>
+  );
+}
+
 export function SearchBox() {
   const {
     input, setInput, city, setCity, candidates, busy, error, submit, chooseCandidate,
@@ -74,69 +107,76 @@ export function SearchBox() {
   }
 
   return (
-    <div className="mt-8 animate-fade-up" style={{ animationDelay: "160ms" }}>
-      <form onSubmit={submit} className="flex flex-col gap-3 sm:flex-row">
-        <input
-          ref={nameInputRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="שם העסק או כתובת האתר"
-          aria-label="שם העסק או כתובת האתר"
-          className="flex-1 rounded-md border border-black/[0.06] bg-white px-4 py-3 text-lg focus:border-[#111111] focus:outline-none focus:ring-1 focus:ring-[#111111]"
-        />
-        <input
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-          placeholder="עיר (לא חובה)"
-          aria-label="עיר (לא חובה)"
-          className="rounded-md border border-black/[0.06] bg-white px-4 py-3 text-lg focus:border-[#111111] focus:outline-none focus:ring-1 focus:ring-[#111111] sm:w-40"
-        />
-        <button
-          type="submit"
-          disabled={busy}
-          className="rounded-md bg-[#111111] px-6 py-3 text-lg font-semibold text-white transition hover:bg-[#333333] active:scale-[0.98] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
-        >
+    <div className="mt-6">
+      <form onSubmit={submit} className="flex flex-col gap-3">
+        <div className="fieldrow">
+          <label className="field">
+            <input
+              ref={nameInputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="שם העסק או כתובת האתר"
+              aria-label="שם העסק או כתובת האתר"
+            />
+            <SearchIcon />
+          </label>
+          <label className="field">
+            <input
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="עיר (לא חובה)"
+              aria-label="עיר (לא חובה)"
+            />
+            <PinIcon />
+          </label>
+        </div>
+        <button type="submit" disabled={busy} className="btn self-start">
           {busy ? "מחפשים..." : "אבחן את העסק שלי"}
+          <span className="cap"><CapArrow /></span>
         </button>
       </form>
 
       {error && (
-        <p role="alert" className="mt-3 text-[#9F2F2D]">
+        <p role="alert" className="form-error mt-3">
+          <AlertIcon />
           {error}
         </p>
       )}
 
       {candidates && (
-        <div className="mt-4">
+        <div className="mt-5">
           {siteOnlyTarget && (
-            <p className="mb-2 text-sm font-medium text-[#111111]">
+            <p className="mb-2 text-sm font-semibold" style={{ color: "var(--acc2-soft)" }}>
               מצאנו את העסק גם בגוגל מפות
             </p>
           )}
 
-          <input
-            value={filterText}
-            onChange={(e) => onFilterChange(e.target.value)}
-            onKeyDown={onFilterKeyDown}
-            placeholder="סננו לפי רחוב, עיר או שם"
-            aria-label="סננו את רשימת התוצאות"
-            role="combobox"
-            aria-expanded="true"
-            aria-controls={LISTBOX_ID}
-            aria-autocomplete="list"
-            aria-activedescendant={
-              activeIndex >= 0 && visibleCandidates[activeIndex]
-                ? optionId(visibleCandidates[activeIndex].placeId)
-                : undefined
-            }
-            className="w-full rounded-md border border-black/[0.06] bg-white px-4 py-3 focus:border-[#111111] focus:outline-none focus:ring-1 focus:ring-[#111111]"
-          />
+          <label className="field">
+            <input
+              value={filterText}
+              onChange={(e) => onFilterChange(e.target.value)}
+              onKeyDown={onFilterKeyDown}
+              placeholder="סננו לפי רחוב, עיר או שם"
+              aria-label="סננו את רשימת התוצאות"
+              role="combobox"
+              aria-expanded="true"
+              aria-controls={LISTBOX_ID}
+              aria-autocomplete="list"
+              aria-activedescendant={
+                activeIndex >= 0 && visibleCandidates[activeIndex]
+                  ? optionId(visibleCandidates[activeIndex].placeId)
+                  : undefined
+              }
+            />
+            <SearchIcon />
+          </label>
 
           <ul
             id={LISTBOX_ID}
             role="listbox"
             aria-live="polite"
-            className="mt-2 divide-y divide-black/[0.06] rounded-lg border border-black/[0.06] bg-white"
+            className="mt-2 overflow-hidden rounded-2xl border"
+            style={{ borderColor: "var(--hair-soft)", background: "var(--surface-1)" }}
           >
             {visibleCandidates.map((c, i) => (
               <li
@@ -144,20 +184,21 @@ export function SearchBox() {
                 id={optionId(c.placeId)}
                 role="option"
                 aria-selected={i === activeIndex}
-                className={`animate-fade-up ${i === activeIndex ? "bg-black/[0.02]" : ""}`}
-                style={{ animationDelay: `${i * 80}ms` }}
+                className="border-t first:border-t-0"
+                style={{ borderColor: "var(--row-line)" }}
               >
                 <button
                   type="button"
                   onClick={() => chooseCandidate(c)}
-                  className="flex w-full items-center justify-between px-4 py-3 text-right hover:bg-black/[0.02] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
+                  className="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-right transition-colors hover:bg-[rgba(var(--acc-rgb),0.06)]"
+                  style={i === activeIndex ? { background: "rgba(var(--acc-rgb),.12)" } : undefined}
                 >
-                  <span>
-                    <span className="font-medium">{c.name}</span>
-                    <span className="block text-sm text-[#6F6E6A]">{c.address}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-bold">{c.name}</span>
+                    <span className="block truncate text-xs" style={{ color: "var(--mut)" }}>{c.address}</span>
                   </span>
                   {c.rating != null && (
-                    <span className="tabular-nums text-sm text-[#6F6E6A]">
+                    <span className="num shrink-0 text-xs" style={{ color: "var(--dim)" }}>
                       {c.rating} ★ ({c.reviewCount ?? 0})
                     </span>
                   )}
@@ -166,45 +207,37 @@ export function SearchBox() {
             ))}
           </ul>
 
-          <button
-            type="button"
-            onClick={() => researchWithFilter()}
-            className="mt-2 text-sm font-medium text-[#111111] underline decoration-black/20 underline-offset-2 hover:decoration-black/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
-          >
-            חפשו שוב עם הטקסט הזה
-          </button>
-
-          {siteOnlyTarget && (
-            <button
-              type="button"
-              onClick={scanSiteOnly}
-              className="mt-2 block text-sm text-[#6F6E6A] underline decoration-black/10 underline-offset-2 hover:text-[#111111] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
-            >
-              סריקת האתר בלבד
+          <div className="mt-3 flex flex-wrap items-center gap-4">
+            <button type="button" onClick={() => researchWithFilter()} className="ghost-act">
+              חפשו שוב עם הטקסט הזה
             </button>
-          )}
+            {siteOnlyTarget && (
+              <button type="button" onClick={scanSiteOnly} className="ghost-act">
+                סריקת האתר בלבד
+              </button>
+            )}
+          </div>
         </div>
       )}
 
       {socialHint && (
-        <div className="mt-4 rounded-lg border border-black/[0.06] bg-white p-4">
-          <p className="text-[#6F6E6A]">{socialHint.message}</p>
-          <div className="mt-3 flex flex-wrap gap-4">
+        <div
+          className="mt-5 rounded-2xl border p-4"
+          style={{ borderColor: "var(--hair-soft)", background: "var(--surface-1)" }}
+        >
+          <p className="text-sm leading-relaxed" style={{ color: "var(--mut)" }}>{socialHint.message}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-4">
             <button
               type="button"
               onClick={() => {
                 setInput("");
                 nameInputRef.current?.focus();
               }}
-              className="text-sm font-medium text-[#111111] underline decoration-black/20 underline-offset-2 hover:decoration-black/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
+              className="pill"
             >
               אכתוב את שם העסק
             </button>
-            <button
-              type="button"
-              onClick={scanSiteOnly}
-              className="text-sm text-[#6F6E6A] underline decoration-black/10 underline-offset-2 hover:text-[#111111] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
-            >
+            <button type="button" onClick={scanSiteOnly} className="ghost-act">
               סריקת האתר בלבד
             </button>
           </div>
