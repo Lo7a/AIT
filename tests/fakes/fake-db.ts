@@ -34,6 +34,7 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
   const briefs: any[] = [];
   const users: any[] = [];
   const usageEvents: any[] = [];
+  const externalCalls: any[] = [];
   // "from→to" לפי סדר - לב האסרטים על מכונת המצבים. נרשמים רק מעברים שהצליחו בפועל (count:1);
   // מעבר שנכשל (race מדומה דרך failTransitions, או סטטוס לא תואם) לא משאיר עקבות כאן
   const transitions: string[] = [];
@@ -366,6 +367,24 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
           && (where?.createdAt?.gte == null || e.createdAt >= where.createdAt.gte),
       ).length,
     },
+    // ארכיון הקריאות החיצוניות (הכרעת מייסד 17.8): create ל-sink של external-log,
+    // findMany עם סינון createdAt.gte לצד הקריאה של האדמין
+    externalCall: {
+      create: async ({ data }: any) => {
+        const row = {
+          id: genId("xc"), service: data.service, context: data.context,
+          diagnosisId: data.diagnosisId ?? null, userId: data.userId ?? null,
+          ok: data.ok, durationMs: data.durationMs,
+          inputTokens: data.inputTokens ?? null, outputTokens: data.outputTokens ?? null,
+          payload: data.payload ?? null, createdAt: data.createdAt ?? new Date(),
+        };
+        externalCalls.push(row);
+        return { ...row };
+      },
+      findMany: async ({ where }: any = {}) => externalCalls
+        .filter((c) => where?.createdAt?.gte == null || c.createdAt >= where.createdAt.gte)
+        .map((c) => ({ ...c })),
+    },
     // תמיכה מינימלית ל-auth/session.ts (טבלת המראה users): שליפה לפי כל אחד מהמפתחות
     // הייחודיים, יצירה עם אכיפת ייחודיות (authId/email - מדמה P2002 של Prisma האמיתי,
     // מנגנון ההזרקה לבדיקת מרוץ היצירה הכפולה), ועדכון לפי id
@@ -442,7 +461,7 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
   };
 
   return {
-    db: db as any, businesses, diagnoses, scans, models, messages, transitions,
+    db: db as any, businesses, diagnoses, scans, models, messages, transitions, externalCalls,
     catalogs, benchmarks, roadmaps, roadmapItems, briefs, users, usageEvents,
   };
 }

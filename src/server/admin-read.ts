@@ -134,6 +134,75 @@ export async function listRecentEvents(prisma: PrismaClient, limit = 50): Promis
   }));
 }
 
+// ארכיון הקריאות החיצוניות (הכרעת מייסד 17.8): סיכומי שימוש וטוקנים למסך האדמין.
+// הגרסה הראשונה מציגה סיכומים לפי שירות+הקשר; סינונים, ריבוי בחירות ופילוח פר-משתמש -
+// אחרי בחירת העיצוב (הכרעת מייסד). האגרגציה רצה ב-JS על שורות 7 הימים האחרונים - נכון
+// לסקייל הנוכחי; כשהנפח יגדל עוברים ל-groupBy בצד המסד (השאילתה כבר מסוננת לפי אינדקס)
+export interface AdminExternalCallStat {
+  service: string;
+  context: string;
+  calls: number;
+  failed: number;
+  inputTokens: number;
+  outputTokens: number;
+  avgDurationMs: number;
+}
+
+export interface AdminExternalCallsSummary {
+  last7d: AdminExternalCallStat[]; // ממוין: הכי הרבה קריאות קודם
+  todayCalls: number; // ביממה האחרונה
+  todayTokens: number; // נכנסים+יוצאים ביממה האחרונה
+}
+
+interface ExternalCallRowLite {
+  service: string; context: string; ok: boolean; durationMs: number;
+  inputTokens: number | null; outputTokens: number | null; createdAt: Date;
+}
+
+// עזר טהור (נבדק אופליין) - כל הלוגיקה כאן, השאילתה למטה דקה
+export function aggregateExternalCalls(rows: ExternalCallRowLite[], dayCutoff: Date): AdminExternalCallsSummary {
+  const byKey = new Map<string, AdminExternalCallStat & { totalDurationMs: number }>();
+  let todayCalls = 0;
+  let todayTokens = 0;
+  for (const r of rows) {
+    const key = `${r.service}:${r.context}`;
+    const stat = byKey.get(key) ?? {
+      service: r.service, context: r.context, calls: 0, failed: 0,
+      inputTokens: 0, outputTokens: 0, avgDurationMs: 0, totalDurationMs: 0,
+    };
+    stat.calls += 1;
+    if (!r.ok) stat.failed += 1;
+    stat.inputTokens += r.inputTokens ?? 0;
+    stat.outputTokens += r.outputTokens ?? 0;
+    stat.totalDurationMs += r.durationMs;
+    byKey.set(key, stat);
+    if (r.createdAt >= dayCutoff) {
+      todayCalls += 1;
+      todayTokens += (r.inputTokens ?? 0) + (r.outputTokens ?? 0);
+    }
+  }
+  const last7d = [...byKey.values()]
+    .map(({ totalDurationMs, ...stat }) => ({ ...stat, avgDurationMs: Math.round(totalDurationMs / stat.calls) }))
+    .sort((a, b) => b.calls - a.calls);
+  return { last7d, todayCalls, todayTokens };
+}
+
+export async function getExternalCallsSummary(
+  prisma: PrismaClient,
+  now: Date = new Date(),
+): Promise<AdminExternalCallsSummary> {
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 3600 * 1000);
+  const dayAgo = new Date(now.getTime() - 24 * 3600 * 1000);
+  const rows = await prisma.externalCall.findMany({
+    where: { createdAt: { gte: weekAgo } },
+    select: {
+      service: true, context: true, ok: true, durationMs: true,
+      inputTokens: true, outputTokens: true, createdAt: true,
+    },
+  });
+  return aggregateExternalCalls(rows, dayAgo);
+}
+
 export interface AdminBriefRow {
   id: string;
   itemName: string;

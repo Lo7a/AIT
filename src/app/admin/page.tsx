@@ -5,7 +5,8 @@ import { currentActingUser } from "../../server/auth/supabase-server";
 import { isImpersonating } from "../../server/auth/impersonation";
 import { isAdmin } from "../../server/auth/guard";
 import {
-  getAdminOverview, listAllDiagnoses, listRecentBriefs, listRecentEvents, listUsersWithActivity,
+  getAdminOverview, getExternalCallsSummary, listAllDiagnoses, listRecentBriefs, listRecentEvents,
+  listUsersWithActivity,
 } from "../../server/admin-read";
 import { DIAGNOSIS_STATUS_LABEL } from "../../pipeline/report/presenter";
 import type { DiagnosisStatus } from "../../server/status";
@@ -41,12 +42,13 @@ export default async function AdminPage() {
   if (acting == null) redirect("/login");
   if (!isAdmin(acting.actor)) notFound();
 
-  const [overview, diagnoses, users, events, briefs] = await Promise.all([
+  const [overview, diagnoses, users, events, briefs, externalCalls] = await Promise.all([
     getAdminOverview(prisma),
     listAllDiagnoses(prisma),
     listUsersWithActivity(prisma),
     listRecentEvents(prisma),
     listRecentBriefs(prisma),
+    getExternalCallsSummary(prisma),
   ]);
 
   return (
@@ -106,6 +108,45 @@ export default async function AdminPage() {
               {EVENT_LABEL[type] ?? type}: <span className="font-semibold tabular-nums">{count}</span>
             </span>
           ))}
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="font-[family-name:var(--font-frank)] text-lg font-bold">קריאות חיצוניות וטוקנים (7 ימים)</h2>
+        <p className="mt-1 text-sm text-[#6F6E6A]">
+          ביממה האחרונה: <span className="font-semibold tabular-nums">{externalCalls.todayCalls}</span> קריאות,{" "}
+          <span className="font-semibold tabular-nums">{externalCalls.todayTokens.toLocaleString("he-IL")}</span> טוקנים
+        </p>
+        <div className="mt-3 overflow-auto rounded-lg border border-black/[0.06] bg-white">
+          <table className="w-full text-sm">
+            <thead className="text-[#6F6E6A]">
+              <tr className="border-b border-black/[0.06]">
+                <th className="px-3 py-2 text-start font-medium">שירות</th>
+                <th className="px-3 py-2 text-start font-medium">הקשר</th>
+                <th className="px-3 py-2 text-start font-medium">קריאות</th>
+                <th className="px-3 py-2 text-start font-medium">כשלים</th>
+                <th className="px-3 py-2 text-start font-medium">טוקנים נכנסים</th>
+                <th className="px-3 py-2 text-start font-medium">טוקנים יוצאים</th>
+                <th className="px-3 py-2 text-start font-medium">משך ממוצע</th>
+              </tr>
+            </thead>
+            <tbody>
+              {externalCalls.last7d.length === 0 && (
+                <tr><td colSpan={7} className="px-3 py-3 text-[#6F6E6A]">אין עדיין קריאות בארכיון</td></tr>
+              )}
+              {externalCalls.last7d.map((s) => (
+                <tr key={`${s.service}:${s.context}`} className="border-b border-black/[0.06] last:border-0">
+                  <td className="px-3 py-2 font-medium" dir="ltr">{s.service}</td>
+                  <td className="px-3 py-2" dir="ltr">{s.context}</td>
+                  <td className="px-3 py-2 tabular-nums">{s.calls}</td>
+                  <td className="px-3 py-2 tabular-nums">{s.failed > 0 ? <span className="text-[#9F2F2D]">{s.failed}</span> : 0}</td>
+                  <td className="px-3 py-2 tabular-nums">{s.inputTokens.toLocaleString("he-IL")}</td>
+                  <td className="px-3 py-2 tabular-nums">{s.outputTokens.toLocaleString("he-IL")}</td>
+                  <td className="px-3 py-2 tabular-nums">{(s.avgDurationMs / 1000).toFixed(1)} שנ'</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
 
