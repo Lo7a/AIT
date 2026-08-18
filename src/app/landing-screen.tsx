@@ -1,12 +1,12 @@
 "use client";
 // דף הנחיתה לאנונימיים (הכרעת מייסד 16.8): המבקר מתרשם ממה שהמערכת נותנת, ולחיצה על
 // "אבחן את העסק שלי" מובילה לכניסה/הרשמה - הסריקה עצמה תמיד מאחורי התחברות (כל סריקה
-// עולה כסף וכל עסק נקשר לבעליו). העיצוב כאן הוא הגרסה הנבחרת (הכרעת מייסד 18.8): כהה
-// פרמיום, סגול וברקת, Rubik - נשען על מערכת העיצוב ב-globals.css; הרקע (orbs) והמתג
-// כהה/בהיר כבר מגיעים גלובלית מ-layout. אפס מספרים: הצעת הערך מנוסחת בלי אף נתון מומצא,
-// ובלי פאנל "נסרקו לאחרונה" - אין לנו נתונים אמיתיים להראות לאנונימי.
+// עולה כסף וכל עסק נקשר לבעליו). העיצוב הוא הגרסה הנבחרת (18.8): כהה פרמיום, סגול
+// וברקת, Rubik. הירו בשתי עמודות כמו בספק: הטופס מימין, ומשמאל הדמיית תהליך הסריקה
+// (הכרעת מייסד: הנחיתה מדמה את התהליך ללקוח) - שלבי הסריקה האמיתיים בלופ, מסומנת
+// כהדגמה. אפס מספרים מומצאים: אין ציונים, אין עסקים לדוגמה, אין תוצאות מפוברקות.
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { stashPendingSearch } from "./landing-logic";
 
 const STEPS: { title: string; body: string }[] = [
@@ -24,6 +24,15 @@ const STEPS: { title: string; body: string }[] = [
   },
 ];
 
+// שלבי ההדגמה = השלבים האמיתיים של צינור הסריקה (Places, ביקורות, crawler, PSI, אותות)
+const SIM_STEPS = [
+  "מאתרים את הפרופיל העסקי בגוגל",
+  "קוראים את הביקורות האחרונות",
+  "סורקים את עמודי האתר",
+  "מודדים מהירות טעינה במובייל",
+  "בודקים ערוצי פנייה ומענה",
+];
+
 // חץ הפעולה בעיגול של כפתור הגלולה (בכיוון RTL החץ מצביע שמאלה - קדימה)
 function CapArrow() {
   return (
@@ -36,6 +45,84 @@ function CapArrow() {
         <path d="m12 19-7-7 7-7" />
       </svg>
     </span>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+    >
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
+
+// הדמיית הסריקה: השלבים נדלקים בזה אחר זה, "הדוח מוכן" בסוף, והלופ מתחיל מחדש.
+// מסומנת כהדגמה (כנות לפני רושם); reduced motion = הכל מסומן כהושלם, בלי תנועה.
+function ScanSimPanel() {
+  const total = SIM_STEPS.length;
+  // stage = כמה שלבים הושלמו; מעבר ל-total יש שתי פעימות "מוכן" לפני האיפוס
+  const [stage, setStage] = useState(0);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setStage(total);
+      return;
+    }
+    const id = window.setInterval(() => {
+      setStage((s) => (s >= total + 2 ? 0 : s + 1));
+    }, 1100);
+    return () => window.clearInterval(id);
+  }, [total]);
+
+  const ready = stage >= total;
+
+  return (
+    <div className="shell rv d4">
+      <div className="core" style={{ padding: "18px 22px 14px" }}>
+        <div className="card-title">מה נבדק בסריקה</div>
+        <ul>
+          {SIM_STEPS.map((label, i) => {
+            const cls = i < stage ? "sl done" : i === stage && !ready ? "sl act" : "sl idle-st";
+            return (
+              <li key={label} className={cls}>
+                <span className="st">
+                  <span className="idle" aria-hidden="true" />
+                  <span className="spin" aria-hidden="true"><i /></span>
+                  <span className="chk" aria-hidden="true">
+                    <span>
+                      <svg
+                        width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"
+                      >
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                  </span>
+                </span>
+                <span className="tx"><span className="main-lb">{label}</span></span>
+              </li>
+            );
+          })}
+        </ul>
+        <div
+          className="flex items-center justify-between gap-3"
+          style={{ marginTop: 12, paddingTop: 12, borderTop: "1px dashed var(--hair)" }}
+        >
+          <span style={{ fontSize: 11.5, color: "var(--dim)" }}>הדגמה - ככה נראית סריקה אמיתית</span>
+          <span
+            className="live-tag"
+            style={{ opacity: ready ? 1 : 0, transition: "opacity .4s var(--ease-out)" }}
+            aria-hidden={!ready}
+          >
+            <span className="dot" aria-hidden="true" />
+            הדוח מוכן
+          </span>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -66,57 +153,73 @@ export function LandingScreen() {
       </nav>
 
       <main className="land-wrap">
-        {/* הירו בעמודה אחת ממורכזת - טופס החיפוש הוא העוגן, בלי פאנל נתונים מומצאים */}
-        <section className="flex flex-col items-center gap-5 pt-16 pb-12 text-center">
-          <span className="eyebrow rv d1">
-            <span className="pulse" aria-hidden="true" />
-            אבחון דיגיטלי לעסקים
-          </span>
-          <h1 className="hero-h1 rv d2">
-            כמה שווה <span className="hl2">הנוכחות הדיגיטלית</span> של העסק שלך?
-          </h1>
-          <p className="hero-sub rv d3">
-            יועץ דיגיטלי לעסקים: סריקה מקיפה, שיחה קצרה על העסק, ותוכנית עבודה
-            מסודרת - <b>הכול במקום אחד.</b>
-          </p>
+        {/* הירו בשתי עמודות: הטופס הוא העוגן, לצדו הדמיית התהליך */}
+        <section className="hero-grid">
+          <div>
+            <span className="eyebrow rv d1">
+              <span className="pulse" aria-hidden="true" />
+              אבחון דיגיטלי לעסקים
+            </span>
+            <h1 className="hero-h1 rv d2" style={{ margin: "20px 0 14px" }}>
+              כמה שווה <span className="hl2">הנוכחות הדיגיטלית</span> של העסק שלך?
+            </h1>
+            <p className="hero-sub rv d3" style={{ marginBottom: 26 }}>
+              יועץ דיגיטלי לעסקים: סריקה מקיפה, שיחה קצרה על העסק, ותוכנית עבודה
+              מסודרת - <b>הכול במקום אחד.</b>
+            </p>
 
-          <form
-            className="w-full"
-            style={{ maxWidth: 640 }}
-            onSubmit={(e) => { e.preventDefault(); startDiagnosis(); }}
-          >
-            <div className="shell rv d4 text-start">
-              <div className="core" style={{ padding: 14 }}>
-                <label htmlFor="landing-query" className="field-lb">שם העסק או כתובת האתר</label>
-                {/* נערם לשתי שורות במובייל (הכלל הקבוע: כל מסך מותאם טלפון) - .fieldrow מטפל בזה */}
-                <div className="fieldrow">
-                  <span className="field">
-                    <svg
-                      width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"
-                    >
-                      <circle cx="11" cy="11" r="7" />
-                      <path d="M20 20l-3.2-3.2" />
-                    </svg>
-                    <input
-                      id="landing-query"
-                      type="text"
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder="למשל: מסעדת השף חיפה, או www.example.co.il"
-                    />
-                  </span>
-                  <button type="submit" className="btn wide">
-                    אבחן את העסק שלי
-                    <CapArrow />
-                  </button>
+            <form onSubmit={(e) => { e.preventDefault(); startDiagnosis(); }}>
+              <div className="shell rv d4">
+                <div className="core" style={{ padding: 14 }}>
+                  <label htmlFor="landing-query" className="field-lb">שם העסק או כתובת האתר</label>
+                  {/* נערם לשתי שורות במובייל (הכלל הקבוע: כל מסך מותאם טלפון) - .fieldrow מטפל בזה */}
+                  <div className="fieldrow">
+                    <span className="field">
+                      <svg
+                        width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"
+                      >
+                        <circle cx="11" cy="11" r="7" />
+                        <path d="M20 20l-3.2-3.2" />
+                      </svg>
+                      <input
+                        id="landing-query"
+                        type="text"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder="למשל: מסעדת השף חיפה, או www.example.co.il"
+                      />
+                    </span>
+                    <button type="submit" className="btn wide">
+                      אבחן את העסק שלי
+                      <CapArrow />
+                    </button>
+                  </div>
+                  {/* שורת האמון מהספק - הטענות מגובות במוצר: האבחון הראשוני לא עולה כסף,
+                      אין התחייבות, והסריקה אורכת בערך דקה (כמו בתיאור המערכת) */}
+                  <div className="trust" style={{ marginTop: 13 }}>
+                    <span><CheckIcon />אבחון ראשוני חינם</span>
+                    <span><CheckIcon />בלי התחייבות</span>
+                    <span>
+                      <svg
+                        width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"
+                      >
+                        <circle cx="12" cy="12" r="8.5" />
+                        <path d="M12 7.5V12l3 2" />
+                      </svg>
+                      תוך דקה
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <p className="rv d5" style={{ marginTop: 12, fontSize: 13, color: "var(--mut)" }}>
-              האבחון דורש חשבון - נכניס אותך ברגע, בלי סיסמה, והחיפוש שהקלדת מחכה לך בפנים.
-            </p>
-          </form>
+              <p className="rv d5" style={{ marginTop: 12, fontSize: 13, color: "var(--mut)" }}>
+                האבחון דורש חשבון - נכניס אותך ברגע, בלי סיסמה, והחיפוש שהקלדת מחכה לך בפנים.
+              </p>
+            </form>
+          </div>
+
+          <ScanSimPanel />
         </section>
 
         {/* שלושת השלבים - הטקסטים המאושרים כמו שהם */}
