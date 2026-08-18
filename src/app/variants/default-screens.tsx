@@ -12,6 +12,7 @@ import type { DiagnosisStatus } from "../../server/status";
 import type { LossHighlight } from "../../pipeline/roadmap/loss-highlights";
 import type { PersonalLossLine } from "../../pipeline/roadmap/loss-calc";
 import type { QuickWin } from "../../pipeline/roadmap/quick-wins";
+import type { Insight } from "../../pipeline/roadmap/insights";
 import { AppShell } from "../ui/app-shell";
 import { ScoreDial, MiniRing, SegRail, FillBar } from "../ui/motion";
 
@@ -35,6 +36,12 @@ const PLAN_WASH_STYLE = {
 const BAD_WASH_STYLE = {
   background: "linear-gradient(rgba(var(--bad-rgb),.07), rgba(var(--bad-rgb),.07)), var(--core-bg)",
   borderColor: "rgba(var(--bad-rgb),.3)",
+} as const;
+// שטיפת סקציית הפתיחה: אלכסון רך מפינת ההתחלה, גיאומטריה שונה מהרדיאלי של בלוק ההפסד
+// שיושב מתחתיו - שתי הסקציות לא נראות כמו אותו כרטיס פעמיים
+const INSIGHTS_WASH_STYLE = {
+  background: "linear-gradient(158deg, rgba(var(--accd-rgb),.15), transparent 48%), var(--core-bg)",
+  borderColor: "rgba(var(--acc-rgb),.2)",
 } as const;
 const WARN_STRIP_STYLE = {
   background: "rgba(var(--warn-rgb),.12)",
@@ -322,6 +329,62 @@ export function LossHighlightsBlock({
   );
 }
 
+// "מה הבנתי על העסק שלך" (insights.ts): פתיחת הדוח. כל שורה כאן היא מסקנה שמחברת כמה ממצאים
+// מאומתים - זה מה שבעל העסק לא יכול להרכיב לבד מרשימת ממצאים. הפריסה בכוונה שונה מכל בלוק
+// אחר בדוח: שתי עמודות אסימטריות (מסקנה מימין, הביסוס משמאל) מופרדות בקו שיער, בלי כרטיסים
+// מקוננים ובלי מספור - כדי שלא ייקרא כמו "מה אפשר לעשות כבר עכשיו" שיושב בהמשך.
+// מערך ריק -> שום דבר לא מוצג
+function InsightsBlock({ items, className }: { items: Insight[]; className: string }) {
+  if (items.length === 0) return null;
+  return (
+    <section className={`shell ${className}`}>
+      <div className="core card-pad" style={INSIGHTS_WASH_STYLE}>
+        <h2 className="card-title">מה הבנתי על העסק שלך</h2>
+        <p className="-mt-2 mb-5 max-w-[64ch] text-sm leading-relaxed" style={{ color: "var(--mut)" }}>
+          כל מסקנה כאן מחברת כמה ממצאים מהסריקה. הממצאים שהיא נשענת עליהם רשומים מתחתיה.
+        </p>
+        <div>
+          {items.map((item) => (
+            <article
+              key={item.key}
+              className="mt-6 border-t pt-6 first:mt-0 first:border-t-0 first:pt-0 sm:grid sm:grid-cols-[minmax(0,7fr)_minmax(0,10fr)] sm:gap-x-9"
+              style={{ borderColor: "var(--row-line)" }}
+            >
+              <h3 className="max-w-[26ch] text-[17px] font-extrabold leading-snug tracking-tight sm:text-[19px]">
+                {item.title}
+              </h3>
+              <div className="mt-4 sm:mt-0">
+                <ul className="space-y-2">
+                  {item.evidence.map((line) => (
+                    <li key={line} className="flex items-start gap-2.5 text-[13px] leading-relaxed" style={{ color: "var(--mut)" }}>
+                      <span
+                        aria-hidden="true"
+                        className="mt-1.75 h-1 w-1 shrink-0 rounded-full"
+                        style={{ background: "rgba(var(--acc-rgb),.6)" }}
+                      />
+                      <span className="max-w-[58ch]">{line}</span>
+                    </li>
+                  ))}
+                </ul>
+                {/* mut ולא dim: אלה שתי השורות שנושאות את המשמעות, לב הסקציה */}
+                <p className="mt-4 max-w-[60ch] text-sm leading-relaxed" style={{ color: "var(--mut)" }}>
+                  {item.soWhat}
+                </p>
+                <p className="mt-3 max-w-[60ch] text-sm leading-relaxed" style={{ color: "var(--mut)" }}>
+                  {/* acc2-soft ולא acc2: טקסט צבעוני על משטח מרוכך יורד מתחת ליחס הניגודיות
+                      בתצוגה הבהירה; הטוקן הרך מתהפך נכון בשני המצבים */}
+                  <b className="font-bold" style={{ color: "var(--acc2-soft)" }}>הכיוון: </b>
+                  {item.action}
+                </p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // "מה אפשר לעשות כבר עכשיו" (quick-wins.ts): צעדים חינמיים שבעל העסק יכול לעשות לבד היום,
 // נגזרים מחוקים שנבדקו בפועל ולא הושגו. מוצג אחרי הממצאים ולפני דלת התוכנית - הערך החינמי
 // מגיע לפני ההצעה בתשלום. מערך ריק -> שום דבר לא מוצג (אף פעם לא בלוק ריק)
@@ -422,12 +485,13 @@ function HeadlineCard({
 }
 
 export function DefaultReport({
-  report, lossHighlights = [], personalLoss = null, quickWins = [],
+  report, lossHighlights = [], personalLoss = null, quickWins = [], insights = [],
 }: {
   report: ReportView;
   lossHighlights?: LossHighlight[];
   personalLoss?: PersonalLossLine | null;
   quickWins?: QuickWin[];
+  insights?: Insight[];
 }) {
   // הצעד הזה מבטיח מבחינת טיפוסים ש-report.scan אינו null: ה-RSC הקורא (report/[id]/page.tsx)
   // כבר מפעיל notFound() לפני שהוא מגיע לכאן כשאין סריקה, כך שזהו רק שער הגנה מקומי
@@ -477,9 +541,13 @@ export function DefaultReport({
           </p>
         )}
 
+        {/* פתיחת הדוח: מה שהבנו על העסק. יושב לפני ההפסד והציון כי זו התשובה לשאלה
+            "מה אתם באמת מבינים עליי" - הממצאים הבודדים כבר מוצגים בהמשך הדוח */}
+        <InsightsBlock items={insights} className="rv d1 c12" />
+
         {hasHighlights ? (
           <>
-            <LossHighlightsBlock highlights={lossHighlights} personal={personalLoss} className="rv d1 c8" />
+            <LossHighlightsBlock highlights={lossHighlights} personal={personalLoss} className="rv d2 c8" />
             <ScoreCard overall={overall} className="rv d2 c4" />
             <HeadlineCard headline={headline} summary={summary} usedFallback={usedFallback} className="rv d3 c12" />
           </>

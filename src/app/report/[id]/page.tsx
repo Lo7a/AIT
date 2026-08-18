@@ -7,6 +7,7 @@ import { getQuantityAnswers } from "../../../server/interview-repo";
 import { reportLossHighlights } from "../../../pipeline/roadmap/report-highlights";
 import { personalLossLine } from "../../../pipeline/roadmap/loss-calc";
 import { quickWins } from "../../../pipeline/roadmap/quick-wins";
+import { insights } from "../../../pipeline/roadmap/insights";
 import { currentActingUser, hasAuthConfig } from "../../../server/auth/supabase-server";
 import { userCanAccessDiagnosis } from "../../../server/auth/guard";
 import { emitUsageEvent } from "../../../server/usage-events";
@@ -61,12 +62,18 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
   // ולא הושגו מייצרים צעד (ראו quick-wins.ts) - "לא נבדק" אף פעם לא הופך להמלצה
   const freeSteps = quickWins(report.scan.scores);
 
+  // "מה הבנתי על העסק שלך" (insights.ts): שכבת החיבור שפותחת את הדוח - כל מסקנה מחברת כמה
+  // אותות *מאומתים* לתמונה אחת. נגזרת באותה דרך בדיוק: חוקים סטטיים מעל הציונים כפי שהם
+  // שמורים, בזיכרון בלבד, בלי LLM ובלי שמירה. אות שלא נבדק לא נכנס לשום מסקנה
+  const understood = insights(report.scan.scores);
+
   return (
     <Report
       report={report}
       lossHighlights={highlights}
       personalLoss={personalLoss}
       quickWins={freeSteps}
+      insights={understood}
     />
   );
 }

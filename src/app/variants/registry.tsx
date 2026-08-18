@@ -34,6 +34,9 @@ export interface VariantScreens {
     // "מה אפשר לעשות כבר עכשיו" (quick-wins.ts) - צעדים חינמיים שנגזרים מחוקים שנבדקו בפועל
     // ולא הושגו. אופציונלי: undefined/מערך ריק = הסקציה פשוט לא מוצגת
     quickWins?: import("../../pipeline/roadmap/quick-wins").QuickWin[];
+    // "מה הבנתי על העסק שלך" (insights.ts) - מסקנות שמחברות כמה אותות מאומתים לתמונה אחת,
+    // פותחות את הדוח. אופציונלי: undefined/מערך ריק = הסקציה פשוט לא מוצגת
+    insights?: import("../../pipeline/roadmap/insights").Insight[];
   }>;
   Interview: ComponentType<{ diagnosisId: string; initial: import("../../server/run-interview").InterviewSnapshot }>;
   Roadmap: ComponentType<{
