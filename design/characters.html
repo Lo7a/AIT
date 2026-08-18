@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIT · קונספטים לדמות היועץ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="dash/style.css">
+<style>
+  .hall{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:48px 20px 60px}
+  .hall .kick{font-size:11px;font-weight:700;letter-spacing:.22em;color:var(--acc-soft);margin-bottom:14px}
+  .hall h1{font-size:clamp(26px,3.6vw,40px);letter-spacing:-.015em;line-height:1.2;max-width:22ch}
+  .hall .sub{font-size:14px;color:var(--mut);margin-top:12px;max-width:60ch}
+  .char-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;margin-top:36px}
+  .char-card .core{display:flex;flex-direction:column;padding:0;overflow:hidden}
+  .stage{
+    height:250px;display:grid;place-items:center;position:relative;
+    background:
+      radial-gradient(340px 200px at 50% 62%, rgba(var(--accd-rgb),.14), transparent 70%),
+      linear-gradient(180deg,#0b0b10,#07070b);
+    border-bottom:1px solid var(--hair-soft);
+  }
+  .char-meta{padding:18px 22px 20px;display:flex;flex-direction:column;gap:7px;flex:1}
+  .char-meta .no{font-size:10.5px;font-weight:700;letter-spacing:.2em;color:var(--dim)}
+  .char-meta h2{font-size:19px;letter-spacing:-.01em}
+  .char-meta p{font-size:12.5px;color:var(--mut);flex:1}
+  .char-meta .fit{
+    display:inline-flex;align-self:flex-start;align-items:center;gap:8px;
+    font-size:11px;font-weight:600;color:var(--acc2-soft);
+    background:rgba(var(--acc2-rgb),.08);border:1px solid rgba(var(--acc2-rgb),.25);
+    border-radius:999px;padding:4px 12px;margin-top:4px;
+  }
+  .float{animation:float 4.6s var(--ease) infinite}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+  .float.slow{animation-duration:6s}
+  .blink{transform-origin:center;animation:blink 4.8s infinite}
+  .blink.b2{animation-delay:1.7s}
+  @keyframes blink{0%,93%,100%{transform:scaleY(1)}95%,97%{transform:scaleY(.08)}}
+  .shadow-e{animation:shrink 4.6s var(--ease) infinite}
+  @keyframes shrink{0%,100%{transform:scaleX(1);opacity:.5}50%{transform:scaleX(.82);opacity:.32}}
+  .trail i{position:absolute;border-radius:50%;background:rgba(var(--acc-rgb),.35);filter:blur(2px)}
+  .note{margin-top:30px;font-size:12px;color:var(--dim);max-width:70ch;line-height:1.7}
+  @media (prefers-reduced-motion:reduce){.float,.blink,.shadow-e{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="orbs" aria-hidden="true"><div class="orb a"></div><div class="orb b"></div></div>
+<div class="grid-tex" aria-hidden="true"></div>
+
+<main class="hall">
+  <div class="kick rv d1">AIT · דמות היועץ</div>
+  <h1 class="rv d1">ארבעה כיוונים לדמות. תבחר, ואני מלטש ומטמיע.</h1>
+  <p class="sub rv d2">
+    כולם בפלטת המותג ובנויים וקטורית - כלומר אפשר להכניס כל אחד מהם ישירות למוצר, בכל גודל,
+    עם אנימציה חיה. הכיוון הראשון כבר חי בדף הנחיתה החדש לצד הדגמת השיחה.
+  </p>
+
+  <div class="char-grid">
+
+    <!-- 01 הישות: נוכחות מופשטת -->
+    <div class="char-card shell rv d3">
+      <div class="core">
+        <div class="stage">
+          <svg class="float slow" width="170" height="170" viewBox="0 0 170 170" aria-label="הישות - כדור אור">
+            <defs>
+              <radialGradient id="orbG" cx="35%" cy="30%">
+                <stop offset="0%" stop-color="#e9e2ff"/>
+                <stop offset="34%" stop-color="#a78bfa"/>
+                <stop offset="72%" stop-color="#6d4de0"/>
+                <stop offset="100%" stop-color="#4c33ad"/>
+              </radialGradient>
+              <radialGradient id="orbE" cx="68%" cy="74%">
+                <stop offset="0%" stop-color="#34d399" stop-opacity=".8"/>
+                <stop offset="60%" stop-color="#34d399" stop-opacity="0"/>
+              </radialGradient>
+              <filter id="soft" x="-60%" y="-60%" width="220%" height="220%">
+                <feGaussianBlur stdDeviation="9"/>
+              </filter>
+            </defs>
+            <circle cx="85" cy="85" r="52" fill="#8f6ef5" opacity=".4" filter="url(#soft)"/>
+            <circle cx="85" cy="85" r="44" fill="url(#orbG)"/>
+            <circle cx="85" cy="85" r="44" fill="url(#orbE)"/>
+            <ellipse cx="85" cy="85" rx="66" ry="20" fill="none" stroke="#a78bfa" stroke-opacity=".45"
+              stroke-width="1.6" stroke-dasharray="5 7" transform="rotate(-18 85 85)"/>
+            <circle cx="146" cy="66" r="3.4" fill="#34d399"/>
+            <circle cx="70" cy="74" r="7" fill="#ffffff" opacity=".5" filter="url(#soft)"/>
+          </svg>
+        </div>
+        <div class="char-meta">
+          <span class="no">01</span>
+          <h2>הישות</h2>
+          <p>נוכחות מופשטת, בלי פרצוף. משדרת טכנולוגיה שקטה ובטוחה בעצמה, ולא מתיישנת. זו הדמות שכבר חיה עכשיו בדף הנחיתה, בגדלים שונים: גדולה ליד הדגמת השיחה, זעירה בתור אווטאר בבועות הצ'אט.</p>
+          <span class="fit">הכי בטוחה למותג · כבר מוטמעת</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 02 המלווה: מסקוט גיאומטרי -->
+    <div class="char-card shell rv d4">
+      <div class="core">
+        <div class="stage">
+          <svg class="float" width="170" height="180" viewBox="0 0 170 180" aria-label="המלווה - מסקוט גיאומטרי">
+            <defs>
+              <linearGradient id="bodyG" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#a78bfa"/>
+                <stop offset="100%" stop-color="#6d4de0"/>
+              </linearGradient>
+              <linearGradient id="leafG" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#5eead4"/>
+                <stop offset="100%" stop-color="#34d399"/>
+              </linearGradient>
+            </defs>
+            <ellipse class="shadow-e" cx="85" cy="164" rx="38" ry="7" fill="#000" opacity=".45"/>
+            <path d="M60 26 C60 12 78 8 85 20 C92 8 110 12 110 26" fill="none" stroke="url(#leafG)" stroke-width="6" stroke-linecap="round"/>
+            <rect x="38" y="28" width="94" height="112" rx="42" fill="url(#bodyG)"/>
+            <rect x="38" y="28" width="94" height="112" rx="42" fill="#fff" opacity=".07"/>
+            <ellipse cx="85" cy="112" rx="30" ry="22" fill="#ffffff" opacity=".14"/>
+            <g class="blink"><circle cx="66" cy="74" r="9" fill="#fff"/><circle cx="68" cy="76" r="4.6" fill="#191621"/></g>
+            <g class="blink b2"><circle cx="104" cy="74" r="9" fill="#fff"/><circle cx="106" cy="76" r="4.6" fill="#191621"/></g>
+            <path d="M72 96 Q85 106 98 96" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".92"/>
+            <circle cx="52" cy="94" r="5" fill="#f0abfc" opacity=".5"/>
+            <circle cx="118" cy="94" r="5" fill="#f0abfc" opacity=".5"/>
+          </svg>
+        </div>
+        <div class="char-meta">
+          <span class="no">02</span>
+          <h2>המלווה</h2>
+          <p>מסקוט רך וגיאומטרי עם עלה ברקת - חי, חם ונגיש, בלי להיות רובוט קלישאתי. נותן לעסק הרגשה שיש מישהו לצדו. מתאים במיוחד לרגעי הראיון, למסכי המתנה ולחגיגות התקדמות.</p>
+          <span class="fit">הכי חם ואנושי</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 03 הינשוף: היועץ החכם -->
+    <div class="char-card shell rv d5">
+      <div class="core">
+        <div class="stage">
+          <svg class="float slow" width="170" height="180" viewBox="0 0 170 180" aria-label="הינשוף - יועץ חכם">
+            <defs>
+              <linearGradient id="owlG" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#8f6ef5"/>
+                <stop offset="100%" stop-color="#5a3fd0"/>
+              </linearGradient>
+            </defs>
+            <ellipse class="shadow-e" cx="85" cy="166" rx="36" ry="7" fill="#000" opacity=".45"/>
+            <path d="M40 58 Q36 30 58 40 Q66 26 85 30 Q104 26 112 40 Q134 30 130 58 L130 108 Q130 152 85 152 Q40 152 40 108 Z" fill="url(#owlG)"/>
+            <path d="M40 58 Q36 30 58 40 Q66 26 85 30 Q104 26 112 40 Q134 30 130 58 L130 108 Q130 152 85 152 Q40 152 40 108 Z" fill="#fff" opacity=".05"/>
+            <ellipse cx="85" cy="126" rx="26" ry="20" fill="#34d399" opacity=".28"/>
+            <path d="M63 120 Q85 134 107 120" fill="none" stroke="#34d399" stroke-width="3.4" stroke-linecap="round" opacity=".75"/>
+            <path d="M69 128 Q85 140 101 128" fill="none" stroke="#34d399" stroke-width="3" stroke-linecap="round" opacity=".5"/>
+            <g class="blink"><circle cx="66" cy="76" r="15" fill="#fff"/><circle cx="66" cy="76" r="8.6" fill="#6d4de0"/><circle cx="66" cy="76" r="4.4" fill="#191621"/><circle cx="62.5" cy="72" r="2.6" fill="#fff"/></g>
+            <g class="blink b2"><circle cx="104" cy="76" r="15" fill="#fff"/><circle cx="104" cy="76" r="8.6" fill="#6d4de0"/><circle cx="104" cy="76" r="4.4" fill="#191621"/><circle cx="100.5" cy="72" r="2.6" fill="#fff"/></g>
+            <path d="M52 58 L74 52 M118 58 L96 52" stroke="#c9b8fc" stroke-width="3.6" stroke-linecap="round"/>
+            <path d="M85 88 L79 98 L91 98 Z" fill="#34d399"/>
+            <path d="M70 152 L70 160 M85 152 L85 161 M100 152 L100 160" stroke="#5a3fd0" stroke-width="4" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="char-meta">
+          <span class="no">03</span>
+          <h2>הינשוף</h2>
+          <p>סמל החוכמה הקלאסי בלבוש גיאומטרי מודרני: גבות ממוקדות, עיניים גדולות שבאמת מסתכלות על העסק, ונוצות חזה בברקת. משדר סמכות של יועץ ותיק - מתאים אם רוצים דמות עם אופי מובהק.</p>
+          <span class="fit">הכי "יועץ" · אופי חזק</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 04 הניצוץ: אנרגיה -->
+    <div class="char-card shell rv d6">
+      <div class="core">
+        <div class="stage">
+          <svg class="float" width="170" height="180" viewBox="0 0 170 180" aria-label="הניצוץ - דמות אנרגיה">
+            <defs>
+              <linearGradient id="sparkG" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#5eead4"/>
+                <stop offset="42%" stop-color="#34d399"/>
+                <stop offset="100%" stop-color="#6d4de0"/>
+              </linearGradient>
+              <filter id="soft2" x="-60%" y="-60%" width="220%" height="220%">
+                <feGaussianBlur stdDeviation="7"/>
+              </filter>
+            </defs>
+            <circle cx="60" cy="146" r="6" fill="#8f6ef5" opacity=".4" filter="url(#soft2)"/>
+            <circle cx="104" cy="156" r="4.4" fill="#34d399" opacity=".4" filter="url(#soft2)"/>
+            <circle cx="78" cy="162" r="3.2" fill="#a78bfa" opacity=".35"/>
+            <path d="M85 16 C120 58 132 84 132 106 C132 134 111 152 85 152 C59 152 38 134 38 106 C38 84 50 58 85 16 Z"
+              fill="#8f6ef5" opacity=".35" filter="url(#soft2)"/>
+            <path d="M85 20 C117 60 128 84 128 106 C128 132 108 148 85 148 C62 148 42 132 42 106 C42 84 53 60 85 20 Z"
+              fill="url(#sparkG)"/>
+            <path d="M85 20 C117 60 128 84 128 106 C128 132 108 148 85 148 C62 148 42 132 42 106 C42 84 53 60 85 20 Z"
+              fill="#fff" opacity=".06"/>
+            <ellipse cx="70" cy="66" rx="9" ry="16" fill="#fff" opacity=".3" transform="rotate(-18 70 66)"/>
+            <g class="blink"><circle cx="70" cy="108" r="7.6" fill="#fff"/><circle cx="71.5" cy="109.5" r="3.8" fill="#12251d"/></g>
+            <g class="blink b2"><circle cx="100" cy="108" r="7.6" fill="#fff"/><circle cx="101.5" cy="109.5" r="3.8" fill="#12251d"/></g>
+            <path d="M78 126 Q85 132 92 126" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" opacity=".92"/>
+          </svg>
+        </div>
+        <div class="char-meta">
+          <span class="no">04</span>
+          <h2>הניצוץ</h2>
+          <p>טיפת אנרגיה בגרדיאנט המלא של המותג, מברקת לסגול. צעיר, מהיר ואופטימי - הדמות של הרגעים הטובים: הדוח מוכן, פער נסגר, הציון עלה. יכול לחיות גם לצד הישות כדמות משנית.</p>
+          <span class="fit">הכי אנרגטי · מתאים לחגיגות</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="note rv d6">
+    הערה: ניסיתי לג'נרט גם גרסאות מצוירות ותלת-ממד בהיגספילד - החשבון שם בלי קרדיטים
+    (תוכנית חינמית), אז אם תרצה כיוונים מצולמים או רנדרים, אפשר לטעון קרדיטים ואייצר.
+    הווקטורים כאן עצמאיים לגמרי - נכנסים למוצר כמו שהם, בכל גודל, עם האנימציות.
+  </p>
+</main>
+
+<script src="dash/script.js"></script>
+</body>
+</html>

@@ -126,6 +126,99 @@ function ScanSimPanel() {
   );
 }
 
+// שתי שאלות אמיתיות מבנק הראיון (questions.ts) - ההדגמה לא ממציאה שאלות או תשובות,
+// היא מראה בדיוק את האינטראקציה שקיימת במוצר. picked = הצ'יפ שההדגמה "בוחרת".
+const DEMO_QA: { q: string; chips: string[]; picked: number }[] = [
+  {
+    q: "איך מגיעות אליכם פניות חדשות (טלפון, וואטסאפ, פייסבוק), ומי מטפל בהן?",
+    chips: ["בעיקר טלפון", "וואטסאפ", "טופס באתר", "פייסבוק/אינסטגרם"],
+    picked: 1,
+  },
+  {
+    q: "קורה שפנייה הולכת לאיבוד או נענית באיחור? איפה זה קורה הכי הרבה?",
+    chips: [
+      "כן, קורה שפנייה מתפספסת",
+      "עונים באיחור לפעמים, אבל בסוף מטפלים בהכל",
+      "בעיקר מחוץ לשעות הפעילות",
+      "לא, אנחנו עונים כמעט תמיד מיד",
+    ],
+    picked: 2,
+  },
+];
+
+// רגע היועץ: הישות הזוהרת + חלון שיחה שמדגים את הראיון החי. מכונת פאזות פשוטה -
+// הקלדה, שאלה, צ'יפים, בחירה, תשובה, "הדוח התעדכן" - ואז השאלה הבאה, בלופ.
+// reduced motion = מצב סופי סטטי של השאלה הראשונה.
+function AdvisorDemo() {
+  const [tick, setTick] = useState(0);
+  const [reduced, setReduced] = useState(false);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setReduced(true);
+      return;
+    }
+    const id = window.setInterval(() => setTick((t) => t + 1), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const CYCLE = 7; // פאזות 0-5 + פעימת החזקה לפני איפוס
+  const qi = reduced ? 0 : Math.floor(tick / CYCLE) % DEMO_QA.length;
+  const phase = reduced ? 5 : tick % CYCLE;
+  const qa = DEMO_QA[qi];
+
+  return (
+    <section className="advisor-sec rv d5">
+      <div>
+        <div className="sec-label" style={{ marginBottom: 14 }}>הראיון</div>
+        <h2 style={{ fontSize: "clamp(22px,2.6vw,30px)", lineHeight: 1.3, letterSpacing: "-.012em" }}>
+          ראיון קצר שמדייק את התמונה
+        </h2>
+        <p style={{ fontSize: 14, color: "var(--mut)", marginTop: 10, maxWidth: "46ch" }}>
+          {STEPS[1].body}
+        </p>
+        <div className="orb-being" style={{ marginTop: 34 }} aria-hidden="true">
+          <span className="orb-halo" />
+          <span className="orb-ring" />
+          <span className="orb-ring b" />
+          <span className="orb-core" />
+        </div>
+        <p className="orb-cap">היועץ הדיגיטלי של AIT</p>
+      </div>
+
+      <div className="shell">
+        <div className="core chat-demo" key={qi}>
+          <div className="cd-ai-row">
+            <span className="cd-mini-orb" aria-hidden="true" />
+            <div className="cd-msg ai show">
+              {phase < 1
+                ? <span className="cd-typing" aria-label="היועץ מקליד"><i /><i /><i /></span>
+                : qa.q}
+            </div>
+          </div>
+          <div className={phase >= 2 ? "cd-chips show" : "cd-chips"}>
+            {qa.chips.map((chip, i) => (
+              <span key={chip} className={phase >= 3 && i === qa.picked ? "cd-chip picked" : "cd-chip"}>
+                {chip}
+              </span>
+            ))}
+          </div>
+          <div className={phase >= 4 ? "cd-msg user show" : "cd-msg user"}>
+            {qa.chips[qa.picked]}
+          </div>
+          <div className={phase >= 5 ? "cd-update show" : "cd-update"}>
+            <span className="live-tag">
+              <span className="dot" aria-hidden="true" />
+              הדוח התעדכן
+            </span>
+          </div>
+          <div className="cd-note">הדגמה - השאלות מגיעות מהראיון האמיתי של המערכת</div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function LandingScreen() {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -221,6 +314,9 @@ export function LandingScreen() {
 
           <ScanSimPanel />
         </section>
+
+        {/* רגע היועץ: הדגמת השיחה החיה */}
+        <AdvisorDemo />
 
         {/* שלושת השלבים - הטקסטים המאושרים כמו שהם */}
         <section className="rv d6 pb-6">
