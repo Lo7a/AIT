@@ -63,6 +63,23 @@ describe("staticUpdateFor", () => {
     expect(u).toEqual({ section: "lead_flow", fields: { responseTime: "תוך דקות" } });
   });
 
+  // שאלת שווי הלקוח היא צ'יפים ככל השאר - אסור שתעלה שקל אחד של LLM. התוויות מכילות פסיקי
+  // אלפים ("1,000-5,000 שקל"), ולכן חשוב במיוחד שההתאמה תהיה על התווית השלמה ולא split על פסיק
+  it("שווי לקוח: תווית עם פסיק אלפים - התאמה מלאה verbatim לשדה avgDealValue", () => {
+    const q = byKey("lead_flow_deal_value");
+    expect(staticUpdateFor(q, "1,000-5,000 שקל")).toEqual({
+      section: "lead_flow", fields: { avgDealValue: "1,000-5,000 שקל" },
+    });
+    for (const o of q.options!) {
+      expect(staticUpdateFor(q, o.label)?.fields.avgDealValue, o.label).toBe(o.label);
+    }
+  });
+
+  it("שווי לקוח: סכום שהבעלים כתב בעצמו ולא מהתפריט - null (נופל ל-LLM, בלי לנחש טווח)", () => {
+    expect(staticUpdateFor(byKey("lead_flow_deal_value"), "בערך 2,500")).toBeNull();
+    expect(staticUpdateFor(byKey("lead_flow_deal_value"), "עד 300 שקל, מעל 5,000 שקל")).toBeNull();
+  });
+
   it("תווית עם פסיק בתוכה (בחירה בודדת) - התאמה מלאה, לא נשברת על הפסיק", () => {
     const u = staticUpdateFor(byKey("lead_flow_lost"), "כן, קורה שפנייה מתפספסת");
     expect(u?.fields.leadDrop).toBe("כן, קורה שפנייה מתפספסת");

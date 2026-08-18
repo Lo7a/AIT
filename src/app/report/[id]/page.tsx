@@ -6,6 +6,7 @@ import { loadCatalogLite } from "../../../server/roadmap-repo";
 import { getQuantityAnswers } from "../../../server/interview-repo";
 import { reportLossHighlights } from "../../../pipeline/roadmap/report-highlights";
 import { personalLossLine } from "../../../pipeline/roadmap/loss-calc";
+import { quickWins } from "../../../pipeline/roadmap/quick-wins";
 import { currentActingUser, hasAuthConfig } from "../../../server/auth/supabase-server";
 import { userCanAccessDiagnosis } from "../../../server/auth/guard";
 import { emitUsageEvent } from "../../../server/usage-events";
@@ -50,10 +51,22 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
   // קריאה נופל בשקט ל-null והבלוק פשוט מוצג בלי השורה
   const [catalog, answers] = await Promise.all([
     loadCatalogLite(prisma).catch(() => []),
-    getQuantityAnswers(prisma, id).catch(() => ({ volume: null, responseTime: null })),
+    getQuantityAnswers(prisma, id).catch(() => ({ volume: null, responseTime: null, dealValue: null })),
   ]);
   const highlights = reportLossHighlights(report.scan.scores, report.model, catalog);
-  const personalLoss = personalLossLine(answers.volume, answers.responseTime);
+  const personalLoss = personalLossLine(answers.volume, answers.responseTime, answers.dealValue);
 
-  return <Report report={report} lossHighlights={highlights} personalLoss={personalLoss} />;
+  // "מה אפשר לעשות כבר עכשיו" (צעדים חינמיים): נגזר באותו אופן בדיוק - חוקים סטטיים מעל
+  // הציונים *כפי שהם שמורים*, בזיכרון בלבד, בלי LLM ובלי שמירה. רק חוקים שנבדקו בפועל
+  // ולא הושגו מייצרים צעד (ראו quick-wins.ts) - "לא נבדק" אף פעם לא הופך להמלצה
+  const freeSteps = quickWins(report.scan.scores);
+
+  return (
+    <Report
+      report={report}
+      lossHighlights={highlights}
+      personalLoss={personalLoss}
+      quickWins={freeSteps}
+    />
+  );
 }

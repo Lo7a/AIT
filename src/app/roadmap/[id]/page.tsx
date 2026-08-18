@@ -34,7 +34,7 @@ export default async function RoadmapPage({ params }: { params: Promise<{ id: st
     getRoadmapView(prisma, id).catch(() => null),
     // השורה האישית (מדרגה ב, loss-calc.ts) - תשובות הכמות לא משתנות בבנייה מחדש של Roadmap,
     // אז חישוב חד-פעמי ב-RSC מספיק; כשל קריאה נופל בשקט ל-null והבלוק מוצג בלי השורה
-    getQuantityAnswers(prisma, id).catch(() => ({ volume: null, responseTime: null })),
+    getQuantityAnswers(prisma, id).catch(() => ({ volume: null, responseTime: null, dealValue: null })),
     cookies(),
   ]);
   if (!report || !report.scan || !ROADMAPABLE.includes(report.status)) notFound();
@@ -49,5 +49,5 @@ export default async function RoadmapPage({ params }: { params: Promise<{ id: st
 
   const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
   const { Roadmap } = getVariant(theme);
-  return <Roadmap report={report} initialRoadmap={roadmap} personalLoss={personalLossLine(answers.volume, answers.responseTime)} />;
+  return <Roadmap report={report} initialRoadmap={roadmap} personalLoss={personalLossLine(answers.volume, answers.responseTime, answers.dealValue)} />;
 }

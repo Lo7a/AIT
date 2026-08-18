@@ -65,7 +65,7 @@ describe("getQuantityAnswers", () => {
   it("אין אף הודעה - שתי התשובות null", async () => {
     const { db, diagnoses, scans } = makeFakeDb() as any;
     seedDiagnosis(diagnoses, scans);
-    expect(await getQuantityAnswers(db, "d1")).toEqual({ volume: null, responseTime: null });
+    expect(await getQuantityAnswers(db, "d1")).toEqual({ volume: null, responseTime: null, dealValue: null });
   });
 
   it("שולף את שתי התשובות כלשונן לפי questionKey, ומתעלם משאלות אחרות", async () => {
@@ -75,14 +75,17 @@ describe("getQuantityAnswers", () => {
     await appendExchange(db, "d1", exchange("דנה מטפלת", "lead_flow_intake"), model);
     await appendExchange(db, "d1", exchange("10-30", "lead_flow_volume"), model);
     await appendExchange(db, "d1", exchange("באותו יום", "lead_flow_response_time"), model);
-    expect(await getQuantityAnswers(db, "d1")).toEqual({ volume: "10-30", responseTime: "באותו יום" });
+    await appendExchange(db, "d1", exchange("1,000-5,000 שקל", "lead_flow_deal_value"), model);
+    expect(await getQuantityAnswers(db, "d1")).toEqual({
+      volume: "10-30", responseTime: "באותו יום", dealValue: "1,000-5,000 שקל",
+    });
   });
 
   it("נענתה רק שאלת הכמות - זמן התגובה נשאר null", async () => {
     const { db, diagnoses, scans } = makeFakeDb() as any;
     seedDiagnosis(diagnoses, scans);
     await appendExchange(db, "d1", exchange("מעל 100", "lead_flow_volume"), deriveBusinessModel(findings));
-    expect(await getQuantityAnswers(db, "d1")).toEqual({ volume: "מעל 100", responseTime: null });
+    expect(await getQuantityAnswers(db, "d1")).toEqual({ volume: "מעל 100", responseTime: null, dealValue: null });
   });
 
   it("תשובה חוזרת לאותה שאלה - האחרונה מנצחת (ראיון שחוזרים אליו)", async () => {

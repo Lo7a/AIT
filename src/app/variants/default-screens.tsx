@@ -11,6 +11,7 @@ import type { DataStatus, RuleResult } from "../../pipeline/score/types";
 import type { DiagnosisStatus } from "../../server/status";
 import type { LossHighlight } from "../../pipeline/roadmap/loss-highlights";
 import type { PersonalLossLine } from "../../pipeline/roadmap/loss-calc";
+import type { QuickWin } from "../../pipeline/roadmap/quick-wins";
 import { AppShell } from "../ui/app-shell";
 import { ScoreDial, MiniRing, SegRail, FillBar } from "../ui/motion";
 
@@ -296,7 +297,7 @@ export function LossHighlightsBlock({
             >
               {personal.lead}
             </p>
-            <p className="mt-1 text-sm leading-relaxed" style={{ color: "var(--mut)" }}>{personal.anchor}</p>
+            <p className="mt-1 max-w-[62ch] text-sm leading-relaxed" style={{ color: "var(--mut)" }}>{personal.anchor}</p>
           </div>
         )}
         {highlights.length > 0 && (
@@ -316,6 +317,64 @@ export function LossHighlightsBlock({
             ))}
           </ul>
         )}
+      </div>
+    </section>
+  );
+}
+
+// "מה אפשר לעשות כבר עכשיו" (quick-wins.ts): צעדים חינמיים שבעל העסק יכול לעשות לבד היום,
+// נגזרים מחוקים שנבדקו בפועל ולא הושגו. מוצג אחרי הממצאים ולפני דלת התוכנית - הערך החינמי
+// מגיע לפני ההצעה בתשלום. מערך ריק -> שום דבר לא מוצג (אף פעם לא בלוק ריק)
+function QuickWinsBlock({ wins, className }: { wins: QuickWin[]; className: string }) {
+  if (wins.length === 0) return null;
+  return (
+    <section className={`shell ${className}`}>
+      <div className="core card-pad">
+        <h2 className="card-title">
+          <span>מה אפשר לעשות כבר עכשיו</span>
+          <span className="chip" style={{ letterSpacing: "normal" }}>בלי תשלום</span>
+        </h2>
+        <p className="-mt-2 mb-4 max-w-[62ch] text-sm leading-relaxed" style={{ color: "var(--mut)" }}>
+          כל צעד כאן אפשר לעשות לבד, על בסיס מה שנמצא בסריקה של העסק.
+        </p>
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {wins.map((win, i) => (
+            <li
+              key={win.key}
+              className="rounded-2xl border p-4"
+              style={{ borderColor: "var(--hair-soft)", background: "var(--surface-1)" }}
+            >
+              <div className="flex items-start gap-3">
+                <span
+                  className="num flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                  style={{
+                    background: "rgba(var(--acc2-rgb),.14)",
+                    border: "1px solid rgba(var(--acc2-rgb),.35)",
+                    // acc2-soft ולא acc2: זה טקסט (ספרה), ובתצוגה הבהירה acc2 על הרקע המרוכך
+                    // יורד מתחת ליחס הניגודיות הנדרש. הטוקן הרך מתהפך נכון בשני המצבים
+                    color: "var(--acc2-soft)",
+                  }}
+                  aria-hidden="true"
+                >
+                  {i + 1}
+                </span>
+                <div className="min-w-0">
+                  <h3 className="text-[15px] font-bold leading-snug">{win.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--mut)" }}>{win.why}</p>
+                  {/* mut ולא dim: זו הוראת הפעולה עצמה, לב הכרטיס. dim שמור לתוויות מטא זעירות
+                      ולא עומד ביחס הניגודיות בגודל הזה - קו ההפרדה נושא את ההיררכיה במקומו */}
+                  <p
+                    className="mt-2.5 border-t pt-2.5 text-[13px] leading-relaxed"
+                    style={{ borderColor: "var(--row-line)", color: "var(--mut)" }}
+                  >
+                    <b className="font-bold" style={{ color: "var(--acc-soft)" }}>איך מתחילים: </b>
+                    {win.how}
+                  </p>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );
@@ -363,11 +422,12 @@ function HeadlineCard({
 }
 
 export function DefaultReport({
-  report, lossHighlights = [], personalLoss = null,
+  report, lossHighlights = [], personalLoss = null, quickWins = [],
 }: {
   report: ReportView;
   lossHighlights?: LossHighlight[];
   personalLoss?: PersonalLossLine | null;
+  quickWins?: QuickWin[];
 }) {
   // הצעד הזה מבטיח מבחינת טיפוסים ש-report.scan אינו null: ה-RSC הקורא (report/[id]/page.tsx)
   // כבר מפעיל notFound() לפני שהוא מגיע לכאן כשאין סריקה, כך שזהו רק שער הגנה מקומי
@@ -526,6 +586,10 @@ export function DefaultReport({
             </div>
           </section>
         )}
+
+        {/* הערך החינמי לפני ההצעה בתשלום: הצעדים שאפשר לעשות לבד יושבים אחרי הממצאים
+            ולפני דלת התוכנית */}
+        <QuickWinsBlock wins={quickWins} className="rv d6 c12" />
 
         {model && nextStep && (
           <>

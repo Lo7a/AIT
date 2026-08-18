@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  QUESTION_BANK, MAX_GUIDED_QUESTIONS, CLOSING_QUESTION_KEY, pickNextQuestion,
+  QUESTION_BANK, MAX_GUIDED_QUESTIONS, CLOSING_QUESTION_KEY, REQUIRED_QUESTION_KEYS,
+  pickNextQuestion, staticUpdateFor,
 } from "../src/pipeline/interview/questions";
+import { applyInterviewUpdates } from "../src/pipeline/interview/merge";
 import { normalizeTypography } from "../src/pipeline/interview/extract";
 import { LEAD_DROP_RE } from "../src/pipeline/score/dimensions";
-import { deriveBusinessModel } from "../src/pipeline/model/business-model";
+import { deriveBusinessModel, type BusinessModel } from "../src/pipeline/model/business-model";
 import type { ScanFindings } from "../src/pipeline/types";
 
 const richFindings: ScanFindings = {
@@ -27,11 +29,11 @@ const MULTI_SELECT_KEYS = new Set([
 ]);
 
 describe("QUESTION_BANK", () => {
-  it("15 שאלות (14 רגילות + שאלת סיכום), מפתחות ייחודיים, כולן עם סקציה חוקית", () => {
+  it("16 שאלות (15 רגילות + שאלת סיכום), מפתחות ייחודיים, כולן עם סקציה חוקית", () => {
     expect(QUESTION_BANK).toHaveLength(MAX_GUIDED_QUESTIONS);
-    expect(MAX_GUIDED_QUESTIONS).toBe(15);
-    expect(REGULAR_KEYS).toHaveLength(14);
-    expect(new Set(QUESTION_BANK.map((q) => q.key)).size).toBe(15);
+    expect(MAX_GUIDED_QUESTIONS).toBe(16);
+    expect(REGULAR_KEYS).toHaveLength(15);
+    expect(new Set(QUESTION_BANK.map((q) => q.key)).size).toBe(16);
   });
 
   it("אין שאלה רגילה על pains - כאבים עולים מתשובות/כתיבה חופשית; רק שאלת הסיכום ממוענת ל-pains", () => {
@@ -110,10 +112,22 @@ describe("QUESTION_BANK", () => {
       expect(q.multiSelect).toBeFalsy();
     });
 
-    it("שתי שאלות הכמות נמצאות אחרי lead_flow_lost בסדר הבנק - לא פוגעות ברזרבת העומק הקיימת", () => {
+    it("lead_flow_deal_value: שווי לקוח/עסקה, טווחי שקלים שבעל העסק בוחר בעצמו", () => {
+      const q = QUESTION_BANK.find((x) => x.key === "lead_flow_deal_value")!;
+      expect(q.section).toBe("lead_flow");
+      expect(q.field).toBe("avgDealValue");
+      expect(q.text(richFindings, deriveBusinessModel(richFindings))).toBe("כמה שווה בממוצע לקוח או עסקה אצלכם?");
+      expect(q.options!.map((o) => o.label)).toEqual([
+        "עד 300 שקל", "300-1,000 שקל", "1,000-5,000 שקל", "מעל 5,000 שקל",
+      ]);
+      expect(q.multiSelect).toBeFalsy();
+    });
+
+    it("שלוש שאלות הכמות בסדר שנקבע: כמות, זמן תגובה ואז שווי (שאלת הכסף אחרונה)", () => {
       const keys = REGULAR_KEYS;
       expect(keys.indexOf("lead_flow_volume")).toBeGreaterThan(keys.indexOf("lead_flow_lost"));
       expect(keys.indexOf("lead_flow_response_time")).toBeGreaterThan(keys.indexOf("lead_flow_volume"));
+      expect(keys.indexOf("lead_flow_deal_value")).toBeGreaterThan(keys.indexOf("lead_flow_response_time"));
     });
   });
 });
@@ -155,13 +169,17 @@ describe("pickNextQuestion", () => {
     // כולל pains בכוונה (Object.keys(model.credits) מכסה את כל MODEL_SECTIONS, גם pains) - מדמה
     // תרחיש שבו תשובה על שאלה אחרת לגמרי חילצה בטעות עדכון לסקציית pains (הפרומפט ב-extract.ts
     // מרשה למודל לבחור כל סקציה, לא רק את זו של השאלה הנוכחית - ראו הערת as-built ב-questions.ts).
-    // שאלת הסיכום משוערת רק לפי חברות ב-askedKeys, לעולם לא לפי קרדיט pains - אז היא לא נבלעת כאן
+    // שאלת הסיכום משוערת רק לפי חברות ב-askedKeys, לעולם לא לפי קרדיט pains - אז היא לא נבלעת כאן.
+    // askedKeys מכיל את שאלות החובה כי הן קודמות לשאלת הסיכום בכל מקרה (ניקוז החובה) - הנקודה
+    // הנבדקת כאן היא שקרדיט pains עצמו לא בולע את שאלת הסיכום, לא סדר הניקוז
     const model = deriveBusinessModel(richFindings);
     for (const k of Object.keys(model.credits)) model.credits[k as keyof typeof model.credits] = 1;
-    expect(pickNextQuestion(model, richFindings, [])?.key).toBe(CLOSING_QUESTION_KEY);
+    expect(pickNextQuestion(model, richFindings, [...REQUIRED_QUESTION_KEYS])?.key).toBe(CLOSING_QUESTION_KEY);
   });
 
   it("התקרה הקשיחה של הבנק הרגיל עומדת בפני עצמה, גם כשהמפתחות שנשאלו אינם מהבנק - עדיין נופל לשאלת הסיכום", () => {
+    // חלה גם על ניקוז שאלות החובה (DRAIN_CAP): הן פטורות מתקרת הבנק הרגיל אבל לא מהתקרה
+    // המוחלטת, כך שסך השאלות המונחות חסום ב-MAX_GUIDED_QUESTIONS לכל קלט askedKeys שהוא
     const asked = Array.from({ length: REGULAR_KEYS.length }, (_, i) => `not_in_bank_${i}`);
     const q = pickNextQuestion(deriveBusinessModel(richFindings), richFindings, asked);
     expect(q?.key).toBe(CLOSING_QUESTION_KEY);
@@ -172,5 +190,112 @@ describe("pickNextQuestion", () => {
     const q = pickNextQuestion(model, richFindings, ["lead_flow_intake"]);
     expect(q?.key).toBe("lead_flow_lost");
     expect(q?.key).not.toBe(CLOSING_QUESTION_KEY);
+  });
+});
+
+// ניקוז שאלות החובה (תיקון באג הדילוג): קרדיט סקציה עולה ל-1 כבר מהתשובה הראשונה (merge.ts),
+// ולכן ארבע שאלות ההמשך של lead_flow - ובהן שלוש שאלות הכמות שהדוח בנוי עליהן - לא נשאלו
+// לעולם בייצור. הניקוז רץ אחרי מיצוי הלולאה הרחבה ולפני שאלת הסיכום, ולפי חברות ב-askedKeys
+describe("pickNextQuestion - ניקוז שאלות החובה", () => {
+  // מודל שבו כל הסקציות זוכו - בדיוק מה שקורה אחרי סיבוב אחד של שאלה לכל סקציה
+  function allCredited(): BusinessModel {
+    const model = deriveBusinessModel(richFindings);
+    for (const k of Object.keys(model.credits)) model.credits[k as keyof typeof model.credits] = 1;
+    return model;
+  }
+
+  it("כל הסקציות זוכו - הצעד הבא הוא שאלת כמות, לא קפיצה לשאלת הסיכום", () => {
+    const q = pickNextQuestion(allCredited(), richFindings, ["lead_flow_intake", "service_repeat"]);
+    expect(q?.key).toBe("lead_flow_volume");
+  });
+
+  it("סדר הניקוז הוא סדר הבנק: כמות, זמן תגובה, שווי - ורק אז שאלת הסיכום", () => {
+    const model = allCredited();
+    const asked = ["lead_flow_intake"];
+    const seen: string[] = [];
+    for (let i = 0; i < 4; i++) {
+      const q = pickNextQuestion(model, richFindings, asked);
+      expect(q, `צעד ${i} החזיר null לפני שאלת הסיכום`).not.toBeNull();
+      seen.push(q!.key);
+      asked.push(q!.key);
+    }
+    expect(seen).toEqual([
+      "lead_flow_volume", "lead_flow_response_time", "lead_flow_deal_value", CLOSING_QUESTION_KEY,
+    ]);
+  });
+
+  it("שאלת חובה שנשאלה כבר לא חוזרת - גם כשהתשובה עליה לא חילצה כלום למודל", () => {
+    // המודל כאן לא מכיל אף שדה מהשאלות האלה (חילוץ שנכשל/תשובת "אחר"), ובכל זאת הן לא חוזרות:
+    // התנאי הוא חברות ב-askedKeys בלבד, כך שכשל חילוץ לא לוכד את בעל העסק בלולאה על אותה שאלה
+    const q = pickNextQuestion(allCredited(), richFindings, [...REQUIRED_QUESTION_KEYS]);
+    expect(q?.key).toBe(CLOSING_QUESTION_KEY);
+  });
+
+  it("REQUIRED_QUESTION_KEYS: כל המפתחות קיימים בבנק, ובאותו סדר שבו הם מופיעים בו", () => {
+    expect(REGULAR_KEYS.filter((k) => REQUIRED_QUESTION_KEYS.includes(k))).toEqual([...REQUIRED_QUESTION_KEYS]);
+  });
+});
+
+// סשן ראיון שלם מקצה לקצה, דרך אותו צירוף שהשרת מריץ בפועל (run-interview.ts):
+// pickNextQuestion -> staticUpdateFor -> applyInterviewUpdates. זו הרגרסיה שכל הבדיקות הקודמות
+// פספסו - הן בדקו מבנה בנק וצעד בודד, ולכן הדילוג על שאלות הכמות (קרדיט סקציה שעולה ל-1
+// מהתשובה הראשונה) עבר מתחת לרדאר עד שהתגלה בייצור
+describe("סשן ראיון שלם", () => {
+  // credit=false מדמה ראיון שבו אף תשובה לא זיכתה סקציה (חילוץ שנכשל שוב ושוב)
+  function simulateSession(credit = true) {
+    let model: BusinessModel = deriveBusinessModel(richFindings);
+    const asked: string[] = [];
+    let terminated = false;
+    // תקרת בטיחות של הבדיקה עצמה: איטרציה אחת מעבר לתקרת המוצר. אם pickNextQuestion לא החזיר
+    // null עד אז - יש לולאה אינסופית, וזה ייפול על terminated למטה
+    for (let i = 0; i <= MAX_GUIDED_QUESTIONS; i++) {
+      const q = pickNextQuestion(model, richFindings, asked);
+      if (q == null) { terminated = true; break; }
+      const answer = q.options?.[0]?.label ?? "אין לי מה להוסיף"; // שאלת הסיכום היא טקסט חופשי
+      const update = credit ? staticUpdateFor(q, answer) : null;
+      model = applyInterviewUpdates(model, update ? [update] : [], "interview");
+      asked.push(q.key);
+    }
+    return { asked, model, terminated };
+  }
+
+  it("שלוש שאלות הכמות באמת נשאלות - הנתונים ששורת ההפסד האישית בנויה עליהם", () => {
+    const { asked } = simulateSession();
+    for (const key of REQUIRED_QUESTION_KEYS) {
+      expect(asked, `${key} לא נשאלה בסשן מלא`).toContain(key);
+    }
+  });
+
+  it("סדר הסשן: שאלה אחת לכל סקציה, אחריהן ניקוז שאלות הכמות, ובסוף שאלת הסיכום", () => {
+    expect(simulateSession().asked).toEqual([
+      "lead_flow_intake", "service_repeat", "billing_flow", "manual_tasks_top", "profile_basics",
+      "channels_main", "scheduling_how", "retention_contact", "tools_used",
+      "lead_flow_volume", "lead_flow_response_time", "lead_flow_deal_value",
+      CLOSING_QUESTION_KEY,
+    ]);
+  });
+
+  it("הסשן מסתיים, שאלת הסיכום פעם אחת ואחרונה, בלי כפילויות ובלי חריגה מהתקרה", () => {
+    const { asked, terminated } = simulateSession();
+    expect(terminated).toBe(true);
+    expect(asked.filter((k) => k === CLOSING_QUESTION_KEY)).toHaveLength(1);
+    expect(asked[asked.length - 1]).toBe(CLOSING_QUESTION_KEY);
+    expect(new Set(asked).size).toBe(asked.length);
+    expect(asked.length).toBeLessThanOrEqual(MAX_GUIDED_QUESTIONS);
+  });
+
+  it("תשובות הכמות נשמרות במודל כלשונן - בדיוק הערכים ש-loss-calc קורא", () => {
+    const leadFlow = simulateSession().model.data.lead_flow;
+    expect(leadFlow.weeklyLeads).toBe("עד 10");
+    expect(leadFlow.responseTime).toBe("תוך דקות");
+    expect(leadFlow.avgDealValue).toBe("עד 300 שקל");
+  });
+
+  it("סשן שבו שום תשובה לא זיכתה סקציה - כל הבנק נשאל, עדיין מסתיים בתקרה ובשאלת הסיכום", () => {
+    const { asked, terminated } = simulateSession(false);
+    expect(terminated).toBe(true);
+    expect(asked).toHaveLength(MAX_GUIDED_QUESTIONS);
+    expect(asked.slice(0, -1).sort()).toEqual([...REGULAR_KEYS].sort());
+    expect(asked[asked.length - 1]).toBe(CLOSING_QUESTION_KEY);
   });
 });

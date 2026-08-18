@@ -31,6 +31,9 @@ export interface VariantScreens {
     lossHighlights?: import("../../pipeline/roadmap/loss-highlights").LossHighlight[];
     // השורה האישית (מדרגה ב, loss-calc.ts) - מחושבת ב-RSC מתשובות הכמות בראיון; null = אין שורה
     personalLoss?: import("../../pipeline/roadmap/loss-calc").PersonalLossLine | null;
+    // "מה אפשר לעשות כבר עכשיו" (quick-wins.ts) - צעדים חינמיים שנגזרים מחוקים שנבדקו בפועל
+    // ולא הושגו. אופציונלי: undefined/מערך ריק = הסקציה פשוט לא מוצגת
+    quickWins?: import("../../pipeline/roadmap/quick-wins").QuickWin[];
   }>;
   Interview: ComponentType<{ diagnosisId: string; initial: import("../../server/run-interview").InterviewSnapshot }>;
   Roadmap: ComponentType<{

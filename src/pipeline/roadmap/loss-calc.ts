@@ -8,6 +8,23 @@
 // 3. השורה מוצגת אך ורק כששתי התשובות (כמות פניות + זמן תגובה) קיימות ותואמות בדיוק לאופציות
 //    הידועות מבנק השאלות - תשובת "אחר"/טקסט חופשי לא מפוענחת, אין שורה בכלל.
 //
+// הכרעה רביעית (18.8): לשורה מצטרף גם שווי הלקוח שבעל העסק נתן (lead_flow_deal_value), אבל
+// כציטוט ולא כמכפלה. הסבר, כי זה בדיוק המקום שבו קל להחליק מספר מומצא:
+//
+// הניסיון הראשון היה להכפיל "פניות בסיכון" בשווי הלקוח ולהציג סכום שבועי. סקירה יריבית פסלה
+// את זה, ובצדק: כמות הפניות היא פניות, ושווי הלקוח הוא של לקוח שנסגר. מכפלה ביניהם מניחה
+// בשקט שכל פנייה בסיכון הייתה הופכת ללקוח משלם - כלומר שיעור סגירה של 100%, מספר שבעל העסק
+// לא נתן ושאין לו מקור. הניפוח הוא פי 3 עד 20, והוא נתלה דווקא במילה "לפחות". בעל עסק שרואה
+// סכום מנופח מפסיק להאמין לכל הדוח - בדיוק ההפך מהמטרה.
+//
+// לכן: אין כאן שום אריתמטיקה על כסף. השורה מציבה זה לצד זה שתי עובדות שהוא עצמו מסר - כמה
+// פניות בסיכון, וכמה שווה אצלו לקוח שנסגר - והחשבון נשאר אצלו, עם שיעור הסגירה האמיתי שרק
+// הוא מכיר. גם כן יותר וגם משכנע יותר. תשובת שווי חסרה או לא מוכרת מחזירה את השורה הישנה
+// כלשונה - שדרוג, לא תנאי.
+//
+// אם בעתיד ירצו סכום שבועי מפורש, הדרך הכשרה היחידה היא לשאול גם על שיעור הסגירה בפועל
+// ולהכפיל בקצה השמרני שלו - לא להניח אותו.
+//
 // כלל הכפל המאושר: זה המקום היחיד במערכת שבו מוצג מספר נגזר (תשובת בעלים כפול שיעור מחקרי) -
 // לא מספר קטלוג ולא ציטוט ישיר. ההיתר הוא החלטת המייסד על מדרגה ב ("החשבון הכן - המספרים שהוא
 // נתן כפול התעריפים המחקריים"); העיגון הכפול (התשובות שלו + המקור) מופיע תמיד לצד המספר.
@@ -44,22 +61,48 @@ const RESPONSE_TIERS: Record<string, { kind: "fast" | "slow"; phrase: string }> 
 const FIRST_RESPONDER_SHARE = { lo: 0.35, hi: 0.5 };
 const RESEARCH_SENTENCE = "מחקר InsideSales מצא ש-35-50% מהעסקאות נסגרות אצל מי שמגיב ראשון";
 
+// תוויות שווי הלקוח/העסקה - חייבות להיות זהות אות-באות לאופציות של lead_flow_deal_value בבנק
+// השאלות (interview/questions.ts); בדיקת הצלבה נועלת את ההתאמה (loss-calc.test.ts).
+// Set ולא Record של טווחים: התווית מצוטטת כלשונה ואין עליה שום חישוב, ולכן אין צורך בערכים
+// מספריים. בונוס בטיחות - Set.has בודק חברות אמיתית, בלי מפתחות אב-טיפוס כמו "constructor"
+const DEAL_VALUE_LABELS = new Set([
+  "עד 300 שקל",
+  "300-1,000 שקל",
+  "1,000-5,000 שקל",
+  "מעל 5,000 שקל",
+]);
+
 // עיגול כלפי מטה בכוונה בשני הקצוות - ההערכה לעולם לא מגזימה כלפי מעלה, גם במחיר הקטנה קלה
 // של הטווח. עקרון הכנות: מוטב להציג פחות ממה שהמחקר מרמז מאשר להיתפס בהגזמה
 function atRiskText(volume: { lo: number; hi: number | null }): string {
-  if (volume.hi === null) return `מעל ${Math.floor(volume.lo * FIRST_RESPONDER_SHARE.lo)}`;
-  if (volume.lo === 0) return `עד ${Math.floor(volume.hi * FIRST_RESPONDER_SHARE.hi)}`;
-  return `${Math.floor(volume.lo * FIRST_RESPONDER_SHARE.lo)}-${Math.floor(volume.hi * FIRST_RESPONDER_SHARE.hi)}`;
+  const lo = Math.floor(volume.lo * FIRST_RESPONDER_SHARE.lo);
+  const hi = volume.hi === null ? null : Math.floor(volume.hi * FIRST_RESPONDER_SHARE.hi);
+  if (hi === null) return `מעל ${lo}`;
+  if (lo === 0) return `עד ${hi}`;
+  return `${lo}-${hi}`;
 }
 
+// חיפוש לפי מפתח בטוח: המפות למטה מקבלות טקסט גולמי שהמשתמש הקליד (תשובה חופשית על שאלה
+// מונחית מגיעה לכאן כמו שהיא). מפתחות כמו "constructor" או "__proto__" קיימים על אב-הטיפוס של
+// כל אובייקט, ובלי הבדיקה הזאת תשובה כזאת הייתה "מזוהה", מחזירה ערך לא מוגדר, ומגיעה למסך
+// כ-NaN. hasOwnProperty מחזיר את ההתנהגות המתועדת: תווית שאינה מהתפריט = אין התאמה
+function ownLookup<T>(map: Record<string, T>, label: string): T | undefined {
+  return Object.prototype.hasOwnProperty.call(map, label) ? map[label] : undefined;
+}
+
+// dealValueAnswer אופציונלי בכוונה (הכרעת מייסד 18.8): שאלת השווי היא שדרוג, לא תנאי. בלעדיה,
+// או כשהתשובה היא טקסט חופשי/"אחר" שלא תואם אף טווח מוכר, השורה נשארת בדיוק כפי שהייתה -
+// ספירת פניות בלבד. כסף מוצג רק כשכל שלושת הרכיבים הם תשובות מדויקות שלו מהתפריט
 export function personalLossLine(
   volumeAnswer: string | null | undefined,
   responseAnswer: string | null | undefined,
+  dealValueAnswer?: string | null,
 ): PersonalLossLine | null {
-  const volume = VOLUME_RANGES[volumeAnswer?.trim() ?? ""];
-  const tier = RESPONSE_TIERS[responseAnswer?.trim() ?? ""];
+  const volume = ownLookup(VOLUME_RANGES, volumeAnswer?.trim() ?? "");
+  const tier = ownLookup(RESPONSE_TIERS, responseAnswer?.trim() ?? "");
   if (!volume || !tier) return null;
 
+  // הענף המפרגן לא מושפע משאלת השווי בכלל - מי שעונה תוך דקות לא מקבל תג מחיר על "הפסד" שאין
   if (tier.kind === "fast") {
     return {
       kind: "praise",
@@ -69,9 +112,18 @@ export function personalLossLine(
   }
 
   const volumeLabel = volumeAnswer!.trim();
+  const dealLabel = dealValueAnswer?.trim() ?? "";
+  const anchor = `סיפרת על ${volumeLabel} פניות בשבוע ו${tier.phrase}. ${RESEARCH_SENTENCE}.`;
+
+  // תוספת השווי היא ציטוט של התווית שהוא בחר, מוצמדת לספירה - בלי מכפלה וממילא בלי סכום
+  // חדש. "לקוח שנסגר" ולא "פנייה": זו בדיוק ההבחנה שהמכפלה טשטשה, והניסוח שומר עליה גלויה
+  const dealClause = DEAL_VALUE_LABELS.has(dealLabel)
+    ? `, וכל לקוח שנסגר שווה לך ${dealLabel}`
+    : "";
+
   return {
     kind: "risk",
-    lead: `לפי מה שסיפרת: ${atRiskText(volume)} מהפניות השבועיות שלך בסיכון ממשי.`,
-    anchor: `סיפרת על ${volumeLabel} פניות בשבוע ו${tier.phrase}. ${RESEARCH_SENTENCE}.`,
+    lead: `לפי מה שסיפרת: ${atRiskText(volume)} מהפניות השבועיות שלך בסיכון ממשי${dealClause}.`,
+    anchor,
   };
 }

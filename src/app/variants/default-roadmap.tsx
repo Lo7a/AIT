@@ -147,7 +147,7 @@ function LossPanel({ highlights, personal }: { highlights: LossHighlight[]; pers
             >
               {personal.lead}
             </p>
-            <p className="mt-1 text-[12.5px] leading-relaxed text-[color:var(--mut)]">{personal.anchor}</p>
+            <p className="mt-1 max-w-[62ch] text-[12.5px] leading-relaxed text-[color:var(--mut)]">{personal.anchor}</p>
           </div>
         )}
         {highlights.length > 0 && (

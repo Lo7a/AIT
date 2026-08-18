@@ -112,17 +112,21 @@ export async function getInterviewState(
 export interface QuantityAnswers {
   volume: string | null;       // תשובת lead_flow_volume כלשונה (למשל "10-30"), null אם לא נענתה
   responseTime: string | null; // תשובת lead_flow_response_time כלשונה, null אם לא נענתה
+  // תשובת lead_flow_deal_value כלשונה (למשל "1,000-5,000 שקל"), null אם לא נענתה. אופציונלית
+  // מבחינת loss-calc: בלעדיה ההפסד נאמר במספר פניות, איתה גם בשקלים
+  dealValue: string | null;
 }
 
 export async function getQuantityAnswers(prisma: PrismaClient, diagnosisId: string): Promise<QuantityAnswers> {
   const rows = await prisma.interviewMessage.findMany({
     where: { diagnosisId }, orderBy: [{ createdAt: "asc" }],
   });
-  const answers: QuantityAnswers = { volume: null, responseTime: null };
+  const answers: QuantityAnswers = { volume: null, responseTime: null, dealValue: null };
   for (const m of rows) {
     if (m.role !== "user") continue;
     if (m.questionKey === "lead_flow_volume") answers.volume = m.content;
     if (m.questionKey === "lead_flow_response_time") answers.responseTime = m.content;
+    if (m.questionKey === "lead_flow_deal_value") answers.dealValue = m.content;
   }
   return answers;
 }
