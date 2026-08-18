@@ -42,7 +42,11 @@
   @keyframes shrink{0%,100%{transform:scaleX(1);opacity:.5}50%{transform:scaleX(.82);opacity:.32}}
   .trail i{position:absolute;border-radius:50%;background:rgba(var(--acc-rgb),.35);filter:blur(2px)}
   .note{margin-top:30px;font-size:12px;color:var(--dim);max-width:70ch;line-height:1.7}
-  @media (prefers-reduced-motion:reduce){.float,.blink,.shadow-e{animation:none}}
+  .glow-p{animation:glowp 2.2s var(--ease) infinite}
+  @keyframes glowp{0%,100%{opacity:1}50%{opacity:.4}}
+  .hover-s{animation:hovs 3.4s var(--ease) infinite}
+  @keyframes hovs{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  @media (prefers-reduced-motion:reduce){.float,.blink,.shadow-e,.glow-p,.hover-s{animation:none}}
 </style>
 </head>
 <body>
@@ -52,7 +56,7 @@
 
 <main class="hall">
   <div class="kick rv d1">AIT · דמות היועץ</div>
-  <h1 class="rv d1">ארבעה כיוונים לדמות. תבחר, ואני מלטש ומטמיע.</h1>
+  <h1 class="rv d1">חמישה כיוונים לדמות. תבחר, ואני מלטש ומטמיע.</h1>
   <p class="sub rv d2">
     כולם בפלטת המותג ובנויים וקטורית - כלומר אפשר להכניס כל אחד מהם ישירות למוצר, בכל גודל,
     עם אנימציה חיה. הכיוון הראשון כבר חי בדף הנחיתה החדש לצד הדגמת השיחה.
@@ -202,6 +206,89 @@
           <h2>הניצוץ</h2>
           <p>טיפת אנרגיה בגרדיאנט המלא של המותג, מברקת לסגול. צעיר, מהיר ואופטימי - הדמות של הרגעים הטובים: הדוח מוכן, פער נסגר, הציון עלה. יכול לחיות גם לצד הישות כדמות משנית.</p>
           <span class="fit">הכי אנרגטי · מתאים לחגיגות</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 05 הילד: חצי אנימציה חצי רובוט -->
+    <div class="char-card shell rv d6">
+      <div class="core">
+        <div class="stage">
+          <svg class="float" width="170" height="196" viewBox="0 0 170 196" aria-label="הילד - חצי מצויר חצי רובוטי">
+            <defs>
+              <linearGradient id="kidBody" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#a78bfa"/>
+                <stop offset="100%" stop-color="#6d4de0"/>
+              </linearGradient>
+              <linearGradient id="metalG" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#ded4fb"/>
+                <stop offset="100%" stop-color="#a99df0"/>
+              </linearGradient>
+              <filter id="soft3" x="-60%" y="-60%" width="220%" height="220%">
+                <feGaussianBlur stdDeviation="5"/>
+              </filter>
+            </defs>
+            <ellipse class="shadow-e" cx="85" cy="184" rx="36" ry="7" fill="#000" opacity=".45"/>
+
+            <!-- אנטנה עם קצה זוהר -->
+            <path d="M102 30 L110 15" stroke="#8f6ef5" stroke-width="3.4" stroke-linecap="round"/>
+            <circle cx="111" cy="13" r="7.5" fill="#34d399" opacity=".22" filter="url(#soft3)"/>
+            <circle class="glow-p" cx="111" cy="13" r="4" fill="#34d399"/>
+
+            <!-- ראש: חצי מצויר (ימין הצופה: שמאל) וחצי רובוטי -->
+            <circle cx="85" cy="58" r="32" fill="#f6e7d6"/>
+            <path d="M85 26 A32 32 0 0 1 85 90 Z" fill="url(#metalG)"/>
+            <path d="M96 40 H108" stroke="#8f6ef5" stroke-width="2.2" stroke-linecap="round" opacity=".65"/>
+            <circle cx="115" cy="58" r="7" fill="#6d4de0"/>
+            <circle class="glow-p" cx="115" cy="58" r="2.8" fill="#34d399"/>
+            <line x1="85" y1="27" x2="85" y2="89" stroke="#191621" stroke-opacity=".18" stroke-width="1.5" stroke-dasharray="3 4"/>
+            <!-- בלורית בצד המצויר -->
+            <path d="M85 26 Q60 24 53 46 Q51 52 53 58 Q58 44 69 37 Q77 31 85 31 Z" fill="#3b2b73"/>
+            <path d="M58 40 Q66 31 76 29" fill="none" stroke="#4c33ad" stroke-width="2.4" stroke-linecap="round"/>
+
+            <!-- עיניים: אנושית ממצמצת מול טבעת רובוטית -->
+            <g class="blink">
+              <circle cx="69" cy="59" r="7.4" fill="#fff"/>
+              <circle cx="70.5" cy="60.5" r="3.7" fill="#191621"/>
+              <circle cx="67.2" cy="57" r="1.6" fill="#fff"/>
+            </g>
+            <circle cx="100" cy="59" r="7" fill="none" stroke="#34d399" stroke-width="2.4"/>
+            <circle class="glow-p" cx="100" cy="59" r="2.6" fill="#34d399"/>
+            <path d="M74 75 Q85 83 96 75" fill="none" stroke="#45304f" stroke-width="3.4" stroke-linecap="round"/>
+            <circle cx="62" cy="69" r="4" fill="#f79bb6" opacity=".55"/>
+
+            <!-- גוף קפוצ'ון -->
+            <rect x="50" y="92" width="70" height="62" rx="26" fill="url(#kidBody)"/>
+            <path d="M60 100 Q85 114 110 100" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="4" stroke-linecap="round"/>
+            <circle cx="85" cy="124" r="6.5" fill="#34d399" opacity=".22"/>
+            <circle class="glow-p" cx="85" cy="124" r="3" fill="#34d399"/>
+
+            <!-- יד מצוירת -->
+            <path d="M52 104 Q39 116 43 132" fill="none" stroke="#6d4de0" stroke-width="11" stroke-linecap="round"/>
+            <circle cx="43" cy="135" r="6" fill="#f6e7d6"/>
+
+            <!-- יד רובוטית עם נבט מרחף מעליה -->
+            <rect x="114" y="102" width="12" height="20" rx="6" fill="#b9aaf3"/>
+            <circle cx="120" cy="124" r="4.5" fill="#34d399"/>
+            <rect x="114" y="127" width="12" height="18" rx="6" fill="#cfc2f8"/>
+            <circle cx="120" cy="149" r="6" fill="#b9aaf3"/>
+            <g class="hover-s">
+              <circle cx="120" cy="128" r="11" fill="#34d399" opacity=".14" filter="url(#soft3)"/>
+              <path d="M120 140 V127" stroke="#34d399" stroke-width="2.6" stroke-linecap="round"/>
+              <path d="M120 129 Q111 126 109 117 Q119 118 120 129 Z" fill="#34d399"/>
+              <path d="M120 132 Q128 129 130 121 Q121 122 120 132 Z" fill="#5eead4"/>
+            </g>
+
+            <!-- רגליים -->
+            <rect x="63" y="152" width="13" height="19" rx="6.5" fill="#4c33ad"/>
+            <rect x="94" y="152" width="13" height="19" rx="6.5" fill="#4c33ad"/>
+          </svg>
+        </div>
+        <div class="char-meta">
+          <span class="no">05</span>
+          <h2>הילד</h2>
+          <p>חצי מצויר, חצי רובוטי: בלורית ולחי סמוקה בצד אחד, כיפת מתכת עם אנטנה זוהרת ועין טבעת בצד השני - ויד רובוטית שמעליה מרחף נבט, העסק שצומח. עוזר צעיר וסקרן שרץ לצד בעל העסק. הכי שובב מכולם.</p>
+          <span class="fit">חצי אנימציה חצי רובוט · עוזר לעסק לצמוח</span>
         </div>
       </div>
     </div>
