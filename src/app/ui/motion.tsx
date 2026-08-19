@@ -10,8 +10,10 @@ function prefersReduced(): boolean {
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-export function CountUp({ to, duration = 1400, className }: {
-  to: number; duration?: number; className?: string;
+// decimals: ספרות אחרי הנקודה. נוסף כשהנחיתה הוצרכה לספור עד 98.17 - הרחבה של הרכיב
+// הקיים ולא רכיב שני שעושה אותו דבר (כלל השימוש החוזר ב-CLAUDE.md)
+export function CountUp({ to, duration = 1400, decimals = 0, className }: {
+  to: number; duration?: number; decimals?: number; className?: string;
 }) {
   const [value, setValue] = useState(0);
 
@@ -23,14 +25,14 @@ export function CountUp({ to, duration = 1400, className }: {
       if (t0 == null) t0 = ts;
       const p = Math.min((ts - t0) / duration, 1);
       const eased = 1 - Math.pow(1 - p, 4);
-      setValue(Math.round(to * eased));
+      setValue(to * eased);
       if (p < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [to, duration]);
 
-  return <span className={className}>{value}</span>;
+  return <span className={className}>{value.toFixed(decimals)}</span>;
 }
 
 // חוגת הציון: הקשת נמתחת אל הציון אחרי הטעינה (transition ב-globals: .dial .fill)

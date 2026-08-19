@@ -8,11 +8,15 @@ import { MODE_COOKIE } from "./mode";
 export function ModeToggle() {
   const router = useRouter();
 
+  // המעבר הרך בין המצבים נדלק רק למשך ההחלפה עצמה. כשהוא ישב קבוע על ה-body הוא
+  // עלה אחוז וחצי של מעבד בכל עמוד באפליקציה, כל הזמן, בשביל פעולה נדירה (מדידת ביצועים 18.8)
   function toggle() {
     const html = document.documentElement;
     const next = html.getAttribute("data-mode") === "light" ? "dark" : "light";
+    html.classList.add("mode-anim");
     html.setAttribute("data-mode", next);
     document.cookie = `${MODE_COOKIE}=${next}; path=/; max-age=31536000; samesite=lax`;
+    window.setTimeout(() => html.classList.remove("mode-anim"), 700);
     router.refresh();
   }
 

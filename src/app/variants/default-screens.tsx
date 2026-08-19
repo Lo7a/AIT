@@ -14,6 +14,7 @@ import type { PersonalLossLine } from "../../pipeline/roadmap/loss-calc";
 import type { QuickWin } from "../../pipeline/roadmap/quick-wins";
 import type { Insight } from "../../pipeline/roadmap/insights";
 import { AppShell } from "../ui/app-shell";
+import { AnchorNav, type AnchorItem } from "../ui/anchor-nav";
 import { ScoreDial, MiniRing, SegRail, FillBar } from "../ui/motion";
 
 // הדוח קיים גם בזמן ראיון, הקישור לא נעלם
@@ -48,6 +49,10 @@ const WARN_STRIP_STYLE = {
   borderBottom: "1px solid rgba(var(--warn-rgb),.4)",
   color: "var(--warn)",
 } as const;
+
+// תאריך הסריקה בשורת הזהות של הדוח. נבנה פעם אחת ברמת המודול - הפורמט זהה בכל קריאה,
+// והמסך הוא RSC (אין רינדור חוזר בדפדפן שיכול לייצר טקסט אחר מזה שנשלח)
+const SCAN_DATE_FMT = new Intl.DateTimeFormat("he-IL", { dateStyle: "long" });
 
 // חץ הגלולה (btn .cap) - מצביע שמאלה, כיוון ההתקדמות ב-RTL
 function CapArrow({ size = 13 }: { size?: number }) {
@@ -443,23 +448,6 @@ function QuickWinsBlock({ wins, className }: { wins: QuickWin[]; className: stri
   );
 }
 
-// כרטיס הציון: חוגה עם הציון האמיתי בלבד. אין ציון (אין די מידע) - אומרים את זה ביושר,
-// בלי חוגה ריקה. הכיתוב נכון תמיד: כל תשובת ראיון מרעננת את scan.scores ("הדוח חי")
-function ScoreCard({ overall, className }: { overall: number | null; className: string }) {
-  return (
-    <section className={`shell ${className}`}>
-      <div className="core card-pad score-core h-full justify-center">
-        <h2 className="card-title w-full">מדד התקדמות</h2>
-        {overall == null ? (
-          <p className="py-6 text-3xl font-extrabold" style={{ color: "var(--mut)" }}>אין די מידע</p>
-        ) : (
-          <ScoreDial score={overall} caption="הציון מתעדכן עם כל תשובה" />
-        )}
-      </div>
-    </section>
-  );
-}
-
 // כרטיס הכותרת: נרטיב הסריקה (או הנוסח הדטרמיניסטי) + תג כנות כשהנרטיב נפל לתבנית
 function HeadlineCard({
   headline, summary, usedFallback, className,
@@ -511,8 +499,31 @@ export function DefaultReport({
 
   const hasNoGbp = findings.partial.includes("no_gbp");
   // "loss leads, score measures" (החלטת מייסד נעולה): כשיש מה להראות - בלוק עיקרי הדוח מוביל
-  // והציון הוא מדד התקדמות בכרטיס משלו. אין כלום -> הכותרת מובילה, בלי בלוק ריק
+  // והציון הוא מדד התקדמות בעמודת הזהות. אין כלום -> הכותרת מובילה, בלי בלוק ריק
   const hasHighlights = lossHighlights.length > 0 || personalLoss !== null;
+  const hasPlan = model != null && nextStep != null;
+
+  // שורת המטא בראש עמודת הזהות: רק שדות שבאמת קיימים על העסק ועל הסריקה הזו
+  const identityMeta = [business.city, `נסרק ב-${SCAN_DATE_FMT.format(report.scan.createdAt)}`]
+    .filter((part): part is string => part != null && part !== "")
+    .join(" · ");
+  // צ'יפים: כל מספר כאן הוא ממצא שנאסף בפועל (findings.business מ-Places, pagesCrawled מהזחילה).
+  // שדה שלא הגיע פשוט לא מקבל צ'יפ - עדיף פחות צ'יפים מאשר מספר שלא נמדד
+  const pagesCrawled = findings.websiteSignals?.pagesCrawled ?? null;
+  const hasMetaChips =
+    findings.business.reviewCount != null || findings.business.rating != null ||
+    (pagesCrawled != null && pagesCrawled > 0);
+
+  // מקטעי הניווט נבנים מאותם תנאים בדיוק שמרנדרים את הסקציות עצמן - קישור לעוגן שלא קיים
+  // בעמוד הוא באג, ולכן אין כאן רשימה קבועה אלא דחיפה מותנית אחת לאחת
+  const anchors: AnchorItem[] = [];
+  if (insights.length > 0) anchors.push({ id: "insights", label: "מה הבנתי על העסק שלך" });
+  if (hasHighlights) anchors.push({ id: "highlights", label: "עיקרי הדוח" });
+  if (dimensions.length > 0) anchors.push({ id: "score-detail", label: "פירוט הציון" });
+  if (topGaps.length > 0) anchors.push({ id: "gaps", label: "הפערים המובילים" });
+  if (topStrengths.length > 0) anchors.push({ id: "strengths", label: "מה עובד טוב" });
+  if (quickWins.length > 0) anchors.push({ id: "quick-wins", label: "מה אפשר לעשות כבר עכשיו" });
+  if (hasPlan) anchors.push({ id: "plan", label: "תוכנית העבודה" });
 
   return (
     <AppShell active="report" diagnosisId={report.id} userLabel={business.name}>
@@ -533,136 +544,71 @@ export function DefaultReport({
         </div>
       </header>
 
-      <main className="board">
-        {/* האתר מוצג במובייל בגוף הדוח - הצ'יפ העליון מוסתר שם מקוצר מקום */}
-        {business.website && (
-          <p className="c12 -mb-2 text-xs md:hidden" dir="ltr" style={{ color: "var(--dim)", textAlign: "right" }}>
-            {business.website}
-          </p>
-        )}
+      {/* שורת המעבר המהיר יושבת מתחת לסרגל העליון ונדבקת בגלילה - הדוח ארוך, והמייסד
+          ביקש שאפשר יהיה לקפוץ בין המקטעים בלי לגלול חזרה */}
+      <AnchorNav items={anchors} label="מקטעי הדוח" />
 
-        {/* פתיחת הדוח: מה שהבנו על העסק. יושב לפני ההפסד והציון כי זו התשובה לשאלה
-            "מה אתם באמת מבינים עליי" - הממצאים הבודדים כבר מוצגים בהמשך הדוח */}
-        <InsightsBlock items={insights} className="rv d1 c12" />
-
-        {hasHighlights ? (
-          <>
-            <LossHighlightsBlock highlights={lossHighlights} personal={personalLoss} className="rv d2 c8" />
-            <ScoreCard overall={overall} className="rv d2 c4" />
-            <HeadlineCard headline={headline} summary={summary} usedFallback={usedFallback} className="rv d3 c12" />
-          </>
-        ) : (
-          <>
-            <HeadlineCard headline={headline} summary={summary} usedFallback={usedFallback} className="rv d1 c8" />
-            <ScoreCard overall={overall} className="rv d2 c4" />
-          </>
-        )}
-
-        {hasNoGbp && (
-          <section className="shell rv d3 c12">
-            <div className="core card-pad" style={BAD_WASH_STYLE}>
-              <p className="font-bold" style={{ color: "var(--bad)" }}>העסק לא נמצא בגוגל מפות</p>
-              <p className="mt-1 text-sm" style={{ color: "var(--mut)" }}>
-                לקוחות שמחפשים בסביבה פשוט לא רואים אותו. זה הפער המשמעותי ביותר שמצאנו.
-              </p>
-            </div>
-          </section>
-        )}
-
-        {dimensions.length > 0 && (
-          <section className="shell rv d4 c12">
-            <div className="core card-pad">
-              <h2 className="card-title">פירוט הציון</h2>
-              {dimensions.map((d) => (
-                <div key={d.key} className="border-t py-4 first:border-t-0 first:pt-0 last:pb-0" style={{ borderColor: "var(--row-line)" }}>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className="text-[15px] font-bold">{d.label}</span>
-                    <span className={`rounded-full px-3 py-0.5 text-xs font-semibold ${TONE_TAG_CLASSES[DATA_STATUS_TONE[d.dataStatus]]}`}>
-                      {DATA_STATUS_LABEL[d.dataStatus]}
-                    </span>
-                    <span className="num ms-auto text-lg font-bold">
-                      {d.score ?? <span className="text-sm font-normal" style={{ color: "var(--mut)" }}>אין מידע</span>}
-                    </span>
-                  </div>
-                  {d.score != null && (
-                    <div className="mt-3 flex items-center gap-3">
-                      <FillBar percent={d.score} />
-                    </div>
+      <main className="repC">
+        {/* עמודת הזהות: מי העסק, איפה הוא עומד ומה עוד חסר. דביקה בגלילה כדי שהתשובה
+            "על מי מדובר ומה הציון" תישאר על המסך גם כשקוראים מקטע בעומק הדוח */}
+        <aside className="rep-side">
+          <section className="shell rv d1">
+            <div className="core">
+              <div className="who-h">
+                <b>{business.name}</b>
+                {identityMeta !== "" && <i>{identityMeta}</i>}
+              </div>
+              {/* הציון האמיתי בלבד. אין ציון (אין די מידע) - אומרים את זה ביושר, בלי חוגה
+                  ריקה. הכיתוב נכון תמיד: כל תשובת ראיון מרעננת את scan.scores ("הדוח חי") */}
+              <div className="score-core">
+                {overall == null ? (
+                  <p className="py-6 text-3xl font-extrabold" style={{ color: "var(--mut)" }}>אין די מידע</p>
+                ) : (
+                  <>
+                    {/* הכיתוב יושב כאח של החוגה ולא כ-caption בתוכה: בתוך החוגה הוא גולש
+                        מחוץ לריבוע הקבוע שלה ובעמודה הצרה היה נופל על שורת הצ'יפים */}
+                    <ScoreDial score={overall} size={150} />
+                    <span className="dial-cap">הציון מתעדכן עם כל תשובה</span>
+                  </>
+                )}
+              </div>
+              {hasMetaChips && (
+                <div className="mini-meta">
+                  {findings.business.reviewCount != null && (
+                    <span><b className="num">{findings.business.reviewCount}</b> ביקורות</span>
                   )}
-                  <details className="mt-2">
-                    <summary className="cursor-pointer text-sm hover:underline" style={{ color: "var(--mut)" }}>
-                      איך חושב הציון?
-                    </summary>
-                    <ul className="mt-3 space-y-2 border-s ps-4" style={{ borderColor: "var(--hair-soft)" }}>
-                      {d.rules.map((r) => (
-                        <li key={r.key} className="flex items-start justify-between gap-3 text-sm">
-                          <span className="flex items-start gap-2">
-                            <RuleIcon rule={r} />
-                            <RuleLine rule={r} />
-                          </span>
-                          <span className="num shrink-0" style={{ color: "var(--dim)" }}>{r.points} נק'</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
+                  {findings.business.rating != null && (
+                    <span>דירוג <b className="num">{findings.business.rating}</b></span>
+                  )}
+                  {/* "נסרקו" ולא "יש": זה מה שהזחילה עברה בפועל, לא מספר העמודים באתר */}
+                  {pagesCrawled != null && pagesCrawled > 0 && (
+                    <span><b className="num">{pagesCrawled}</b> עמודים נסרקו</span>
+                  )}
                 </div>
-              ))}
+              )}
             </div>
           </section>
-        )}
 
-        {topGaps.length > 0 && (
-          <section className="shell rv d5 c8">
-            <div className="core card-pad">
-              <h2 className="card-title">הפערים המובילים</h2>
-              {topGaps.map((g, i) => {
-                const explanation = narrative?.narrative.gapExplanations.find(
-                  (e) => e.ruleKey === g.ruleKey,
-                );
-                const explanationText =
-                  explanation && explanation.explanation !== g.text ? explanation.explanation : null;
-                return (
-                  <div key={g.ruleKey} className="gap-row">
-                    <span className="gap-no num" aria-hidden="true">{i + 1}</span>
-                    <h3>{g.text}</h3>
-                    {explanationText && <p className="pain">{explanationText}</p>}
+          {dimensions.length > 0 && (
+            <section className="shell rv d2">
+              <div className="core">
+                <h2 className="side-h4">ציון לפי תחומים</h2>
+                {dimensions.map((d) => (
+                  <div key={d.key} className="dim-row">
+                    <span className="lb">{d.label}</span>
+                    {/* ממד בלי ציון לא מקבל פס בכלל: פס באורך אפס נקרא כמו "קיבל אפס"
+                        ולא כמו "אין מידע". הגריד מקפל את שורת הפס כשאין פס (globals.css) */}
+                    {d.score != null && <FillBar percent={d.score} />}
+                    <span className={d.score == null ? "sc na" : "sc num"}>{d.score ?? "לא נבדק"}</span>
                   </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        {topStrengths.length > 0 && (
-          <section className="shell rv d5 c4">
-            <div className="core card-pad h-full">
-              <h2 className="card-title">מה עובד טוב</h2>
-              <ul className="space-y-3">
-                {topStrengths.map((s) => (
-                  <li key={s.ruleKey} className="flex items-start gap-2.5 text-sm leading-relaxed">
-                    <span
-                      className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border"
-                      style={{ background: "rgba(var(--acc2-rgb),.14)", borderColor: "rgba(var(--acc2-rgb),.4)", color: "var(--acc2)" }}
-                      aria-hidden="true"
-                    >
-                      <CheckIcon />
-                    </span>
-                    <span>{s.text}</span>
-                  </li>
                 ))}
-              </ul>
-            </div>
-          </section>
-        )}
+              </div>
+            </section>
+          )}
 
-        {/* הערך החינמי לפני ההצעה בתשלום: הצעדים שאפשר לעשות לבד יושבים אחרי הממצאים
-            ולפני דלת התוכנית */}
-        <QuickWinsBlock wins={quickWins} className="rv d6 c12" />
-
-        {model && nextStep && (
-          <>
-            <section className="shell rv d6 c4">
-              <div className="core card-pad flex h-full flex-col gap-3">
+          {hasPlan && (
+            <section className="shell rv d3">
+              <div className="core flex flex-col gap-3">
                 <span className="live-tag"><span className="dot" />הדוח חי</span>
                 <div className="flex items-baseline justify-between gap-3">
                   <b className="text-[15px] font-bold">שלמות האבחון</b>
@@ -672,20 +618,158 @@ export function DefaultReport({
                 </div>
                 <SegRail percent={model.completenessPct} />
                 <p className="text-sm leading-relaxed" style={{ color: "var(--mut)" }}>{nextStep.reason}</p>
-                <div className="mt-auto pt-2">
-                  <Link href={`/interview/${report.id}`} className="btn sm">
-                    רוצה דיוק גבוה יותר? ראיון של 5 דקות
-                    <span className="cap"><CapArrow /></span>
-                  </Link>
-                </div>
+                {/* btn wide ולא הגלולה הצרה: ברוחב הרייל (318px) הכיתוב המלא נשבר לשתי
+                    שורות, וכפתור במלוא הרוחב קורא נכון במקום גלולה עקומה */}
+                <Link href={`/interview/${report.id}`} className="btn sm wide mt-1">
+                  רוצה דיוק גבוה יותר? ראיון של 5 דקות
+                  <span className="cap"><CapArrow /></span>
+                </Link>
               </div>
             </section>
+          )}
+        </aside>
 
-            {/* דלת התוכנית: קישור פעיל לכל סטטוס שממנו מותר לבנות/לצפות ב-Roadmap
-                (report_ready/interviewing/roadmap_ready - ראו status.ts). כשכבר יש Roadmap קיים
-                (roadmap_ready) הניסוח משתנה כדי לא להטעות כאילו זו הפעלה ראשונה */}
-            <section className="shell rv d6 c8">
-              <div className="core card-pad flex h-full flex-wrap items-center justify-between gap-6" style={PLAN_WASH_STYLE}>
+        <div className="rep-main">
+          {/* האתר מוצג במובייל בגוף הדוח - הצ'יפ העליון מוסתר שם מקוצר מקום */}
+          {business.website && (
+            <p className="text-xs md:hidden" dir="ltr" style={{ color: "var(--dim)", textAlign: "right" }}>
+              {business.website}
+            </p>
+          )}
+
+          {/* פתיחת הדוח: מה שהבנו על העסק. יושב לפני ההפסד כי זו התשובה לשאלה
+              "מה אתם באמת מבינים עליי" - הממצאים הבודדים כבר מוצגים בהמשך הדוח.
+              התנאי כאן זהה לתנאי הפנימי של InsightsBlock, כדי שהעוגן לא יוביל לריק */}
+          {insights.length > 0 && (
+            <div id="insights" data-anchor>
+              <InsightsBlock items={insights} className="rv d1" />
+            </div>
+          )}
+
+          {hasHighlights && (
+            <div id="highlights" data-anchor>
+              <LossHighlightsBlock highlights={lossHighlights} personal={personalLoss} className="rv d2" />
+            </div>
+          )}
+
+          <HeadlineCard
+            headline={headline}
+            summary={summary}
+            usedFallback={usedFallback}
+            className={hasHighlights ? "rv d3" : "rv d1"}
+          />
+
+          {hasNoGbp && (
+            <section className="shell rv d3">
+              <div className="core card-pad" style={BAD_WASH_STYLE}>
+                <p className="font-bold" style={{ color: "var(--bad)" }}>העסק לא נמצא בגוגל מפות</p>
+                <p className="mt-1 text-sm" style={{ color: "var(--mut)" }}>
+                  לקוחות שמחפשים בסביבה פשוט לא רואים אותו. זה הפער המשמעותי ביותר שמצאנו.
+                </p>
+              </div>
+            </section>
+          )}
+
+          {dimensions.length > 0 && (
+            <section id="score-detail" data-anchor className="shell rv d4">
+              <div className="core card-pad">
+                <h2 className="card-title">פירוט הציון</h2>
+                {dimensions.map((d) => (
+                  <div key={d.key} className="border-t py-4 first:border-t-0 first:pt-0 last:pb-0" style={{ borderColor: "var(--row-line)" }}>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="text-[15px] font-bold">{d.label}</span>
+                      <span className={`rounded-full px-3 py-0.5 text-xs font-semibold ${TONE_TAG_CLASSES[DATA_STATUS_TONE[d.dataStatus]]}`}>
+                        {DATA_STATUS_LABEL[d.dataStatus]}
+                      </span>
+                      <span className="num ms-auto text-lg font-bold">
+                        {d.score ?? <span className="text-sm font-normal" style={{ color: "var(--mut)" }}>אין מידע</span>}
+                      </span>
+                    </div>
+                    {d.score != null && (
+                      <div className="mt-3 flex items-center gap-3">
+                        <FillBar percent={d.score} />
+                      </div>
+                    )}
+                    <details className="mt-2">
+                      <summary className="cursor-pointer text-sm hover:underline" style={{ color: "var(--mut)" }}>
+                        איך חושב הציון?
+                      </summary>
+                      <ul className="mt-3 space-y-2 border-s ps-4" style={{ borderColor: "var(--hair-soft)" }}>
+                        {d.rules.map((r) => (
+                          <li key={r.key} className="flex items-start justify-between gap-3 text-sm">
+                            <span className="flex items-start gap-2">
+                              <RuleIcon rule={r} />
+                              <RuleLine rule={r} />
+                            </span>
+                            <span className="num shrink-0" style={{ color: "var(--dim)" }}>{r.points} נק'</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {topGaps.length > 0 && (
+            <section id="gaps" data-anchor className="shell rv d5">
+              <div className="core card-pad">
+                <h2 className="card-title">הפערים המובילים</h2>
+                {topGaps.map((g, i) => {
+                  const explanation = narrative?.narrative.gapExplanations.find(
+                    (e) => e.ruleKey === g.ruleKey,
+                  );
+                  const explanationText =
+                    explanation && explanation.explanation !== g.text ? explanation.explanation : null;
+                  return (
+                    <div key={g.ruleKey} className="gap-row">
+                      <span className="gap-no num" aria-hidden="true">{i + 1}</span>
+                      <h3>{g.text}</h3>
+                      {explanationText && <p className="pain">{explanationText}</p>}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {topStrengths.length > 0 && (
+            <section id="strengths" data-anchor className="shell rv d5">
+              <div className="core card-pad h-full">
+                <h2 className="card-title">מה עובד טוב</h2>
+                <ul className="space-y-3">
+                  {topStrengths.map((s) => (
+                    <li key={s.ruleKey} className="flex items-start gap-2.5 text-sm leading-relaxed">
+                      <span
+                        className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border"
+                        style={{ background: "rgba(var(--acc2-rgb),.14)", borderColor: "rgba(var(--acc2-rgb),.4)", color: "var(--acc2)" }}
+                        aria-hidden="true"
+                      >
+                        <CheckIcon />
+                      </span>
+                      <span>{s.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+          )}
+
+          {/* הערך החינמי לפני ההצעה בתשלום: הצעדים שאפשר לעשות לבד יושבים אחרי הממצאים
+              ולפני דלת התוכנית. התנאי כאן זהה לתנאי הפנימי של QuickWinsBlock */}
+          {quickWins.length > 0 && (
+            <div id="quick-wins" data-anchor>
+              <QuickWinsBlock wins={quickWins} className="rv d6" />
+            </div>
+          )}
+
+          {/* דלת התוכנית: קישור פעיל לכל סטטוס שממנו מותר לבנות/לצפות ב-Roadmap
+              (report_ready/interviewing/roadmap_ready - ראו status.ts). כשכבר יש Roadmap קיים
+              (roadmap_ready) הניסוח משתנה כדי לא להטעות כאילו זו הפעלה ראשונה */}
+          {hasPlan && (
+            <section id="plan" data-anchor className="shell rv d6">
+              <div className="core card-pad flex flex-wrap items-center justify-between gap-6" style={PLAN_WASH_STYLE}>
                 <div className="text-[11px] font-bold tracking-[.18em]" style={{ color: "var(--acc-soft)" }}>
                   תוכנית העבודה
                 </div>
@@ -695,23 +779,23 @@ export function DefaultReport({
                 </Link>
               </div>
             </section>
-          </>
-        )}
-
-        <footer className="c12 rv d6 border-t px-1 pt-4 text-xs" style={{ borderColor: "var(--hair-soft)", color: "var(--dim)" }}>
-          <p className="num">
-            משך סריקה: {(durationMs / 1000).toFixed(1)} שניות · עלות APIs: ${apiCost.toFixed(3)}
-          </p>
-          {findings.partial.length > 0 && (
-            <p className="mt-1">
-              {/* social_only מקבל את הנוסח עם שם הפלטפורמה בפועל (partialDetails), לא את התווית הגנרית -
-                  בעל העסק צריך לראות "עמוד פייסבוק", לא "עמוד ברשת חברתית" (סקירת קוד m2) */}
-              הערות איסוף: {findings.partial
-                .map((f) => (f === "social_only" && findings.partialDetails?.social_only) || PARTIAL_FLAG_LABEL[f])
-                .join(" · ")}
-            </p>
           )}
-        </footer>
+
+          <footer className="rv d6 border-t px-1 pt-4 text-xs" style={{ borderColor: "var(--hair-soft)", color: "var(--dim)" }}>
+            <p className="num">
+              משך סריקה: {(durationMs / 1000).toFixed(1)} שניות · עלות APIs: ${apiCost.toFixed(3)}
+            </p>
+            {findings.partial.length > 0 && (
+              <p className="mt-1">
+                {/* social_only מקבל את הנוסח עם שם הפלטפורמה בפועל (partialDetails), לא את התווית הגנרית -
+                    בעל העסק צריך לראות "עמוד פייסבוק", לא "עמוד ברשת חברתית" (סקירת קוד m2) */}
+                הערות איסוף: {findings.partial
+                  .map((f) => (f === "social_only" && findings.partialDetails?.social_only) || PARTIAL_FLAG_LABEL[f])
+                  .join(" · ")}
+              </p>
+            )}
+          </footer>
+        </div>
       </main>
     </AppShell>
   );

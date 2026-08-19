@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useId, useRef, type CSSProperties } from "react";
 import type { InterviewSnapshot } from "../../server/run-interview";
 import { useInterviewChat } from "../interview/use-interview-chat";
 import type { ChatMessage, SectionProgressItem } from "../interview/chat-logic";
 import { AppShell } from "../ui/app-shell";
+import { AnswerOptions } from "../ui/answer-options";
 import { FillBar } from "../ui/motion";
 
 // מסך הראיון בשפת העיצוב הנבחרת (הכרעת מייסד 18.8: כהה פרמיום, סגול וברקת, Rubik - ראו
@@ -12,20 +13,6 @@ import { FillBar } from "../ui/motion";
 // כן חי כאן (ולא בהוק): הוא תלוי-DOM/תזמון-רינדור, לא כלל עסקי - ראו ההערות ליד ה-effect למטה.
 // כללי החלקים המונפשים: מחלקות .rv יושבות רק על עטיפות סטטיות שנטענות פעם אחת עם המסך -
 // אף פעם לא על הודעות/פאנלים שמתחלפים עם ה-state, כדי ששינוי state לא יריץ כניסה מחדש.
-
-// עקיפות צבע ישירות ב-style ולא במחלקות utility: כללי globals.css (כמו .pill) אינם בשכבת
-// tailwind ולכן גוברים על utilities בקסקדה - style הוא הדרך האמינה לעקוף אותם נקודתית
-const PILL_SELECTED_STYLE: CSSProperties = {
-  background: "linear-gradient(135deg,var(--acc-deep1),var(--acc-deep2))",
-  color: "#fff",
-  borderColor: "transparent",
-};
-const PILL_OTHER_STYLE: CSSProperties = {
-  background: "transparent",
-  color: "var(--mut)",
-  borderStyle: "dashed",
-  borderColor: "var(--hair)",
-};
 
 // הבדל מלא/חלקי/כלום לא נשען על צבע בלבד: full מלא ובגבול רציף, partial בגבול מקווקו
 // עם נקודה מוקפת, none בגבול רציף דהוי בלי נקודה בכלל - ניתן להבחין גם
@@ -119,6 +106,8 @@ export function DefaultInterview({
 
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  // קבוצת התשובות נקראת בשם השאלה עצמה ולא בתווית גנרית
+  const promptId = useId();
   const inputDisabled = busy || starting || finishing || closed;
   // השאלה הנוכחית מציעה צ'יפים ועדיין לא נלחץ "אחר" - פאנל הצ'יפים מוצג במקום תיבת הטקסט
   // המשותפת (אפיון מחדש-ראיון, החלטה D). בלי אפשרויות (כמו שאלת הסיכום) - נשאר בדיוק כמו היום.
@@ -256,35 +245,21 @@ export function DefaultInterview({
           ) : showChips && visible?.options ? (
             <div className="shell">
               <div className="core card-pad">
-                <p className="text-[16.5px] font-bold leading-snug tracking-[-.01em]">{visible.text}</p>
-                {/* צ'יפ אפשרות (אפיון מחדש-ראיון, החלטה D): מילוי סגול רק כשנבחר (בחירה מרובה
-                    בלבד - בבחירה בודדת לחיצה שולחת מיד ואין מצב "נבחר" קבוע להראות) */}
-                <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="אפשרויות תשובה">
-                  {visible.options.map((label) => {
-                    const selected = !!visible.multiSelect && selectedOptions.includes(label);
-                    return (
-                      <button
-                        key={label}
-                        type="button"
-                        aria-pressed={visible.multiSelect ? selected : undefined}
-                        disabled={!canAnswer}
-                        onClick={() => (visible.multiSelect ? toggleOption(label) : selectOption(label))}
-                        className="pill disabled:cursor-not-allowed disabled:opacity-40"
-                        style={selected ? PILL_SELECTED_STYLE : undefined}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                  <button
-                    type="button"
+                <p id={promptId} className="text-[16.5px] font-bold leading-snug tracking-[-.01em]">{visible.text}</p>
+                {/* תיבת התשובות המשותפת (ui/answer-options.tsx) - אותה תיבה משרתת גם את
+                    ההדגמה בדף הנחיתה. key על מפתח השאלה: תיבה חדשה לכל שאלה, אחרת סימון
+                    ה"נבחר" של התשובה הקודמת נגרר לשאלה הבאה */}
+                <div className="mt-4">
+                  <AnswerOptions
+                    key={visible.key}
+                    options={visible.options}
+                    selected={visible.multiSelect ? selectedOptions : []}
+                    multiSelect={visible.multiSelect}
                     disabled={!canAnswer}
-                    onClick={() => openCustomInput()}
-                    className="pill disabled:cursor-not-allowed disabled:opacity-40"
-                    style={PILL_OTHER_STYLE}
-                  >
-                    אחר - אכתוב בעצמי
-                  </button>
+                    onPick={(label) => (visible.multiSelect ? toggleOption(label) : selectOption(label))}
+                    onOther={openCustomInput}
+                    labelledBy={promptId}
+                  />
                 </div>
                 {visible.multiSelect && (
                   <div className="mt-4">
