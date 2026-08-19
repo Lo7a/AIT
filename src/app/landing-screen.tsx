@@ -4,13 +4,15 @@
 // עולה כסף וכל עסק נקשר לבעליו). העיצוב הוא הגרסה הנבחרת (18.8): כהה פרמיום, סגול
 // וברקת, Rubik.
 //
-// המבנה (הכרעת מייסד 18.8, סבב שני): קנה מידה קטן - הדף היה גדול ומפוזר מדי. הכל
-// דינמי ומתאר את השלבים: הירו מריץ את מסוף הסריקה (פריסה 1 מ-design/variant-dark.html),
-// ומתחתיו מסלול שלושת השלבים שבו כל שלב מציג תצוגה חיה משלו - מבנה הדוח עם ניווט
-// העוגן (פריסה 3), הראיון, ותוכנית העבודה.
+// המבנה: הדף בנוי כטיעון ולא כסיור במוצר - קודם הוא מזהה את עצמו (המצב היום), אז
+// מבין איך זה עובד (מסלול השלבים עם תצוגה חיה לכל שלב), אז יודע מה יקבל (תוכן
+// העניינים), אז למה לסמוך (כל טענה לצד חתיכה אמיתית מהמוצר), ואז נתונים ומי אנחנו.
 //
-// אפס מספרים מומצאים: אין ציונים, אין עסקים לדוגמה, אין תוצאות מפוברקות. תצוגת הדוח
-// מראה את המבנה והכותרות האמיתיות של המוצר, והתוכן בתוכה הוא מצייני מקום ניטרליים.
+// קנה המידה: הוקטן פעמיים ואז הורחב חזרה - התלונה על "הכל ענקי" נבעה מזום בדפדפן
+// ולא מהדף עצמו. הרוחב נדיב בכוונה; אל תקטין אותו בלי שנמדד על מסך בזום 100 אחוז.
+//
+// מספרים: כל מספר בסקשן הנתונים מגיע ממדידה שלנו או ממקור חיצוני נקוב שמופיע לצדו.
+// הדוח לדוגמה הוא החריג המתועד ב-CLAUDE.md, וגם בו רק העסק והציונים בדויים.
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { stashPendingSearch } from "./landing-logic";
@@ -624,7 +626,7 @@ const REPORT_TOC: { t: string; free?: boolean }[] = [
 
 function SituationSection() {
   return (
-    <section className="pb-9">
+    <section className="pb-14">
       <Reveal>
         <div className="how-head"><h2>המצב היום</h2></div>
       </Reveal>
@@ -643,7 +645,7 @@ function SituationSection() {
 
 function ReportTocSection() {
   return (
-    <section className="pb-9">
+    <section className="pb-14">
       <Reveal>
         <div className="how-head"><h2>מה יש בדוח</h2></div>
       </Reveal>
@@ -688,7 +690,7 @@ function StateDot({ s }: { s: "ok" | "no" | "un" }) {
 // כותרת ופסקה - יש טענה והוכחה, והצדדים מתחלפים כדי שזה לא ייקרא כרשימה
 function RulesSection() {
   return (
-    <section className="pb-9">
+    <section className="pb-14">
       <Reveal>
         <div className="how-head"><h2>איך אנחנו עובדים</h2></div>
       </Reveal>
@@ -843,7 +845,7 @@ function SearchShare() {
 
 function DataSection() {
   return (
-    <section className="pb-9">
+    <section className="pb-14">
       <Reveal>
         <div className="how-head"><h2>נתונים</h2></div>
       </Reveal>
@@ -916,7 +918,7 @@ function DataSection() {
 // שאי אפשר לפספס - טקסט על העסק שלו הוא לא משהו שאני ממציא
 function AboutSection() {
   return (
-    <section className="pb-9">
+    <section className="pb-14">
       <Reveal>
         <div className="how-head"><h2>מי אנחנו</h2></div>
       </Reveal>
@@ -1177,7 +1179,7 @@ export function LandingScreen() {
         <SituationSection />
 
         {/* מסלול השלבים: כל שלב עם התצוגה החיה שלו */}
-        <section id="stages" className="pb-9">
+        <section id="stages" className="pb-14">
           <Reveal>
             <div className="how-head"><h2>איך זה עובד</h2></div>
           </Reveal>
@@ -1194,7 +1196,7 @@ export function LandingScreen() {
 
         {/* רצועת סגירה: הכותרת המאושרת בלבד. תת-הכותרת ירדה - היא מופיעה מילה במילה
             בירו, וחזרה עליה כאן רק מעמיסה בלי להוסיף */}
-        <section className="pb-10">
+        <section className="pb-16">
           <Reveal>
             <div className="shell">
               <div className="core cta-core">
