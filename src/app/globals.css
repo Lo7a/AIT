@@ -46,6 +46,11 @@
   --orb-op:.55;
   --ease:cubic-bezier(.32,.72,0,1);
   --ease-out:cubic-bezier(.23,1,.32,1);
+  /* רוחב עמודת התוכן. הנחיתה משתמשת באותם מספרים ומנכה את רוחב הסיידבר,
+     כדי שעמודת התוכן תהיה זהה ברוחבה לפני ההתחברות ואחריה */
+  --rail-w:232px;
+  --content-w:94%;
+  --content-max:1860px;
 }
 html[data-mode="light"]{
   --bg:#f7f5fb;
@@ -300,7 +305,7 @@ html[data-mode="light"] .theme-tgl .ic-moon{display:none}
   position:relative;z-index:1;
   display:grid;grid-template-columns:repeat(12,1fr);gap:14px;
   padding:20px 22px 26px;
-  max-width:1460px;margin:0 auto;width:100%;
+  width:var(--content-w);max-width:var(--content-max);margin:0 auto;
 }
 .c4{grid-column:span 4}
 .c6{grid-column:span 6}
@@ -569,7 +574,13 @@ html[data-mode="light"] .gap-no{text-shadow:none}
 }
 .land-nav.on .nav-prog{opacity:1}
 .land-nav .side{margin-inline-start:auto;display:flex;align-items:center;gap:10px}
-.land-wrap{position:relative;z-index:1;max-width:1220px;margin:0 auto;padding:0 28px}
+/* בנחיתה אין סיידבר, אז מנכים את רוחבו כדי שעמודת התוכן תשב בדיוק באותו רוחב
+   שהיא מקבלת אחרי ההתחברות. מתחת ל-880px הסיידבר ממילא מוסתר, ואז אין מה לנכות */
+.land-wrap{
+  position:relative;z-index:1;margin:0 auto;padding:0;
+  width:min(var(--content-max), calc((100vw - var(--rail-w)) * .94));
+}
+@media (max-width:880px){.land-wrap{width:var(--content-w)}}
 .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:46px;align-items:center;padding:44px 0 48px}
 @media (max-width:920px){.hero-grid{grid-template-columns:1fr;gap:26px;padding:24px 0 30px}}
 .hero-h1{
@@ -792,7 +803,7 @@ html[data-mode="light"] .gap-no{text-shadow:none}
 .repC{
   position:relative;z-index:1;
   display:grid;grid-template-columns:318px minmax(0,1fr);gap:14px;align-items:start;
-  max-width:1460px;margin:0 auto;width:100%;padding:18px 22px 26px;
+  width:var(--content-w);max-width:var(--content-max);margin:0 auto;padding:18px 0 26px;
 }
 .repC .rep-side{position:sticky;top:76px;display:flex;flex-direction:column;gap:14px}
 .repC .rep-side .core{padding:22px 20px}

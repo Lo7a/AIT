@@ -13,6 +13,7 @@ import {
 import type { LossHighlight } from "../../pipeline/roadmap/loss-highlights";
 import type { PersonalLossLine } from "../../pipeline/roadmap/loss-calc";
 import { AppShell } from "../ui/app-shell";
+import { AnchorNav, type AnchorItem } from "../ui/anchor-nav";
 import { FillBar } from "../ui/motion";
 
 // מסך ה-Roadmap בשפת העיצוב הנבחרת (הכרעת מייסד 18.8: כהה פרמיום, סגול וברקת, Rubik - ראו
@@ -292,8 +293,18 @@ export function DefaultRoadmap({
   const orderOf = new Map<string, number>();
   roadmap?.items.forEach((it, i) => orderOf.set(it.id, i + 1));
 
+  // סרגל השלבים הצף: נבנה מהקבוצות שבאמת מרונדרות, כך שהוא לעולם לא מקשר לשלב
+  // שאינו על המסך. מתחת לשני שלבים AnchorNav מחזיר null מעצמו
+  const phaseAnchors: AnchorItem[] = groups.map((g) => ({
+    id: `phase-${g.phase}`,
+    label: PHASE_LABEL[g.phase],
+  }));
+
   return (
     <AppShell active="roadmap" diagnosisId={report.id} userLabel={report.business.name}>
+      {buildPhase === "ready" && roadmap != null && roadmap.items.length > 0 && (
+        <AnchorNav items={phaseAnchors} label="שלבי תוכנית העבודה" />
+      )}
       <main aria-busy={building} className="flex-1">
         <div className="board">
           <header className="c12 rv flex flex-wrap items-end justify-between gap-4 px-1 pt-2">
@@ -396,7 +407,12 @@ export function DefaultRoadmap({
                 ) : (
                   <div className="mt-5 space-y-9">
                     {groups.map((g, gi) => (
-                      <section key={g.phase} className={gi === 0 ? "rv d2" : "rv d3"}>
+                      <section
+                        key={g.phase}
+                        id={`phase-${g.phase}`}
+                        data-anchor
+                        className={gi === 0 ? "rv d2" : "rv d3"}
+                      >
                         <h3 className="mb-3 flex items-center gap-3 px-1 text-[13px] font-bold tracking-[.08em] text-[color:var(--acc-soft)]">
                           {PHASE_LABEL[g.phase]}
                           <span className="h-px flex-1 bg-[color:var(--hair-soft)]" aria-hidden="true" />
