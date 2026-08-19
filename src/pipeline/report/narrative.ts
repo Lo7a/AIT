@@ -58,6 +58,9 @@ function allowedNumbers(f: ScanFindings, score: ScoreReport): Set<string> {
     f.pageSpeed?.seoScore,
     f.pageSpeed?.lcpMs,
     f.pageSpeed?.lcpMs != null ? (f.pageSpeed.lcpMs / 1000).toFixed(1) : undefined,
+    // כשיש מדידת שדה היא זו שמוצגת בטקסט החוק (dimensions.ts), אז היא חייבת להיות מותרת לציטוט
+    f.pageSpeed?.field?.lcpMs,
+    f.pageSpeed?.field?.lcpMs != null ? (f.pageSpeed.field.lcpMs / 1000).toFixed(1) : undefined,
     f.websiteSignals?.pagesCrawled,
     100,
     // המשפטים שהדוח מציג כלשונם והמודל מתבקש להסביר בדיוק אותם

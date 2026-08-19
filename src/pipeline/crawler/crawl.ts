@@ -3,6 +3,7 @@ import { defaultFetch, type FetchLike } from "../http";
 import { assertFetchableUrl } from "../forbidden-host";
 import { assertResolvesPublic, defaultLookup, type LookupLike } from "../resolve-guard";
 import { extractSignals, type PageSignals } from "./signals";
+import { readSchemaMarkup } from "../health/schema-markup";
 
 export interface CrawlOptions {
   fetchImpl?: FetchLike;
@@ -167,6 +168,9 @@ export async function crawlWebsite(
   return {
     pagesCrawled: crawledUrls.length,
     crawledUrls,
+    // סימון schema.org נקרא מעמוד הבית שכבר הורד - בלי בקשה נוספת. מסומן על אותות
+    // האתר ועובר משם ל-findings.health בזמן הרכבת הסריקה (scan.ts)
+    schema: readSchemaMarkup(homePage.html),
     hasContactForm: merged.hasContactForm,
     hasWhatsappLink: merged.hasWhatsappLink,
     hasPhoneLink: merged.hasPhoneLink,

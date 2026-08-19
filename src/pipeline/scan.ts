@@ -1,7 +1,7 @@
 import {
   JS_RENDERED_DETAIL,
   type PageSpeedResult, type PartialFlag, type PlaceDetails, type Review, type ReviewInsights,
-  type ScanFindings, type ScanRawPayload, type SocialOnly, type WebsiteSignals,
+  type HealthSignals, type ScanFindings, type ScanRawPayload, type SocialOnly, type WebsiteSignals,
 } from "./types";
 import type { LlmUsage } from "./llm/client";
 import { getPlaceDetails } from "./google/places";
@@ -9,12 +9,15 @@ import { runPageSpeed } from "./google/pagespeed";
 import { crawlWebsite } from "./crawler/crawl";
 import { analyzeReviews } from "./analyze/reviews";
 import { socialPresenceOf, socialOnlyDetail } from "./social-hosts";
+import { collectHealth } from "./health";
 
 export interface ScanDeps {
   details: (placeId: string) => Promise<PlaceDetails>;
   crawl: (siteUrl: string) => Promise<WebsiteSignals>;
   pagespeed: (siteUrl: string) => Promise<PageSpeedResult>;
   analyzeReviews: (reviews: Review[]) => Promise<{ insights: ReviewInsights; usage: LlmUsage }>;
+  // בדיקות תקינות הדומיין, הדואר והאבטחה - מוזרק כדי שהבדיקות לא ייגעו ב-DNS או ברשת
+  health: (siteUrl: string) => Promise<HealthSignals | undefined>;
 }
 
 export interface ScanRunOptions {
@@ -27,6 +30,7 @@ export const defaultDeps: ScanDeps = {
   crawl: (siteUrl) => crawlWebsite(siteUrl),
   pagespeed: (siteUrl) => runPageSpeed(siteUrl),
   analyzeReviews: (reviews) => analyzeReviews(reviews),
+  health: (siteUrl) => collectHealth(siteUrl),
 };
 
 const FEW_REVIEWS_THRESHOLD = 5;
@@ -71,9 +75,14 @@ export async function runScan(
     ? deps.pagespeed(details.website)
     : Promise.resolve(undefined);
   const reviewsPromise = deps.analyzeReviews(details.reviews);
+  // בדיקות התקינות זולות ומהירות, אבל מדלגות על אתר חברתי בדיוק כמו crawl ו-PSI:
+  // הדומיין שם הוא של פייסבוק, לא של העסק
+  const healthPromise: Promise<HealthSignals | undefined> = details.website && !social
+    ? deps.health(details.website)
+    : Promise.resolve(undefined);
 
-  const [crawlResult, psiResult, reviewsResult] = await Promise.allSettled([
-    crawlPromise, psiPromise, reviewsPromise,
+  const [crawlResult, psiResult, reviewsResult, healthResult] = await Promise.allSettled([
+    crawlPromise, psiPromise, reviewsPromise, healthPromise,
   ]);
 
   if (!details.website) {
@@ -128,6 +137,15 @@ export async function runScan(
       ? { placeDetails: details.raw, pageSpeed: pageSpeedRaw, crawledUrls: websiteSignals?.crawledUrls }
       : undefined;
 
+  // בדיקות התקינות. כל תת-בדיקה שלא רצה או נכשלה פשוט חסרה, וחוקי הניקוד מדווחים
+  // עליה "לא נבדק" - לכן אין כאן שום דגל כישלון ואין ענישה על חוסר
+  const health: HealthSignals | undefined =
+    healthResult.status === "fulfilled" && healthResult.value != null
+      ? { ...healthResult.value, schema: websiteSignals?.schema }
+      : websiteSignals?.schema != null
+        ? { schema: websiteSignals.schema }
+        : undefined;
+
   return {
     business: {
       placeId: details.placeId,
@@ -141,6 +159,7 @@ export async function runScan(
     websiteSignals,
     pageSpeed,
     reviewInsights,
+    health,
     socialOnly,
     partial,
     partialDetails: Object.keys(partialDetails).length > 0 ? partialDetails : undefined,

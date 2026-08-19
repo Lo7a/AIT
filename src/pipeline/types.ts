@@ -49,23 +49,80 @@ export interface WebsiteSignals {
   // אף <form>. כשהשדה הזה מוגדר וסיגנל שלילי (contact_form/online_booking/chat_widget) לא נמצא,
   // dimensions.ts מדווח "לא נבדק" במקום פער מבוטח - אסור לטעון "אין" ממה שפשוט לא ראינו
   clientFramework?: string;
+  // סימון schema.org מעמוד הבית. נקרא בזמן הזחילה כי ה-HTML כבר ביד, ומועתק
+  // ל-findings.health.schema ב-scan.ts (שם הוא נבדק יחד עם שאר בדיקות התקינות)
+  schema?: SchemaMarkup;
 }
 
-// גרסה מקוצצת של גוף PSI - קטגוריות+ציונים, מדדי ליבה (כולל LCP), ו-loadingExperience אם קיים.
-// בלי עץ ה-audits המלא (מיליון שדות, מגה-בייטים) - זה לא בעל ערך עתידי ורק מנפח את השורה
+// גרסה מקוצצת של גוף PSI - קטגוריות+ציונים, מדדי ליבה (כולל LCP), ושתי חוויות הטעינה
+// אם קיימות. בלי עץ ה-audits המלא (מיליון שדות, מגה-בייטים) - זה לא בעל ערך עתידי ורק מנפח את השורה
 export interface PageSpeedRawTrimmed {
   categories?: unknown;
   metrics?: Record<string, number>;
   loadingExperience?: unknown;
+  originLoadingExperience?: unknown;
+}
+
+// CrUX: מדידה של גולשים אמיתיים בכרום, בניגוד ל-lab שהוא ריצה מדומה אחת על מכונה של גוגל
+export type FieldCategory = "FAST" | "AVERAGE" | "SLOW";
+// page = הכתובת שנבדקה, origin = כל הדומיין (גוגל עצמה נופלת למקור כשאין די תנועה לעמוד)
+export type FieldScope = "page" | "origin";
+
+export interface FieldExperience {
+  lcpMs?: number;             // אחוזון 75 של גולשים אמיתיים
+  lcpCategory?: FieldCategory;
+  overall?: FieldCategory;
+  scope: FieldScope;
 }
 
 export interface PageSpeedResult {
   performanceScore?: number; // 0-100
   seoScore?: number;         // 0-100
   accessibilityScore?: number; // 0-100 - קטגוריית ACCESSIBILITY של PSI (בדיקת נגישות אוטומטית)
-  lcpMs?: number;
+  lcpMs?: number;            // lab: ריצה מדומה אחת, רועשת מאוד
+  // נתוני שדה כשגוגל מחזירה אותם. היעדרם אינו ממצא: הוא אומר "אין די תנועה למדידה",
+  // לא "אין לעסק תנועה" - ראו dimensions.ts
+  field?: FieldExperience;
   // ראו PageSpeedRawTrimmed - לשימוש עתידי (אבן דרך 4 משימה 0.7), לא נצרך בשום מסך היום
   raw?: PageSpeedRawTrimmed;
+}
+
+// ===== בדיקות תקינות שלא עוברות דרך הסורק או PSI =====
+// כלל אחיד ומחייב לכל הטיפוסים כאן: שדה חסר (undefined) פירושו "לא נבדק", לעולם לא
+// "אין". רק ערך בוליאני מפורש הוא ממצא. אם הבדיקה נכשלה או לא רצה - האובייקט כולו
+// חסר, וחוקי הניקוד מדווחים known=false (ראו score/dimensions.ts)
+
+export interface DomainHealth {
+  registrar?: string;
+  createdAt?: string;   // ISO
+  expiresAt?: string;   // ISO
+  daysToExpiry?: number;
+}
+
+export interface MailHealth {
+  // טביעת אצבע של ספק הדואר לפי רשומות ה-MX (google workspace / microsoft 365 וכו')
+  provider?: string;
+  hasMx?: boolean;
+  hasSpf?: boolean;
+  hasDmarc?: boolean;
+}
+
+export interface SchemaMarkup {
+  hasLocalBusiness?: boolean;
+  // סוגי schema.org שנמצאו בפועל בעמוד, לצורך שקיפות בדוח
+  types?: string[];
+}
+
+export interface SafeBrowsingCheck {
+  flagged?: boolean;
+  checkedAt?: string;   // ISO - חובה להצגה: ממצא אבטחה תקף רק לרגע הבדיקה
+}
+
+export interface HealthSignals {
+  domain?: DomainHealth;
+  mail?: MailHealth;
+  schema?: SchemaMarkup;
+  safeBrowsing?: SafeBrowsingCheck;
 }
 
 export interface Theme {
@@ -131,6 +188,8 @@ export interface ScanFindings {
   websiteSignals?: WebsiteSignals;
   pageSpeed?: PageSpeedResult;
   reviewInsights?: ReviewInsights;
+  // בדיקות תקינות דומיין/דואר/סימון/אבטחה - כל תת-שדה חסר פירושו "לא נבדק"
+  health?: HealthSignals;
   socialOnly?: SocialOnly;
   partial: PartialFlag[]; // איחוד הדגלים האפשריים - ראו PartialFlag
   partialDetails?: Partial<Record<PartialFlag, string>>; // דגל → סיבת הכישלון (לעולם בלי טקסט ביקורות)

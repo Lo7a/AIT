@@ -87,6 +87,8 @@ function emitSkippedCrawlPsi(emit: Emit, detail: string): void {
 
 function wrapScanDeps(base: ScanDeps, emit: Emit): ScanDeps {
   return {
+    // בדיקות התקינות שקטות בזרם: הן מהירות, והן לא שלב שהמשתמש ממתין לו
+    health: (siteUrl) => base.health(siteUrl),
     details: async (placeId) => {
       const details = await step(emit, "details", "מאתרים את פרטי העסק בגוגל", () => base.details(placeId),
         (d) => d.reviewCount != null ? `נמצאו ${d.reviewCount} ביקורות ודירוג ${d.rating ?? "ללא"}` : "פרטי העסק התקבלו",

@@ -25,6 +25,16 @@ const recurringProblems = (f: ScanFindings) =>
 
 const sec = (ms?: number) => ((ms ?? 0) / 1000).toFixed(1);
 
+// נתוני שדה (CrUX): מה שגולשים אמיתיים חוו בפועל, מול ה-lab שהוא ריצה מדומה יחידה ורועשת.
+// היעדר נתון שדה אינו ממצא ואינו מפעיל שום חוק - הוא רק אומר שלגוגל אין די תנועה למדידה
+const fieldLcp = (f: ScanFindings) => f.pageSpeed?.field?.lcpMs;
+// "מהיר" נקבע לפי הקטגוריה הכוללת; אם גוגל לא נתנה כוללת, קטגוריית ה-LCP היא הקירוב הטוב ביותר
+const fieldFast = (f: ScanFindings) => {
+  const field = f.pageSpeed?.field;
+  if (field == null) return false;
+  return field.overall === "FAST" || (field.overall == null && field.lcpCategory === "FAST");
+};
+
 // has_website "הושג" = יש כתובת רשומה, היא לא נכשלה כפול (crawl+PSI), והיא לא עמוד חברתי -
 // עמוד פייסבוק הוא לא "יש אתר" (סקירת קוד: לפני התיקון עמוד חברתי היה מרוויח את החוק הזה כי
 // אין לו כלל crawl_failed/pagespeed_failed - הדגלים האלה נדלגים בכוונה על אתר חברתי ב-scan.ts)
@@ -213,25 +223,47 @@ export const DIMENSIONS: DimensionDef[] = [
         okText: () => "לעסק אתר עצמאי משלו, לא רק עמוד ברשת חברתית",
       },
       {
-        key: "perf", points: 20,
-        known: (f) => f.pageSpeed?.performanceScore != null,
-        earned: (f) => (f.pageSpeed?.performanceScore ?? 0) >= 70,
+        key: "perf", points: 16,
+        known: (f) => f.pageSpeed?.performanceScore != null || fieldFast(f),
+        // מדידת גולשים אמיתיים גוברת על ציון המעבדה. ציון ה-lab אינו שקר - הוא מדידה
+        // אמיתית של ריצה מדומה אחת - אבל הוא לא מה שהלקוחות של העסק חווים, והצגתו כפער
+        // מול מדידת שדה שאומרת ההפך היא האשמת שווא. נמדד על אתרים ישראליים אמיתיים
+        earned: (f) => fieldFast(f) || (f.pageSpeed?.performanceScore ?? 0) >= 70,
         gapText: (f) => `ציון ביצועי מובייל ${f.pageSpeed?.performanceScore}/100 - מתחת ליעד של 70, מבקרים במובייל נוטים לנטוש`,
-        okText: (f) => `ביצועי מובייל טובים (${f.pageSpeed?.performanceScore}/100)`,
+        okText: (f) => (fieldFast(f)
+          ? "האתר נטען מהר אצל המבקרים בפועל, לפי מדידות של גוגל על גולשים אמיתיים"
+          : `ביצועי מובייל טובים (${f.pageSpeed?.performanceScore}/100)`),
       },
       {
-        key: "lcp", points: 15,
-        known: (f) => f.pageSpeed?.lcpMs != null,
-        earned: (f) => (f.pageSpeed?.lcpMs ?? Infinity) <= 4000,
-        gapText: (f) => `העמוד הראשי נטען ${sec(f.pageSpeed?.lcpMs)} שניות, מעל היעד של 4 שניות`,
-        okText: (f) => `זמן טעינה תקין (${sec(f.pageSpeed?.lcpMs)} שניות)`,
+        key: "lcp", points: 12,
+        known: (f) => fieldLcp(f) != null || f.pageSpeed?.lcpMs != null,
+        // יש מדידת שדה - היא הקובעת, כי היא אחוזון 75 של מבקרים אמיתיים ולא ריצה בודדת
+        earned: (f) => (fieldLcp(f) ?? f.pageSpeed?.lcpMs ?? Infinity) <= 4000,
+        gapText: (f) => (fieldLcp(f) != null
+          ? `אצל 75 אחוז מהמבקרים באתר העמוד נטען ${sec(fieldLcp(f))} שניות, מעל היעד של 4 שניות`
+          : `העמוד הראשי נטען ${sec(f.pageSpeed?.lcpMs)} שניות, מעל היעד של 4 שניות`),
+        okText: (f) => (fieldLcp(f) != null
+          ? `זמן טעינה תקין אצל המבקרים בפועל (${sec(fieldLcp(f))} שניות אצל 75 אחוז מהם)`
+          : `זמן טעינה תקין (${sec(f.pageSpeed?.lcpMs)} שניות)`),
       },
       {
-        key: "seo", points: 10,
+        key: "seo", points: 8,
         known: (f) => f.pageSpeed?.seoScore != null,
         earned: (f) => (f.pageSpeed?.seoScore ?? 0) >= 90,
         gapText: (f) => `ציון SEO ${f.pageSpeed?.seoScore}/100, יש כשלים בסיסיים באופטימיזציה למנועי חיפוש`,
         okText: (f) => `בסיס SEO תקין (${f.pageSpeed?.seoScore}/100)`,
+      },
+      {
+        // סימון schema.org של עסק מקומי. אותו כלל כמו לכל אות שלילי מה-crawl: אתר
+        // שמרונדר בצד הלקוח יכול לשאת סימון תקין שהסורק לא רואה, ולכן "לא נמצא" שם
+        // אינו ממצא - knownCrawlNegative מטפל בזה בדיוק
+        key: "local_business_schema", points: 9,
+        known: (f) => f.health?.schema?.hasLocalBusiness != null
+          && knownCrawlNegative(f, f.health.schema.hasLocalBusiness),
+        earned: (f) => f.health?.schema?.hasLocalBusiness === true,
+        // ניסוח יכולתי בלבד: גוגל מצהירה במפורש שהיא לא מבטיחה הצגת תוצאה עשירה
+        gapText: () => "אין באתר סימון schema.org של עסק מקומי, ולכן הוא לא מצהיר לגוגל כתובת ושעות פתיחה ואינו זכאי לתוצאה העשירה",
+        okText: () => "יש באתר סימון schema.org של עסק מקומי",
       },
       {
         key: "gbp_phone", points: 5,
@@ -363,21 +395,21 @@ export const DIMENSIONS: DimensionDef[] = [
     key: "infrastructure", label: "תשתית דיגיטלית", weight: 0.15,
     rules: [
       {
-        key: "analytics", points: 35,
+        key: "analytics", points: 25,
         known: (f) => crawlUsable(f) || !!f.websiteSignals?.hasGoogleAnalytics,
         earned: (f) => !!f.websiteSignals?.hasGoogleAnalytics,
         gapText: () => "אין Google Analytics, העסק עיוור לתנועה באתר שלו",
         okText: () => "יש מדידת תנועה (Analytics)",
       },
       {
-        key: "fb_pixel", points: 30,
+        key: "fb_pixel", points: 16,
         known: (f) => crawlUsable(f) || !!f.websiteSignals?.hasFacebookPixel,
         earned: (f) => !!f.websiteSignals?.hasFacebookPixel,
         gapText: () => "אין פיקסל פייסבוק, אי אפשר לעשות רימרקטינג למבקרים",
         okText: () => "פיקסל פייסבוק מותקן",
       },
       {
-        key: "chat_widget", points: 20,
+        key: "chat_widget", points: 12,
         known: (f) => knownCrawlNegative(f, f.websiteSignals?.hasChatWidget),
         earned: (f) => !!f.websiteSignals?.hasChatWidget,
         // כשיש כפתור וואטסאפ הבעלים רואה "צ'אט" באתר שלו - הניסוח חייב להכיר בזה,
@@ -389,10 +421,41 @@ export const DIMENSIONS: DimensionDef[] = [
         okText: () => "יש צ'אט באתר",
       },
       {
-        key: "multi_page", points: 15,
+        key: "multi_page", points: 8,
         known: crawlUsable, earned: (f) => (f.websiteSignals?.pagesCrawled ?? 0) >= 4,
         gapText: () => "בסריקה נמצאו עמודים בודדים בלבד, אתר רזה מקשה על לקוחות למצוא מידע",
         okText: (f) => `אתר עם ${f.websiteSignals?.pagesCrawled} עמודים ומעלה`,
+      },
+      // ===== בדיקות תקינות (health) - כל אחת known רק אם הבדיקה באמת הושלמה =====
+      {
+        key: "domain_expiry", points: 22,
+        known: (f) => f.health?.domain?.daysToExpiry != null,
+        // 30 יום הוא הסף שבו עוד אפשר לפעול בנחת. מתחת לזה זו משימה דחופה
+        earned: (f) => (f.health?.domain?.daysToExpiry ?? 0) > 30,
+        gapText: (f) => {
+          const days = f.health?.domain?.daysToExpiry ?? 0;
+          return days < 0
+            ? `רישום הדומיין פג לפני ${Math.abs(days)} ימים - האתר והדואר תלויים בו`
+            : `רישום הדומיין נגמר בעוד ${days} ימים. כשהוא נגמר, האתר והדואר יורדים ביחד`;
+        },
+        okText: (f) => `רישום הדומיין בתוקף לעוד ${f.health?.domain?.daysToExpiry} ימים`,
+      },
+      {
+        key: "dmarc", points: 7,
+        known: (f) => f.health?.mail?.hasDmarc != null,
+        earned: (f) => f.health?.mail?.hasDmarc === true,
+        // בלי טענה שהדואר נופל: היעדר DMARC אינו כשל מסירה, הוא היעדר הגנה מפני התחזות
+        gapText: () => "אין רשומת DMARC לדומיין - לא פרסמתם לשרתי הדואר מה לעשות עם הודעות שמתחזות לכתובת שלכם",
+        okText: () => "יש רשומת DMARC לדומיין",
+      },
+      {
+        key: "safe_browsing", points: 10,
+        known: (f) => f.health?.safeBrowsing?.flagged != null,
+        earned: (f) => f.health?.safeBrowsing?.flagged === false,
+        // ניסוח מסויג ומיוחס, כפי שתנאי השימוש של גוגל דורשים
+        gapText: () => "האתר מסומן כרגע ברשימת האתרים המסוכנים של גוגל, וגולשים בכרום עלולים לקבל מסך אזהרה במקום האתר (מידע מגוגל)",
+        // בכוונה לא "האתר מאובטח": בדקנו סימון אחד, לא ביצענו בדיקת אבטחה
+        okText: () => "האתר לא נמצא ברשימת האתרים המסוכנים של גוגל",
       },
     ],
   },

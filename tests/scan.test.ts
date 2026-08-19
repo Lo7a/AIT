@@ -25,6 +25,8 @@ const RICH_SIGNALS: WebsiteSignals = {
 function richDeps(overrides: Partial<ScanDeps> = {}): ScanDeps {
   return {
     details: vi.fn().mockResolvedValue(RICH_DETAILS),
+    // בדיקות אופליין: לעולם לא DNS או whois אמיתיים
+    health: vi.fn().mockResolvedValue(undefined),
     crawl: vi.fn().mockResolvedValue(RICH_SIGNALS),
     pagespeed: vi.fn().mockResolvedValue({ performanceScore: 42, seoScore: 90, lcpMs: 4100 }),
     analyzeReviews: vi.fn().mockResolvedValue({

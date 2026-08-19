@@ -63,6 +63,11 @@ export const RULE_LABEL_HE: Record<string, string> = {
   fb_pixel: "פיקסל פייסבוק",
   chat_widget: "צ'אט באתר",
   multi_page: "אתר רב-עמודי",
+  // בדיקות תקינות (health) - דומיין, דואר ואבטחה
+  domain_expiry: "תוקף רישום הדומיין",
+  dmarc: "הגנת DMARC לדואר",
+  safe_browsing: "סימון ברשימת האתרים המסוכנים",
+  local_business_schema: "סימון עסק מקומי באתר",
 };
 
 export const PARTIAL_FLAG_LABEL: Record<PartialFlag, string> = {

@@ -1,4 +1,4 @@
-import type { PageSpeedRawTrimmed, PageSpeedResult } from "../types";
+import type { FieldCategory, FieldExperience, PageSpeedRawTrimmed, PageSpeedResult } from "../types";
 import { defaultFetch, readErrorBody, type FetchLike } from "../http";
 import { forbiddenHostOf } from "../forbidden-host";
 import { reportExternalCall } from "../observe";
@@ -21,8 +21,17 @@ const CORE_METRIC_AUDITS = [
   "first-contentful-paint", "speed-index",
 ] as const;
 
+// חוויית הטעינה של גולשים אמיתיים (CrUX) כפי ש-PSI מחזיר אותה. origin_fallback=true אומר
+// שגוגל עצמה לא מצאה די תנועה לעמוד הזה והחזירה את נתוני המקור במקומו
+type PsiLoadingExperience = {
+  metrics?: Record<string, { percentile?: number; category?: string } | undefined>;
+  overall_category?: string;
+  origin_fallback?: boolean;
+};
+
 type PsiResponseBody = {
   loadingExperience?: unknown;
+  originLoadingExperience?: unknown;
   lighthouseResult?: {
     runtimeError?: { code?: string; message?: string };
     categories?: { performance?: { score?: number }; seo?: { score?: number }; accessibility?: { score?: number } };
@@ -30,7 +39,7 @@ type PsiResponseBody = {
   };
 };
 
-// raw מקוצץ: קטגוריות+מדדי ליבה+חוויית טעינה בלבד - לא עץ ה-audits המלא (ראו PageSpeedRawTrimmed)
+// raw מקוצץ: קטגוריות+מדדי ליבה+שתי חוויות הטעינה - לא עץ ה-audits המלא (ראו PageSpeedRawTrimmed)
 function trimRaw(body: PsiResponseBody): PageSpeedRawTrimmed | undefined {
   const lr = body.lighthouseResult;
   if (!lr) return undefined;
@@ -39,7 +48,53 @@ function trimRaw(body: PsiResponseBody): PageSpeedRawTrimmed | undefined {
     const v = lr.audits?.[id]?.numericValue;
     if (v != null) metrics[id] = v;
   }
-  return { categories: lr.categories, metrics, loadingExperience: body.loadingExperience };
+  return {
+    categories: lr.categories,
+    metrics,
+    loadingExperience: body.loadingExperience,
+    originLoadingExperience: body.originLoadingExperience,
+  };
+}
+
+const FIELD_CATEGORIES: readonly string[] = ["FAST", "AVERAGE", "SLOW"];
+function asFieldCategory(value: unknown): FieldCategory | undefined {
+  return typeof value === "string" && FIELD_CATEGORIES.includes(value) ? (value as FieldCategory) : undefined;
+}
+function hasFieldMetrics(exp?: PsiLoadingExperience): boolean {
+  return exp?.metrics != null && Object.keys(exp.metrics).length > 0;
+}
+
+// נתוני השדה הגיעו בתשובת PSI מאז ומעולם ונשמרו ב-raw, אבל אף אחד לא קרא אותם. זו הסיבה
+// שהדוח האשים אתרים ישראליים אמיתיים באיטיות שהגולשים שלהם לא חווים: ריצת lab יחידה מדדה
+// 8.0 / 15.9 / 53.4 שניות בשלושה אתרים שבהם גולשים אמיתיים חוו 1.28 / 1.58 / 1.90.
+// כשאין די תנועה גוגל לא מחזירה metrics כלל - וזה נשאר בלי נתון, לעולם לא טענה על תנועה
+function readFieldExperience(body: PsiResponseBody): FieldExperience | undefined {
+  const page = body.loadingExperience as PsiLoadingExperience | undefined;
+  const origin = body.originLoadingExperience as PsiLoadingExperience | undefined;
+
+  let chosen: PsiLoadingExperience;
+  let scope: FieldExperience["scope"];
+  if (hasFieldMetrics(page) && page?.origin_fallback !== true) {
+    chosen = page as PsiLoadingExperience;
+    scope = "page";
+  } else if (hasFieldMetrics(origin)) {
+    chosen = origin as PsiLoadingExperience;
+    scope = "origin";
+  } else if (hasFieldMetrics(page)) {
+    // page שגוגל סימנה כנפילה למקור: הנתון תקף, אבל הוא של הדומיין ולא של העמוד
+    chosen = page as PsiLoadingExperience;
+    scope = "origin";
+  } else {
+    return undefined;
+  }
+
+  const lcp = chosen.metrics?.["LARGEST_CONTENTFUL_PAINT_MS"];
+  const lcpMs = typeof lcp?.percentile === "number" ? Math.round(lcp.percentile) : undefined;
+  const lcpCategory = asFieldCategory(lcp?.category);
+  const overall = asFieldCategory(chosen.overall_category);
+  // מבנה בלי אף ערך שאנחנו יודעים לקרוא אינו נתון - עדיף אין מידע על פני שדה ריק שנראה כמו מידע
+  if (lcpMs == null && lcpCategory == null && overall == null) return undefined;
+  return { lcpMs, lcpCategory, overall, scope };
 }
 
 async function attemptPageSpeed(
@@ -107,6 +162,7 @@ async function attemptPageSpeed(
     accessibilityScore:
       categories?.accessibility?.score != null ? Math.round(categories.accessibility.score * 100) : undefined,
     lcpMs: lcp != null ? Math.round(lcp) : undefined,
+    field: readFieldExperience(body),
     raw: trimRaw(body),
   };
 }
