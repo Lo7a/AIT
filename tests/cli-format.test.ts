@@ -80,7 +80,7 @@ describe("מילוני תצוגה", () => {
   });
 
   it("תווית לכל דגל partial", () => {
-    for (const f of ["no_website", "few_reviews", "no_review_text", "crawl_failed", "pagespeed_failed", "review_analysis_failed", "js_rendered", "no_gbp"] as const) {
+    for (const f of ["no_website", "few_reviews", "no_review_text", "crawl_failed", "pagespeed_failed", "review_analysis_failed", "js_rendered", "no_gbp", "health_domain_failed", "health_mail_failed", "health_safebrowsing_failed", "health_failed"] as const) {
       expect(PARTIAL_FLAG_LABEL[f]).toBeTruthy();
     }
   });

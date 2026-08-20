@@ -96,6 +96,11 @@ export const PARTIAL_FLAG_LABEL: Record<PartialFlag, string> = {
   js_rendered: "האתר מרונדר ב-JavaScript - אותות חלקיים",
   no_gbp: "העסק לא נמצא בגוגל מפות",
   social_only: "הנוכחות הדיגיטלית היא עמוד ברשת חברתית, לא אתר עצמאי",
+  // כשלי בדיקות התקינות (תחקיר 21.8) - תיעוד איסוף בלבד: השדה חסר והחוק מדווח "לא נבדק"
+  health_domain_failed: "בדיקת רישום הדומיין נכשלה",
+  health_mail_failed: "בדיקת רשומות הדואר נכשלה",
+  health_safebrowsing_failed: "בדיקת Safe Browsing נכשלה",
+  health_failed: "בדיקות התקינות לא רצו",
 };
 
 export type ScoreToneKind = "good" | "mid" | "low" | "unknown";

@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { runScan, type ScanDeps } from "../src/pipeline/scan";
 import { crawlWebsite } from "../src/pipeline/crawler/crawl";
-import type { PlaceDetails, WebsiteSignals } from "../src/pipeline/types";
+import { collectHealth } from "../src/pipeline/health";
+import type { DomainHealth, MailHealth, PlaceDetails, SafeBrowsingCheck, WebsiteSignals } from "../src/pipeline/types";
 
 const RICH_DETAILS: PlaceDetails = {
   placeId: "pid-1", name: "מוסך הצפון", phone: "04-1234567",
@@ -26,7 +27,7 @@ function richDeps(overrides: Partial<ScanDeps> = {}): ScanDeps {
   return {
     details: vi.fn().mockResolvedValue(RICH_DETAILS),
     // בדיקות אופליין: לעולם לא DNS או whois אמיתיים
-    health: vi.fn().mockResolvedValue(undefined),
+    health: vi.fn().mockResolvedValue({ failures: [] }),
     crawl: vi.fn().mockResolvedValue(RICH_SIGNALS),
     pagespeed: vi.fn().mockResolvedValue({ performanceScore: 42, seoScore: 90, lcpMs: 4100 }),
     analyzeReviews: vi.fn().mockResolvedValue({
@@ -219,5 +220,86 @@ describe("runScan - raw payload", () => {
       }),
     }));
     expect(findings.raw).toBeUndefined();
+  });
+});
+
+// משימה 3 (תחקיר 21.8): סריקת ייצור חזרה בלי מפתח health והסיבות נבלעו בשקט. מעכשיו
+// כל דחייה של תת-בדיקה נרשמת בהערות האיסוף - והשדה נשאר חסר, "לא נבדק", לעולם לא ממצא
+describe("runScan - נראות לכשלי בדיקות התקינות", () => {
+  const OK_DOMAIN: DomainHealth = { registrar: "רשם לדוגמה", daysToExpiry: 200 };
+  const OK_MAIL: MailHealth = { hasMx: true, hasSpf: true };
+  const OK_SB: SafeBrowsingCheck = { flagged: false, checkedAt: "2026-08-21T00:00:00.000Z" };
+
+  // המסלול האמיתי מקצה לקצה: collectHealth עם תת-בדיקות מוזרקות (אפס רשת), דחייה אחת בכל פעם
+  it("whois rejection: the reason reaches the collection notes and the domain field stays missing", async () => {
+    const deps = richDeps({
+      health: (siteUrl) => collectHealth(siteUrl, {
+        domain: () => Promise.reject(new Error("connect ETIMEDOUT 43")),
+        mail: async () => OK_MAIL,
+        safeBrowsing: async () => OK_SB,
+      }),
+    });
+    const findings = await runScan("pid-1", deps);
+    expect(findings.partial).toContain("health_domain_failed");
+    expect(findings.partialDetails?.health_domain_failed).toContain("ETIMEDOUT");
+    expect(findings.health?.domain).toBeUndefined(); // חסר = "לא נבדק", לא קביעה שלילית
+    expect(findings.health?.mail).toEqual(OK_MAIL); // הכשל לא הפיל את שכנותיה
+    expect(findings.health?.safeBrowsing).toEqual(OK_SB);
+  });
+
+  it("dns rejection: the reason reaches the collection notes and the mail field stays missing", async () => {
+    const deps = richDeps({
+      health: (siteUrl) => collectHealth(siteUrl, {
+        domain: async () => OK_DOMAIN,
+        mail: () => Promise.reject(new Error("queryTxt ESERVFAIL")),
+        safeBrowsing: async () => OK_SB,
+      }),
+    });
+    const findings = await runScan("pid-1", deps);
+    expect(findings.partial).toContain("health_mail_failed");
+    expect(findings.partialDetails?.health_mail_failed).toContain("ESERVFAIL");
+    expect(findings.health?.mail).toBeUndefined();
+    expect(findings.health?.domain).toEqual(OK_DOMAIN);
+  });
+
+  it("safe browsing rejection: the reason reaches the collection notes and the field stays missing", async () => {
+    const deps = richDeps({
+      health: (siteUrl) => collectHealth(siteUrl, {
+        domain: async () => OK_DOMAIN,
+        mail: async () => OK_MAIL,
+        safeBrowsing: () => Promise.reject(new Error("Web Risk HTTP 403")),
+      }),
+    });
+    const findings = await runScan("pid-1", deps);
+    expect(findings.partial).toContain("health_safebrowsing_failed");
+    expect(findings.partialDetails?.health_safebrowsing_failed).toContain("403");
+    expect(findings.health?.safeBrowsing).toBeUndefined();
+    expect(findings.health?.domain).toEqual(OK_DOMAIN);
+  });
+
+  it("records health_failed when deps.health itself rejects, and findings.health stays absent", async () => {
+    const deps = richDeps({
+      health: vi.fn().mockRejectedValue(new Error("health infra down")),
+    });
+    const findings = await runScan("pid-1", deps);
+    expect(findings.partial).toContain("health_failed");
+    expect(findings.partialDetails?.health_failed).toContain("health infra down");
+    expect(findings.health).toBeUndefined(); // RICH_SIGNALS בלי schema - אין מה למזג
+    expect(findings.business.name).toBe("מוסך הצפון"); // הסריקה עצמה לא נפלה
+  });
+
+  it("success adds no collection note at all", async () => {
+    const deps = richDeps({
+      health: vi.fn().mockResolvedValue({
+        signals: { domain: OK_DOMAIN, mail: OK_MAIL, safeBrowsing: OK_SB },
+        failures: [],
+      }),
+    });
+    const findings = await runScan("pid-1", deps);
+    expect(findings.partial).toEqual([]);
+    expect(findings.partialDetails).toBeUndefined();
+    expect(findings.health?.domain).toEqual(OK_DOMAIN);
+    expect(findings.health?.mail).toEqual(OK_MAIL);
+    expect(findings.health?.safeBrowsing).toEqual(OK_SB);
   });
 });

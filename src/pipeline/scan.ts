@@ -9,15 +9,16 @@ import { runPageSpeed } from "./google/pagespeed";
 import { crawlWebsite } from "./crawler/crawl";
 import { analyzeReviews } from "./analyze/reviews";
 import { socialPresenceOf, socialOnlyDetail } from "./social-hosts";
-import { collectHealth } from "./health";
+import { collectHealth, type HealthCollectResult, type HealthFailure } from "./health";
 
 export interface ScanDeps {
   details: (placeId: string) => Promise<PlaceDetails>;
   crawl: (siteUrl: string) => Promise<WebsiteSignals>;
   pagespeed: (siteUrl: string) => Promise<PageSpeedResult>;
   analyzeReviews: (reviews: Review[]) => Promise<{ insights: ReviewInsights; usage: LlmUsage }>;
-  // בדיקות תקינות הדומיין, הדואר והאבטחה - מוזרק כדי שהבדיקות לא ייגעו ב-DNS או ברשת
-  health: (siteUrl: string) => Promise<HealthSignals | undefined>;
+  // בדיקות תקינות הדומיין, הדואר והאבטחה - מוזרק כדי שהבדיקות לא ייגעו ב-DNS או ברשת.
+  // מחזיר signals לצד failures - סיבות הכשל של תת-הבדיקות (ראו health/index.ts)
+  health: (siteUrl: string) => Promise<HealthCollectResult>;
 }
 
 export interface ScanRunOptions {
@@ -40,6 +41,14 @@ const EST_PLACES_CALL_USD = 0.03;
 function reasonOf(r: PromiseRejectedResult): string {
   return (r.reason instanceof Error ? r.reason.message : String(r.reason)).slice(0, 200);
 }
+
+// דגל ונוסח עברי לכל תת-בדיקת תקינות שנכשלה; הודעת השגיאה המקורית מצורפת לנוסח.
+// הטקסטים כאן מתארים כשל איסוף בלבד - אף אחד מהם לא טוען שמשהו רע בעסק
+const HEALTH_FAILURE_FLAG: Record<HealthFailure["check"], { flag: PartialFlag; text: string }> = {
+  domain: { flag: "health_domain_failed", text: "בדיקת רישום הדומיין נכשלה" },
+  mail: { flag: "health_mail_failed", text: "בדיקת רשומות הדואר נכשלה" },
+  safeBrowsing: { flag: "health_safebrowsing_failed", text: "בדיקת Safe Browsing נכשלה" },
+};
 
 export async function runScan(
   placeId: string,
@@ -77,7 +86,7 @@ export async function runScan(
   const reviewsPromise = deps.analyzeReviews(details.reviews);
   // בדיקות התקינות זולות ומהירות, אבל מדלגות על אתר חברתי בדיוק כמו crawl ו-PSI:
   // הדומיין שם הוא של פייסבוק, לא של העסק
-  const healthPromise: Promise<HealthSignals | undefined> = details.website && !social
+  const healthPromise: Promise<HealthCollectResult | undefined> = details.website && !social
     ? deps.health(details.website)
     : Promise.resolve(undefined);
 
@@ -138,10 +147,25 @@ export async function runScan(
       : undefined;
 
   // בדיקות התקינות. כל תת-בדיקה שלא רצה או נכשלה פשוט חסרה, וחוקי הניקוד מדווחים
-  // עליה "לא נבדק" - לכן אין כאן שום דגל כישלון ואין ענישה על חוסר
+  // עליה "לא נבדק" - כשל לעולם לא הופך לקביעה שלילית ואין ענישה על חוסר. מה שכן,
+  // סיבת הכשל נרשמת בהערות האיסוף (תחקיר 21.8: סריקת ייצור חזרה בלי מפתח health
+  // והסיבות נבלעו בשקט) - תיעוד איסוף לתחקור, לא ממצא
+  let healthSignals: HealthSignals | undefined;
+  if (healthResult.status === "fulfilled") {
+    healthSignals = healthResult.value?.signals;
+    for (const failure of healthResult.value?.failures ?? []) {
+      const { flag, text } = HEALTH_FAILURE_FLAG[failure.check];
+      partial.push(flag);
+      partialDetails[flag] = `${text}: ${failure.reason}`;
+    }
+  } else {
+    // deps.health עצמו נדחה - אף תת-בדיקה לא הספיקה לדווח, וגם זה לא נבלע
+    partial.push("health_failed");
+    partialDetails.health_failed = `בדיקות התקינות לא רצו: ${reasonOf(healthResult)}`;
+  }
   const health: HealthSignals | undefined =
-    healthResult.status === "fulfilled" && healthResult.value != null
-      ? { ...healthResult.value, schema: websiteSignals?.schema }
+    healthSignals != null
+      ? { ...healthSignals, schema: websiteSignals?.schema }
       : websiteSignals?.schema != null
         ? { schema: websiteSignals.schema }
         : undefined;

@@ -174,7 +174,14 @@ export type PartialFlag =
   | "review_analysis_failed"
   | "js_rendered"
   | "no_gbp"
-  | "social_only";
+  | "social_only"
+  // כשלי בדיקות התקינות (תחקיר 21.8): תיעוד סיבת האיסוף בלבד. השדה ב-health נשאר חסר
+  // והחוק מדווח "לא נבדק" - הדגל לעולם לא הופך לקביעה שלילית על העסק
+  | "health_domain_failed"
+  | "health_mail_failed"
+  | "health_safebrowsing_failed"
+  // deps.health עצמו נדחה - אף אחת משלוש הבדיקות לא הספיקה לדווח
+  | "health_failed";
 
 // הסבר דגל js_rendered - משותף ל-runScan ול-scanWebsiteOnly (משימה 3)
 export const JS_RENDERED_DETAIL = "האתר מרונדר ב-JavaScript - אותות ה-HTML חלקיים";

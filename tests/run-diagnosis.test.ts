@@ -6,8 +6,8 @@ import type { WebsiteOnlyDeps } from "../src/pipeline/scan-website";
 import { makeFakeDb } from "./fakes/fake-db";
 
 const happyScanDeps: ScanDeps = {
-  // בדיקות אופליין: אין DNS ואין רשת, ולכן health מוחזר ריק במפורש
-  health: async () => undefined,
+  // בדיקות אופליין: אין DNS ואין רשת, ולכן health מוחזר ריק במפורש (ובלי כשלים)
+  health: async () => ({ failures: [] }),
   details: async () => ({
     placeId: "p1", name: "עסק בדיקה", website: "https://x.co.il", phone: "03-1234567",
     rating: 4.4, reviewCount: 8,
