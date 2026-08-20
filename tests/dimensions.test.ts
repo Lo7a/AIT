@@ -715,3 +715,46 @@ describe("process dimension (אבן דרך 4, משימה 1)", () => {
     expect(process.score).not.toBeNull();
   });
 });
+
+// תוספות 20.8: מקצר כתובות מנטרל שלילת וואטסאפ, והזמנה ישירה מזכה בחוק קביעת התור
+describe("link shortener and direct ordering (20.8)", () => {
+  function ruleOf(f: ScanFindings, dim: string, key: string) {
+    const res = scoreFindings(DIMENSIONS, f);
+    return res.dimensions.find((d) => d.key === dim)!.rules.find((r) => r.key === key)!;
+  }
+
+  const withSignals = (extra: Partial<NonNullable<ScanFindings["websiteSignals"]>>): ScanFindings => ({
+    ...RICH,
+    websiteSignals: { ...RICH.websiteSignals!, hasWhatsappLink: false, ...extra },
+  });
+
+  it("a page with a link shortener makes a WhatsApp negative not-checked, not a gap", () => {
+    const r = ruleOf(withSignals({ hasLinkShortener: true }), "accessibility", "whatsapp");
+    expect(r.known).toBe(false);
+    expect(r.earned).toBe(false);
+  });
+
+  it("without a shortener a WhatsApp negative stays a real gap", () => {
+    const r = ruleOf(withSignals({ hasLinkShortener: false }), "accessibility", "whatsapp");
+    expect(r.known).toBe(true);
+    expect(r.earned).toBe(false);
+  });
+
+  it("a found WhatsApp link stays known even when a shortener is present", () => {
+    const r = ruleOf(withSignals({ hasWhatsappLink: true, hasLinkShortener: true }), "accessibility", "whatsapp");
+    expect(r.known).toBe(true);
+    expect(r.earned).toBe(true);
+  });
+
+  it("direct ordering earns the booking rule (the pizzeria case keeps working)", () => {
+    const r = ruleOf(withSignals({ hasOrderingSystem: true }), "accessibility", "online_booking");
+    expect(r.known).toBe(true);
+    expect(r.earned).toBe(true);
+  });
+
+  it("a delivery platform alone does not earn the booking rule", () => {
+    const r = ruleOf(withSignals({ hasDeliveryPlatform: true }), "accessibility", "online_booking");
+    expect(r.known).toBe(true);
+    expect(r.earned).toBe(false);
+  });
+});

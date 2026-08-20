@@ -337,7 +337,11 @@ export const DIMENSIONS: DimensionDef[] = [
       {
         key: "whatsapp", points: 25,
         // גילוי חיובי תקף גם באתר js_rendered - קישור שנמצא הוא נמצא. רק "לא נמצא" דורש crawl אמין.
-        known: (f) => crawlUsable(f) || !!f.websiteSignals?.hasWhatsappLink,
+        // ובנוסף (20.8): מקצר כתובות בעמוד מסתיר את היעד, ולכן שלילה אינה ידועה. המקרה החי
+        // habarber.co.il - כפתור וואטסאפ בולט מאחורי bit.ly שהניב פער מלא ובביטחון
+        known: (f) =>
+          !!f.websiteSignals?.hasWhatsappLink ||
+          (crawlUsable(f) && !f.websiteSignals?.hasLinkShortener),
         earned: (f) => !!f.websiteSignals?.hasWhatsappLink,
         gapText: () => "אין קישור וואטסאפ באתר, הערוץ שלקוחות ישראלים מצפים לו",
         okText: () => "וואטסאפ זמין באתר",
@@ -351,8 +355,13 @@ export const DIMENSIONS: DimensionDef[] = [
       },
       {
         key: "online_booking", points: 30,
-        known: (f) => knownCrawlNegative(f, f.websiteSignals?.hasOnlineBooking),
-        earned: (f) => !!f.websiteSignals?.hasOnlineBooking,
+        // הזמנה ישירה (תפריט/הזמנות של העסק) מזכה כמו קביעת תור: לשניהם המשותף הוא ערוץ ישיר
+        // שבבעלות העסק. פלטפורמת משלוחים במכוון אינה מזכה - היא תלות בצד שלישי, לא ערוץ ישיר.
+        // הערה לעתיד: כשתיכנס התניית ענף, החוק הזה מתפצל - מסעדה תיבחן על הזמנות והזמנת מקומות,
+        // מספרה על תורים, ואוכל מהיר לא ייבחן על תורים בכלל
+        known: (f) =>
+          knownCrawlNegative(f, f.websiteSignals?.hasOnlineBooking || f.websiteSignals?.hasOrderingSystem),
+        earned: (f) => !!f.websiteSignals?.hasOnlineBooking || !!f.websiteSignals?.hasOrderingSystem,
         gapText: () => "אין קביעת תור/הזמנה אונליין, כל תיאום דורש טלפון בשעות הפעילות",
         okText: () => "יש קביעת תור אונליין",
       },

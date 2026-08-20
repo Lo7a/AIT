@@ -492,3 +492,57 @@ describe("homepage timeout retry", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 });
+
+// המקרה החי habarber.co.il: כפתור וואטסאפ בולט מאחורי bit.ly. עד 20.8 העסק קיבל "אין וואטסאפ"
+// בביטחון מלא על חוק של 25 נקודות, כי אף תבנית וואטסאפ לא הופיעה ב-HTML
+describe("short link resolution (20.8)", () => {
+  const SHORT_HOME = `<html><body><a href="https://bit.ly/3abcDEF">דברו איתנו בוואטסאפ</a></body></html>`;
+
+  it("resolves a shortened link and recovers the hidden WhatsApp channel", async () => {
+    const fetchImpl = vi.fn(async (url: string) => {
+      if (url === "https://x.co.il/") return htmlResponse(SHORT_HOME, url);
+      if (url.startsWith("https://bit.ly/")) return redirectResponse(301, "https://wa.me/972501234567");
+      return htmlResponse("<html><body>ok</body></html>", url);
+    });
+    const s = await crawl("https://x.co.il/", { fetchImpl: fetchImpl as never });
+    expect(s.hasWhatsappLink).toBe(true);
+    // נפתר במלואו - אין יעד מוסתר שנותר, ולכן השלילה חוזרת להיות ידועה
+    expect(s.hasLinkShortener).toBe(false);
+  });
+
+  it("keeps the shortener flag when the destination cannot be resolved", async () => {
+    const fetchImpl = vi.fn(async (url: string) => {
+      if (url === "https://x.co.il/") return htmlResponse(SHORT_HOME, url);
+      if (url.startsWith("https://bit.ly/")) throw new Error("network down");
+      return htmlResponse("<html><body>ok</body></html>", url);
+    });
+    const s = await crawl("https://x.co.il/", { fetchImpl: fetchImpl as never });
+    expect(s.hasWhatsappLink).toBe(false);
+    expect(s.hasLinkShortener).toBe(true); // לא ידוע - ולא "אין"
+  });
+
+  it("resolves a shortened booking link too, not only WhatsApp", async () => {
+    const html = `<html><body><a href="https://bit.ly/booknow">לקביעת תור</a></body></html>`;
+    const fetchImpl = vi.fn(async (url: string) => {
+      if (url === "https://y.co.il/") return htmlResponse(html, url);
+      if (url.startsWith("https://bit.ly/")) return redirectResponse(302, "https://calmark.co.il/page/1050");
+      return htmlResponse("<html><body>ok</body></html>", url);
+    });
+    const s = await crawl("https://y.co.il/", { fetchImpl: fetchImpl as never });
+    expect(s.hasOnlineBooking).toBe(true);
+  });
+
+  it("a shortened link to a private address is blocked by the SSRF guard, not followed", async () => {
+    const html = `<html><body><a href="https://bit.ly/evil">וואטסאפ</a></body></html>`;
+    const fetchImpl = vi.fn(async (url: string) => {
+      if (url === "https://z.co.il/") return htmlResponse(html, url);
+      if (url.startsWith("https://bit.ly/")) return redirectResponse(302, "http://169.254.169.254/latest/meta-data/");
+      return htmlResponse("<html><body>secret</body></html>", url);
+    });
+    const s = await crawl("https://z.co.il/", { fetchImpl: fetchImpl as never });
+    expect(s.hasWhatsappLink).toBe(false);
+    expect(s.hasLinkShortener).toBe(true); // נחסם, ולכן נשאר לא ידוע
+    // הכתובת הפנימית עצמה מעולם לא נשלחה
+    expect(fetchImpl.mock.calls.some((c) => String(c[0]).includes("169.254.169.254"))).toBe(false);
+  });
+});

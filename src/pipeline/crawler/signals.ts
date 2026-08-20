@@ -8,17 +8,48 @@ import type { WebsiteSignals } from "../types";
 // הלולאה הגנרית ב-crawl.ts (merged[key] = merged[key] || signals[key]) לא הייתה מתקמפלת (TS לא
 // מרשה כתיבה גנרית דרך מפתחות ששייכים ל-boolean|undefined לצד boolean רגיל)
 export interface PageSignals
-  extends Omit<WebsiteSignals, "pagesCrawled" | "crawledUrls" | "jsRendered" | "hasAccessibilityStatement" | "hasAccessibilityWidget"> {
+  extends Omit<
+    WebsiteSignals,
+    | "pagesCrawled" | "crawledUrls" | "jsRendered"
+    | "hasAccessibilityStatement" | "hasAccessibilityWidget"
+    | "hasOrderingSystem" | "hasDeliveryPlatform" | "hasLinkShortener"
+  > {
   internalLinks: string[];
   hasAccessibilityStatement: boolean;
   hasAccessibilityWidget: boolean;
+  hasOrderingSystem: boolean;
+  hasDeliveryPlatform: boolean;
+  hasLinkShortener: boolean;
 }
 
 // זיהוי לפי דומיינים/קבצים של ספקים - לא לפי מילים בטקסט חופשי, כדי למנוע התרעות שווא
 const WHATSAPP_RE = /wa\.me\/|(?:api|web)\.whatsapp\.com|whatsapp:\/\/send/;
-// פלטפורמות תורים/הזמנות: בינלאומיות + ישראליות (המקרה החי: פיצרייה עם order.bitetech.co.il
-// שקיבלה "אין הזמנה אונליין"). התבנית order\. תופסת סאב-דומיין הזמנות גנרי של ספק
-const BOOKING_RE = /calendly|vcita|setmore|simplybook|booking-calendar|bookly|amelia[-a-z]*booking|appointment-booking|tabit|ontopo|bitetech|tenbis|10bis\.co\.il|mishloha|wolt\.com|myvisit|easytable|order\.[a-z0-9-]+\.(?:co\.il|com|il)/;
+// מקצרי כתובות: קישור מקוצר מסתיר את היעד, ולכן שלילה של וואטסאפ הופכת ל"לא נבדק" במקום לפער.
+// המקרה החי (habarber.co.il): כפתור וואטסאפ בולט שמקשר דרך bit.ly - אף אחת מתבניות WHATSAPP_RE
+// לא מופיעה ב-HTML, והעסק קיבל פער מלא בביטחון על ערוץ שיש לו
+const SHORTENER_RE = /bit\.ly\/|tinyurl\.com\/|cutt\.ly\/|t\.co\/|goo\.gl\/|is\.gd\/|rb\.gy\//;
+// קביעת תור אונליין: מערכות תורים והזמנת מקומות. מחקר 20.8 מיפה את השוק הישראלי (23 מערכות) -
+// עד אז הזיהוי היה בינלאומי כמעט לגמרי, והמערכות שהקטלוג שלנו עצמו מתמחר לא זוהו כלל.
+// calmark אומת חי (habarber.co.il); השאר דומייני בית של הספק, שנתפסים ב-href כי כך המערכות
+// הישראליות עובדות - קישור לדף הזמנה ייעודי ולא סקריפט מוטמע.
+// לא נכללו במכוון: (א) מערכות ניהול מרפאה (tiffulit/smilecloud/medform/doctor-clinix/shidurit) -
+// חלקן בונות גם את האתר עצמו, ולכן נוכחות הדומיין אינה מעידה על קביעת תור; (ב) barber7 - ייתכן
+// שזו מספרה בודדת עם אפליקציה משלה ולא ספק. שתיהן ממתינות לאימות חי, כי חיובי שגוי בחוק של
+// 30 נקודות גרוע מהחמצה
+const BOOKING_RE = /calendly|vcita|setmore|simplybook|booking-calendar|bookly|amelia[-a-z]*booking|appointment-booking|myvisit|easytable|tabit|ontopo|clickynder|plannie\.co\.il|mytor\.co\.il|yoman\.co\.il|tor4you|easybizy|lumasystem|nello\.co\.il|torli\.net|simpletor|easyweek|shift\.co\.il|zmantov|more-than\.co\.il|calmark|kwazu|fizikal|arbox\.co\.il/;
+// הזמנת אוכל ישירה מהעסק (תפריט/הזמנות משלו) - נפרד מקביעת תור, אבל עדיין ערוץ ישיר שבבעלותו.
+// mealy אומת חי (caramelcafe.co.il). התבנית order\. תופסת סאב-דומיין הזמנות גנרי של ספק
+// (המקרה החי המקורי: פיצרייה עם order.bitetech.co.il שקיבלה "אין הזמנה אונליין")
+const ORDERING_RE = /bitetech|mealy\.co\.il|order\.[a-z0-9-]+\.(?:co\.il|com|il)/;
+// פלטפורמות משלוחים של צד שלישי - הופרדו מ-BOOKING_RE ב-20.8. משלוח דרך וולט אינו ערוץ ישיר
+// של העסק אלא ההפך: זו הראיה לתלות בעמלה של 25 עד 33 אחוז (מחקר המסעדות). לכן הן לא מזכות
+// בחוק online_booking, והן אות עצמאי שמזין את ההמלצה על הזמנות ישירות
+const DELIVERY_RE = /wolt\.com|tenbis|10bis\.co\.il|mishloha/;
+// קביעת תור במערכת עצמית (בלי ספק מזוהה): רק עוגן או כפתור שהטקסט שלו מבקש לקבוע תור וה-href
+// שלו מוביל לעמוד אמיתי. המלכודת שהתבנית הזו נבנתה סביבה: "לקביעת תור התקשרו 03-..." הוא נפוץ
+// מאוד באתרים ישראליים - זו קביעת תור בטלפון, ההפך הגמור. לכן href של tel:/mailto: נפסל,
+// וטקסט חופשי בלי עוגן כלל אינו נספר
+const BOOKING_ANCHOR_TEXT_RE = /(?:ל?קביעת|לקבוע|קבע[יו]?|להזמנת|הזמנת|לזימון|זימון)\s+תור|book\s+(?:now|online|appointment)|schedule\s+(?:an\s+)?appointment/i;
 const CHAT_RE = /tawk\.to|tidio(?:chat)?\.(?:co|com)|intercom(?:cdn)?\.(?:io|com)|crisp\.chat|zdassets|zopim|jivosite|smartsuppchat|xfbml\.customerchat/;
 // צ'אט תוצרת-בית (המקרה החי: סבא אדוארד - .chat-fab/.chat-window/togglechat() בקוד התבנית עצמו,
 // בלי ספק). זיהוי מבני לפי שמות מחלקות/פונקציות של רכיב צ'אט - לא מילים חופשיות בטקסט
@@ -34,7 +65,8 @@ const A11Y_STATEMENT_HREF_RE = /accessibility[-_]?statement|negishut|הצהרת[
 // ספקי רכיבי נגישות (ווידג'ט) ישראליים ובינלאומיים - טביעת אצבע בקוד הגולמי, לא מילה חופשית
 // (אותה פילוסופיה כמו CHAT_RE/BOOKING_RE). accessible-poetry הוא פלאגין וורדפרס ישראלי (נראה חי
 // היום). enable\.co\.il עם נקודה מפורשת כדי לא להתנגש עם המילה האנגלית הרגילה "enable"
-const A11Y_WIDGET_RE = /userway|equalweb|accessibe|acsbapp|nagich|enable\.co\.il|accessible-poetry|accessiway|negishim/;
+// zap.dbusiness.co נוסף 20.8 אחרי אימות חי (gal-garage.co.il) - וידג'ט נגישות ישראלי שלא היה ברשימה
+const A11Y_WIDGET_RE = /userway|equalweb|accessibe|acsbapp|nagich|enable\.co\.il|accessible-poetry|accessiway|negishim|dbusiness\.co/;
 // טפסים שאינם יצירת קשר: חיפוש, ניוזלטר, התחברות, עגלה, תגובות בלוג
 const NON_CONTACT_FORM_RE = /(?:^|[^a-z])(search|newsletter|subscribe|mc4wp|login|register|cart|coupon|comment)/;
 // קישורים לקבצים - לא עמודים, לא נכנסים לתור הסריקה
@@ -48,6 +80,40 @@ const ASSET_EXT_RE = /\.(jpe?g|png|gif|webp|svg|avif|pdf|docx?|xlsx?|pptx?|zip|r
 const VUE_MARKER_RE = /data-v-[0-9a-f]{6,10}\b|__NUXT__|\/_nuxt\/|vue-router|Vue\.createApp/i;
 const REACT_MARKER_RE = /__NEXT_DATA__|self\.__next_f|\/_next\/static\/|data-reactroot|\bid=["']?__next\b/i;
 const ANGULAR_MARKER_RE = /\bng-version=/i;
+
+// כתובות מקוצרות שמופיעות כ-href בעמוד - הקלט לפתרון הקישורים ב-crawl.ts. פונקציה טהורה:
+// היא רק אוספת, לא פותרת. מוגבלת ל-href של עוגן, כי רק הוא יעד שהמשתמש יכול ללחוץ עליו
+export function collectShortenerLinks(html: string, baseUrl: string): string[] {
+  const $ = cheerio.load(html);
+  const found: string[] = [];
+  $("a[href]").each((_i, el) => {
+    const href = $(el).attr("href");
+    if (!href || !SHORTENER_RE.test(href)) return;
+    try {
+      found.push(new URL(href, baseUrl).toString());
+    } catch {
+      // href לא תקין - מתעלמים
+    }
+  });
+  return [...new Set(found)];
+}
+
+// אותות שאפשר להסיק מכתובות בלבד, בלי HTML. משמש את crawl.ts אחרי פתרון קישורים מקוצרים:
+// היעד האמיתי של הקישור נבדק מול אותן טביעות אצבע בדיוק שהעמוד עצמו נבדק מולן
+export function signalsFromUrls(urls: string[]): {
+  hasWhatsappLink: boolean;
+  hasOnlineBooking: boolean;
+  hasOrderingSystem: boolean;
+  hasDeliveryPlatform: boolean;
+} {
+  const joined = urls.join(" ").toLowerCase();
+  return {
+    hasWhatsappLink: WHATSAPP_RE.test(joined),
+    hasOnlineBooking: BOOKING_RE.test(joined),
+    hasOrderingSystem: ORDERING_RE.test(joined),
+    hasDeliveryPlatform: DELIVERY_RE.test(joined),
+  };
+}
 
 function detectClientFramework(html: string): string | undefined {
   if (VUE_MARKER_RE.test(html)) return "vue";
@@ -141,12 +207,41 @@ export function extractSignals(html: string, baseUrl: string): PageSignals {
     if (A11Y_STATEMENT_HREF_RE.test(pathname)) hasAccessibilityStatement = true;
   });
 
+  // מערכת תורים עצמית: עסק שבנה לעצמו אין לו דומיין ספק שאפשר לזהות. שני אותות מבניים,
+  // ושניהם מחמירים בכוונה (ראו ההערה על BOOKING_ANCHOR_TEXT_RE):
+  // 1. עוגן/כפתור שמבקש לקבוע תור וה-href שלו הוא עמוד אמיתי - לא tel:, לא mailto:, לא בלי href
+  // 2. טופס שיש בו גם שדה תאריך וגם שדה שעה - צירוף שקשה לייצר בטעות
+  let hasCustomBooking = false;
+  $("a[href], button").each((_i, el) => {
+    if (hasCustomBooking) return;
+    const $el = $(el);
+    if (!BOOKING_ANCHOR_TEXT_RE.test($el.text())) return;
+    const href = $el.attr("href");
+    if (href === undefined) return; // <button> בלי קישור - לא מעיד על יעד קיים
+    const scheme = href.trim().toLowerCase();
+    if (scheme.startsWith("tel:") || scheme.startsWith("mailto:")) return; // קביעת תור בטלפון
+    if (scheme.startsWith("javascript:") || scheme === "#" || scheme === "") return;
+    hasCustomBooking = true;
+  });
+  if (!hasCustomBooking) {
+    $("form").each((_i, el) => {
+      if (hasCustomBooking) return;
+      const $f = $(el);
+      if ($f.find("input[type=date i]").length > 0 && $f.find("input[type=time i]").length > 0) {
+        hasCustomBooking = true;
+      }
+    });
+  }
+
   return {
     hasContactForm,
     hasWhatsappLink: WHATSAPP_RE.test(lowerHtml),
     hasPhoneLink: $('a[href^="tel:" i]').length > 0,
     hasEmailLink: $('a[href^="mailto:" i]').length > 0,
-    hasOnlineBooking: BOOKING_RE.test(lowerHtml),
+    hasOnlineBooking: BOOKING_RE.test(lowerHtml) || hasCustomBooking,
+    hasOrderingSystem: ORDERING_RE.test(lowerHtml),
+    hasDeliveryPlatform: DELIVERY_RE.test(lowerHtml),
+    hasLinkShortener: SHORTENER_RE.test(lowerHtml),
     hasChatWidget: CHAT_RE.test(lowerHtml) || CUSTOM_CHAT_RE.test(lowerHtml),
     hasFacebookPixel: FB_PIXEL_RE.test(lowerHtml),
     hasGoogleAnalytics: GA_RE.test(lowerHtml),

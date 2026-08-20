@@ -31,7 +31,7 @@ export async function searchBusiness(
       "Content-Type": "application/json",
       "X-Goog-Api-Key": apiKey,
       "X-Goog-FieldMask":
-        "places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount",
+        "places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.location",
     },
     body: JSON.stringify({ textQuery: query, languageCode: "he", regionCode: "IL" }),
     signal: AbortSignal.timeout(TIMEOUT_MS),
@@ -76,7 +76,8 @@ export async function getPlaceDetails(
   // formattedAddress נוסף לגזירת עיר/כתובת (אבן דרך 4, משימה 0.7) - אותה רמת חיוב, ה-Contact SKU
   // כבר פעיל בגלל nationalPhoneNumber
   const fieldMask =
-    "id,displayName,formattedAddress,nationalPhoneNumber,websiteUri,rating,userRatingCount,reviews";
+    "id,displayName,formattedAddress,nationalPhoneNumber,websiteUri,rating,userRatingCount,reviews," +
+    "primaryType,types,location";
   const res = await fetchImpl(
     `${DETAILS_URL}/${encodeURIComponent(placeId)}?languageCode=he`,
     {
@@ -106,6 +107,9 @@ export async function getPlaceDetails(
       originalText?: { text?: string };
       relativePublishTimeDescription?: string;
     }[];
+    primaryType?: string;
+    types?: string[];
+    location?: { latitude?: number; longitude?: number };
   };
   // הארכיון (הכרעת מייסד 17.8) מכבד את האילוץ המשפטי הקיים (תנאי Google, ראו analyze/reviews.ts):
   // טקסט ביקורות לעולם לא נשמר - הפיילוד נארכב בלעדיו, עם ספירה בלבד
@@ -130,6 +134,12 @@ export async function getPlaceDetails(
     website: body.websiteUri,
     rating: body.rating,
     reviewCount: body.userRatingCount,
+    primaryType: body.primaryType,
+    types: body.types,
+    location:
+      body.location?.latitude !== undefined && body.location?.longitude !== undefined
+        ? { lat: body.location.latitude, lng: body.location.longitude }
+        : undefined,
     reviews,
     raw: body,
   };

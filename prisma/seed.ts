@@ -6,6 +6,11 @@ const prisma = new PrismaClient();
 // verified_at קבוע - מתי נבדקו הטווחים מול השוק. מתעדכן ידנית בכל רענון מחירים.
 // מקורות הטווחים: docs/research/2026-08-13-catalog-prices.md (10 סוכני מחקר + ביקורת אדוורסרית,
 // 6 מקורות מרכזיים אומתו חיים). כלל מחייב מהמייסדים: תמיד טווחים, לעולם לא מחיר נקודתי.
+// שער ההמרה של AIT: **3.0 שקל לדולר, קבוע** (הכרעת מייסד 20.8.2026). זו החלטה מוצרית
+// מכוונת ולא שער שוק: מחירים לא מרצדים לפי מטבע חוץ. עד 20.8 היה כאן שער מונח של 3.4,
+// שהתיישן והציג כל מחיר מומר כגבוה מדי (השער היציג של בנק ישראל ב-19.8.2026 היה 2.985).
+// סיכון מוכר: אם הדולר יעלה מהותית, שער קבוע של 3.0 יציג מחירים נמוכים מדי - וזה הכיוון
+// המסוכן. בדיקת שפיות תקופתית מול boi.org.il/PublicApi/GetExchangeRates (עובד; עמודי האתר חסומים)
 const VERIFIED = new Date("2026-08-13");
 
 interface CatalogSeed {
@@ -71,12 +76,12 @@ const CATALOG: CatalogSeed[] = [
     solution: "הקמה ומילוי מלא של פרופיל העסק: פרטים, תמונות, שעות, קטגוריות ופוסטים",
     // gbp_rating הוסר (סקירת משימה 10): הוא נבדק רק כשכבר יש פרופיל - סתירה להמלצת "הקמת פרופיל"
     conditions: { gapKeys: ["gbp_exists"] },
-    costRange: "₪400-2,000 חד-פעמי",
+    costRange: "₪400-1,800 חד-פעמי",
     savingRange: "4-8 שעות הקמה ואימות שנחסכות + חשיפה מקומית שאובדת היום לגמרי",
     complexity: "low",
     installTime: "1-4 שבועות (כולל אימות גוגל)",
     benchmarks: [
-      { metric: "הקמת פרופיל Google Business", range: "₪400-800 פרילנסר · ₪1,000-2,000 סוכנות", source: "360i-marketing.co.il (₪450 + מע\"מ, אומת חי) · Merchynt/Dotit מומר לפי 3.4 (08/2026)" },
+      { metric: "הקמת פרופיל Google Business", range: "₪400-800 פרילנסר · ₪900-1,800 סוכנות", source: "360i-marketing.co.il (₪450 + מע\"מ, אומת חי) · Merchynt/Dotit ($300-600) מומר לפי שער AIT הקבוע 3.0 (08/2026)" },
     ],
   },
   {
@@ -213,12 +218,12 @@ const CATALOG: CatalogSeed[] = [
     problem: "הנוכחות ברשתות גוזלת שעות כל שבוע או לא קורית בכלל - והעסק נעלם מהפיד של הלקוחות",
     solution: "סוכן AI שמייצר טיוטות פוסטים בקול של העסק, מתזמן פרסום ומשאיר לבעל העסק רק אישור",
     conditions: { gapKeys: ["manual_tasks"] },
-    costRange: "כלי בניהול עצמי ₪50-120 לחודש · סוכן מותאם: הקמה ₪3,500-12,500 + ₪100-800 לחודש",
+    costRange: "כלי בניהול עצמי ₪45-90 לחודש · סוכן מותאם: הקמה ₪3,500-12,500 + ₪100-800 לחודש",
     savingRange: "3-10 שעות עבודת תוכן בשבוע (סקרים בארה\"ב) או מיקור חוץ שעולה ₪1,500-4,000 לחודש",
     complexity: "medium",
     installTime: "כלי מדף: ימים בודדים · סוכן מותאם: 2-4 שבועות",
     benchmarks: [
-      { metric: "כלי AI לתוכן סושיאל (SaaS, ניהול עצמי)", range: "₪50-120 לחודש (הומר מ-$15-30 לפי שער מונח 3.4)", source: "Ocoya מ-$15 · Predis.ai מ-$29 · ChatGPT Team $30 למשתמש - דרך bestai.co.il ומדריכי השוואה (08/2026)", verifiedAt: new Date("2026-08-16") },
+      { metric: "כלי AI לתוכן סושיאל (SaaS, ניהול עצמי)", range: "₪45-90 לחודש (הומר מ-$15-30 לפי שער AIT הקבוע 3.0)", source: "Ocoya מ-$15 · Predis.ai מ-$29 · ChatGPT Team $30 למשתמש - דרך bestai.co.il ומדריכי השוואה (08/2026)", verifiedAt: new Date("2026-08-16") },
       { metric: "סוכן תוכן מותאם בעברית (הקמה + חודשי)", range: "₪3,500-12,500 הקמה + ₪100-800 לחודש", source: "achiya-automation.com ₪3,500-6,500 · doctorai.co.il ₪4,500-12,500 + ₪200-500 (08/2026)", verifiedAt: new Date("2026-08-16") },
       { metric: "ניהול סושיאל אנושי בישראל (החלופה)", range: "₪1,500-4,000 לחודש לעסק קטן", source: "ckdigital360.co.il (אומת חי) · miktzoan.co.il · natanelimelech.co.il (08/2026)", verifiedAt: new Date("2026-08-16") },
     ],
@@ -231,13 +236,13 @@ const CATALOG: CatalogSeed[] = [
     problem: "כל הצעת מחיר נכתבת ידנית מאפס - עוברים ימים עד שהיא נשלחת, והלקוח סוגר עם מי שהגיב ראשון",
     solution: "הפקה אוטומטית של הצעות מחיר ממותגות מתבניות, עם מעקב סטטוס וסיוע AI בניסוח",
     conditions: { gapKeys: ["manual_tasks"] },
-    costRange: "מודול בתוכנת ניהול ₪29-155 לחודש · תוכנה ייעודית עם AI ₪65-167 למשתמש לחודש",
+    costRange: "מודול בתוכנת ניהול ₪29-155 לחודש · תוכנה ייעודית עם AI ₪57-147 למשתמש לחודש",
     savingRange: "35-50% מהעסקאות נסגרות אצל מי שמגיב ראשון (InsideSales) - הצעה שיוצאת באותו יום במקום אחרי שבוע",
     complexity: "low",
     installTime: "כלי מדף: יום · מערכת ייעודית: עד שבועיים",
     benchmarks: [
       { metric: "מודול הצעות מחיר בתוכנת ניהול ישראלית", range: "₪29-155 לחודש (לפני מע\"מ)", source: "greeninvoice.co.il (morning, אומת חי - הצעות מחיר בכל המסלולים) (08/2026)", verifiedAt: new Date("2026-08-16") },
-      { metric: "תוכנת הצעות בינלאומית עם AI", range: "$19-49 למשתמש לחודש (כ-₪65-167 לפי שער מונח 3.4)", source: "PandaDoc דרך proposify.com · g2.com (08/2026)", verifiedAt: new Date("2026-08-16") },
+      { metric: "תוכנת הצעות בינלאומית עם AI", range: "$19-49 למשתמש לחודש (כ-₪57-147 לפי שער AIT הקבוע 3.0)", source: "PandaDoc דרך proposify.com · g2.com (08/2026)", verifiedAt: new Date("2026-08-16") },
       { metric: "אפקט מהירות תגובה על סגירה", range: "35-50% מהעסקאות למגיב הראשון", source: "InsideSales.com דרך expertise.ai (הגרסה הממוקורת; הנתון הוויראלי 78% נפסל שם כחסר מקור) (08/2026)", verifiedAt: new Date("2026-08-16") },
     ],
   },
@@ -251,12 +256,12 @@ const CATALOG: CatalogSeed[] = [
     problem: "לעסק אין אתר משלו - מי שמחפש מוצא לכל היותר עמוד ברשת חברתית, ואין דף שהעסק שולט בו, מציג בו מחירים וסוגר ממנו לידים",
     solution: "הקמת אתר תדמית בעברית: בונה אתרים בניהול עצמי לתקציב קטן, או הקמת אתר וורדפרס מלאה דרכנו - מהעיצוב ועד העלייה לאוויר",
     conditions: { gapKeys: ["has_website", "own_website"] },
-    costRange: "בונה אתרים כ-₪60-135 לחודש · הקמת וורדפרס דרכנו ₪1,500-8,000 חד-פעמי + דומיין ואחסון ₪450-1,350 לשנה",
+    costRange: "בונה אתרים כ-₪51-117 לחודש · הקמת וורדפרס דרכנו ₪1,500-8,000 חד-פעמי + דומיין ואחסון ₪450-1,350 לשנה",
     savingRange: "נוכחות שהעסק שולט בה: דף משלו למחירים, לתיאום ולסגירת לידים, בלי תלות בפלטפורמות של אחרים",
     complexity: "medium",
     installTime: "בונה אתרים: ימים בודדים · וורדפרס דרכנו: 2-7 שבועות",
     benchmarks: [
-      { metric: "מנוי בונה אתרים (מסלולי עסק קטן)", range: "כ-₪58-135 לחודש (הומר מ-$17-39 לפי שער מונח 3.4, חיוב שנתי)", source: "wix.com דרך websitebuilderexpert.com + מגזין greeninvoice.co.il (08/2026)", verifiedAt: new Date("2026-08-17") },
+      { metric: "מנוי בונה אתרים (מסלולי עסק קטן)", range: "כ-₪51-117 לחודש (הומר מ-$17-39 לפי שער AIT הקבוע 3.0, חיוב שנתי)", source: "wix.com דרך websitebuilderexpert.com + מגזין greeninvoice.co.il (08/2026)", verifiedAt: new Date("2026-08-17") },
       { metric: "הקמת אתר תדמית וורדפרס (מחיר שוק ישראלי)", range: "₪1,500-8,000 חד-פעמי", source: "webitnow.co.il · sgo.co.il · talsa.co.il · avinu.co.il · digitizer.co.il (08/2026)", verifiedAt: new Date("2026-08-17") },
       { metric: "אתר רב-עמודים מקצועי", range: "₪7,000-18,000", source: "avinu.co.il · talsa.co.il (08/2026)", verifiedAt: new Date("2026-08-17") },
       { metric: "עלויות שוטפות לאתר (דומיין + אחסון)", range: "₪450-1,350 לשנה", source: "avinu.co.il · sgo.co.il (08/2026)", verifiedAt: new Date("2026-08-17") },
@@ -270,13 +275,13 @@ const CATALOG: CatalogSeed[] = [
     problem: "הלקוחות והפניות מנוהלים בראש, בוואטסאפ ובאקסל - אין תמונה אחת של מי בטיפול, מי חיכה יותר מדי ומי שווה מעקב",
     solution: "הטמעת CRM מוכן לעסק קטן עם צינור מכירה, תיעוד פניות ותזכורות מעקב",
     conditions: { gapKeys: ["internal_tools"] },
-    costRange: "מסלול חינמי קיים · בתשלום כ-₪24-194 למשתמש לחודש, ברוב המערכות מינימום 3 משתמשים · הטמעה ₪1,500-8,000",
+    costRange: "מסלול חינמי קיים · בתשלום כ-₪21-171 למשתמש לחודש, ברוב המערכות מינימום 3 משתמשים · הטמעה ₪1,500-8,000",
     savingRange: "סדר ושליטה במקום ניהול בראש: כל פנייה מתועדת עם אחראי ותאריך חזרה, ורואים אילו לידים נסגרו ולמה - כך הפניות הבאות לא הולכות לאיבוד",
     complexity: "medium",
     installTime: "2-4 שבועות כולל הגדרה והרגלת צוות",
     benchmarks: [
-      { metric: "מנוי CRM לעסק קטן (למשתמש לחודש)", range: "חינם (מסלולי Free) · בתשלום כ-₪24-194 (הומר מ-$7-57 לפי שער מונח 3.4)", source: "fireberry.com/pricing (אומת חי) · monday.com/pricing (אומת חי) · bigin.com (אומת חי) (08/2026)", verifiedAt: new Date("2026-08-17") },
-      { metric: "עלות צוות מינימלי בפועל (3 משתמשים)", range: "כ-₪122-459 לחודש (הומר לפי 3.4)", source: "monday CRM Basic 3 מושבים · Fireberry Standard 3 משתמשים (08/2026)", verifiedAt: new Date("2026-08-17") },
+      { metric: "מנוי CRM לעסק קטן (למשתמש לחודש)", range: "חינם (מסלולי Free) · בתשלום כ-₪21-171 (הומר מ-$7-57 לפי שער AIT הקבוע 3.0)", source: "fireberry.com/pricing (אומת חי) · monday.com/pricing (אומת חי) · bigin.com (אומת חי) (08/2026)", verifiedAt: new Date("2026-08-17") },
+      { metric: "עלות צוות מינימלי בפועל (3 משתמשים)", range: "כ-₪108-405 לחודש (הומר לפי שער AIT הקבוע 3.0)", source: "monday CRM Basic 3 מושבים · Fireberry Standard 3 משתמשים (08/2026)", verifiedAt: new Date("2026-08-17") },
       { metric: "תוכנת ניהול עסק ישראלית (חלופת ERP קל)", range: "₪29-200 לחודש (לפני מע\"מ היכן שצוין)", source: "greeninvoice.co.il (אומת חי) · rivhit.co.il (אומת חי) · Priority Zoom דרך qama.co.il (מפיץ מורשה) (08/2026)", verifiedAt: new Date("2026-08-17") },
       { metric: "הטמעת CRM לעסק קטן", range: "₪1,500-8,000 הקמה", source: "achiya-automation.com (אומת חי) · bizrunner.co.il (08/2026)", verifiedAt: new Date("2026-08-17") },
     ],
@@ -288,12 +293,12 @@ const CATALOG: CatalogSeed[] = [
     problem: "המערכות לא מדברות ביניהן - כל ליד, חשבונית או עדכון מועתקים ידנית ממערכת למערכת, וטעות אחת שוברת את השרשרת",
     solution: "חיבור המערכות הקיימות (טפסים, יומן, חשבוניות, CRM) באוטומציות שרצות לבד, בהקמה מלאה דרכנו",
     conditions: { gapKeys: ["manual_tasks"] },
-    costRange: "פלטפורמה ₪0-100 לחודש · הקמה חד-פעמית ₪1,200-8,000 לפי מספר האוטומציות",
+    costRange: "פלטפורמה ₪0-90 לחודש · הקמה חד-פעמית ₪1,200-8,000 לפי מספר האוטומציות",
     savingRange: "פחות העתקות ידניות ופחות טעויות אנוש: העדכונים עוברים לבד בין המערכות, והצוות מתפנה לעבודה עצמה",
     complexity: "medium",
     installTime: "3-14 ימים לאוטומציה ממוקדת",
     benchmarks: [
-      { metric: "פלטפורמת אוטומציה (SaaS)", range: "חינם (מסלולים מוגבלים) · בתשלום כ-₪31-102 לחודש (הומר מ-$9-29.99 לפי שער מונח 3.4)", source: "make.com/pricing (אומת חי) · zapier.com/pricing (אומת חי) · n8n.io (אומת חי) (08/2026)", verifiedAt: new Date("2026-08-17") },
+      { metric: "פלטפורמת אוטומציה (SaaS)", range: "חינם (מסלולים מוגבלים) · בתשלום כ-₪27-90 לחודש (הומר מ-$9-29.99 לפי שער AIT הקבוע 3.0)", source: "make.com/pricing (אומת חי) · zapier.com/pricing (אומת חי) · n8n.io (אומת חי) (08/2026)", verifiedAt: new Date("2026-08-17") },
       { metric: "הקמת אוטומציה ממוקדת (מיישם ישראלי)", range: "₪1,200-8,000 לפי היקף", source: "achiya-automation.com/pricing (אומת חי, מחיר מדף) · bizrunner.co.il (08/2026)", verifiedAt: new Date("2026-08-17") },
       { metric: "תפעול חודשי (שרת + API)", range: "₪100-600 לחודש", source: "achiya-automation.com/pricing (אומת חי) (08/2026)", verifiedAt: new Date("2026-08-17") },
     ],

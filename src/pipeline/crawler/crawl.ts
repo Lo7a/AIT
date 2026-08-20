@@ -2,7 +2,7 @@ import type { WebsiteSignals } from "../types";
 import { defaultFetch, type FetchLike } from "../http";
 import { assertFetchableUrl } from "../forbidden-host";
 import { assertResolvesPublic, defaultLookup, type LookupLike } from "../resolve-guard";
-import { extractSignals, type PageSignals } from "./signals";
+import { extractSignals, collectShortenerLinks, signalsFromUrls, type PageSignals } from "./signals";
 import { readSchemaMarkup } from "../health/schema-markup";
 
 export interface CrawlOptions {
@@ -22,8 +22,11 @@ const HOME_RETRY_MULTIPLIER = 3;
 // עמודים שנכשלים לא מקדמים את מונה ההצלחות - לכן חוסמים גם את מספר הניסיונות הכולל
 const EXTRA_ATTEMPTS = 4;
 // אנחנו עוקבים אחרי ההפניות בעצמנו (redirect: "manual"), אז החסם הוא שלנו. אתרים אמיתיים
-// עושים לכל היותר שתיים-שלוש (http→https→www→נתיב); חמש נדיבה ומספיק כדי לא להיתקע בלולאה
+// עושים לכל היותר שתיים-שלוש (http-https-www-נתיב); חמש נדיבה ומספיק כדי לא להיתקע בלולאה
 const MAX_REDIRECTS = 5;
+// תקרת קישורים מקוצרים לפתרון בעמוד הבית. בעמוד אמיתי יש בדרך כלל אחד או שניים;
+// התקרה מונעת מעמוד עם עשרות קישורים מקוצרים לנפח את זמן הסריקה
+const MAX_SHORT_LINKS = 3;
 
 // מילות מפתח שמקדמות עמוד בתור - העמודים שהכי מלמדים על העסק
 const PRIORITY_KEYWORDS = [
@@ -35,6 +38,7 @@ const BOOL_KEYS = [
   "hasContactForm", "hasWhatsappLink", "hasPhoneLink", "hasEmailLink",
   "hasOnlineBooking", "hasChatWidget", "hasFacebookPixel", "hasGoogleAnalytics",
   "hasAccessibilityStatement", "hasAccessibilityWidget",
+  "hasOrderingSystem", "hasDeliveryPlatform", "hasLinkShortener",
 ] as const;
 
 // סמני אפליקציית JS - תבניות ספציפיות של Next/React/Vue/Angular, לא כל <script>.
@@ -103,6 +107,38 @@ async function fetchPage(
   }
 }
 
+// פתרון קישור מקוצר: עוקב אחרי ההפניות ומחזיר את היעד הסופי, בלי לקרוא את הגוף.
+// אותה שרשרת הגנות בדיוק כמו fetchPage - assertFetchableUrl ואז assertResolvesPublic לפני
+// כל בקשה ובכל קפיצה - כי זו קריאת רשת יוצאת לכל דבר, ומקצר כתובות הוא בדיוק המקום שבו
+// תוקף יכול להחביא יעד פנימי. שונה מ-fetchPage בשניים: לא דורש content-type של HTML
+// (היעד עשוי להיות כל דבר), ולא זורק - כישלון מחזיר undefined והקישור נשאר "לא ידוע"
+async function resolveShortLink(
+  url: string,
+  fetchImpl: FetchLike,
+  lookupImpl: LookupLike,
+  timeoutMs: number,
+): Promise<string | undefined> {
+  let currentUrl = url;
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    const current = assertFetchableUrl(currentUrl);
+    await assertResolvesPublic(current, lookupImpl);
+    const res = await fetchImpl(currentUrl, {
+      headers: { "User-Agent": "AIT-Scanner/0.1 (+business diagnosis)" },
+      redirect: "manual",
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    void res.body?.cancel().catch(() => {}); // היעד מעניין, לא התוכן
+    if (res.status >= 300 && res.status < 400) {
+      const location = res.headers?.get?.("location");
+      if (!location) return undefined;
+      currentUrl = assertFetchableUrl(location, current).href;
+      continue;
+    }
+    return currentUrl;
+  }
+  return undefined; // יותר מדי קפיצות - היעד נשאר לא ידוע
+}
+
 export async function crawlWebsite(
   siteUrl: string,
   opts: CrawlOptions = {},
@@ -129,6 +165,28 @@ export async function crawlWebsite(
   const jsRendered = home.internalLinks.length === 0 && JS_APP_ROOT_RE.test(homePage.html);
 
   const merged: Omit<PageSignals, "internalLinks"> = { ...home };
+
+  // קישורים מקוצרים בעמוד הבית: המקרה החי habarber.co.il - כפתור וואטסאפ בולט מאחורי bit.ly,
+  // שהניב "אין וואטסאפ" בביטחון מלא על חוק של 25 נקודות. פותרים את היעד ובודקים אותו מול אותן
+  // טביעות אצבע. hasLinkShortener נשאר true רק אם נשארו קישורים שלא הצלחנו לפתוח - ואז
+  // dimensions.ts מדווח "לא נבדק" במקום פער, כי באמת לא ידוע מה מסתתר שם
+  if (home.hasLinkShortener) {
+    const shortLinks = collectShortenerLinks(homePage.html, homeUrl);
+    const capped = shortLinks.slice(0, MAX_SHORT_LINKS);
+    const settled = await Promise.allSettled(
+      capped.map((u) => resolveShortLink(u, fetchImpl, lookupImpl, timeoutMs)),
+    );
+    const resolved = settled
+      .map((r) => (r.status === "fulfilled" ? r.value : undefined))
+      .filter((u): u is string => !!u);
+    const fromLinks = signalsFromUrls(resolved);
+    merged.hasWhatsappLink = merged.hasWhatsappLink || fromLinks.hasWhatsappLink;
+    merged.hasOnlineBooking = merged.hasOnlineBooking || fromLinks.hasOnlineBooking;
+    merged.hasOrderingSystem = merged.hasOrderingSystem || fromLinks.hasOrderingSystem;
+    merged.hasDeliveryPlatform = merged.hasDeliveryPlatform || fromLinks.hasDeliveryPlatform;
+    // נפתרו כולם ולא נחתכנו בתקרה - אין יותר יעד מוסתר, והשלילה חוזרת להיות ידועה
+    merged.hasLinkShortener = resolved.length !== shortLinks.length;
+  }
   const crawledUrls = [homeUrl];
   const visited = new Set([siteUrl, homeUrl]);
 
@@ -181,6 +239,10 @@ export async function crawlWebsite(
     hasGoogleAnalytics: merged.hasGoogleAnalytics,
     hasAccessibilityStatement: merged.hasAccessibilityStatement,
     hasAccessibilityWidget: merged.hasAccessibilityWidget,
+    hasOrderingSystem: merged.hasOrderingSystem,
+    hasDeliveryPlatform: merged.hasDeliveryPlatform,
+    // "נשארו קישורים מקוצרים שלא הצלחנו לפתוח" - ולכן שלילה של וואטסאפ אינה ידועה
+    hasLinkShortener: merged.hasLinkShortener,
     platform: merged.platform,
     clientFramework: merged.clientFramework,
     jsRendered,

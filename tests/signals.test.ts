@@ -74,12 +74,72 @@ describe("extractSignals", () => {
     expect(s.platform).toBe("wix");
   });
 
-  // המקרה החי (פיצה סבא אדוארד): מערכת הזמנות ישראלית + טופס Elementor בלי תגית form
-  it("detects Israeli ordering platforms as online booking", () => {
-    expect(extractSignals(`<a href="https://order.bitetech.co.il/#/617/home">להזמנות</a>`, BASE).hasOnlineBooking).toBe(true);
+  // המקרה החי (פיצה סבא אדוארד): מערכת הזמנות ישראלית + טופס Elementor בלי תגית form.
+  // מאז 20.8 שלושת הערוצים מופרדים: הזמנה ישירה, הזמנת מקומות, ומשלוח דרך פלטפורמה
+  it("separates direct ordering, table booking and third-party delivery", () => {
+    const ordering = extractSignals(`<a href="https://order.bitetech.co.il/#/617/home">להזמנות</a>`, BASE);
+    expect(ordering.hasOrderingSystem).toBe(true);
+    expect(ordering.hasDeliveryPlatform).toBe(false);
+
+    const generic = extractSignals(`<a href="https://order.some-pizza.co.il/menu">תפריט</a>`, BASE);
+    expect(generic.hasOrderingSystem).toBe(true);
+
+    // תפריט והזמנות של Mealy - אומת חי ב-caramelcafe.co.il
+    expect(extractSignals(`<a href="https://app.mealy.co.il/x">תפריט</a>`, BASE).hasOrderingSystem).toBe(true);
+
+    // הזמנת מקומות היא כן קביעת תור
     expect(extractSignals(`<a href="https://www.tabit.cloud/somebiz">הזמינו שולחן</a>`, BASE).hasOnlineBooking).toBe(true);
-    expect(extractSignals(`<a href="https://wolt.com/he/isr/beer-sheva/restaurant/x">וולט</a>`, BASE).hasOnlineBooking).toBe(true);
-    expect(extractSignals(`<a href="https://order.some-pizza.co.il/menu">תפריט</a>`, BASE).hasOnlineBooking).toBe(true);
+  });
+
+  // וולט אינה ערוץ ישיר של העסק אלא תלות בצד שלישי - ולכן לא מזכה בקביעת תור
+  it("does not count a delivery platform as online booking", () => {
+    const s = extractSignals(`<a href="https://wolt.com/he/isr/beer-sheva/restaurant/x">וולט</a>`, BASE);
+    expect(s.hasDeliveryPlatform).toBe(true);
+    expect(s.hasOnlineBooking).toBe(false);
+    expect(s.hasOrderingSystem).toBe(false);
+  });
+
+  it("detects Israeli appointment vendors that the catalog already prices", () => {
+    for (const href of [
+      "https://calmark.co.il/page/1050",
+      "https://www.clickynder.com/biz/abc",
+      "https://plannie.co.il/x",
+      "https://mytor.co.il/x",
+      "https://yoman.co.il/x",
+      "https://nello.co.il/x",
+      "https://fizikal.co.il/x",
+    ]) {
+      // טקסט עוגן ניטרלי בכוונה - כדי שהבדיקה תוכיח את זיהוי הספק ולא את זיהוי הטקסט
+      expect(extractSignals(`<a href="${href}">לחצו כאן</a>`, BASE).hasOnlineBooking).toBe(true);
+    }
+  });
+
+  // מערכת תורים עצמית, בלי ספק מזוהה
+  it("detects a self-built booking link by anchor text plus a real destination", () => {
+    expect(extractSignals(`<a href="/appointments">לקביעת תור</a>`, BASE).hasOnlineBooking).toBe(true);
+    expect(extractSignals(`<a href="/x">להזמנת תור</a>`, BASE).hasOnlineBooking).toBe(true);
+    expect(extractSignals(`<a href="/x">Book now</a>`, BASE).hasOnlineBooking).toBe(true);
+  });
+
+  it("detects a self-built booking form by date plus time fields", () => {
+    const html = `<form><input type="date" name="d"><input type="time" name="t"><input type="tel" name="p"></form>`;
+    expect(extractSignals(html, BASE).hasOnlineBooking).toBe(true);
+  });
+
+  // המלכודת שהתבנית נבנתה סביבה: "לקביעת תור התקשרו" הוא קביעת תור בטלפון, ההפך הגמור
+  it('"לקביעת תור התקשרו" is phone booking, never online booking', () => {
+    expect(extractSignals(`<a href="tel:031234567">לקביעת תור התקשרו</a>`, BASE).hasOnlineBooking).toBe(false);
+    expect(extractSignals(`<p>לקביעת תור התקשרו 03-1234567</p>`, BASE).hasOnlineBooking).toBe(false);
+    expect(extractSignals(`<a href="#">לקביעת תור</a>`, BASE).hasOnlineBooking).toBe(false);
+    expect(extractSignals(`<button>לקביעת תור</button>`, BASE).hasOnlineBooking).toBe(false);
+  });
+
+  // מקצר כתובות מסתיר את היעד - המקרה החי habarber.co.il
+  it("flags a link shortener so a WhatsApp negative can be downgraded", () => {
+    const s = extractSignals(`<a href="https://bit.ly/3abcDEF">וואטסאפ</a>`, BASE);
+    expect(s.hasLinkShortener).toBe(true);
+    expect(s.hasWhatsappLink).toBe(false);
+    expect(extractSignals(`<a href="/x">רגיל</a>`, BASE).hasLinkShortener).toBe(false);
   });
 
   it("plain English prose with the word order is not online booking", () => {
@@ -153,7 +213,11 @@ describe("extractSignals", () => {
       hasGoogleAnalytics: false,
       hasAccessibilityStatement: false,
       hasAccessibilityWidget: false,
+      hasOrderingSystem: false,
+      hasDeliveryPlatform: false,
+      hasLinkShortener: false,
       platform: undefined,
+      clientFramework: undefined,
       internalLinks: [],
     });
   });

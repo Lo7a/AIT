@@ -21,6 +21,14 @@ export interface PlaceDetails {
   website?: string;
   rating?: number;
   reviewCount?: number;
+  // סוג העסק לפי גוגל וקואורדינטות (נוספו 20.8 למסכת השדות). primaryType/types הם הבסיס לזיהוי
+  // ענף (R1); location נדרש להשוואת מתחרים ברדיוס. שניהם בשכבת Essentials, כלומר בלי תוספת חיוב
+  // מעל שדות ה-Enterprise שכבר מבוקשים ממילא.
+  // הערה: אין ב-Places API שדה של תשובת בעל העסק לביקורת - אומת מול התיעוד 20.8. האות
+  // "האם עונים לביקורות" דורש את Google Business Profile API, שחסום לנו (ראו מחקר מקורות המידע)
+  primaryType?: string;
+  types?: string[];
+  location?: { lat: number; lng: number };
   reviews: Review[];
   // הגוף המלא כפי שהתקבל מ-Places Details - לשימוש עתידי (payload גולמי, אבן דרך 4 משימה 0.7).
   // לעולם לא נגזר ממנו findings.business - השדות שם נבנים במפורש כדי ש-raw לא ידלוף לשם
@@ -38,6 +46,12 @@ export interface WebsiteSignals {
   hasChatWidget: boolean;
   hasFacebookPixel: boolean;
   hasGoogleAnalytics: boolean;
+  // הזמנות ומשלוחים (נוספו 20.8, מחקר טביעות האצבע): ערוץ הזמנה ישיר שבבעלות העסק לעומת תלות
+  // בפלטפורמת צד שלישי. אופציונליים כמו שאר התוספות המאוחרות, כדי לא לשבור fixtures קיימים
+  hasOrderingSystem?: boolean;
+  hasDeliveryPlatform?: boolean;
+  // מקצר כתובות בעמוד: היעד מוסתר, ולכן שלילה של וואטסאפ אינה ידועה (ראו signals.ts)
+  hasLinkShortener?: boolean;
   platform?: string;
   jsRendered?: boolean; // האתר מרונדר בצד לקוח - האותות מה-HTML הגולמי חלקיים, אסור להסיק מהם "אין"
   // נגישות (הצהרת נגישות + רכיב נגישות מותקן) - אופציונלי כמו platform/jsRendered כדי לא לשבור
@@ -184,6 +198,11 @@ export interface ScanFindings {
     website?: string;
     rating?: number;
     reviewCount?: number;
+    // סוג העסק לפי גוגל וקואורדינטות (20.8) - הקלט העתידי ל-industryOf ולהשוואת מתחרים ברדיוס.
+    // אופציונליים: סריקות ישנות ומסלול ה-url הישיר לא מכילים אותם, וחסר פירושו "לא ידוע"
+    primaryType?: string;
+    types?: string[];
+    location?: { lat: number; lng: number };
   };
   websiteSignals?: WebsiteSignals;
   pageSpeed?: PageSpeedResult;
@@ -192,7 +211,7 @@ export interface ScanFindings {
   health?: HealthSignals;
   socialOnly?: SocialOnly;
   partial: PartialFlag[]; // איחוד הדגלים האפשריים - ראו PartialFlag
-  partialDetails?: Partial<Record<PartialFlag, string>>; // דגל → סיבת הכישלון (לעולם בלי טקסט ביקורות)
+  partialDetails?: Partial<Record<PartialFlag, string>>; // דגל - סיבת הכישלון (לעולם בלי טקסט ביקורות)
   meta: ScanMeta;
   raw?: ScanRawPayload;
 }

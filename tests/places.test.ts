@@ -119,3 +119,37 @@ describe("getPlaceDetails", () => {
     await expect(getPlaceDetails("pid-1", { apiKey: "k", fetchImpl })).rejects.toThrow(/403/);
   });
 });
+
+// תוספת 20.8: סוג העסק וקואורדינטות. עד היום גוגל ידעה ואנחנו לא ביקשנו, ולכן זיהוי הענף
+// והשוואת המתחרים ברדיוס היו חסומים על שורה אחת במסכת השדות
+describe("place type and location field mask (20.8)", () => {
+  it("requests primaryType, types and location, and maps them", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse({
+        id: "pid-2",
+        displayName: { text: "מספרת הברבר" },
+        primaryType: "barber_shop",
+        types: ["barber_shop", "hair_care", "point_of_interest"],
+        location: { latitude: 32.6078, longitude: 35.2897 },
+      }),
+    );
+    const details = await getPlaceDetails("pid-2", { apiKey: "k", fetchImpl });
+
+    const mask = fetchImpl.mock.calls[0][1].headers["X-Goog-FieldMask"] as string;
+    expect(mask).toContain("primaryType");
+    expect(mask).toContain("types");
+    expect(mask).toContain("location");
+
+    expect(details.primaryType).toBe("barber_shop");
+    expect(details.types).toEqual(["barber_shop", "hair_care", "point_of_interest"]);
+    expect(details.location).toEqual({ lat: 32.6078, lng: 35.2897 });
+  });
+
+  it("leaves location undefined when Google omits it - missing is not zero", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ id: "pid-3", displayName: { text: "עסק" } }));
+    const details = await getPlaceDetails("pid-3", { apiKey: "k", fetchImpl });
+    expect(details.location).toBeUndefined();
+    expect(details.primaryType).toBeUndefined();
+    expect(details.types).toBeUndefined();
+  });
+});
