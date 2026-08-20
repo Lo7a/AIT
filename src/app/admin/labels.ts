@@ -17,6 +17,7 @@ export const EVENT_LABEL: Record<string, string> = {
   impersonation_started: "התחזות התחילה",
   impersonation_stopped: "התחזות הסתיימה",
   settings_changed: "הגדרה עודכנה",
+  catalog_changed: "ספריית השירותים עודכנה",
 };
 
 // תוויות עברית למגבלות הניתנות לעריכה (rate-limit.ts) - הסדר כאן הוא סדר התצוגה

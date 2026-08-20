@@ -231,6 +231,18 @@ model OpportunityCatalog {
   savingRange String                       @map("saving_range")
   complexity  String
   installTime String                       @map("install_time")
+  // טקסונומיה של הספרייה (20.8, בקשת מייסד). שני צירים נפרדים בכוונה: סוג השירות הוא
+  // *מה* אנחנו מוכרים ויש בדיוק אחד לפריט, והענפים הם *למי* - ויש כמה. בוט AI הוא סוג
+  // שירות אחד שמתאים לכמה ענפים. הענפים יושבים ב-conditions.industries שכבר קיים
+  // (התניית ענף, matching.ts) ולכן אין להם עמודה כאן.
+  serviceType String?                      @map("service_type")
+  // השלב בתוכנית העבודה. עד 20.8 הוא היה מפה בקוד לפי *שם* הפריט (opportunity-score.ts),
+  // כלומר פריט חדש נפל בשקט לברירת המחדל ושינוי שם הזיז שלב בלי שאיש ידע. משעברה
+  // הספרייה לעריכה מהממשק זה הפך לבאג ממשי, ולכן השלב הוא עמודה. null = נופל למפה הישנה
+  phase       String?
+  // ארכוב במקום מחיקה: לפריט יש RoadmapItem[] שמצביעים עליו, ומחיקה קשה הייתה שוברת
+  // תוכניות עבודה קיימות של לקוחות. פריט מארוכב לא מוצע יותר ולא נעלם מהיסטוריה
+  archivedAt  DateTime?                    @map("archived_at")
   embedding   Unsupported("vector(768)")?
   updatedAt   DateTime                     @default(now()) @updatedAt @map("updated_at")
   items       RoadmapItem[]

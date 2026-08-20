@@ -15,6 +15,10 @@ const prisma = new PrismaClient();
 const VERIFIED = new Date("2026-08-13");
 
 interface CatalogSeed {
+  // הטקסונומיה (20.8): סוג השירות ושלב תוכנית העבודה עברו מהקוד לנתונים,
+  // כדי שהספרייה תהיה ניתנת לעריכה מהממשק בלי שמפה בקוד תישבר מאחורי הגב
+  serviceType?: string;
+  phase?: string;
   name: string;
   problem: string;
   solution: string;
@@ -33,6 +37,8 @@ interface CatalogSeed {
 const CATALOG: CatalogSeed[] = [
   {
     name: "סוכן AI לטיפול בלידים",
+    serviceType: "ai",
+    phase: "ai",
     problem: "פניות נכנסות לא נענות מהר, לידים מתקררים והולכים למתחרים",
     solution: "סוכן AI בעברית שעונה לכל פנייה תוך שניות, מסנן, מתעד ומעביר לבן אדם רק כשצריך",
     conditions: { gapKeys: ["contact_form", "lead_handling"] },
@@ -48,6 +54,8 @@ const CATALOG: CatalogSeed[] = [
   },
   {
     name: "בוט וואטסאפ לשירות לקוחות",
+    serviceType: "ai",
+    phase: "ai",
     problem: "שאלות חוזרות מעמיסות על הטלפון, ופניות מחוץ לשעות הפעילות אובדות",
     solution: "בוט וואטסאפ שעונה על השאלות הנפוצות 24/7 ומעביר שיחות מורכבות לצוות",
     conditions: { gapKeys: ["whatsapp", "chat_widget"] },
@@ -62,6 +70,8 @@ const CATALOG: CatalogSeed[] = [
   },
   {
     name: "קביעת תורים אונליין",
+    serviceType: "booking",
+    phase: "automation",
     problem: "כל תיאום תור דורש שיחת טלפון בשעות הפעילות - חיכוך ללקוח ועומס לצוות",
     solution: "יומן תורים אונליין (תשתית ייעודית) מוטמע באתר ובפרופיל גוגל",
     conditions: { gapKeys: ["online_booking"] },
@@ -76,6 +86,8 @@ const CATALOG: CatalogSeed[] = [
   },
   {
     name: "הקמת פרופיל Google Business",
+    serviceType: "presence",
+    phase: "quick_wins",
     problem: "העסק לא מופיע במפות גוגל - לקוחות שמחפשים בסביבה לא מוצאים אותו",
     solution: "הקמה ומילוי מלא של פרופיל העסק: פרטים, תמונות, שעות, קטגוריות ופוסטים",
     // gbp_rating הוסר (סקירת משימה 10): הוא נבדק רק כשכבר יש פרופיל - סתירה להמלצת "הקמת פרופיל"
@@ -90,6 +102,8 @@ const CATALOG: CatalogSeed[] = [
   },
   {
     name: "איסוף ביקורות אוטומטי",
+    serviceType: "reviews",
+    phase: "automation",
     problem: "לקוחות מרוצים לא משאירים ביקורות, והפרופיל נראה דל מול מתחרים",
     solution: "שליחה אוטומטית של בקשת ביקורת (וואטסאפ/SMS) אחרי כל שירות",
     conditions: { gapKeys: ["has_reviews", "review_volume"] },
@@ -104,6 +118,8 @@ const CATALOG: CatalogSeed[] = [
   },
   {
     name: "ניהול ומענה לביקורות",
+    serviceType: "reviews",
+    phase: "automation",
     problem: "ביקורות שליליות עומדות בלי מענה ופוגעות באמון של לקוחות חדשים",
     solution: "ניטור ביקורות + טיוטות מענה מנומס בעברית לכל ביקורת, לאישור בעל העסק",
     conditions: { gapKeys: ["no_problem_themes"] },
@@ -117,6 +133,8 @@ const CATALOG: CatalogSeed[] = [
   },
   {
     name: "שיפור מהירות האתר",
+    serviceType: "website",
+    phase: "automation",
     problem: "האתר נטען לאט במובייל - גולשים נוטשים לפני שראו בכלל את התוכן",
     solution: "אופטימיזציית תמונות, קאשינג וסקריפטים; יעד: LCP מתחת ל-4 שניות",
     conditions: { gapKeys: ["perf", "lcp"] },
@@ -132,6 +150,8 @@ const CATALOG: CatalogSeed[] = [
   },
   {
     name: "חיבור וואטסאפ לאתר",
+    serviceType: "channels",
+    phase: "quick_wins",
     problem: "אין דרך מהירה לפנות לעסק - הערוץ שהלקוח הישראלי הכי מצפה לו חסר",
     solution: "כפתור וואטסאפ צף באתר + קישור ישיר בפרופיל גוגל",
     conditions: { gapKeys: ["whatsapp"] },
@@ -145,6 +165,8 @@ const CATALOG: CatalogSeed[] = [
   },
   {
     name: "התקנת מדידה (Analytics + פיקסל)",
+    serviceType: "measurement",
+    phase: "automation",
     problem: "אין נתונים על מי מבקר באתר ומאיפה - החלטות שיווק מתקבלות באפלה",
     solution: "התקנת GA4 ופיקסל Meta + הגדרת אירועי המרה בסיסיים",
     conditions: { gapKeys: ["analytics", "fb_pixel"] },
@@ -158,6 +180,8 @@ const CATALOG: CatalogSeed[] = [
   },
   {
     name: "חיבור לידים ל-CRM והתראות",
+    serviceType: "automation",
+    phase: "automation",
     problem: "פניות מהאתר מגיעות למייל ונקברות שם - אין מעקב מי טופל ומי נפל",
     solution: "כל פנייה נרשמת אוטומטית ב-CRM עם התראה מיידית לוואטסאפ של המטפל",
     // email_link נוסף (סקירת משימה 10): מבדיל את הפריט מסוכן ה-AI (פריט 1) שחולק איתו את שני המפתחות האחרים
@@ -177,6 +201,8 @@ const CATALOG: CatalogSeed[] = [
     // כלשונו ("פיצויים בסכום שלא יעלה על... בלא הוכחת נזק"); ספרות הסכום בחילוץ מעוותות
     // בקידוד הגופן אך המבנה תואם וכל המקורות המשניים פה-אחד על הסכום
     name: "הנגשת אתר + הצהרת נגישות",
+    serviceType: "accessibility",
+    phase: "automation",
     problem: "האתר לא עומד בתקן הנגישות הישראלי ואין בו הצהרת נגישות - חשיפה לתביעה, ולקוחות שלא מצליחים להשתמש באתר",
     solution: "תוסף נגישות + הצהרת נגישות משפטית מותאמת, ובאתרים שדורשים זאת גם תיקוני קוד ידניים לתקן 5568 ברמת AA",
     conditions: { gapKeys: ["a11y_statement", "site_a11y"] },
@@ -201,6 +227,8 @@ const CATALOG: CatalogSeed[] = [
     // מחירון KIVOICE אומת חי פעמיים (סוכן המחקר + אימות עצמאי של הבקר). נתוני השיחות האבודות
     // אמריקאיים - מסומנים ככאלה בכל טקסט מוצג, אין נתון ישראלי מקביל.
     name: "סוכן AI קולי למענה טלפוני",
+    serviceType: "ai",
+    phase: "ai",
     problem: "שיחות בשעות עומס או אחרי שעות הפעילות לא נענות - הלקוח לא משאיר הודעה, הוא מתקשר למתחרה",
     solution: "סוכן קולי AI בעברית שעונה לכל שיחה, מתעד את הפנייה, קובע תור ומעביר לבן אדם כשצריך",
     conditions: { gapKeys: ["lead_handling"] },
@@ -219,6 +247,8 @@ const CATALOG: CatalogSeed[] = [
     // החזק הוא החלופה האנושית הישראלית (מחירוני ניהול סושיאל חיים); נתוני שעות הבעלים אמריקאיים
     // ומסומנים. פריט מונע-ראיון - הסורק לא בודק פעילות ברשתות.
     name: "סוכן AI לתוכן ורשתות חברתיות",
+    serviceType: "ai",
+    phase: "ai",
     problem: "הנוכחות ברשתות גוזלת שעות כל שבוע או לא קורית בכלל - והעסק נעלם מהפיד של הלקוחות",
     solution: "סוכן AI שמייצר טיוטות פוסטים בקול של העסק, מתזמן פרסום ומשאיר לבעל העסק רק אישור",
     conditions: { gapKeys: ["manual_tasks"] },
@@ -237,6 +267,8 @@ const CATALOG: CatalogSeed[] = [
     // מחיר מבצע של ספק יחיד - הושמט). ה-solution מנוסח בכנות "סיוע AI בניסוח" - רכיב ה-AI בשוק
     // הישראלי דק (docs/research/ai-agents-pricing-2026-08.md, סעיף 3). פריט מונע-ראיון.
     name: "סוכן AI להצעות מחיר",
+    serviceType: "ai",
+    phase: "ai",
     problem: "כל הצעת מחיר נכתבת ידנית מאפס - עוברים ימים עד שהיא נשלחת, והלקוח סוגר עם מי שהגיב ראשון",
     solution: "הפקה אוטומטית של הצעות מחיר ממותגות מתבניות, עם מעקב סטטוס וסיוע AI בניסוח",
     conditions: { gapKeys: ["manual_tasks"] },
@@ -257,6 +289,8 @@ const CATALOG: CatalogSeed[] = [
     // בוני ה-AI הושמטו מה-solution בכוונה עד אימות תמיכת עברית (הכרעת מחקר). נתון Deloitte
     // הושמט (שלושה סייגים - ראו סעיף "מה דק" במסמך). פריט מונע-סריקה: שני המפתחות known תמיד.
     name: "הקמת אתר ראשון לעסק",
+    serviceType: "website",
+    phase: "automation",
     problem: "לעסק אין אתר משלו - מי שמחפש מוצא לכל היותר עמוד ברשת חברתית, ואין דף שהעסק שולט בו, מציג בו מחירים וסוגר ממנו לידים",
     solution: "הקמת אתר תדמית בעברית: בונה אתרים בניהול עצמי לתקציב קטן, או הקמת אתר וורדפרס מלאה דרכנו - מהעיצוב ועד העלייה לאוויר",
     conditions: { gapKeys: ["has_website", "own_website"] },
@@ -276,6 +310,8 @@ const CATALOG: CatalogSeed[] = [
     // (לא כספי מומצא) - שתי טענות ה-ROI הכספיות נפסלו במחקר על היעדר מקור ראשוני.
     // פריט מונע-ראיון: internal_tools נחשף רק בשאלת הכלים - הסורק לא רואה מה קורה בפנים.
     name: "מערכת CRM לניהול לקוחות",
+    serviceType: "crm",
+    phase: "automation",
     problem: "הלקוחות והפניות מנוהלים בראש, בוואטסאפ ובאקסל - אין תמונה אחת של מי בטיפול, מי חיכה יותר מדי ומי שווה מעקב",
     solution: "הטמעת CRM מוכן לעסק קטן עם צינור מכירה, תיעוד פניות ותזכורות מעקב",
     conditions: { gapKeys: ["internal_tools"] },
@@ -294,6 +330,8 @@ const CATALOG: CatalogSeed[] = [
     // אושר על ידי המייסד 17.8 (הכריע לזרוע למרות היותו שלישי על manual_tasks - כיסוי רחב עדיף,
     // הדירוג מסדר). savingRange בלי ספרות - טענות "חוסך X שעות" בשוק הן מקרי לקוח של ספקים.
     name: "אוטומציה בין המערכות הקיימות",
+    serviceType: "automation",
+    phase: "automation",
     problem: "המערכות לא מדברות ביניהן - כל ליד, חשבונית או עדכון מועתקים ידנית ממערכת למערכת, וטעות אחת שוברת את השרשרת",
     solution: "חיבור המערכות הקיימות (טפסים, יומן, חשבוניות, CRM) באוטומציות שרצות לבד, בהקמה מלאה דרכנו",
     conditions: { gapKeys: ["manual_tasks"] },
@@ -315,6 +353,8 @@ const CATALOG: CatalogSeed[] = [
     // savingRange בלי ספרות במכוון: אין מקור ישראלי שמכמת נזק מדואר שנופל לספאם, וכל מספר
     // כזה היה המצאה. מחקר המקורות: docs/research/2026-08-20-mail-auth-pricing.md
     name: "הגדרת אימות הדואר (SPF ו-DMARC)",
+    serviceType: "infrastructure",
+    phase: "quick_wins",
     problem: "מיילים שהעסק שולח עלולים ליפול לספאם אצל הלקוח, וכל אחד בעולם יכול לשלוח מייל שנראה כאילו הגיע מכתובת העסק",
     solution: "סידור רשומות ה-SPF וה-DMARC ברישום הדומיין: רשומה אחת נכונה במקום כפילויות שמבטלות זו את זו, והנחיה מפורשת לשרתי הדואר מה לעשות עם הודעות שמתחזות לעסק",
     conditions: { gapKeys: ["mail_auth"] },
@@ -334,6 +374,8 @@ const CATALOG: CatalogSeed[] = [
   // online_booking היום. דווקא מי שמשלם את העמלות הכי הרבה לא ייפול על הפער הזה
   {
     name: "מערכת הזמנות ישירות למסעדה",
+    serviceType: "booking",
+    phase: "automation",
     problem: "כל ההזמנות אונליין עוברות דרך אפליקציות המשלוחים - ולפי פרסומים בעיתונות הפלטפורמות גובות 25-33% מכל הזמנה, גם מהלקוחות הקבועים שהיו מזמינים ישירות",
     solution: "אתר הזמנות ישיר למשלוחים ולאיסוף עצמי במנוי קבוע בלי עמלה פר הזמנה, לצד הפלטפורמות - הלקוחות החוזרים עוברים לערוץ שכולו נשאר אצל המסעדה",
     conditions: { gapKeys: ["own_website"], industries: ["food_dine_in", "food_takeaway"] },
@@ -351,6 +393,8 @@ const CATALOG: CatalogSeed[] = [
   },
   {
     name: "תפריט דיגיטלי למסעדה",
+    serviceType: "presence",
+    phase: "quick_wins",
     problem: "סועד שמחפש את המסעדה בגוגל לא מוצא תפריט עדכני - ובמקום, כל שינוי מחיר דורש הדפסת תפריטים מחדש",
     solution: "תפריט דיגיטלי עם קוד QR בשולחנות וקישור מהפרופיל בגוגל - עדכון מנות ומחירים בלחיצה, בלי הדפסות",
     conditions: { gapKeys: ["own_website"], industries: ["food_dine_in", "food_takeaway"] },
@@ -368,25 +412,44 @@ const CATALOG: CatalogSeed[] = [
   },
 ];
 
+// **הממשק הוא מקור האמת לספרייה** (הכרעת מייסד 20.8), ולכן הזריעה משלימה בלבד.
+//
+// עד 20.8 היה כאן upsert: כל הרצה דרסה את הפריטים הקיימים לפי שם, ומחקה את כל
+// הבנצ'מרקים שלהם ויצרה מחדש. משעברה הספרייה לעריכה ממסך הניהול זה הפך למלכודת -
+// עריכה שנשמרה יפה ב-DB הייתה נמחקת בשקט בהרצת זריעה הבאה, בלי שגיאה ובלי סימן.
+//
+// עכשיו: פריט שכבר קיים בשם הזה לא נגעים בו כלל, ורק פריט חסר נוצר. המשמעות היא
+// שרענון מחירים בקובץ הזה **לא** מגיע יותר לפריטים קיימים - זו הכוונה: מחיר מתעדכן
+// במסך הניהול, והקובץ הזה הוא זריעה ראשונית ותיעוד המחקר, לא מקור חי.
 async function main() {
+  let created = 0;
+  let kept = 0;
+
   for (const item of CATALOG) {
     const { benchmarks, ...fields } = item;
-    const row = await prisma.opportunityCatalog.upsert({
+    const existing = await prisma.opportunityCatalog.findUnique({
       where: { name: fields.name },
-      update: { ...fields, conditions: fields.conditions },
-      create: { ...fields, conditions: fields.conditions },
+      select: { id: true },
     });
-    // רענון מחירים משנה גם שמות metric - מוחקים את כל הבנצ'מרקים של הפריט ויוצרים מחדש,
-    // אחרת שורות בשם ישן היו נשארות לצד החדשות (אידמפוטנטי לכל ריצה)
-    await prisma.benchmark.deleteMany({ where: { catalogId: row.id } });
+    if (existing != null) {
+      kept += 1;
+      continue;
+    }
+
+    const row = await prisma.opportunityCatalog.create({
+      data: { ...fields, conditions: fields.conditions },
+    });
+    created += 1;
     for (const b of benchmarks ?? []) {
       const { verifiedAt, ...bench } = b;
       await prisma.benchmark.create({ data: { ...bench, catalogId: row.id, verifiedAt: verifiedAt ?? VERIFIED } });
     }
   }
+
   const count = await prisma.opportunityCatalog.count();
   const benchCount = await prisma.benchmark.count();
   console.log(`קטלוג: ${count} פריטים · ${benchCount} בנצ'מרקים`);
+  console.log(`נוצרו ${created} פריטים חדשים · ${kept} קיימים נשארו כפי שהם (הממשק הוא הבוס)`);
 }
 
 main().finally(() => prisma.$disconnect());

@@ -237,3 +237,28 @@ describe("phaseTierOf", () => {
     expect(sorted[0]).toBe("ai");
   });
 });
+
+// השלב השמור על הפריט גובר על המפה שבקוד (20.8). המפה הפכה לפצצה שקטה משעברה
+// הספרייה לעריכה מהממשק: היא ממופתחת בשם, ולכן שינוי שם היה מזיז שלב בלי שאיש ידע
+describe("phaseOf: השלב השמור על הפריט", () => {
+  it("שלב שמור גובר על המפה שבקוד", () => {
+    // הפריט הזה ממופה בקוד ל-quick_wins; השדה השמור אומר ai והוא שקובע
+    const match = { catalog: catalogItem({ name: "הקמת פרופיל Google Business", phase: "ai" }) } as OpportunityMatch;
+    expect(phaseOf(match)).toBe("ai");
+  });
+
+  it("בלי שלב שמור נופלים למפה שבקוד - שום פריט קיים לא זז", () => {
+    const match = { catalog: catalogItem({ name: "הקמת פרופיל Google Business" }) } as OpportunityMatch;
+    expect(phaseOf(match)).toBe("quick_wins");
+  });
+
+  it("שלב שמור שאינו אחד מהארבעה לא נסמך עליו", () => {
+    const match = { catalog: catalogItem({ name: "הקמת פרופיל Google Business", phase: "לא שלב" }) } as OpportunityMatch;
+    expect(phaseOf(match)).toBe("quick_wins");
+  });
+
+  it("פריט חדש בלי שלב שמור ובלי מיפוי נופל לברירת המחדל", () => {
+    const match = { catalog: catalogItem({ name: "שירות שנוצר מהממשק" }) } as OpportunityMatch;
+    expect(phaseOf(match)).toBe("automation");
+  });
+});

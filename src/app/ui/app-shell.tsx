@@ -16,7 +16,7 @@ const RAIL_KEY = "ait-rail";
 
 export type ShellNavKey =
   | "home" | "report" | "interview" | "roadmap" | "newscan"
-  | "admin" | "admin_users" | "admin_diagnoses" | "admin_usage" | "admin_activity";
+  | "admin" | "admin_catalog" | "admin_users" | "admin_diagnoses" | "admin_usage" | "admin_activity";
 
 export type ShellSection = "business" | "admin";
 
@@ -53,6 +53,13 @@ const NAV_ICONS: Record<ShellNavKey, ReactNode> = {
       <path d="m9.3 11.8 1.9 1.9 3.5-3.6" />
     </svg>
   ),
+  admin_catalog: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 5.4A1.4 1.4 0 0 1 5.4 4h3.2A1.4 1.4 0 0 1 10 5.4v13.2A1.4 1.4 0 0 1 8.6 20H5.4A1.4 1.4 0 0 1 4 18.6z" />
+      <path d="M13 5.4A1.4 1.4 0 0 1 14.4 4h1.2A1.4 1.4 0 0 1 17 5.4v13.2A1.4 1.4 0 0 1 15.6 20h-1.2A1.4 1.4 0 0 1 13 18.6z" />
+      <path d="m19.2 6.3 1.7 12.1" />
+    </svg>
+  ),
   admin_users: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="9" cy="8" r="3.2" /><path d="M3.4 19.4a5.9 5.9 0 0 1 11.2 0" />
@@ -84,6 +91,7 @@ const NAV_LABEL: Record<ShellNavKey, string> = {
   roadmap: "תוכנית העבודה",
   newscan: "אבחון לעסק נוסף",
   admin: "ניהול",
+  admin_catalog: "ספריית השירותים",
   admin_users: "משתמשים",
   admin_diagnoses: "אבחונים",
   admin_usage: "שימוש ומגבלות",
@@ -94,6 +102,7 @@ const NAV_LABEL: Record<ShellNavKey, string> = {
 // ומה קרה. "/admin" נבדק בהתאמה מדויקת - אחרת הוא היה דולק בכל תת-עמוד
 const ADMIN_ITEMS: { key: ShellNavKey; href: string }[] = [
   { key: "admin", href: "/admin" },
+  { key: "admin_catalog", href: "/admin/catalog" },
   { key: "admin_users", href: "/admin/users" },
   { key: "admin_diagnoses", href: "/admin/diagnoses" },
   { key: "admin_usage", href: "/admin/usage" },

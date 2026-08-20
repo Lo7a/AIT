@@ -1214,3 +1214,92 @@ button.ans-row:not(:disabled):active{background:rgba(var(--acc-rgb),.16)}
   }
   .rv,.animate-fade-up{animation:none;opacity:1;transform:none;filter:none}
 }
+
+/* ===== עימוד וסינון בטבלאות הניהול (ui/pager.tsx) =====
+   שורה אחת מתחת לטבלה: כמה יש, איפה אנחנו, ולאן אפשר. הכפתורים הם קישורים אמיתיים
+   ולכן הם מקבלים מצב hover ו-focus כמו כל קישור אחר במערכת */
+.pg{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  margin-top:14px;padding-top:13px;border-top:1px solid var(--row-line);
+}
+.pg-sum{font-size:12px;color:var(--mut);margin-top:10px}
+.pg .pg-sum{margin-top:0}
+.pg-nums{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.pg-btn{
+  display:inline-grid;place-items:center;min-width:32px;height:32px;padding:0 10px;
+  font-size:12.5px;font-weight:600;color:var(--mut);text-decoration:none;
+  background:var(--surface-1);border:1px solid var(--hair-soft);border-radius:9px;
+  transition:background .25s var(--ease-out),color .25s,border-color .25s;
+}
+.pg-btn:hover{background:var(--surface-2);color:var(--txt)}
+.pg-btn.on{
+  color:var(--acc-soft);background:rgba(var(--acc-rgb),.12);
+  border-color:rgba(var(--acc-rgb),.35);
+}
+.pg-gap{color:var(--dim);font-size:12px;padding:0 2px}
+
+/* שורת החיפוש והסינון מעל טבלה. טופס GET רגיל: המצב חי ב-URL, ולכן הוא ניתן לשיתוף
+   ולרענון ועובד גם לפני שה-JS נטען */
+.fbar{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.fbar .fld{display:flex;flex-direction:column;gap:5px;min-width:0}
+.fbar label{font-size:10.5px;font-weight:700;letter-spacing:.12em;color:var(--dim)}
+.fbar input[type=search],.fbar select{
+  height:36px;padding:0 11px;font:inherit;font-size:13px;color:var(--txt);
+  background:var(--surface-1);border:1px solid var(--hair);border-radius:10px;
+  min-width:0;max-width:100%;
+}
+.fbar input[type=search]{min-width:min(260px,60vw)}
+.fbar input[type=search]:focus,.fbar select:focus{outline:none;border-color:rgba(var(--acc-rgb),.5)}
+.fbar .fbar-act{display:flex;gap:8px;align-items:center}
+.fbar .clear{font-size:12.5px;color:var(--mut);text-decoration:none;padding:0 4px}
+.fbar .clear:hover{color:var(--txt);text-decoration:underline}
+
+/* ===== טופס פריט הספרייה (admin/catalog) =====
+   טופס HTML רגיל, ולכן הסגנון יושב על אלמנטים אמיתיים ולא על רכיבי מעטפת */
+.cf-crumb{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mut);margin-bottom:12px}
+.cf-crumb a{color:var(--acc-soft);text-decoration:none}
+.cf-crumb a:hover{text-decoration:underline}
+.cf-ok,.cf-err{
+  margin:14px 0 0;padding:9px 13px;border-radius:11px;font-size:13px;font-weight:600;
+}
+.cf-ok{color:var(--acc2-soft);background:rgba(var(--acc2-rgb),.1);border:1px solid rgba(var(--acc2-rgb),.3)}
+.cf-err{color:var(--bad);background:rgba(var(--bad-rgb),.1);border:1px solid rgba(var(--bad-rgb),.35)}
+.cform{margin-top:18px}
+.cf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.cf-fld{display:flex;flex-direction:column;gap:6px;min-width:0}
+.cf-fld.cf-wide{grid-column:1/-1}
+.cf-fld > span{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--dim)}
+.cf-fld input,.cf-fld select,.cf-fld textarea{
+  font:inherit;font-size:13.5px;color:var(--txt);
+  background:var(--surface-1);border:1px solid var(--hair);border-radius:10px;
+  padding:9px 12px;min-width:0;max-width:100%;
+}
+.cf-fld textarea{resize:vertical;line-height:1.55}
+.cf-fld input:focus,.cf-fld select:focus,.cf-fld textarea:focus{
+  outline:none;border-color:rgba(var(--acc-rgb),.5);
+}
+.cf-set{
+  margin-top:20px;padding:15px 16px;
+  border:1px solid var(--hair-soft);border-radius:14px;background:var(--surface-1);
+}
+.cf-set legend{font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--mut);padding:0 6px}
+.cf-hint{font-size:12.5px;line-height:1.55;color:var(--mut);margin:0 0 11px;max-width:66ch}
+.cf-checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px 14px}
+.cf-chk{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;min-width:0}
+.cf-chk input{accent-color:var(--acc);width:15px;height:15px;flex:none}
+.cf-chk-lead{margin-bottom:12px;font-weight:600}
+.cf-act{display:flex;align-items:center;gap:14px;margin-top:20px}
+.cf-bench{margin-top:30px;padding-top:22px;border-top:1px solid var(--row-line)}
+.cf-benchadd{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;
+  margin-top:14px;padding:15px 16px;
+  border:1px solid var(--hair-soft);border-radius:14px;background:var(--surface-1);
+}
+.cf-danger{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  margin-top:26px;padding:15px 16px;
+  border:1px solid rgba(var(--warn-rgb),.3);border-radius:14px;
+  background:rgba(var(--warn-rgb),.06);
+}
+.cf-danger b{font-size:14px}
+.cf-danger .cf-hint{margin:5px 0 0}

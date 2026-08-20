@@ -17,6 +17,9 @@ export interface CatalogRowLite {
   // ששומר על כל הפריטים הקיימים בלי שינוי. השדה יושב בתוך conditions שהוא כבר Json
   // בסכמה, ולכן אין צורך במיגרציה
   conditions: { gapKeys: string[]; industries?: string[] };
+  // השלב כפי שנשמר על הפריט (20.8). null/חסר = נופל למפה שבקוד, וכך כל פריט שלא
+  // הוגדר לו שלב מתנהג בדיוק כמו לפני השינוי
+  phase?: string | null;
   costRange: string;
   savingRange: string;
   complexity: string;

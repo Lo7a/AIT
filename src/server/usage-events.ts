@@ -24,6 +24,8 @@ export const USAGE_EVENT_TYPES = [
   "impersonation_stopped",
   // אדמין שינה הגדרת מערכת (מגבלות קצב וכו'): metadata = {key, from, to}; userId = האדמין עצמו
   "settings_changed",
+  // אדמין ערך את ספריית השירותים (20.8): metadata = {action, name/metric}; userId = האדמין
+  "catalog_changed",
 ] as const;
 
 export type UsageEventType = (typeof USAGE_EVENT_TYPES)[number];
@@ -33,7 +35,7 @@ export interface UsageEventInput {
   // בהקשר של איזה חשבון קרתה הפעולה; actorUserId = מי ביצע בפועל - ברירת מחדל: המשתמש עצמו
   userId: string;
   actorUserId?: string;
-  entityType?: "diagnosis" | "roadmap_item";
+  entityType?: "diagnosis" | "roadmap_item" | "catalog";
   entityId?: string;
   metadata?: Record<string, unknown>;
 }

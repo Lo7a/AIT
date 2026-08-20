@@ -132,7 +132,17 @@ const PHASE_BY_CATALOG_NAME: Record<string, Phase> = {
 
 const DEFAULT_PHASE: Phase = "automation";
 
+const PHASE_SET = new Set<string>(["quick_wins", "automation", "ai", "transformation"]);
+
+// השלב השמור על הפריט גובר על המפה שבקוד (20.8). המפה נשארת כנפילה חזרה לפריטים
+// שאין להם שלב שמור, ובכך שום פריט קיים לא זז.
+//
+// למה זה נדרש: המפה ממופתחת ב**שם** הפריט, ומששועברה הספרייה לעריכה מהממשק הפכה
+// לפצצה שקטה - שינוי שם היה מזיז שלב בלי שאיש ידע, ופריט חדש היה נופל לברירת המחדל
+// בלי סימן. ערך שמור שאינו אחד מארבעת השלבים מתעלמים ממנו במקום לסמוך עליו
 export function phaseOf(match: OpportunityMatch): Phase {
+  const stored = match.catalog.phase;
+  if (typeof stored === "string" && PHASE_SET.has(stored)) return stored as Phase;
   return PHASE_BY_CATALOG_NAME[match.catalog.name] ?? DEFAULT_PHASE;
 }
 

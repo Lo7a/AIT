@@ -70,7 +70,10 @@ function gapKeysOf(conditions: unknown): string[] {
 // שדה פגום שהופך ל-undefined הופך פריט **ענפי** לפריט **כללי**, כלומר תפריט QR לשרברב.
 // לכן מערך שקיים אך אף איבר בו אינו מחרוזת מוחזר כמערך ריק ולא כ-undefined - פריט כזה לא
 // יתאים לשום ענף, וזו ההידרדרות הבטוחה. undefined מוחזר רק כשהשדה באמת לא קיים
-function industriesOf(conditions: unknown): string[] | undefined {
+// מיוצא (20.8) כדי שמסך ניהול הספרייה ישתמש באותו נרמול בדיוק ולא יכתוב שני.
+// שם הקורא שם מבקש string[] לתצוגה ולכן משתמש ב-?? [], וההבחנה בין "ריק" ל"חסר"
+// נשארת שמורה כאן, במקום היחיד שהיא באמת קובעת בו
+export function industriesOf(conditions: unknown): string[] | undefined {
   const list = (conditions as { industries?: unknown } | null)?.industries;
   if (!Array.isArray(list)) return undefined;
   return list.filter((v): v is string => typeof v === "string");
@@ -82,9 +85,13 @@ function industriesOf(conditions: unknown): string[] | undefined {
 // select צר בכוונה, בלי embedding/benchmarks הכבדים
 export async function loadCatalogLite(prisma: PrismaClient): Promise<CatalogRowLite[]> {
   const rows = await prisma.opportunityCatalog.findMany({
+    // פריט מארוכב אינו מוצע בתוכניות עבודה חדשות - זו כל המשמעות של ארכוב (20.8).
+    // תוכניות שכבר נבנו אינן נוגעות בזה: הן שומרות את הפריט שנבחר להן בזמנו
+    where: { archivedAt: null },
     select: {
       id: true, name: true, problem: true, solution: true, conditions: true,
       costRange: true, savingRange: true, complexity: true, installTime: true,
+      phase: true,
     },
   });
   return rows.map((r) => ({
@@ -100,6 +107,7 @@ export async function loadCatalogLite(prisma: PrismaClient): Promise<CatalogRowL
     savingRange: r.savingRange,
     complexity: r.complexity,
     installTime: r.installTime,
+    phase: r.phase,
   }));
 }
 
