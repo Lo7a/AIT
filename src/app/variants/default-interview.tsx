@@ -80,13 +80,13 @@ function TypingDots() {
 function Bubble({ message }: { message: ChatMessage }) {
   if (message.role === "user") {
     return (
-      <div className="max-w-[85%] self-end whitespace-pre-wrap break-words rounded-2xl border border-[rgba(var(--acc-rgb),.3)] bg-[rgba(var(--acc-rgb),.14)] px-4 py-2.5">
+      <div className="max-w-[62ch] self-end whitespace-pre-wrap break-words rounded-2xl border border-[rgba(var(--acc-rgb),.3)] bg-[rgba(var(--acc-rgb),.14)] px-4 py-2.5">
         {message.content}
       </div>
     );
   }
   return (
-    <div className="max-w-[85%] self-start whitespace-pre-wrap break-words rounded-2xl border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-4 py-2.5">
+    <div className="max-w-[62ch] self-start whitespace-pre-wrap break-words rounded-2xl border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-4 py-2.5">
       {message.content}
     </div>
   );
@@ -180,14 +180,16 @@ export function DefaultInterview({
           {isAdmin && <div className="side"><ImpersonateSearch /></div>}
         </header>
       )}
-      <main
-        className="mx-auto w-full max-w-[760px] flex-1 px-4 pb-16 pt-8 sm:pt-10"
-        aria-busy={starting || busy || finishing}
-      >
-        {/* מה זה ואיפה אני עומד, בכרטיס אחד. עד 20.8 הכותרת ומד השלמות ישבו חשופים על
-            הרקע בזמן שכל שאר המערכת מניחה תוכן בתוך הכרטיס הכפול - זה מה שגרם למסך
-            הזה להיראות פחות בנוי משאר המסכים, ולא התוכן עצמו.
-            הבועות שמתחת נשארות מחוץ לכרטיס בכוונה: שיחה נקראת כרצף, לא כתוכן בקופסה */}
+      {/* אותה פריסת שתי-עמודות של הדוח (.repC) ולא רוחב משלו. עד 20.8 המסך הזה ישב על
+          760 פיקסלים בזמן שכל שאר המערכת על 94 אחוז - הוא נראה כמו מסך של מוצר אחר.
+          העמודה הצדדית נושאת את "איפה אני עומד" והראשית את השיחה עצמה.
+          הרוחב הקריא נשמר בתוך התוכן ולא במכל: הבועות חסומות ב-62ch ותיבת התשובה
+          ב-72ch, כי שורת טקסט ברוחב 900 פיקסלים היא שורה שאי אפשר לעקוב אחריה */}
+      <main className="repC" aria-busy={starting || busy || finishing}>
+        {/* העמודה הצדדית נושאת "איפה אני עומד" בלבד. הכותרת והתיאור עברו לעמודה
+            הראשית: כותרת של 32 פיקסלים ופסקה של 52 תווים בתוך רצועה של 318 פיקסלים
+            נשברות לשבע שורות, וגם ככה מקומה של כותרת העמוד הוא בראש התוכן */}
+        <aside className="rep-side">
         <section className="shell rv d1">
           <div className="core card-pad">
             {/* "הדוח חי" - אמת מערכתית, לא סיסמה: כל תשובה מרעננת את scan.scores מיד (run-interview) */}
@@ -195,12 +197,6 @@ export function DefaultInterview({
               <span className="dot" aria-hidden="true" />
               הדוח חי
             </span>
-            <h1 className="mt-4 text-[clamp(24px,3.6vw,32px)] font-extrabold leading-tight tracking-[-.015em]">
-              ראיון קצר על העסק
-            </h1>
-            <p className="mt-2 max-w-[52ch] text-[14.5px] text-[color:var(--mut)]">
-              כמה שאלות ממוקדות שיעזרו לדייק את ההמלצות. אפשר לדלג, לעבור לכתיבה חופשית ולסיים מתי שרוצים.
-            </p>
 
             <div
               role="progressbar"
@@ -208,7 +204,7 @@ export function DefaultInterview({
               aria-valuemin={0}
               aria-valuemax={100}
               aria-label="שלמות האבחון"
-              className="mt-6 flex items-center gap-3 border-t pt-5"
+              className="mt-5 flex items-center gap-3 border-t pt-5"
               style={{ borderColor: "var(--row-line)" }}
             >
               <span className="shrink-0 text-[11px] font-semibold tracking-[.05em] text-[color:var(--dim)]">
@@ -224,8 +220,16 @@ export function DefaultInterview({
             </ul>
           </div>
         </section>
+        </aside>
 
-        <section aria-live="polite" className="rv d2 mt-7 flex flex-col gap-3">
+        <div className="rep-main">
+        {/* כותרת העמוד, גדולה ובראש התוכן - כמו בתוכנית העבודה (הנחיית מייסד 20.8) */}
+        <header className="page-head rv">
+          <h1>ראיון קצר על העסק</h1>
+          <p>כמה שאלות ממוקדות שיעזרו לדייק את ההמלצות. אפשר לדלג, לעבור לכתיבה חופשית ולסיים מתי שרוצים.</p>
+        </header>
+
+        <section aria-live="polite" className="rv d2 flex flex-col gap-3">
           {messages.map((m) => (
             <Bubble key={m.id} message={m} />
           ))}
@@ -367,6 +371,7 @@ export function DefaultInterview({
             </button>
           </div>
         )}
+        </div>
       </main>
     </AppShell>
   );

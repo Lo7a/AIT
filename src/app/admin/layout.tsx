@@ -1,7 +1,7 @@
 import { isImpersonating } from "../../server/auth/impersonation";
 import { requireAdmin } from "./require-admin";
 import { AppShell } from "../ui/app-shell";
-import { AdminTitle } from "./admin-title";
+import { AdminTitle, AdminPageHead } from "./admin-title";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +50,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </div>
       </header>
 
+      <AdminPageHead />
       {children}
     </AppShell>
   );

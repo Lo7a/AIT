@@ -830,20 +830,29 @@ export function DefaultReport({
             </section>
           )}
 
-          <footer className="rv d6 border-t px-1 pt-4 text-xs" style={{ borderColor: "var(--hair-soft)", color: "var(--dim)" }}>
-            <p className="num">
-              משך סריקה: {(durationMs / 1000).toFixed(1)} שניות · עלות APIs: ${apiCost.toFixed(3)}
-            </p>
-            {findings.partial.length > 0 && (
-              <p className="mt-1">
-                {/* social_only מקבל את הנוסח עם שם הפלטפורמה בפועל (partialDetails), לא את התווית הגנרית -
-                    בעל העסק צריך לראות "עמוד פייסבוק", לא "עמוד ברשת חברתית" (סקירת קוד m2) */}
-                הערות איסוף: {findings.partial
-                  .map((f) => (f === "social_only" && findings.partialDetails?.social_only) || PARTIAL_FLAG_LABEL[f])
-                  .join(" · ")}
+          {/* שורת המטא הטכנית - **לאדמין בלבד** (הנחיית מייסד 20.8).
+              עלות ה-APIs היא כמה הסריקה עולה *לנו*, ומספר כזה מול לקוח הוא נתון עסקי
+              שאין לו שום סיבה לראות. משך הסריקה והערות האיסוף נשארים איתו באותה שורה
+              כי שלושתם אותו דבר: איך המכונה עבדה, לא מה נמצא על העסק.
+              הבדיקה נעשית בשרת (isAdmin מגיע כפרופ) ולא ב-CSS - הבלוק פשוט לא קיים
+              ב-HTML של מי שאינו אדמין, ולכן אי אפשר לחשוף אותו מכלי הפיתוח */}
+          {isAdmin && (
+            <footer className="rv d6 border-t px-1 pt-4 text-xs" style={{ borderColor: "var(--hair-soft)", color: "var(--dim)" }}>
+              <p className="num">
+                משך סריקה: {(durationMs / 1000).toFixed(1)} שניות · עלות APIs: ${apiCost.toFixed(3)}
+                <span className="chip ms-2">אדמין</span>
               </p>
-            )}
-          </footer>
+              {findings.partial.length > 0 && (
+                <p className="mt-1">
+                  {/* social_only מקבל את הנוסח עם שם הפלטפורמה בפועל (partialDetails), לא את התווית הגנרית -
+                      בעל העסק צריך לראות "עמוד פייסבוק", לא "עמוד ברשת חברתית" (סקירת קוד m2) */}
+                  הערות איסוף: {findings.partial
+                    .map((f) => (f === "social_only" && findings.partialDetails?.social_only) || PARTIAL_FLAG_LABEL[f])
+                    .join(" · ")}
+                </p>
+              )}
+            </footer>
+          )}
         </div>
       </main>
     </AppShell>

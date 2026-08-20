@@ -1458,3 +1458,17 @@ button.ans-row:not(:disabled):active{background:rgba(var(--acc-rgb),.16)}
 .usage-tile .k{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--dim)}
 .usage-tile .v{font-size:22px;font-weight:800;letter-spacing:-.02em}
 .chart-h{font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--mut);margin:0 0 11px}
+
+/* ===== כותרת עמוד =====
+   כותרת גדולה בראש התוכן, כמו במסך תוכנית העבודה (הנחיית מייסד 20.8: "שיהיה ככה בכל
+   העמודים ולא למעלה בקטן"). השורה הקטנה בסרגל העליון נשארת - היא הזהות הדביקה,
+   וזו כותרת העמוד. שתיהן, לא אחת במקום השנייה */
+.page-head{margin:2px 2px 16px}
+.page-head h1{
+  font-size:clamp(25px,3.2vw,36px);font-weight:800;
+  line-height:1.12;letter-spacing:-.02em;
+}
+.page-head p{
+  margin-top:9px;max-width:62ch;
+  font-size:14px;line-height:1.6;color:var(--mut);
+}

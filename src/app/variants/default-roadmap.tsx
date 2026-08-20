@@ -316,13 +316,11 @@ export function DefaultRoadmap({
       <main aria-busy={building} className="flex-1">
         <div className="board">
           <header className="c12 rv flex flex-wrap items-end justify-between gap-4 px-1 pt-2">
-            <div>
-              <h1 className="text-[clamp(26px,3.4vw,38px)] font-extrabold leading-tight tracking-[-.015em]">
-                תוכנית העבודה
-              </h1>
-              <p className="mt-2 max-w-[56ch] text-[13.5px] text-[color:var(--mut)]">
-                ההזדמנויות הכי משתלמות לעסק, מדורגות לפי הצרכים של העסק וקלות היישום
-              </p>
+            {/* אותן מחלקות .page-head של שאר המסכים, ולא גדלים משלו - זה המסך שהמייסד
+                הצביע עליו כדוגמה, ולכן דווקא הוא צריך לדבר את אותה שפה */}
+            <div className="page-head" style={{ margin: 0 }}>
+              <h1>תוכנית העבודה</h1>
+              <p>ההזדמנויות הכי משתלמות לעסק, מדורגות לפי הצרכים של העסק וקלות היישום</p>
             </div>
             <div className="flex items-center gap-3 pb-1">
               <span className="chip">{report.business.name}</span>

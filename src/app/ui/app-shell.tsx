@@ -15,7 +15,7 @@ import { useEffect, useState, type ReactNode } from "react";
 const RAIL_KEY = "ait-rail";
 
 export type ShellNavKey =
-  | "home" | "report" | "interview" | "roadmap" | "newscan"
+  | "home" | "report" | "interview" | "roadmap"
   | "admin" | "admin_catalog" | "admin_users" | "admin_diagnoses" | "admin_usage" | "admin_activity";
 
 export type ShellSection = "business" | "admin";
@@ -40,11 +40,6 @@ const NAV_ICONS: Record<ShellNavKey, ReactNode> = {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="6" cy="19" r="2.2" /><circle cx="18" cy="5" r="2.2" />
       <path d="M8.2 19H15a4 4 0 0 0 0-8H9a4 4 0 0 1 0-8h6.8" />
-    </svg>
-  ),
-  newscan: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="11" cy="11" r="7" /><path d="M20 20l-3.2-3.2" /><path d="M11 8.4v5.2M8.4 11h5.2" />
     </svg>
   ),
   admin: (
@@ -89,7 +84,6 @@ export const NAV_LABEL: Record<ShellNavKey, string> = {
   report: "הדוח המלא",
   interview: "הראיון",
   roadmap: "תוכנית העבודה",
-  newscan: "אבחון לעסק נוסף",
   admin: "ניהול",
   admin_catalog: "ספריית השירותים",
   admin_users: "משתמשים",
@@ -141,8 +135,10 @@ export function AppShell({
     });
   }
 
-  // "אבחון לעסק נוסף" קבוע ולא תלוי באבחון פתוח: סריקת עסק אחר היא פעולה זמינה תמיד,
-  // וזו גם נקודת הכניסה העתידית להשוואת מתחרים
+  // "אבחון לעסק נוסף" הוסר ב-20.8: הוא הצביע ל-/hub#new, כלומר לאותו יעד של "מרכז
+  // העסק" שנמצא שורה מעליו - שני פריטי ניווט לאותו מקום. המייסד הציע להסב אותו
+  // ל"סריקת מתחרים", וזה ימתין עד שהפיצ'ר יהיה קיים: פריט ניווט שמבטיח מסך שאין הוא
+  // בדיוק אותה הבטחה ריקה שכלל הכנות אוסר במקום אחר במוצר
   const items: { key: ShellNavKey; href: string }[] =
     section === "admin"
       ? ADMIN_ITEMS
@@ -155,7 +151,6 @@ export function AppShell({
                 { key: "roadmap" as const, href: `/roadmap/${diagnosisId}` },
               ])
             : []),
-          { key: "newscan", href: "/hub#new" },
         ];
 
   // במדור הניהול הפריט הפעיל נגזר מהנתיב: "/admin" רק בהתאמה מדויקת, השאר לפי קידומת
