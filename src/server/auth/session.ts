@@ -12,6 +12,28 @@ export interface AuthClaims {
 // getClaims מחזיר null כשאין סשן תקף (אין cookie, חתימה פסולה, או שה-env של Supabase חסר)
 export type ClaimsGetter = () => Promise<AuthClaims | null>;
 
+// ===== מעקף אימות לפיתוח מקומי =====
+// הזהות של משתמש הפיתוח. sub קבוע כדי שאותה שורת users תיתפס בכל הרצה - אחרת כל restart
+// היה יוצר משתמש חדש, והבעלות על האבחונים הקודמים הייתה אובדת.
+// **חייב להיות UUID תקין**: users.authId הוא @db.Uuid, ו-Postgres דוחה כל דבר אחר בשגיאת
+// המרה. הערך נבחר קריא בכוונה (אפסים ואחת) כדי שיהיה מזוהה מיד בטבלה כשורת פיתוח
+export const DEV_AUTH_SUB = "00000000-0000-4000-8000-000000000001";
+export const DEV_AUTH_EMAIL = "dev@localhost";
+
+// ההכרעה הטהורה, ובכוונה כאן ולא במתאם הדק: זו שכבת אבטחה, ולכן היא נבדקת.
+// שני תנאים מצטברים, וכל אחד מהם לבדו מספיק כדי לכבות את המעקף:
+// 1. NODE_ENV אינו production. Vercel ו-next build קובעים production אוטומטית, כלומר
+//    בייצור המעקף מת גם אם מישהו יגדיר את המשתנה בטעות.
+// 2. AIT_DEV_AUTH_BYPASS מוגדר במפורש. בכוונה **לא** NEXT_PUBLIC_ - משתנה כזה נצרב לחבילת
+//    הדפדפן, וכאן הוא חייב להישאר בצד השרת בלבד.
+// כל ערך שאינו "1" או "owner" מכבה - כולל "true", "yes" ומחרוזת ריקה. מפורש, לא מנחש.
+export function devAuthClaims(env: NodeJS.ProcessEnv): AuthClaims | null {
+  if (env.NODE_ENV === "production") return null;
+  const flag = env.AIT_DEV_AUTH_BYPASS;
+  if (flag !== "1" && flag !== "owner") return null;
+  return { sub: DEV_AUTH_SUB, email: DEV_AUTH_EMAIL };
+}
+
 export interface SessionUser {
   id: string;
   authId: string | null;

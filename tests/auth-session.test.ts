@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getSessionUser, type AuthClaims } from "../src/server/auth/session";
+import { getSessionUser, devAuthClaims, DEV_AUTH_SUB, DEV_AUTH_EMAIL, type AuthClaims } from "../src/server/auth/session";
 import { makeFakeDb } from "./fakes/fake-db";
 
 // שכבת הסשן (auth/session.ts): התפר היחיד בין Supabase Auth לטבלת המראה users - כל
@@ -101,5 +101,58 @@ describe("getSessionUser", () => {
     const user = await getSessionUser(db, claimsOf(CLAIMS));
     expect(user!.id).toBe("user-raced");
     expect(users).toHaveLength(1);
+  });
+});
+
+// מעקף אימות לפיתוח מקומי (20.8). זו שכבת אבטחה, ולכן ההכרעה טהורה ונבדקת -
+// ובמיוחד הכיוון השלילי: מתי המעקף **לא** נדלק
+describe("devAuthClaims - local development bypass", () => {
+  it("is off when the flag is absent", () => {
+    expect(devAuthClaims({ NODE_ENV: "development" } as NodeJS.ProcessEnv)).toBeNull();
+  });
+
+  it("is on in development with an explicit flag", () => {
+    for (const flag of ["1", "owner"]) {
+      const claims = devAuthClaims({ NODE_ENV: "development", AIT_DEV_AUTH_BYPASS: flag } as NodeJS.ProcessEnv);
+      expect(claims).toEqual({ sub: DEV_AUTH_SUB, email: DEV_AUTH_EMAIL });
+    }
+  });
+
+  // הבדיקה החשובה ביותר בקובץ: גם אם המשתנה דלף להגדרות הייצור, המעקף מת
+  it("is OFF in production even when the flag is explicitly set", () => {
+    expect(devAuthClaims({ NODE_ENV: "production", AIT_DEV_AUTH_BYPASS: "1" } as NodeJS.ProcessEnv)).toBeNull();
+    expect(devAuthClaims({ NODE_ENV: "production", AIT_DEV_AUTH_BYPASS: "owner" } as NodeJS.ProcessEnv)).toBeNull();
+  });
+
+  it("does not guess at truthy-looking values", () => {
+    for (const flag of ["true", "yes", "on", "0", "", "admin", "ADMIN"]) {
+      expect(devAuthClaims({ NODE_ENV: "development", AIT_DEV_AUTH_BYPASS: flag } as NodeJS.ProcessEnv)).toBeNull();
+    }
+  });
+
+  // הבדיקה שהייתה תופסת את הבאג האמיתי: users.authId הוא @db.Uuid, ו-Postgres דוחה
+  // כל מחרוזת שאינה UUID בשגיאת המרה. ה-fake-db לא אוכף טיפוסים, ולכן האילוץ נאכף כאן
+  it("uses a valid UUID as the identity - users.authId is a uuid column", () => {
+    const claims = devAuthClaims({ NODE_ENV: "development", AIT_DEV_AUTH_BYPASS: "1" } as NodeJS.ProcessEnv);
+    expect(claims!.sub).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+  });
+
+  it("keeps a stable identity so ownership survives a restart", () => {
+    const a = devAuthClaims({ NODE_ENV: "development", AIT_DEV_AUTH_BYPASS: "1" } as NodeJS.ProcessEnv);
+    const b = devAuthClaims({ NODE_ENV: "test", AIT_DEV_AUTH_BYPASS: "1" } as NodeJS.ProcessEnv);
+    expect(a!.sub).toBe(b!.sub);
+  });
+
+  // המעקף מזין את אותו getSessionUser האמיתי - כלומר נוצרת שורת users רגילה, עם התפקיד
+  // הרגיל, והבעלות והתיחום עובדים בדיוק כמו למשתמש אמיתי. שום לוגיקה לא נעקפת מלבד הזהות
+  it("feeds the real session path and creates an ordinary user row", async () => {
+    const { db } = makeFakeDb();
+    const user = await getSessionUser(db, async () =>
+      devAuthClaims({ NODE_ENV: "development", AIT_DEV_AUTH_BYPASS: "1" } as NodeJS.ProcessEnv),
+    );
+    expect(user).not.toBeNull();
+    expect(user!.authId).toBe(DEV_AUTH_SUB);
+    expect(user!.email).toBe(DEV_AUTH_EMAIL);
+    expect(user!.role).toBe("owner"); // ברירת המחדל של הסכמה - לא אדמין
   });
 });

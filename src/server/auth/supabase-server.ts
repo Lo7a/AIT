@@ -2,7 +2,7 @@
 // ושליפת claims מאומתים ממנו. כל הלוגיקה העסקית חיה ב-session.ts ומקבלת את אלה מוזרקים.
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
-import { getSessionUser, type AuthClaims } from "./session";
+import { getSessionUser, devAuthClaims, type AuthClaims } from "./session";
 import { IMPERSONATE_COOKIE, resolveActingUser, type ActingUser } from "./impersonation";
 
 // env חסר => האפליקציה רצה בלי התחברות בכלל (מצב טרום-מפתחות): אין קריסה, getServerClaims
@@ -51,15 +51,30 @@ export async function currentActingUser(db: { user: any }): Promise<ActingUser |
 // (JWKS עם cache; בפרויקט על סוד HS256 ישן הוא נופל לקריאת רשת לשרת ה-Auth - עדיין נכון,
 // רק איטי יותר; הגירת signing keys בדשבורד מחזירה את זה לאימות מקומי). כל כשל => null
 export async function getServerClaims(): Promise<AuthClaims | null> {
-  if (!hasAuthConfig()) return null;
+  if (!hasAuthConfig()) return devFallback();
   try {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase.auth.getClaims();
-    if (error != null || data?.claims?.sub == null) return null;
+    // סשן אמיתי תמיד גובר על המעקף - הוא נבדק ראשון, והמעקף הוא רק הנפילה האחרונה
+    if (error != null || data?.claims?.sub == null) return devFallback();
     const email = typeof data.claims.email === "string" ? data.claims.email : null;
     return { sub: data.claims.sub, email };
   } catch (err) {
     console.error("auth: getServerClaims failed:", err);
-    return null;
+    return devFallback();
   }
+}
+
+// עטיפה דקה סביב ההכרעה הטהורה (session.ts) - כאן רק האזהרה לקונסולה, פעם אחת לתהליך,
+// כדי שלא יקרה ששרת רץ שבוע במעקף בלי שאיש שם לב
+let devWarned = false;
+function devFallback(): AuthClaims | null {
+  const claims = devAuthClaims(process.env);
+  if (claims != null && !devWarned) {
+    devWarned = true;
+    console.warn(
+      "auth: AIT_DEV_AUTH_BYPASS פעיל - כל בקשה מזוהה כמשתמש הפיתוח המקומי. לפיתוח בלבד.",
+    );
+  }
+  return claims;
 }
