@@ -268,7 +268,9 @@ export interface AdminExternalCallStat {
 }
 
 export interface AdminExternalCallsSummary {
-  last7d: AdminExternalCallStat[]; // ממוין: הכי הרבה קריאות קודם
+  // הפילוח לפי שירות+הקשר בטווח שנבחר. נקרא last7d עד 20.8, ומרגע שהטווח הפך
+  // לנבחר השם הזה שיקר: הוא החזיק 90 יום כשביקשו 90 יום
+  byServiceContext: AdminExternalCallStat[]; // ממוין: הכי הרבה קריאות קודם
   todayCalls: number; // ביממה האחרונה
   todayTokens: number; // נכנסים+יוצאים ביממה האחרונה
 }
@@ -314,31 +316,35 @@ export function aggregateExternalCalls(
     stat.totalDurationMs += g.totalDurationMs;
     byKey.set(key, stat);
   }
-  const last7d = [...byKey.values()]
+  const byServiceContext = [...byKey.values()]
     .map(({ totalDurationMs, ...stat }) => ({
       ...stat,
       // calls לעולם אינו אפס כאן: קבוצה נוצרת רק כשיש לה שורות
       avgDurationMs: stat.calls === 0 ? 0 : Math.round(totalDurationMs / stat.calls),
     }))
     .sort((a, b) => b.calls - a.calls);
-  return { last7d, todayCalls: today.calls, todayTokens: today.tokens };
+  return { byServiceContext, todayCalls: today.calls, todayTokens: today.tokens };
 }
 
 
 // עד 20.8 נשלפה כאן **כל שורת קריאה חיצונית של השבוע** והאגרגציה רצה ב-JS. כל סריקה
 // מייצרת כמה שורות כאלה, כלומר הבקשה הזו גדלה בקצב השימוש - בדיוק הדבר שאסור שיהיה
-// במסך שנפתח כל יום. עכשיו המסד מקבץ, והתשובה היא בגודל מספר צמדי שירות+הקשר: קבוע
+// במסך שנפתח כל יום. עכשיו המסד מקבץ, והתשובה היא בגודל מספר צמדי שירות+הקשר: קבוע.
+//
+// הטווח מוזרק (בקשת מייסד 20.8) במקום להיות קבוע על שבעה ימים. "היום" נשאר 24 השעות
+// האחרונות ולא היום הקלנדרי - זה מה שמסך תפעול צריך לדעת
 export async function getExternalCallsSummary(
   prisma: PrismaClient,
+  window: { from: Date; to: Date },
   now: Date = new Date(),
 ): Promise<AdminExternalCallsSummary> {
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 3600 * 1000);
   const dayAgo = new Date(now.getTime() - 24 * 3600 * 1000);
+  const inRange = { createdAt: { gte: window.from, lt: window.to } };
 
   const [groups, today] = await Promise.all([
     prisma.externalCall.groupBy({
       by: ["service", "context", "ok"],
-      where: { createdAt: { gte: weekAgo } },
+      where: inRange,
       _count: { _all: true },
       _sum: { inputTokens: true, outputTokens: true, durationMs: true },
     }),
@@ -364,6 +370,48 @@ export async function getExternalCallsSummary(
       tokens: (today._sum.inputTokens ?? 0) + (today._sum.outputTokens ?? 0),
     },
   );
+}
+
+export interface UsageBucket {
+  /** תחילת הדלי */
+  at: Date;
+  calls: number;
+  failed: number;
+  tokens: number;
+}
+
+// סדרת הזמן לגרף. date_trunc במסד ולא קיבוץ ב-JS, מאותה סיבה שהסיכום עבר ל-groupBy:
+// התשובה צריכה להיות בגודל מספר הדליים ולא בגודל הטבלה.
+//
+// $queryRaw ולא groupBy של Prisma כי אין לו דרך לקבץ לפי ביטוי (date_trunc). הפרמטרים
+// עוברים כפרמטרים אמיתיים ($1/$2) ולא בשרשור, ורזולוציית הדלי נבחרת מרשימה סגורה
+// בקוד - כלומר גם היא לא יכולה להגיע מהמשתמש
+export async function getUsageSeries(
+  prisma: PrismaClient,
+  window: { from: Date; to: Date; bucket: "hour" | "day" | "week" },
+): Promise<UsageBucket[]> {
+  const unit = window.bucket === "hour" ? "hour" : window.bucket === "week" ? "week" : "day";
+  const rows = await prisma.$queryRawUnsafe<
+    { at: Date; calls: bigint; failed: bigint; tokens: bigint }[]
+  >(
+    `select date_trunc('${unit}', created_at) as at,
+            count(*) as calls,
+            count(*) filter (where not ok) as failed,
+            coalesce(sum(coalesce(input_tokens,0) + coalesce(output_tokens,0)),0) as tokens
+       from external_calls
+      where created_at >= $1 and created_at < $2
+      group by 1
+      order by 1`,
+    window.from,
+    window.to,
+  );
+  // count() ו-sum() מחזירים bigint, ו-JSON לא יודע לסדר אותו - ההמרה כאן ולא במסך
+  return rows.map((r) => ({
+    at: r.at,
+    calls: Number(r.calls),
+    failed: Number(r.failed),
+    tokens: Number(r.tokens),
+  }));
 }
 
 

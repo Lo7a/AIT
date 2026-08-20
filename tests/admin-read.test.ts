@@ -21,13 +21,13 @@ describe("aggregateExternalCalls", () => {
       ],
       { calls: 3, tokens: 450 },
     );
-    expect(out.last7d).toHaveLength(2);
-    const gemini = out.last7d[0]; // הכי הרבה קריאות - ראשון
+    expect(out.byServiceContext).toHaveLength(2);
+    const gemini = out.byServiceContext[0]; // הכי הרבה קריאות - ראשון
     expect(gemini).toMatchObject({
       service: "gemini", context: "narrative", calls: 2, failed: 1,
       inputTokens: 300, outputTokens: 150, avgDurationMs: 2000,
     });
-    expect(out.last7d[1]).toMatchObject({ service: "places", calls: 1, inputTokens: 0 });
+    expect(out.byServiceContext[1]).toMatchObject({ service: "places", calls: 1, inputTokens: 0 });
   });
 
   it("מוני היממה מגיעים מהמסד ולא מחושבים כאן", () => {
@@ -41,11 +41,11 @@ describe("aggregateExternalCalls", () => {
       [group({ calls: 5, inputTokens: 500, outputTokens: 250, totalDurationMs: 5000 })],
       { calls: 5, tokens: 750 },
     );
-    expect(out.last7d[0]).toMatchObject({ calls: 5, failed: 0, avgDurationMs: 1000 });
+    expect(out.byServiceContext[0]).toMatchObject({ calls: 5, failed: 0, avgDurationMs: 1000 });
   });
 
   it("ריק - סיכום ריק בלי קריסה", () => {
     const out = aggregateExternalCalls([], { calls: 0, tokens: 0 });
-    expect(out).toEqual({ last7d: [], todayCalls: 0, todayTokens: 0 });
+    expect(out).toEqual({ byServiceContext: [], todayCalls: 0, todayTokens: 0 });
   });
 });

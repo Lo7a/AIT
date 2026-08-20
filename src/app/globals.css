@@ -1377,3 +1377,55 @@ button.ans-row:not(:disabled):active{background:rgba(var(--acc-rgb),.16)}
   color:var(--acc-soft);background:rgba(var(--acc-rgb),.12);
   border:1px solid rgba(var(--acc-rgb),.3);border-radius:999px;padding:2px 7px;
 }
+
+/* ===== גרף עמודות לסדרת זמן (ui/bar-chart.tsx) =====
+   ה-SVG נמתח לרוחב עם preserveAspectRatio="none" והגובה קבוע, ולכן קווי הרשת מקבלים
+   vector-effect כדי לא להתעבות עם המתיחה */
+.chart{margin:0}
+.chart-svg{display:block;width:100%;height:132px}
+.chart-empty{font-size:13px;color:var(--mut);padding:26px 2px;margin:0;text-align:center}
+/* תוויות הציר ממוקמות באחוזים מעל רצועה יחסית, כדי שיישארו מתחת לעמודה שלהן בכל רוחב */
+.chart-x{position:relative;height:16px;margin-top:6px}
+.chart-x span{
+  position:absolute;transform:translateX(50%);
+  font-size:10px;color:var(--dim);white-space:nowrap;
+}
+.chart-legend{
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  margin-top:12px;padding-top:11px;border-top:1px solid var(--row-line);
+  font-size:11.5px;color:var(--mut);
+}
+.chart-legend span{display:inline-flex;align-items:center;gap:6px}
+.chart-legend .sw{width:9px;height:9px;border-radius:3px;flex:none}
+.chart-legend b{margin-inline-start:auto;color:var(--txt);font-weight:700}
+
+/* בורר הטווח של מסך השימוש */
+.rng{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.rng-presets{display:flex;gap:6px;flex-wrap:wrap}
+.rng-presets a{
+  font-size:12.5px;font-weight:600;color:var(--mut);text-decoration:none;
+  padding:7px 14px;border-radius:999px;
+  border:1px solid var(--hair-soft);background:var(--surface-1);
+  transition:color .25s,background .25s,border-color .25s;
+}
+.rng-presets a:hover{color:var(--txt);background:var(--surface-2)}
+.rng-presets a.on{
+  color:var(--acc-soft);background:rgba(var(--acc-rgb),.12);
+  border-color:rgba(var(--acc-rgb),.35);
+}
+.rng form{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;margin-inline-start:auto}
+.rng label{display:flex;flex-direction:column;gap:5px}
+.rng label span{font-size:10.5px;font-weight:700;letter-spacing:.1em;color:var(--dim)}
+.rng input[type=date]{
+  height:34px;padding:0 10px;font:inherit;font-size:12.5px;color:var(--txt);
+  background:var(--surface-1);border:1px solid var(--hair);border-radius:10px;
+}
+.rng input[type=date]:focus{border-color:rgba(var(--acc-rgb),.5)}
+.usage-tile{
+  padding:14px 16px;border-radius:14px;
+  background:var(--surface-1);border:1px solid var(--hair-soft);
+  display:flex;flex-direction:column;gap:6px;min-width:0;
+}
+.usage-tile .k{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--dim)}
+.usage-tile .v{font-size:22px;font-weight:800;letter-spacing:-.02em}
+.chart-h{font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--mut);margin:0 0 11px}
