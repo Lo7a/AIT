@@ -91,49 +91,83 @@ function domainFact(health: HealthSignals, now: Date): HealthFact {
   };
 }
 
+const MAIL_LABEL = "דואר בדומיין העסק";
+
+// סדר הבדיקות כאן זהה לסדר ב-mailAuthGap (score/dimensions.ts) בכוונה: אותו דוח לא
+// יכול להציג פער "אין רשומת SPF" ובאותה נשימה לכתוב בשורה הזו "מוגדר ומוגן".
+// כל שינוי בסדר שם חייב להשתקף גם כאן
 function mailFact(health: HealthSignals): HealthFact {
   const m = health.mail;
-  if (m == null || m.hasMx == null) return unchecked("mail", "דואר בדומיין העסק");
+  if (m == null || m.hasMx == null) return unchecked("mail", MAIL_LABEL);
 
   const note = m.provider != null ? `הדואר מנוהל אצל ${m.provider}` : null;
 
   if (!m.hasMx) {
     return {
-      key: "mail", label: "דואר בדומיין העסק",
+      key: "mail", label: MAIL_LABEL,
       value: "לא מוגדר",
       tone: "warn",
-      // בלי קביעה שזו טעות: יש עסקים שמכוון עובדים מג'ימייל פרטי
+      // בלי קביעה שזו טעות: יש עסקים שמכוון עובדים מכתובת ג'ימייל פרטית
       why: "אין רשומת דואר לדומיין, כך שכתובת בדומיין העסק לא תקבל הודעות.",
       note: null,
     };
   }
 
-  if (m.hasDmarc === true) {
+  // התנגשות לפני היעדר: ריבוי רשומות מבטל את הבדיקה ולא מחזק אותה - SPF מחזיר
+  // permerror (RFC 7208 4.5) ומדיניות DMARC נזרקת (RFC 7489 6.6.3). זה חמור מהיעדר
+  // רשומה כי מבחוץ זה נראה מוגן. hasSpf/hasDmarc נשארים true במכוון: הרשומות אכן
+  // קיימות, ומה שלא עובד זו הבדיקה - ולכן זה שדה נפרד (health/dns-mail.ts)
+  if (m.spfConflict === true || m.dmarcConflict === true) {
+    const which = m.spfConflict === true && m.dmarcConflict === true
+      ? "SPF ו-DMARC"
+      : m.spfConflict === true ? "SPF" : "DMARC";
     return {
-      key: "mail", label: "דואר בדומיין העסק",
-      value: "מוגדר ומוגן",
-      tone: "good",
-      why: "יש DMARC, ולכן קשה לשלוח מייל שנראה כאילו הוא ממך.",
+      key: "mail", label: MAIL_LABEL,
+      value: "מוגדר, וההגנה מבוטלת",
+      tone: "bad",
+      why: `יש יותר מרשומת ${which} אחת על הדומיין. במצב כזה התקן מבטל את הבדיקה במקום לחזק אותה, כך שבפועל אין הגנה והדואר שאתם שולחים עלול ליפול לספאם.`,
       note,
     };
   }
 
-  // אין DMARC: זה הממצא המעשי ביותר בכל החבילה, כי הוא נוגע בהתחזות בשם העסק
-  if (m.hasSpf === true) {
+  if (m.hasSpf === false) {
     return {
-      key: "mail", label: "דואר בדומיין העסק",
+      key: "mail", label: MAIL_LABEL,
+      value: "מוגדר, בלי SPF",
+      tone: "warn",
+      why: "אין רשומת SPF, כלומר לא הוגדר לשרתי הדואר בעולם מי מורשה לשלוח דואר בשם העסק.",
+      note,
+    };
+  }
+
+  if (m.hasDmarc === false) {
+    return {
+      key: "mail", label: MAIL_LABEL,
       value: "מוגדר, בלי DMARC",
       tone: "warn",
-      why: "יש SPF אבל אין DMARC, ולכן אפשר עדיין לשלוח מיילים בשמך בלי שייחסמו.",
+      // בלי טענה שהדואר נופל: היעדר DMARC אינו כשל מסירה אלא היעדר הגנה מהתחזות
+      why: "אין רשומת DMARC, כלומר לא פורסם לשרתי הדואר מה לעשות עם הודעות שמתחזות לכתובת שלכם.",
       note,
     };
   }
 
+  if (m.hasSpf === true && m.hasDmarc === true) {
+    return {
+      key: "mail", label: MAIL_LABEL,
+      value: "מוגדר ומוגן",
+      tone: "good",
+      why: "יש SPF ויש DMARC, ולכן קשה לשלוח דואר שנראה כאילו הוא מכם.",
+      note,
+    };
+  }
+
+  // יש דואר, אבל אין די מידע כדי לקבוע אם ההגנה עומדת. העובדה הידועה נאמרת,
+  // וההגנה נשארת לא נבדקת - בדיוק כמו ש-mailAuthGap מחזיר undefined כאן
   return {
-    key: "mail", label: "דואר בדומיין העסק",
-    value: m.hasSpf === false ? "מוגדר, בלי הגנה" : "מוגדר",
-    tone: "warn",
-    why: "אין SPF ואין DMARC, ולכן אפשר לשלוח מיילים בשמך בלי שייחסמו.",
+    key: "mail", label: MAIL_LABEL,
+    value: "מוגדר",
+    tone: "unknown",
+    why: null,
     note,
   };
 }

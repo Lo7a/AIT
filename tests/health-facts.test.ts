@@ -73,7 +73,50 @@ describe("healthFacts", () => {
     const mail = healthFacts({ mail: { hasMx: true, hasSpf: true, hasDmarc: false } }, NOW)
       .find((f) => f.key === "mail");
     expect(mail?.tone).toBe("warn");
-    expect(mail?.why).toContain("בשמך");
+    expect(mail?.why).toContain("מתחזות");
+  });
+
+  it("יש דואר אבל ההגנה לא נבדקה - לא טוב ולא רע", () => {
+    // בדיוק המצב ש-mailAuthGap מחזיר בו undefined: אומרים את מה שידוע (יש דואר)
+    // ולא מסיקים מזה שההגנה עומדת
+    const mail = healthFacts({ mail: { hasMx: true } }, NOW).find((f) => f.key === "mail");
+    expect(mail?.tone).toBe("unknown");
+    expect(mail?.value).toBe("מוגדר");
+    expect(mail?.why).toBeNull();
+  });
+
+  it("שתי רשומות SPF הן הגנה מבוטלת, לא הגנה כפולה", () => {
+    // המקרה שאלעד מצא ב-jems.co.il: hasSpf נשאר true כי הרשומות קיימות, אבל התקן
+    // מבטל את הבדיקה. בלי הדגל הזה הפאנל היה כותב "מוגדר ומוגן" - שקר מול בעל העסק
+    const mail = healthFacts(
+      { mail: { hasMx: true, hasSpf: true, hasDmarc: true, spfConflict: true } }, NOW,
+    ).find((f) => f.key === "mail");
+    expect(mail?.tone).toBe("bad");
+    expect(mail?.value).not.toContain("מוגן");
+    expect(mail?.why).toContain("SPF");
+  });
+
+  it("ריבוי רשומות DMARC מטופל באותה חומרה", () => {
+    const mail = healthFacts(
+      { mail: { hasMx: true, hasSpf: true, hasDmarc: true, dmarcConflict: true } }, NOW,
+    ).find((f) => f.key === "mail");
+    expect(mail?.tone).toBe("bad");
+    expect(mail?.why).toContain("DMARC");
+  });
+
+  it("שני קונפליקטים יחד מדווחים יחד ולא רק אחד מהם", () => {
+    const mail = healthFacts(
+      { mail: { hasMx: true, hasSpf: true, hasDmarc: true, spfConflict: true, dmarcConflict: true } }, NOW,
+    ).find((f) => f.key === "mail");
+    expect(mail?.why).toContain("SPF");
+    expect(mail?.why).toContain("DMARC");
+  });
+
+  it("בלי קונפליקט DMARC תקין נשאר ממצא תקין", () => {
+    const mail = healthFacts(
+      { mail: { hasMx: true, hasSpf: true, hasDmarc: true, spfConflict: false, dmarcConflict: false } }, NOW,
+    ).find((f) => f.key === "mail");
+    expect(mail?.tone).toBe("good");
   });
 
   it("אין רשומת דואר בכלל - ממצא, לא לא-נבדק", () => {
