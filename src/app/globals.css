@@ -517,14 +517,28 @@ html[data-mode="light"] .gap-no{text-shadow:none}
   display:grid;place-items:center;color:var(--mut);
   background:var(--core-bg);border:1px solid var(--hair);
   box-shadow:0 6px 18px -8px rgba(0,0,0,.55);
-  transition:color .25s,background .25s,border-color .25s,inset-inline-start .5s var(--ease);
+  transition:color .25s,background .25s,border-color .25s,transform .3s var(--ease-out),inset-inline-start .5s var(--ease);
 }
 html[data-mode="light"] .rail-tgl{box-shadow:0 6px 16px -8px rgba(52,38,105,.3)}
 .side-nav.mini ~ .rail-tgl{inset-inline-start:calc(var(--rail-mini-w) - 15px)}
 .rail-tgl:hover{color:var(--txt);border-color:rgba(var(--acc-rgb),.45)}
 @media (max-width:880px){.rail-tgl{display:none}}
-.rail-tgl svg{transition:transform .5s var(--ease)}
-.side-nav.mini .rail-tgl svg{transform:rotate(180deg)}
+/* האייקון. שני תיקונים ושיפור אחד:
+   1. הבורר היה ".side-nav.mini .rail-tgl" - צאצא. מרגע שהכפתור יצא מהסיידבר (כדי לא
+      להיחתך ב-overflow) הוא הפסיק להתאים, והאייקון לא התהפך בכלל.
+   2. ההיפוך הוא לכל שברון בנפרד סביב מרכז ה-SVG, עם השהיה זעירה בין השניים. הפרש של
+      60 מילישניות הוא כל ההבדל בין "התמונה התחלפה" לבין תחושה של מנגנון שנפתח.
+   3. הכפתור עצמו מגיב למגע. translateY(-50%) חייב לחזור בכל מצב - הוא המרכוז עצמו,
+      ובלעדיו הכפתור קופץ למעלה ברגע הריחוף */
+.rail-tgl svg{overflow:visible}
+.rail-tgl path{
+  transform-box:view-box;transform-origin:12px 12px;
+  transition:transform .5s var(--ease);
+}
+.rail-tgl path.c2{transition-delay:.06s}
+.side-nav.mini ~ .rail-tgl path{transform:rotate(180deg)}
+.rail-tgl:hover{transform:translateY(-50%) scale(1.09)}
+.rail-tgl:active{transform:translateY(-50%) scale(.93)}
 .nav-item{
   display:flex;align-items:center;gap:12px;
   font-size:13.5px;font-weight:600;color:var(--mut);text-decoration:none;
