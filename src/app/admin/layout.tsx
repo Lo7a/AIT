@@ -1,6 +1,8 @@
 import { isImpersonating } from "../../server/auth/impersonation";
 import { requireAdmin } from "./require-admin";
 import { AppShell } from "../ui/app-shell";
+import { UserMenu } from "../ui/user-menu";
+import { ImpersonateSearch } from "../ui/impersonate-search";
 import { AdminTitle, AdminPageHead } from "./admin-title";
 
 export const dynamic = "force-dynamic";
@@ -44,9 +46,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <header className="topbar">
         <AdminTitle />
         <div className="side">
-          <span className="chip hidden sm:inline-block">
-            אדמין <span dir="ltr">{acting.actor.email ?? "ללא אימייל"}</span>
-          </span>
+          <ImpersonateSearch />
+          <UserMenu email={acting.actor.email} isAdmin />
         </div>
       </header>
 

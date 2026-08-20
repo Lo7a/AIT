@@ -18,6 +18,7 @@ import type { HealthSignals } from "../../pipeline/types";
 import { AppShell } from "../ui/app-shell";
 import { AnchorNav, type AnchorItem } from "../ui/anchor-nav";
 import { ImpersonateSearch } from "../ui/impersonate-search";
+import { UserMenu } from "../ui/user-menu";
 import { ScoreDial, MiniRing, SegRail, FillBar } from "../ui/motion";
 
 // שלושת המסכים בשפת העיצוב הנבחרת (הכרעת מייסד 18.8): כהה פרמיום, סגול וברקת, Rubik.
@@ -112,12 +113,9 @@ export function DefaultHome({
               {/* קישור "ניהול" עבר לסיידבר (הנחיית מייסד 20.8) - ניווט למדור אחר הוא
                   ניווט, ומקומו איפה שכל שאר הניווט */}
               {isAdminUser && <ImpersonateSearch />}
-              <span className="chip hidden sm:inline-block">
-                מחובר בתור <span dir="ltr">{session.email ?? "משתמש ללא אימייל"}</span>
-              </span>
-              <form action="/auth/signout" method="post">
-                <button type="submit" className="ghost-act">התנתקות</button>
-              </form>
+              {/* האימייל וההתנתקות עברו לתוך תפריט המשתמש (20.8). להשאיר אותם גם
+                  בשורה זה אותו מידע פעמיים ואותה פעולה בשני מקומות */}
+              <UserMenu email={session.email} isAdmin={isAdminUser === true} />
             </>
           ) : loginEnabled ? (
             <Link href="/login" className="btn-quiet">כניסה</Link>
@@ -513,6 +511,7 @@ function HealthFactsBlock({ health, className }: { health: HealthSignals | undef
 
 export function DefaultReport({
   report, lossHighlights = [], personalLoss = null, quickWins = [], insights = [], isAdmin = false,
+  userEmail = null,
 }: {
   report: ReportView;
   lossHighlights?: LossHighlight[];
@@ -520,6 +519,7 @@ export function DefaultReport({
   quickWins?: QuickWin[];
   insights?: Insight[];
   isAdmin?: boolean;
+  userEmail?: string | null;
 }) {
   // הצעד הזה מבטיח מבחינת טיפוסים ש-report.scan אינו null: ה-RSC הקורא (report/[id]/page.tsx)
   // כבר מפעיל notFound() לפני שהוא מגיע לכאן כשאין סריקה, כך שזהו רק שער הגנה מקומי
@@ -570,12 +570,13 @@ export function DefaultReport({
   if (hasPlan) anchors.push({ id: "plan", label: "תוכנית העבודה" });
 
   return (
-    <AppShell active="report" diagnosisId={report.id} userLabel={business.name} isAdmin={isAdmin}>
+    <AppShell active="report" diagnosisId={report.id} userLabel={userEmail} isAdmin={isAdmin}>
       <header className="topbar">
         <span className="brand-txt"><small>הדוח המלא</small><b>{business.name}</b></span>
         <div className="side">
           {/* התחזות מהסרגל העליון, לאדמין בלבד (בקשת מייסד 20.8) */}
           {isAdmin && <ImpersonateSearch />}
+          <UserMenu email={userEmail} isAdmin={isAdmin} />
           {business.website && (
             <span
               className="chip hidden md:inline-block"

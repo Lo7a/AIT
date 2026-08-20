@@ -73,9 +73,12 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
 
   // ההרשאה נקבעת על השחקן האמיתי ולא על מי שמתחזים אליו
   const viewerIsAdmin = acting != null && isAdmin(acting.actor);
+  const viewerEmail = acting?.actor.email ?? null;
 
   return (
     <Report
+      isAdmin={viewerIsAdmin}
+      userEmail={viewerEmail}
       report={report}
       lossHighlights={highlights}
       personalLoss={personalLoss}

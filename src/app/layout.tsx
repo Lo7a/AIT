@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Rubik } from "next/font/google";
 import { THEME_COOKIE, parseTheme } from "./theme";
+import { RAIL_COOKIE, parseRail } from "./rail";
 import { MODE_COOKIE, parseMode } from "./mode";
 import { ModeToggle } from "./mode-toggle";
 import { Ambient, GscDefs } from "./ui/ambient";
@@ -31,9 +32,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
   // מצב תצוגה (כהה ברירת מחדל / בהיר) - נקבע בשרת מהעוגייה כדי שלא יהיה הבזק בטעינה
   const mode = parseMode(cookieStore.get(MODE_COOKIE)?.value);
+  // מצב הסיידבר על html, כדי שהוא ייצא נכון כבר מהשרת ולא יקפוץ אחרי הטעינה
+  const rail = parseRail(cookieStore.get(RAIL_COOKIE)?.value);
 
   return (
-    <html lang="he" dir="rtl" data-theme={theme} data-mode={mode}>
+    <html lang="he" dir="rtl" data-theme={theme} data-mode={mode} data-rail={rail}>
       {/* suppressHydrationWarning על body בלבד: תוספי דפדפן (Grammarly וכד') מזריקים תכונות
           ל-body לפני ש-React נטען ומייצרים אזהרת hydration מדומה בפיתוח; אזהרות אמיתיות בעומק
           העץ לא מושתקות */}

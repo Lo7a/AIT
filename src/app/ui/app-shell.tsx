@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import { RAIL_COOKIE } from "../rail";
 
 // מעטפת המערכת למשתמש מחובר: סיידבר בסגנון CRM שנפתח ונסגר. במצב סגור נשארים
 // האייקונים (רוחב 74px) - אף פעם לא נעלם לגמרי. הבחירה נשמרת בדפדפן. במובייל
@@ -12,7 +13,8 @@ import { useEffect, useState, type ReactNode } from "react";
 // התוכן, וזה שבר את השפה - כל שאר המערכת מנווטת מהסיידבר. מעטפת אחת ולא שתיים, כי
 // סיידבר שני היה מתפצל בתחזוקה מהראשון (כלל השימוש החוזר ב-CLAUDE.md).
 
-const RAIL_KEY = "ait-rail";
+// שנה. ההעדפה הזו לא אמורה להתאפס בכל ביקור
+const RAIL_MAX_AGE = 31536000;
 
 export type ShellNavKey =
   | "home" | "report" | "interview" | "roadmap"
@@ -120,19 +122,20 @@ export function AppShell({
   isAdmin?: boolean;
   children: ReactNode;
 }) {
-  const [mini, setMini] = useState(false);
   const pathname = usePathname();
+  // המצב חי על html ונקבע בשרת מה-cookie (ראו rail.ts), ולכן אין ריצוד בטעינה. ה-state
+  // כאן קיים רק כדי שתווית הנגישות של הכפתור תתעדכן - הרוחב עצמו הוא CSS טהור
+  const [mini, setMini] = useState(false);
 
   useEffect(() => {
-    try { setMini(window.localStorage.getItem(RAIL_KEY) === "mini"); } catch { /* אחסון חסום - נשארים פתוחים */ }
+    setMini(document.documentElement.dataset.rail === "mini");
   }, []);
 
   function toggle() {
-    setMini((m) => {
-      const next = !m;
-      try { window.localStorage.setItem(RAIL_KEY, next ? "mini" : "open"); } catch { /* לא קריטי */ }
-      return next;
-    });
+    const next = document.documentElement.dataset.rail === "mini" ? "open" : "mini";
+    document.documentElement.dataset.rail = next;
+    document.cookie = `${RAIL_COOKIE}=${next}; path=/; max-age=${RAIL_MAX_AGE}; samesite=lax`;
+    setMini(next === "mini");
   }
 
   // "אבחון לעסק נוסף" הוסר ב-20.8: הוא הצביע ל-/hub#new, כלומר לאותו יעד של "מרכז
@@ -164,7 +167,7 @@ export function AppShell({
 
   return (
     <div className="app">
-      <aside className={mini ? "side-nav mini" : "side-nav"}>
+      <aside className="side-nav">
         <div className="head">
           <span className="brand">
             <span className="brand-mark">AIT</span>

@@ -38,6 +38,11 @@
   --core-shadow:0 30px 80px rgba(0,0,0,.45);
   --shell-shadow:0 30px 80px rgba(0,0,0,.45);
   --nav-glass:rgba(9,9,12,.6);
+  /* סרגלי המערכת אטומים (הנחיית מייסד 20.8): שורה דביקה שקופה מראה את התוכן
+     גולל מתחתיה, וזה קריא כמו שתי שכבות טקסט אחת על השנייה. --nav-glass נשאר
+     לדף הנחיתה בלבד, שם השקיפות היא החלטה עיצובית ולא תופעת לוואי.
+     בונוס: אטום פירושו שאפשר להוריד את ה-blur, שהוא מסנן יקר על כל גלילה */
+  --bar-bg:#0b0b0f;
   --float-glass:rgba(10,10,14,.68);
   --tex-line:rgba(255,255,255,.022);
   --inv-bg:#f4f4f6;
@@ -87,6 +92,7 @@ html[data-mode="light"]{
   --core-shadow:0 2px 6px rgba(52,38,105,.05), 0 30px 70px -34px rgba(52,38,105,.24);
   --shell-shadow:0 24px 60px -30px rgba(52,38,105,.18);
   --nav-glass:rgba(255,255,255,.74);
+  --bar-bg:#ffffff;
   --float-glass:rgba(255,255,255,.82);
   --tex-line:rgba(25,22,33,.035);
   --inv-bg:#191621;
@@ -255,9 +261,8 @@ html[data-mode="light"] .theme-tgl .ic-moon{display:none}
   min-height:var(--topbar-h);
   display:flex;align-items:center;gap:16px;
   padding:14px 22px;
-  background:var(--nav-glass);
+  background:var(--bar-bg);
   border-bottom:1px solid var(--hair-soft);
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
 }
 .brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:inherit}
 .brand-mark{
@@ -493,9 +498,8 @@ html[data-mode="light"] .gap-no{text-shadow:none}
   position:sticky;top:0;height:100dvh;overflow-y:auto;overflow-x:hidden;
   display:flex;flex-direction:column;gap:4px;
   padding:16px 12px;
-  background:var(--nav-glass);
+  background:var(--bar-bg);
   border-inline-end:1px solid var(--hair-soft);
-  backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
   transition:width .5s var(--ease),padding .5s var(--ease);
 }
 .side-nav .head{
@@ -520,7 +524,7 @@ html[data-mode="light"] .gap-no{text-shadow:none}
   transition:color .25s,background .25s,border-color .25s,transform .3s var(--ease-out),inset-inline-start .5s var(--ease);
 }
 html[data-mode="light"] .rail-tgl{box-shadow:0 6px 16px -8px rgba(52,38,105,.3)}
-.side-nav.mini ~ .rail-tgl{inset-inline-start:calc(var(--rail-mini-w) - 15px)}
+html[data-rail="mini"] .rail-tgl{inset-inline-start:calc(var(--rail-mini-w) - 15px)}
 .rail-tgl:hover{color:var(--txt);border-color:rgba(var(--acc-rgb),.45)}
 @media (max-width:880px){.rail-tgl{display:none}}
 /* האייקון. שני תיקונים ושיפור אחד:
@@ -542,7 +546,7 @@ html[data-mode="light"] .rail-tgl{box-shadow:0 6px 16px -8px rgba(52,38,105,.3)}
    ה-path מצייר שברון שקודקודו בשמאל, כלומר חץ שמאלה - ולכן דווקא המצב הפתוח הוא זה
    שמסובב. עד 20.8 זה היה הפוך, והחץ הראה את ההפך מהפעולה */
 .rail-tgl path{transform:rotate(180deg)}
-.side-nav.mini ~ .rail-tgl path{transform:none}
+html[data-rail="mini"] .rail-tgl path{transform:none}
 .rail-tgl:hover{transform:translateY(-50%) scale(1.09)}
 .rail-tgl:active{transform:translateY(-50%) scale(.93)}
 .nav-item{
@@ -582,21 +586,21 @@ html[data-mode="light"] .rail-tgl{box-shadow:0 6px 16px -8px rgba(52,38,105,.3)}
 .side-nav .foot .who{flex:1;min-width:0}
 .side-nav .foot .who b{display:block;font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .side-nav .foot .who i{font-style:normal;font-size:10.5px;color:var(--dim)}
-.side-nav.mini{width:var(--rail-mini-w);padding:16px 10px}
-.side-nav.mini .lbl,
-.side-nav.mini .bdg,
-.side-nav.mini .brand-txt,
-.side-nav.mini .foot .who{display:none}
-.side-nav.mini .head{justify-content:center;padding-inline:0}
-.side-nav.mini .head .brand{display:none}
-.side-nav.mini .nav-item{justify-content:center;padding:12px 0;gap:0}
-.side-nav.mini .foot{justify-content:center;padding-inline:0}
+html[data-rail="mini"] .side-nav{width:var(--rail-mini-w);padding:16px 10px}
+html[data-rail="mini"] .side-nav .lbl,
+html[data-rail="mini"] .side-nav .bdg,
+html[data-rail="mini"] .side-nav .brand-txt,
+html[data-rail="mini"] .side-nav .foot .who{display:none}
+html[data-rail="mini"] .side-nav .head{justify-content:center;padding-inline:0}
+html[data-rail="mini"] .side-nav .head .brand{display:none}
+html[data-rail="mini"] .side-nav .nav-item{justify-content:center;padding:12px 0;gap:0}
+html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
 .main-col{flex:1;min-width:0;display:flex;flex-direction:column}
 .m-tabs{display:none}
 @media (max-width:880px){
   .side-nav{display:none}
   .m-tabs{
-    display:flex;gap:6px;overflow-x:auto;
+    display:flex;gap:6px;overflow-x:auto;background:var(--bar-bg);
     padding:10px 14px;border-bottom:1px solid var(--hair-soft);
     scrollbar-width:none;position:relative;z-index:4;
   }
@@ -817,9 +821,8 @@ html[data-mode="light"] .rail-tgl{box-shadow:0 6px 16px -8px rgba(52,38,105,.3)}
   position:sticky;top:var(--topbar-h);z-index:6;min-height:var(--anch-h);
   display:flex;align-items:center;gap:7px;overflow-x:auto;scrollbar-width:none;
   padding:9px 22px;
-  background:var(--nav-glass);
+  background:var(--bar-bg);
   border-bottom:1px solid var(--hair-soft);
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
 }
 .anch::-webkit-scrollbar{display:none}
 .anch a,.anch button{
@@ -1471,4 +1474,42 @@ button.ans-row:not(:disabled):active{background:rgba(var(--acc-rgb),.16)}
 .page-head p{
   margin-top:9px;max-width:62ch;
   font-size:14px;line-height:1.6;color:var(--mut);
+}
+
+/* ===== תפריט המשתמש בקצה הסרגל העליון (ui/user-menu.tsx) ===== */
+.umenu{position:relative;flex:none;margin-inline-start:auto}
+.topbar .side .umenu{margin-inline-start:0}
+.umenu-btn{
+  display:grid;place-items:center;cursor:pointer;padding:0;
+  background:none;border:none;border-radius:50%;
+  transition:transform .25s var(--ease-out);
+}
+.umenu-btn:hover{transform:scale(1.06)}
+.umenu-pop{
+  position:absolute;inset-inline-start:0;top:calc(100% + 8px);z-index:20;
+  min-width:min(230px,80vw);padding:6px;border-radius:14px;
+  background:var(--bar-bg);border:1px solid var(--hair);
+  box-shadow:var(--core-shadow);
+}
+.umenu-who{
+  display:flex;flex-direction:column;gap:3px;margin:0;
+  padding:9px 11px 11px;border-bottom:1px solid var(--row-line);
+}
+.umenu-who span{font-size:10.5px;font-weight:700;letter-spacing:.1em;color:var(--dim)}
+.umenu-who b{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.umenu-row{
+  display:block;width:100%;text-align:start;cursor:pointer;
+  padding:9px 11px;margin-top:2px;border-radius:10px;
+  border:none;background:transparent;color:var(--txt);text-decoration:none;
+  font:inherit;font-size:13px;
+  transition:background .2s var(--ease-out),color .2s;
+}
+.umenu-row:hover{background:var(--surface-2)}
+.umenu-row.danger{color:var(--bad)}
+.umenu-row.danger:hover{background:rgba(var(--bad-rgb),.1)}
+/* נקודה חיה בתוך משפט (לא גלולה): אותו חיווי, בלי להפוך אותו לתג בפני עצמו */
+.live-dot{
+  width:7px;height:7px;border-radius:50%;flex:none;margin-top:6px;
+  background:var(--acc2);box-shadow:0 0 8px rgba(var(--acc2-rgb),.8);
+  animation:breathe 2.6s var(--ease) infinite;
 }

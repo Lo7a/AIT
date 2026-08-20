@@ -55,6 +55,7 @@ export default async function RoadmapPage({ params }: { params: Promise<{ id: st
       initialRoadmap={roadmap}
       personalLoss={personalLossLine(answers.volume, answers.responseTime, answers.dealValue)}
       isAdmin={acting != null && isAdmin(acting.actor)}
+      userEmail={acting?.actor.email ?? null}
     />
   );
 }

@@ -44,5 +44,5 @@ export default async function InterviewPage({ params }: { params: Promise<{ id: 
   const snapshot = snapshotOf(state);
   const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
   const { Interview } = getVariant(theme);
-  return <Interview diagnosisId={id} initial={snapshot} businessName={businessName ?? undefined} isAdmin={acting != null && isAdmin(acting.actor)} />;
+  return <Interview diagnosisId={id} initial={snapshot} businessName={businessName ?? undefined} isAdmin={acting != null && isAdmin(acting.actor)} userEmail={acting?.actor.email ?? null} />;
 }

@@ -14,6 +14,7 @@ import type { LossHighlight } from "../../pipeline/roadmap/loss-highlights";
 import type { PersonalLossLine } from "../../pipeline/roadmap/loss-calc";
 import { AppShell } from "../ui/app-shell";
 import { ImpersonateSearch } from "../ui/impersonate-search";
+import { UserMenu } from "../ui/user-menu";
 import { AnchorNav, type AnchorItem } from "../ui/anchor-nav";
 import { FillBar } from "../ui/motion";
 
@@ -274,12 +275,13 @@ function ItemCard({
 }
 
 export function DefaultRoadmap({
-  report, initialRoadmap, personalLoss = null, isAdmin = false,
+  report, initialRoadmap, personalLoss = null, isAdmin = false, userEmail = null,
 }: {
   report: ReportView;
   initialRoadmap: RoadmapView | null;
   personalLoss?: PersonalLossLine | null;
   isAdmin?: boolean;
+  userEmail?: string | null;
 }) {
   const {
     buildPhase, roadmap, error, itemBrief, itemError, groups, rebuild, requestBrief,
@@ -303,12 +305,15 @@ export function DefaultRoadmap({
   }));
 
   return (
-    <AppShell active="roadmap" diagnosisId={report.id} userLabel={report.business.name} isAdmin={isAdmin}>
+    <AppShell active="roadmap" diagnosisId={report.id} userLabel={userEmail} isAdmin={isAdmin}>
       {/* שורת הזהות, זהה לדוח ולראיון: על איזה עסק מדובר. הכותרת "תוכנית העבודה" למטה
           אומרת מה זה, ולא למי - וכשיש כמה אבחונים זו בדיוק השאלה (דיווח מייסד 20.8) */}
       <header className="topbar">
         <span className="brand-txt"><small>תוכנית העבודה</small><b>{report.business.name}</b></span>
-        {isAdmin && <div className="side"><ImpersonateSearch /></div>}
+        <div className="side">
+          {isAdmin && <ImpersonateSearch />}
+          <UserMenu email={userEmail} isAdmin={isAdmin} />
+        </div>
       </header>
       {buildPhase === "ready" && roadmap != null && roadmap.items.length > 0 && (
         <AnchorNav items={phaseAnchors} label="שלבי תוכנית העבודה" />

@@ -6,6 +6,7 @@ import { useInterviewChat } from "../interview/use-interview-chat";
 import type { ChatMessage, SectionProgressItem } from "../interview/chat-logic";
 import { AppShell } from "../ui/app-shell";
 import { ImpersonateSearch } from "../ui/impersonate-search";
+import { UserMenu } from "../ui/user-menu";
 import { AnswerOptions } from "../ui/answer-options";
 import { FillBar } from "../ui/motion";
 
@@ -93,12 +94,13 @@ function Bubble({ message }: { message: ChatMessage }) {
 }
 
 export function DefaultInterview({
-  diagnosisId, initial, businessName, isAdmin = false,
+  diagnosisId, initial, businessName, isAdmin = false, userEmail = null,
 }: {
   diagnosisId: string;
   initial: InterviewSnapshot;
   businessName?: string;
   isAdmin?: boolean;
+  userEmail?: string | null;
 }) {
   const {
     messages, busy, starting, finishing, input, freeText, visible, sections,
@@ -169,7 +171,7 @@ export function DefaultInterview({
   }
 
   return (
-    <AppShell active="interview" diagnosisId={diagnosisId} userLabel={businessName ?? null} isAdmin={isAdmin}>
+    <AppShell active="interview" diagnosisId={diagnosisId} userLabel={userEmail} isAdmin={isAdmin}>
       {/* שורת הזהות: על איזה עסק הראיון הזה. היה חסר כאן בלבד, וכשיש כמה אבחונים אי אפשר
           היה לדעת עם מי מדברים (דיווח מייסד 20.8). אותו מבנה בדיוק כמו בדוח וב-Roadmap */}
       {businessName != null && businessName !== "" && (
@@ -177,7 +179,10 @@ export function DefaultInterview({
           {/* רק הזהות. "הדוח חי" כבר מוצג בכותרת המסך עצמו, ולהראות אותו פעמיים
               על אותו מסך זה רעש ולא הדגשה */}
           <span className="brand-txt"><small>הראיון</small><b>{businessName}</b></span>
-          {isAdmin && <div className="side"><ImpersonateSearch /></div>}
+          <div className="side">
+            {isAdmin && <ImpersonateSearch />}
+            <UserMenu email={userEmail} isAdmin={isAdmin} />
+          </div>
         </header>
       )}
       {/* אותה פריסת שתי-עמודות של הדוח (.repC) ולא רוחב משלו. עד 20.8 המסך הזה ישב על
@@ -190,34 +195,43 @@ export function DefaultInterview({
             הראשית: כותרת של 32 פיקסלים ופסקה של 52 תווים בתוך רצועה של 318 פיקסלים
             נשברות לשבע שורות, וגם ככה מקומה של כותרת העמוד הוא בראש התוכן */}
         <aside className="rep-side">
+        {/* הכרטיס נבנה מחדש (דיווח מייסד 20.8: "הדוח חי" לא התחבר לשאר).
+            הוא היה גלולה ירוקה מרחפת בראש הכרטיס בלי הקשר - תג בלי משפט. עכשיו יש
+            כאן סדר אחד: מה המספר, מה הפס שמתחתיו אומר, מה כבר נאסף, ובסוף מה שהתג
+            באמת התכוון לומר - בעברית פשוטה ולא כסיסמה */}
         <section className="shell rv d1">
           <div className="core card-pad">
-            {/* "הדוח חי" - אמת מערכתית, לא סיסמה: כל תשובה מרעננת את scan.scores מיד (run-interview) */}
-            <span className="live-tag">
-              <span className="dot" aria-hidden="true" />
-              הדוח חי
-            </span>
-
+            <h2 className="card-title flush">שלמות האבחון</h2>
             <div
               role="progressbar"
               aria-valuenow={completenessPct}
               aria-valuemin={0}
               aria-valuemax={100}
               aria-label="שלמות האבחון"
-              className="mt-5 flex items-center gap-3 border-t pt-5"
-              style={{ borderColor: "var(--row-line)" }}
+              className="mt-3"
             >
-              <span className="shrink-0 text-[11px] font-semibold tracking-[.05em] text-[color:var(--dim)]">
-                שלמות האבחון
+              <span className="num block text-[34px] font-extrabold leading-none tracking-[-.03em] text-[color:var(--acc-soft)]">
+                {completenessPct}%
               </span>
-              <FillBar percent={completenessPct} />
-              <span className="num shrink-0 text-sm font-bold text-[color:var(--acc-soft)]">{completenessPct}%</span>
+              <div className="mt-3"><FillBar percent={completenessPct} /></div>
             </div>
-            <ul className="mt-3.5 flex flex-wrap gap-2">
+
+            <p className="mt-5 text-[10.5px] font-bold tracking-[.12em] text-[color:var(--dim)]">
+              מה כבר יש לנו
+            </p>
+            <ul className="mt-2.5 flex flex-wrap gap-2">
               {sections.map((s) => (
                 <SectionChip key={s.key} item={s} />
               ))}
             </ul>
+
+            {/* מה ש"הדוח חי" ניסה להגיד, אמור: כל תשובה מרעננת את scan.scores מיד
+                (run-interview). עובדה מערכתית, ולכן היא נאמרת כמשפט ולא כתג */}
+            <p className="mt-5 flex items-start gap-2 border-t pt-4 text-[12px] leading-relaxed"
+              style={{ borderColor: "var(--row-line)", color: "var(--mut)" }}>
+              <span className="live-dot" aria-hidden="true" />
+              כל תשובה מעדכנת את הדוח מיד. אפשר לעצור באמצע ולחזור.
+            </p>
           </div>
         </section>
         </aside>

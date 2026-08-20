@@ -40,6 +40,8 @@ export interface VariantScreens {
     // הצופה הוא אדמין אמיתי: מציג את חיפוש ההתחזות בסרגל העליון ואת הכניסה לניהול
     // בסיידבר. נקבע בשרת - הלקוח לעולם לא מחליט על הרשאה
     isAdmin?: boolean;
+    // האימייל של המשתמש המחובר - לתפריט המשתמש בסרגל ולתחתית הסיידבר
+    userEmail?: string | null;
   }>;
   Interview: ComponentType<{
     diagnosisId: string;
@@ -48,12 +50,16 @@ export interface VariantScreens {
     // היה המסך היחיד שלא אמר על מי מדובר. אופציונלי כדי שגרסאות עיצוב קיימות יתקמפלו
     businessName?: string;
     isAdmin?: boolean;
+    // האימייל של המשתמש המחובר - לתפריט המשתמש בסרגל ולתחתית הסיידבר
+    userEmail?: string | null;
   }>;
   Roadmap: ComponentType<{
     report: NonNullable<Awaited<ReturnType<typeof import("../../server/diagnosis-read").getReport>>>;
     initialRoadmap: import("../../server/roadmap-repo").RoadmapView | null;
     personalLoss?: import("../../pipeline/roadmap/loss-calc").PersonalLossLine | null;
     isAdmin?: boolean;
+    // האימייל של המשתמש המחובר - לתפריט המשתמש בסרגל ולתחתית הסיידבר
+    userEmail?: string | null;
   }>;
 }
 
