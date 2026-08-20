@@ -38,7 +38,7 @@ export default async function AdminCatalogItemPage({
           </nav>
 
           <div className="flex flex-wrap items-center gap-3">
-            <h2 className="card-title" style={{ marginBottom: 0 }}>{item.name}</h2>
+            <h2 className="card-title flush">{item.name}</h2>
             <span className="chip">{serviceTypeLabel(item.serviceType)}</span>
             {item.archivedAt != null && <span className="chip">מארוכב</span>}
           </div>

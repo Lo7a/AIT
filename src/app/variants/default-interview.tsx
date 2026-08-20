@@ -181,40 +181,45 @@ export function DefaultInterview({
         className="mx-auto w-full max-w-[760px] flex-1 px-4 pb-16 pt-8 sm:pt-10"
         aria-busy={starting || busy || finishing}
       >
-        <header className="rv">
-          {/* "הדוח חי" - אמת מערכתית, לא סיסמה: כל תשובה מרעננת את scan.scores מיד (run-interview) */}
-          <span className="live-tag">
-            <span className="dot" aria-hidden="true" />
-            הדוח חי
-          </span>
-          <h1 className="mt-4 text-[clamp(26px,4.2vw,36px)] font-extrabold leading-tight tracking-[-.015em]">
-            ראיון קצר על העסק
-          </h1>
-          <p className="mt-2 max-w-[52ch] text-[14.5px] text-[color:var(--mut)]">
-            כמה שאלות ממוקדות שיעזרו לדייק את ההמלצות. אפשר לדלג, לעבור לכתיבה חופשית ולסיים מתי שרוצים.
-          </p>
-        </header>
-
-        <section className="rv d1 mt-7">
-          <div
-            role="progressbar"
-            aria-valuenow={completenessPct}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label="שלמות האבחון"
-            className="flex items-center gap-3"
-          >
-            <span className="shrink-0 text-[11px] font-semibold tracking-[.05em] text-[color:var(--dim)]">
-              שלמות האבחון
+        {/* מה זה ואיפה אני עומד, בכרטיס אחד. עד 20.8 הכותרת ומד השלמות ישבו חשופים על
+            הרקע בזמן שכל שאר המערכת מניחה תוכן בתוך הכרטיס הכפול - זה מה שגרם למסך
+            הזה להיראות פחות בנוי משאר המסכים, ולא התוכן עצמו.
+            הבועות שמתחת נשארות מחוץ לכרטיס בכוונה: שיחה נקראת כרצף, לא כתוכן בקופסה */}
+        <section className="shell rv d1">
+          <div className="core card-pad">
+            {/* "הדוח חי" - אמת מערכתית, לא סיסמה: כל תשובה מרעננת את scan.scores מיד (run-interview) */}
+            <span className="live-tag">
+              <span className="dot" aria-hidden="true" />
+              הדוח חי
             </span>
-            <FillBar percent={completenessPct} />
-            <span className="num shrink-0 text-sm font-bold text-[color:var(--acc-soft)]">{completenessPct}%</span>
+            <h1 className="mt-4 text-[clamp(24px,3.6vw,32px)] font-extrabold leading-tight tracking-[-.015em]">
+              ראיון קצר על העסק
+            </h1>
+            <p className="mt-2 max-w-[52ch] text-[14.5px] text-[color:var(--mut)]">
+              כמה שאלות ממוקדות שיעזרו לדייק את ההמלצות. אפשר לדלג, לעבור לכתיבה חופשית ולסיים מתי שרוצים.
+            </p>
+
+            <div
+              role="progressbar"
+              aria-valuenow={completenessPct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="שלמות האבחון"
+              className="mt-6 flex items-center gap-3 border-t pt-5"
+              style={{ borderColor: "var(--row-line)" }}
+            >
+              <span className="shrink-0 text-[11px] font-semibold tracking-[.05em] text-[color:var(--dim)]">
+                שלמות האבחון
+              </span>
+              <FillBar percent={completenessPct} />
+              <span className="num shrink-0 text-sm font-bold text-[color:var(--acc-soft)]">{completenessPct}%</span>
+            </div>
+            <ul className="mt-3.5 flex flex-wrap gap-2">
+              {sections.map((s) => (
+                <SectionChip key={s.key} item={s} />
+              ))}
+            </ul>
           </div>
-          <ul className="mt-3.5 flex flex-wrap gap-2">
-            {sections.map((s) => (
-              <SectionChip key={s.key} item={s} />
-            ))}
-          </ul>
         </section>
 
         <section aria-live="polite" className="rv d2 mt-7 flex flex-col gap-3">

@@ -329,6 +329,10 @@ html[data-mode="light"] .theme-tgl .ic-moon{display:none}
   margin-bottom:16px;
 }
 .card-title::after{content:"";flex:1;height:1px;background:var(--hair-soft)}
+/* כותרת בשורה עם פעולה לצידה: בלי הרווח התחתון ובלי הקו, שאין לו לאן להימתח
+   בתוך שורת flex. היה נדרס פעמיים ב-style בשורה, וזה בדיוק מה שמודיפייר קיים בשבילו */
+.card-title.flush{margin-bottom:0}
+.card-title.flush::after{display:none}
 
 /* ===== חוגת ציון ומדי התקדמות (ui/motion.tsx) ===== */
 .score-core{display:flex;flex-direction:column;align-items:center;gap:4px}
@@ -1249,7 +1253,9 @@ button.ans-row:not(:disabled):active{background:rgba(var(--acc-rgb),.16)}
   min-width:0;max-width:100%;
 }
 .fbar input[type=search]{min-width:min(260px,60vw)}
-.fbar input[type=search]:focus,.fbar select:focus{outline:none;border-color:rgba(var(--acc-rgb),.5)}
+/* בלי outline:none. הכלל הגלובלי בראש הקובץ נותן טבעת מיקוד ל-:focus-visible, ושלילת
+   ה-outline כאן הרגה אותה גם לניווט מקלדת - שדה שאי אפשר לראות שהוא במיקוד */
+.fbar input[type=search]:focus,.fbar select:focus{border-color:rgba(var(--acc-rgb),.5)}
 .fbar .fbar-act{display:flex;gap:8px;align-items:center}
 .fbar .clear{font-size:12.5px;color:var(--mut);text-decoration:none;padding:0 4px}
 .fbar .clear:hover{color:var(--txt);text-decoration:underline}
@@ -1275,8 +1281,9 @@ button.ans-row:not(:disabled):active{background:rgba(var(--acc-rgb),.16)}
   padding:9px 12px;min-width:0;max-width:100%;
 }
 .cf-fld textarea{resize:vertical;line-height:1.55}
+/* אותה סיבה בדיוק כמו ב-.fbar: הטבעת הגלובלית נשארת, הגבול רק מתווסף לה */
 .cf-fld input:focus,.cf-fld select:focus,.cf-fld textarea:focus{
-  outline:none;border-color:rgba(var(--acc-rgb),.5);
+  border-color:rgba(var(--acc-rgb),.5);
 }
 .cf-set{
   margin-top:20px;padding:15px 16px;

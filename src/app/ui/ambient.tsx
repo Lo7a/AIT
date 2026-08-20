@@ -18,9 +18,13 @@ export function GscDefs() {
   return (
     <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
       <defs>
+        {/* דרך הטוקנים ולא בערכים קשיחים: הצבעים כאן היו הסגול והברקת של המצב הכהה,
+            ולכן כל טבעת ציון במערכת נשארה בגוון של המצב הכהה גם במצב הבהיר - שם
+            --acc ו---acc2 כהים יותר בכוונה כדי לעמוד בניגודיות על רקע בהיר.
+            stop-color היא תכונת CSS אמיתית ולכן היא מקבלת var() */}
         <linearGradient id="gsc" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#a78bfa" />
-          <stop offset="100%" stopColor="#34d399" />
+          <stop offset="0%" style={{ stopColor: "var(--acc)" }} />
+          <stop offset="100%" style={{ stopColor: "var(--acc2)" }} />
         </linearGradient>
       </defs>
     </svg>

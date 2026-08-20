@@ -19,6 +19,17 @@ const PHASE_LABEL: Record<string, string> = {
 
 const COMPLEXITY_LABEL: Record<string, string> = { low: "נמוכה", medium: "בינונית", high: "גבוהה" };
 
+// תוויות הענפים ארוכות ("אוכל מהיר, מאפייה או קונדיטוריה"), ופריט ענפי יכול לשאת כמה.
+// שרשור כולן הפך את העמודה הזו לרחבה מכל השאר וגרר את הטבלה לגלילה אופקית על מסך רגיל.
+// שתיים ומונה, והרשימה המלאה ב-title לריחוף
+function industriesCell(slugs: string[]): React.ReactNode {
+  if (slugs.length === 0) return "כל הענפים";
+  const label = (s: string) => INDUSTRY_LABEL_HE[s as keyof typeof INDUSTRY_LABEL_HE] ?? s;
+  const all = slugs.map(label).join(", ");
+  if (slugs.length <= 2) return all;
+  return <span title={all}>{slugs.slice(0, 2).map(label).join(", ")} ועוד {slugs.length - 2}</span>;
+}
+
 const one = (v: string | string[] | undefined): string | undefined =>
   Array.isArray(v) ? v[0] : v;
 
@@ -61,7 +72,7 @@ export default async function AdminCatalogPage({
       <section className="shell c12 rv d1">
         <div className="core card-pad">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="card-title" style={{ marginBottom: 0 }}>ספריית השירותים</h2>
+            <h2 className="card-title flush">ספריית השירותים</h2>
             <Link href="/admin/catalog/new" className="btn sm">
               פריט חדש
               <span className="cap" aria-hidden="true">
@@ -146,13 +157,7 @@ export default async function AdminCatalogPage({
                         {r.archivedAt != null && <span className="chip ms-2">מארוכב</span>}
                       </td>
                       <td className="t-mut">{serviceTypeLabel(r.serviceType)}</td>
-                      <td className="t-mut">
-                        {r.industries.length === 0
-                          ? "כל הענפים"
-                          : r.industries
-                              .map((s) => INDUSTRY_LABEL_HE[s as keyof typeof INDUSTRY_LABEL_HE] ?? s)
-                              .join(", ")}
-                      </td>
+                      <td className="t-mut">{industriesCell(r.industries)}</td>
                       <td className="t-mut">{r.phase != null ? PHASE_LABEL[r.phase] ?? r.phase : "לפי הקוד"}</td>
                       <td className="t-mut">{COMPLEXITY_LABEL[r.complexity] ?? r.complexity}</td>
                       {/* מספר הבנצ'מרקים הוא מספר המקורות שמאחורי המחיר. אפס = מחיר בלי
