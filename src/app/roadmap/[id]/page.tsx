@@ -7,7 +7,7 @@ import { getQuantityAnswers } from "../../../server/interview-repo";
 import { personalLossLine } from "../../../pipeline/roadmap/loss-calc";
 import type { DiagnosisStatus } from "../../../server/status";
 import { currentActingUser, hasAuthConfig } from "../../../server/auth/supabase-server";
-import { userCanAccessDiagnosis } from "../../../server/auth/guard";
+import { userCanAccessDiagnosis, isAdmin } from "../../../server/auth/guard";
 import { emitUsageEvent } from "../../../server/usage-events";
 import { THEME_COOKIE, parseTheme } from "../../theme";
 import { getVariant } from "../../variants/registry";
@@ -49,5 +49,12 @@ export default async function RoadmapPage({ params }: { params: Promise<{ id: st
 
   const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
   const { Roadmap } = getVariant(theme);
-  return <Roadmap report={report} initialRoadmap={roadmap} personalLoss={personalLossLine(answers.volume, answers.responseTime, answers.dealValue)} />;
+  return (
+    <Roadmap
+      report={report}
+      initialRoadmap={roadmap}
+      personalLoss={personalLossLine(answers.volume, answers.responseTime, answers.dealValue)}
+      isAdmin={acting != null && isAdmin(acting.actor)}
+    />
+  );
 }

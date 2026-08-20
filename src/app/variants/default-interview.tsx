@@ -5,6 +5,7 @@ import type { InterviewSnapshot } from "../../server/run-interview";
 import { useInterviewChat } from "../interview/use-interview-chat";
 import type { ChatMessage, SectionProgressItem } from "../interview/chat-logic";
 import { AppShell } from "../ui/app-shell";
+import { ImpersonateSearch } from "../ui/impersonate-search";
 import { AnswerOptions } from "../ui/answer-options";
 import { FillBar } from "../ui/motion";
 
@@ -92,11 +93,12 @@ function Bubble({ message }: { message: ChatMessage }) {
 }
 
 export function DefaultInterview({
-  diagnosisId, initial, businessName,
+  diagnosisId, initial, businessName, isAdmin = false,
 }: {
   diagnosisId: string;
   initial: InterviewSnapshot;
   businessName?: string;
+  isAdmin?: boolean;
 }) {
   const {
     messages, busy, starting, finishing, input, freeText, visible, sections,
@@ -167,7 +169,7 @@ export function DefaultInterview({
   }
 
   return (
-    <AppShell active="interview" diagnosisId={diagnosisId} userLabel={businessName ?? null}>
+    <AppShell active="interview" diagnosisId={diagnosisId} userLabel={businessName ?? null} isAdmin={isAdmin}>
       {/* שורת הזהות: על איזה עסק הראיון הזה. היה חסר כאן בלבד, וכשיש כמה אבחונים אי אפשר
           היה לדעת עם מי מדברים (דיווח מייסד 20.8). אותו מבנה בדיוק כמו בדוח וב-Roadmap */}
       {businessName != null && businessName !== "" && (
@@ -175,6 +177,7 @@ export function DefaultInterview({
           {/* רק הזהות. "הדוח חי" כבר מוצג בכותרת המסך עצמו, ולהראות אותו פעמיים
               על אותו מסך זה רעש ולא הדגשה */}
           <span className="brand-txt"><small>הראיון</small><b>{businessName}</b></span>
+          {isAdmin && <div className="side"><ImpersonateSearch /></div>}
         </header>
       )}
       <main

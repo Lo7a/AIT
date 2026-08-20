@@ -37,6 +37,9 @@ export interface VariantScreens {
     // "מה הבנתי על העסק שלך" (insights.ts) - מסקנות שמחברות כמה אותות מאומתים לתמונה אחת,
     // פותחות את הדוח. אופציונלי: undefined/מערך ריק = הסקציה פשוט לא מוצגת
     insights?: import("../../pipeline/roadmap/insights").Insight[];
+    // הצופה הוא אדמין אמיתי: מציג את חיפוש ההתחזות בסרגל העליון ואת הכניסה לניהול
+    // בסיידבר. נקבע בשרת - הלקוח לעולם לא מחליט על הרשאה
+    isAdmin?: boolean;
   }>;
   Interview: ComponentType<{
     diagnosisId: string;
@@ -44,11 +47,13 @@ export interface VariantScreens {
     // שם העסק שהראיון הזה שייך לו (דיווח מייסד 20.8): כשיש כמה אבחונים, מסך הראיון
     // היה המסך היחיד שלא אמר על מי מדובר. אופציונלי כדי שגרסאות עיצוב קיימות יתקמפלו
     businessName?: string;
+    isAdmin?: boolean;
   }>;
   Roadmap: ComponentType<{
     report: NonNullable<Awaited<ReturnType<typeof import("../../server/diagnosis-read").getReport>>>;
     initialRoadmap: import("../../server/roadmap-repo").RoadmapView | null;
     personalLoss?: import("../../pipeline/roadmap/loss-calc").PersonalLossLine | null;
+    isAdmin?: boolean;
   }>;
 }
 

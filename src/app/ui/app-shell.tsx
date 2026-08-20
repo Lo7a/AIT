@@ -84,7 +84,7 @@ const NAV_ICONS: Record<ShellNavKey, ReactNode> = {
   ),
 };
 
-const NAV_LABEL: Record<ShellNavKey, string> = {
+export const NAV_LABEL: Record<ShellNavKey, string> = {
   home: "מרכז העסק",
   report: "הדוח המלא",
   interview: "הראיון",
@@ -100,7 +100,7 @@ const NAV_LABEL: Record<ShellNavKey, string> = {
 
 // מסכי הניהול. הסדר הוא סדר העבודה: מה קורה עכשיו, מי המשתמשים, מה נסרק, כמה זה עולה,
 // ומה קרה. "/admin" נבדק בהתאמה מדויקת - אחרת הוא היה דולק בכל תת-עמוד
-const ADMIN_ITEMS: { key: ShellNavKey; href: string }[] = [
+export const ADMIN_ITEMS: { key: ShellNavKey; href: string }[] = [
   { key: "admin", href: "/admin" },
   { key: "admin_catalog", href: "/admin/catalog" },
   { key: "admin_users", href: "/admin/users" },
@@ -175,16 +175,6 @@ export function AppShell({
             <span className="brand-mark">AIT</span>
             <span className="brand-txt"><small>יועץ דיגיטלי</small><b>{brandLabel}</b></span>
           </span>
-          <button
-            type="button"
-            className="rail-tgl"
-            onClick={toggle}
-            aria-label={mini ? "פתיחת התפריט" : "כיווץ התפריט לאייקונים"}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="m11 17-5-5 5-5" /><path d="m18 17-5-5 5-5" />
-            </svg>
-          </button>
         </div>
 
         {items.map(({ key, href }) => (
@@ -227,6 +217,21 @@ export function AppShell({
           </div>
         )}
       </aside>
+
+      {/* כפתור הכיווץ יושב על קצה הסיידבר וממורכז לגובה (הנחיית מייסד 20.8). הוא אח של
+          הסיידבר ולא ילד שלו: ל-.side-nav יש overflow-x:hidden בשביל הגלילה הפנימית,
+          וכפתור שחורג מהקצה היה נחתך בדיוק בחצי */}
+      <button
+        type="button"
+        className="rail-tgl"
+        onClick={toggle}
+        aria-label={mini ? "פתיחת התפריט" : "כיווץ התפריט לאייקונים"}
+        aria-expanded={!mini}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="m11 17-5-5 5-5" /><path d="m18 17-5-5 5-5" />
+        </svg>
+      </button>
 
       <div className="main-col">
         <nav className="m-tabs" aria-label="ניווט">

@@ -17,6 +17,7 @@ import { healthFacts } from "../../pipeline/report/health-facts";
 import type { HealthSignals } from "../../pipeline/types";
 import { AppShell } from "../ui/app-shell";
 import { AnchorNav, type AnchorItem } from "../ui/anchor-nav";
+import { ImpersonateSearch } from "../ui/impersonate-search";
 import { ScoreDial, MiniRing, SegRail, FillBar } from "../ui/motion";
 
 // שלושת המסכים בשפת העיצוב הנבחרת (הכרעת מייסד 18.8): כהה פרמיום, סגול וברקת, Rubik.
@@ -110,6 +111,7 @@ export function DefaultHome({
             <>
               {/* קישור "ניהול" עבר לסיידבר (הנחיית מייסד 20.8) - ניווט למדור אחר הוא
                   ניווט, ומקומו איפה שכל שאר הניווט */}
+              {isAdminUser && <ImpersonateSearch />}
               <span className="chip hidden sm:inline-block">
                 מחובר בתור <span dir="ltr">{session.email ?? "משתמש ללא אימייל"}</span>
               </span>
@@ -510,13 +512,14 @@ function HealthFactsBlock({ health, className }: { health: HealthSignals | undef
 }
 
 export function DefaultReport({
-  report, lossHighlights = [], personalLoss = null, quickWins = [], insights = [],
+  report, lossHighlights = [], personalLoss = null, quickWins = [], insights = [], isAdmin = false,
 }: {
   report: ReportView;
   lossHighlights?: LossHighlight[];
   personalLoss?: PersonalLossLine | null;
   quickWins?: QuickWin[];
   insights?: Insight[];
+  isAdmin?: boolean;
 }) {
   // הצעד הזה מבטיח מבחינת טיפוסים ש-report.scan אינו null: ה-RSC הקורא (report/[id]/page.tsx)
   // כבר מפעיל notFound() לפני שהוא מגיע לכאן כשאין סריקה, כך שזהו רק שער הגנה מקומי
@@ -567,10 +570,12 @@ export function DefaultReport({
   if (hasPlan) anchors.push({ id: "plan", label: "תוכנית העבודה" });
 
   return (
-    <AppShell active="report" diagnosisId={report.id} userLabel={business.name}>
+    <AppShell active="report" diagnosisId={report.id} userLabel={business.name} isAdmin={isAdmin}>
       <header className="topbar">
         <span className="brand-txt"><small>הדוח המלא</small><b>{business.name}</b></span>
         <div className="side">
+          {/* התחזות מהסרגל העליון, לאדמין בלבד (בקשת מייסד 20.8) */}
+          {isAdmin && <ImpersonateSearch />}
           {business.website && (
             <span
               className="chip hidden md:inline-block"

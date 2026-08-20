@@ -10,7 +10,7 @@ import { personalLossLine } from "../../../pipeline/roadmap/loss-calc";
 import { quickWins } from "../../../pipeline/roadmap/quick-wins";
 import { insights } from "../../../pipeline/roadmap/insights";
 import { currentActingUser, hasAuthConfig } from "../../../server/auth/supabase-server";
-import { userCanAccessDiagnosis } from "../../../server/auth/guard";
+import { userCanAccessDiagnosis, isAdmin } from "../../../server/auth/guard";
 import { emitUsageEvent } from "../../../server/usage-events";
 import { THEME_COOKIE, parseTheme } from "../../theme";
 import { getVariant } from "../../variants/registry";
@@ -70,6 +70,9 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
   // אותות *מאומתים* לתמונה אחת. נגזרת באותה דרך בדיוק: חוקים סטטיים מעל הציונים כפי שהם
   // שמורים, בזיכרון בלבד, בלי LLM ובלי שמירה. אות שלא נבדק לא נכנס לשום מסקנה
   const understood = insights(report.scan.scores);
+
+  // ההרשאה נקבעת על השחקן האמיתי ולא על מי שמתחזים אליו
+  const viewerIsAdmin = acting != null && isAdmin(acting.actor);
 
   return (
     <Report

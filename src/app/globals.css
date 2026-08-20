@@ -51,6 +51,13 @@
   --rail-w:232px;
   --content-w:94%;
   --content-max:1860px;
+  /* גובה שתי השורות שנשארות למעלה בגלילה (הנחיית מייסד 20.8). הן נאכפות ב-min-height
+     על .topbar ועל .anch, ולכן אלה לא הערכות אלא חוזה - כל מי שצריך להיערם מתחתיהן
+     (סרגל העוגנים, העמודה הדביקה בדוח) מחשב מהן ולא ממספר משלו */
+  --topbar-h:64px;
+  --anch-h:49px;
+  /* רוחב הסיידבר במצב מכווץ. הרוחב הפתוח הוא --rail-w, שהיה עד היום מוכפל כ-232 קשיח */
+  --rail-mini-w:74px;
 }
 html[data-mode="light"]{
   --bg:#f7f5fb;
@@ -240,11 +247,17 @@ html[data-mode="light"] .theme-tgl .ic-sun{display:block}
 html[data-mode="light"] .theme-tgl .ic-moon{display:none}
 
 /* ===== שורת כותרת ומותג ===== */
+/* נשארת למעלה בגלילה (הנחיית מייסד 20.8): שם העסק הוא הדבר שצריך להישאר על המסך
+   כשקוראים לעומק הדוח. min-height הופך את הגובה לחוזה ידוע, כדי שסרגל העוגנים ייערם
+   מתחתיה בדיוק. הזכוכית נוספה יחד עם הדביקות - בלעדיה התוכן היה נגלל מתחת לשקוף */
 .topbar{
-  position:relative;z-index:5;
+  position:sticky;top:0;z-index:7;
+  min-height:var(--topbar-h);
   display:flex;align-items:center;gap:16px;
   padding:14px 22px;
+  background:var(--nav-glass);
   border-bottom:1px solid var(--hair-soft);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
 }
 .brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:inherit}
 .brand-mark{
@@ -254,7 +267,12 @@ html[data-mode="light"] .theme-tgl .ic-moon{display:none}
   box-shadow:inset 0 1px 1px rgba(255,255,255,.3), 0 8px 20px rgba(var(--accd-rgb),.35);
 }
 .brand-txt small{display:block;font-size:10.5px;color:var(--dim);letter-spacing:.12em;font-weight:600}
-.brand-txt b{font-size:15px;font-weight:700;letter-spacing:-.01em}
+.brand-txt{min-width:0}
+/* שם עסק ארוך היה מגדיל את גובה הכותרת ומזיז את כל מה שנערם מתחתיה. חיתוך במקום גלישה */
+.brand-txt b{
+  display:block;font-size:15px;font-weight:700;letter-spacing:-.01em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
 .topbar .side{margin-inline-start:auto;display:flex;align-items:center;gap:10px}
 .chip{
   font-size:12px;font-weight:600;color:var(--mut);
@@ -471,7 +489,7 @@ html[data-mode="light"] .gap-no{text-shadow:none}
 /* ===== מעטפת המערכת: סיידבר מתקפל (ui/app-shell.tsx) ===== */
 .app{position:relative;z-index:1;min-height:100dvh;display:flex}
 .side-nav{
-  width:232px;flex:none;
+  width:var(--rail-w);flex:none;
   position:sticky;top:0;height:100dvh;overflow-y:auto;overflow-x:hidden;
   display:flex;flex-direction:column;gap:4px;
   padding:16px 12px;
@@ -484,13 +502,24 @@ html[data-mode="light"] .gap-no{text-shadow:none}
   display:flex;align-items:center;justify-content:space-between;gap:8px;
   padding:4px 6px 14px;border-bottom:1px solid var(--hair-soft);margin-bottom:12px;
 }
+/* כפתור הכיווץ יושב על קצה הסיידבר, ממורכז לגובה (הנחיית מייסד 20.8).
+   הוא אח של הסיידבר ולא ילד שלו בכוונה: ל-.side-nav יש overflow-x:hidden בשביל הגלילה
+   הפנימית, וכפתור שחורג מהקצה היה נחתך בדיוק בחצי. לכן הוא ממוקם מול .app, והמרחק
+   מהקצה נגזר מרוחב הסיידבר - כולל במצב המכווץ, דרך בורר האחים */
 .rail-tgl{
-  width:30px;height:30px;border-radius:10px;flex:none;cursor:pointer;
-  display:grid;place-items:center;color:var(--dim);
-  background:var(--surface-1);border:1px solid var(--hair-soft);
-  transition:color .25s,background .25s;
+  position:absolute;top:50%;transform:translateY(-50%);
+  inset-inline-start:calc(var(--rail-w) - 15px);
+  z-index:9;
+  width:30px;height:30px;border-radius:50%;cursor:pointer;
+  display:grid;place-items:center;color:var(--mut);
+  background:var(--core-bg);border:1px solid var(--hair);
+  box-shadow:0 6px 18px -8px rgba(0,0,0,.55);
+  transition:color .25s,background .25s,border-color .25s,inset-inline-start .5s var(--ease);
 }
-.rail-tgl:hover{color:var(--txt);background:var(--surface-2)}
+html[data-mode="light"] .rail-tgl{box-shadow:0 6px 16px -8px rgba(52,38,105,.3)}
+.side-nav.mini ~ .rail-tgl{inset-inline-start:calc(var(--rail-mini-w) - 15px)}
+.rail-tgl:hover{color:var(--txt);border-color:rgba(var(--acc-rgb),.45)}
+@media (max-width:880px){.rail-tgl{display:none}}
 .rail-tgl svg{transition:transform .5s var(--ease)}
 .side-nav.mini .rail-tgl svg{transform:rotate(180deg)}
 .nav-item{
@@ -530,7 +559,7 @@ html[data-mode="light"] .gap-no{text-shadow:none}
 .side-nav .foot .who{flex:1;min-width:0}
 .side-nav .foot .who b{display:block;font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .side-nav .foot .who i{font-style:normal;font-size:10.5px;color:var(--dim)}
-.side-nav.mini{width:74px;padding:16px 10px}
+.side-nav.mini{width:var(--rail-mini-w);padding:16px 10px}
 .side-nav.mini .lbl,
 .side-nav.mini .bdg,
 .side-nav.mini .brand-txt,
@@ -762,7 +791,7 @@ html[data-mode="light"] .gap-no{text-shadow:none}
 
 /* ===== ניווט עוגן: מעבר מהיר בין מקטעי הדוח בגלילה ===== */
 .anch{
-  position:sticky;top:0;z-index:6;
+  position:sticky;top:var(--topbar-h);z-index:6;min-height:var(--anch-h);
   display:flex;align-items:center;gap:7px;overflow-x:auto;scrollbar-width:none;
   padding:9px 22px;
   background:var(--nav-glass);
@@ -789,7 +818,9 @@ html[data-mode="light"] .gap-no{text-shadow:none}
   display:grid;grid-template-columns:318px minmax(0,1fr);gap:14px;align-items:start;
   width:var(--content-w);max-width:var(--content-max);margin:0 auto;padding:18px 0 26px;
 }
-.repC .rep-side{position:sticky;top:76px;display:flex;flex-direction:column;gap:14px}
+/* מתחת לשתי השורות הדביקות ועוד נשימה. חושב מהטוקנים ולא ממספר קשיח, אחרת שינוי
+   בגובה אחת מהן היה מחליק את העמודה מתחתיהן */
+.repC .rep-side{position:sticky;top:calc(var(--topbar-h) + var(--anch-h) + 14px);display:flex;flex-direction:column;gap:14px}
 .repC .rep-side .core{padding:22px 20px}
 .repC .rep-main{display:flex;flex-direction:column;gap:14px;min-width:0}
 @media (max-width:1100px){
@@ -1310,3 +1341,39 @@ button.ans-row:not(:disabled):active{background:rgba(var(--acc-rgb),.16)}
 }
 .cf-danger b{font-size:14px}
 .cf-danger .cf-hint{margin:5px 0 0}
+
+/* ===== חיפוש משתמש והתחזות מהסרגל העליון (ui/impersonate-search.tsx) =====
+   תיבה צרה שנפתחת לרשימת הצעות. יושבת בתוך .topbar הדביקה, ולכן ה-z שלה חייב לעלות
+   מעליה - אחרת הרשימה נפתחת מתחת לשורה שהיא יוצאת ממנה */
+.imp{position:relative;flex:none}
+.imp-in{
+  height:32px;width:min(210px,42vw);padding:0 11px;
+  font:inherit;font-size:12.5px;color:var(--txt);
+  background:var(--surface-1);border:1px solid var(--hair-soft);border-radius:999px;
+  transition:border-color .25s,background .25s,width .35s var(--ease-out);
+}
+.imp-in::placeholder{color:var(--dim)}
+.imp-in:focus{border-color:rgba(var(--acc-rgb),.45);background:var(--surface-2)}
+.imp-pop{
+  position:absolute;inset-inline-start:0;top:calc(100% + 7px);z-index:20;
+  min-width:min(280px,80vw);max-height:min(320px,60vh);overflow-y:auto;
+  padding:5px;border-radius:14px;
+  background:var(--float-glass);border:1px solid var(--hair);
+  box-shadow:var(--core-shadow);
+  backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+}
+.imp-note{font-size:12px;color:var(--mut);padding:9px 11px;margin:0}
+.imp-row{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  width:100%;text-align:start;cursor:pointer;
+  padding:9px 11px;border-radius:10px;border:none;background:transparent;color:inherit;
+  font:inherit;font-size:12.5px;
+  transition:background .2s var(--ease-out);
+}
+.imp-row:hover,.imp-row.on{background:rgba(var(--acc-rgb),.12)}
+.imp-mail{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.imp-role{
+  flex:none;font-size:10px;font-weight:700;letter-spacing:.08em;
+  color:var(--acc-soft);background:rgba(var(--acc-rgb),.12);
+  border:1px solid rgba(var(--acc-rgb),.3);border-radius:999px;padding:2px 7px;
+}

@@ -1,6 +1,7 @@
 import { isImpersonating } from "../../server/auth/impersonation";
 import { requireAdmin } from "./require-admin";
 import { AppShell } from "../ui/app-shell";
+import { AdminTitle } from "./admin-title";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       {/* הכותרת: הזהות בלבד. השם והחזרה למרכז העסק עברו לסיידבר, ולהשאיר אותם גם כאן
           היה מציג את אותו קישור פעמיים על אותו מסך */}
       <header className="topbar">
-        <span className="brand-txt"><small>יועץ דיגיטלי</small><b>ניהול</b></span>
+        <AdminTitle />
         <div className="side">
           <span className="chip hidden sm:inline-block">
             אדמין <span dir="ltr">{acting.actor.email ?? "ללא אימייל"}</span>
