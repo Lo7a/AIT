@@ -536,7 +536,13 @@ html[data-mode="light"] .rail-tgl{box-shadow:0 6px 16px -8px rgba(52,38,105,.3)}
   transition:transform .5s var(--ease);
 }
 .rail-tgl path.c2{transition-delay:.06s}
-.side-nav.mini ~ .rail-tgl path{transform:rotate(180deg)}
+/* כיוון החץ = כיוון הפעולה, לא כיוון המצב.
+   הסיידבר בימין (עברית) והכפתור על הקצה השמאלי שלו. פתוח -> לחיצה מכווצת אותו ימינה,
+   ולכן החץ ימינה; מכווץ -> לחיצה פותחת אותו שמאלה אל התוכן, ולכן החץ שמאלה.
+   ה-path מצייר שברון שקודקודו בשמאל, כלומר חץ שמאלה - ולכן דווקא המצב הפתוח הוא זה
+   שמסובב. עד 20.8 זה היה הפוך, והחץ הראה את ההפך מהפעולה */
+.rail-tgl path{transform:rotate(180deg)}
+.side-nav.mini ~ .rail-tgl path{transform:none}
 .rail-tgl:hover{transform:translateY(-50%) scale(1.09)}
 .rail-tgl:active{transform:translateY(-50%) scale(.93)}
 .nav-item{
@@ -827,7 +833,13 @@ html[data-mode="light"] .rail-tgl{box-shadow:0 6px 16px -8px rgba(52,38,105,.3)}
 .anch a.on,.anch button.on{color:var(--txt);background:rgba(var(--acc-rgb),.13);border-color:rgba(var(--acc-rgb),.32)}
 .anch .n{font-size:10px;color:var(--dim);font-weight:700}
 .anch .on .n{color:var(--acc-soft)}
-[data-anchor]{scroll-margin-top:72px}
+/* גלילה חלקה ועצירה מתחת לשורות הדביקות.
+   שני באגים תוקנו כאן (20.8): המעבר היה חד כי לא הייתה גלילה חלקה בכלל, והמקטע נחת
+   מתחת לכותרת - 72 פיקסלים הספיקו כשרק סרגל העוגנים היה דביק, ומאז שגם שורת הזהות
+   נדבקה הוא נחת מאחוריה. מחושב מהטוקנים כדי שלא יתיישן שוב */
+html{scroll-behavior:smooth}
+[data-anchor]{scroll-margin-top:calc(var(--topbar-h) + var(--anch-h) + 16px)}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 
 /* ===== הדוח: פריסה 3 מהמפרט - עמודת זהות דביקה + עמודת תוכן ===== */
 .repC{
