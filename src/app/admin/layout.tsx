@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { isImpersonating } from "../../server/auth/impersonation";
 import { requireAdmin } from "./require-admin";
-import { AdminNav } from "./admin-nav";
+import { AppShell } from "../ui/app-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -13,47 +12,44 @@ const WARN_STRIP_STYLE = {
   color: "var(--warn)",
 } as const;
 
-// המעטפת של מסכי הניהול: השער, שורת הכותרת, פס ההתחזות וניווט המסכים. הסיידבר של המוצר
-// (AppShell) לא נכנס לכאן - הפריטים שלו קשורים לאבחון פתוח של בעל עסק, ולניהול אין אבחון.
-// המבנה הוויזואלי זהה: app > main-col > topbar > תוכן ב-board
+// המעטפת של מסכי הניהול: השער, שורת הכותרת, פס ההתחזות והסיידבר.
+//
+// עד 20.8 הניווט כאן היה שורת גלולות מעל התוכן, והמייסד ביקש להעביר אותו לסיידבר כמו
+// בכל שאר המערכת. הסיידבר הוא AppShell עצמו במדור "admin" ולא מעטפת שנייה - שתי מעטפות
+// היו מתפצלות בתחזוקה, וזה בדיוק מה שכלל השימוש החוזר ב-CLAUDE.md אוסר
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const acting = await requireAdmin();
 
   return (
-    <div className="app">
-      <div className="main-col">
-        {isImpersonating(acting) && (
-          <div
-            className="relative z-10 flex flex-wrap items-center justify-between gap-3 px-5 py-2.5 text-sm font-medium"
-            style={WARN_STRIP_STYLE}
-          >
-            <span>
-              מצב התחזות פעיל: אתה רואה את המערכת בתור{" "}
-              <span className="font-bold" dir="ltr">{acting.user.email ?? "משתמש ללא אימייל"}</span>
-            </span>
-            <form action="/api/admin/impersonate" method="post">
-              <input type="hidden" name="action" value="stop" />
-              <button type="submit" className="cursor-pointer font-bold underline underline-offset-4">חזרה לעצמי</button>
-            </form>
-          </div>
-        )}
+    <AppShell section="admin" userLabel={acting.actor.email ?? null}>
+      {isImpersonating(acting) && (
+        <div
+          className="relative z-10 flex flex-wrap items-center justify-between gap-3 px-5 py-2.5 text-sm font-medium"
+          style={WARN_STRIP_STYLE}
+        >
+          <span>
+            מצב התחזות פעיל: אתה רואה את המערכת בתור{" "}
+            <span className="font-bold" dir="ltr">{acting.user.email ?? "משתמש ללא אימייל"}</span>
+          </span>
+          <form action="/api/admin/impersonate" method="post">
+            <input type="hidden" name="action" value="stop" />
+            <button type="submit" className="cursor-pointer font-bold underline underline-offset-4">חזרה לעצמי</button>
+          </form>
+        </div>
+      )}
 
-        <header className="topbar">
-          <Link href="/" className="brand">
-            <span className="brand-mark">AIT</span>
-            <span className="brand-txt"><small>יועץ דיגיטלי</small><b>ניהול</b></span>
-          </Link>
-          <div className="side">
-            <span className="chip hidden sm:inline-block">
-              אדמין <span dir="ltr">{acting.actor.email ?? "ללא אימייל"}</span>
-            </span>
-            <Link href="/" className="btn-quiet">חזרה למרכז העסק</Link>
-          </div>
-        </header>
+      {/* הכותרת: הזהות בלבד. השם והחזרה למרכז העסק עברו לסיידבר, ולהשאיר אותם גם כאן
+          היה מציג את אותו קישור פעמיים על אותו מסך */}
+      <header className="topbar">
+        <span className="brand-txt"><small>יועץ דיגיטלי</small><b>ניהול</b></span>
+        <div className="side">
+          <span className="chip hidden sm:inline-block">
+            אדמין <span dir="ltr">{acting.actor.email ?? "ללא אימייל"}</span>
+          </span>
+        </div>
+      </header>
 
-        <AdminNav />
-        {children}
-      </div>
-    </div>
+      {children}
+    </AppShell>
   );
 }

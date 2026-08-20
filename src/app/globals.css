@@ -509,6 +509,16 @@ html[data-mode="light"] .gap-no{text-shadow:none}
   color:var(--acc2-soft);background:rgba(var(--acc2-rgb),.1);
   border:1px solid rgba(var(--acc2-rgb),.3);border-radius:99px;padding:2px 8px;
 }
+/* מעבר בין מדורים (מרכז העסק <-> ניהול). נדחף לתחתית ומופרד בקו: זה לא עוד מסך
+   באותו מדור אלא יציאה ממנו, ואת ההבדל הזה הקו אומר בלי מילה */
+.nav-item.admin-gate{
+  margin-top:auto;margin-bottom:2px;
+  padding-top:14px;border-top:1px solid var(--hair-soft);border-radius:0;
+  color:var(--dim);
+}
+.nav-item.admin-gate:hover{background:transparent;color:var(--txt)}
+/* ה-foot כבר לוקח margin-top:auto; כששניהם קיימים רק הראשון נדחף, והשני נצמד אליו */
+.nav-item.admin-gate + .foot{margin-top:0}
 .side-nav .foot{
   margin-top:auto;padding:14px 6px 4px;border-top:1px solid var(--hair-soft);
   display:flex;align-items:center;gap:10px;

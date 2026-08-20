@@ -84,7 +84,7 @@ export function DefaultHome({
   const openDiagnosisId = recent.find((d) => HAS_REPORT_STATUSES.includes(d.status))?.id;
 
   return (
-    <AppShell active="home" diagnosisId={openDiagnosisId} userLabel={session?.email ?? null}>
+    <AppShell active="home" diagnosisId={openDiagnosisId} userLabel={session?.email ?? null} isAdmin={isAdminUser === true}>
       {/* פס ההתחזות: בולט בכוונה - אדמין שצופה בתור משתמש חייב לראות את זה כל הזמן */}
       {impersonating != null && (
         <div
@@ -108,9 +108,8 @@ export function DefaultHome({
         <div className="side">
           {session != null ? (
             <>
-              {isAdminUser && (
-                <Link href="/admin" className="btn-quiet">ניהול</Link>
-              )}
+              {/* קישור "ניהול" עבר לסיידבר (הנחיית מייסד 20.8) - ניווט למדור אחר הוא
+                  ניווט, ומקומו איפה שכל שאר הניווט */}
               <span className="chip hidden sm:inline-block">
                 מחובר בתור <span dir="ltr">{session.email ?? "משתמש ללא אימייל"}</span>
               </span>
