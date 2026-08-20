@@ -16,6 +16,12 @@
 // 3. SPF ו-DMARC יושבים במקומות שונים. SPF הוא רשומת TXT על הדומיין עצמו, וזו הרשומה
 //    שערכה מתחיל ב-v=spf1 - לא כל TXT שמופיעה בו המילה spf. DMARC הוא TXT על
 //    _dmarc.<domain> שמתחיל ב-v=DMARC1.
+//
+// 4. "יש רשומה" אינו "ההגנה עובדת", וזו לא קפדנות תיאורטית אלא ממצא חי (jems.co.il, 20.8):
+//    שתי רשומות SPF על אותו דומיין, אחת של Microsoft 365 ואחת של elasticemail. בשני
+//    התקנים ריבוי רשומות מבטל את הבדיקה ולא מחזק אותה - SPF מחזיר permerror (RFC 7208
+//    סעיף 4.5) ומדיניות DMARC נזרקת (RFC 7489 סעיף 6.6.3). לכן סופרים ולא רק בודקים קיום,
+//    והתוצאה נשמרת בשדה נפרד: הקיום נשאר עובדה נכונה, והתקלה היא ממצא בפני עצמו.
 import { resolveMx, resolveTxt } from "node:dns/promises";
 import type { MailHealth } from "../types";
 import { registrableDomain } from "./registrable";
@@ -96,8 +102,10 @@ function joinChunks(record: readonly string[]): string {
   return record.join("").trim();
 }
 
-function hasRecordStartingWith(records: string[][], prefix: string): boolean {
-  return records.some((record) => joinChunks(record).toLowerCase().startsWith(prefix));
+// סופרים ולא מסתפקים ב-some: ההפרש בין אחת לשתיים הוא ההפרש בין הגנה שעובדת להגנה
+// מבוטלת (ראו מלכודת 4 בראש הקובץ)
+function countRecordsStartingWith(records: string[][], prefix: string): number {
+  return records.filter((record) => joinChunks(record).toLowerCase().startsWith(prefix)).length;
 }
 
 // נרמול שם מארח מ-MX: DNS מחזיר אותו בכל צורת אותיות (webit.co.il מחזיר בפועל
@@ -157,11 +165,25 @@ export async function readMailHealth(hostname: string, deps: Partial<MailDeps> =
     mail.hasMx = false;
   }
 
-  if (txt.done) mail.hasSpf = hasRecordStartingWith(txt.value, "v=spf1");
-  else if (txt.noRecord) mail.hasSpf = false;
+  // הדגל הנוסף נכתב בדיוק באותם מסלולים שבהם נכתב hasSpf/hasDmarc: כשהשאילתה לא הושלמה
+  // שניהם נשארים חסרים ("לא נבדק"), וכשאין רשומה כלל אין גם התנגשות
+  if (txt.done) {
+    const spf = countRecordsStartingWith(txt.value, "v=spf1");
+    mail.hasSpf = spf > 0;
+    mail.spfConflict = spf > 1;
+  } else if (txt.noRecord) {
+    mail.hasSpf = false;
+    mail.spfConflict = false;
+  }
 
-  if (dmarcTxt.done) mail.hasDmarc = hasRecordStartingWith(dmarcTxt.value, "v=dmarc1");
-  else if (dmarcTxt.noRecord) mail.hasDmarc = false;
+  if (dmarcTxt.done) {
+    const dmarc = countRecordsStartingWith(dmarcTxt.value, "v=dmarc1");
+    mail.hasDmarc = dmarc > 0;
+    mail.dmarcConflict = dmarc > 1;
+  } else if (dmarcTxt.noRecord) {
+    mail.hasDmarc = false;
+    mail.dmarcConflict = false;
+  }
 
   // כל השאילתות לא הושלמו: אובייקט ריק היה נראה כמו בדיקה שרצה ולא מצאה כלום
   return Object.keys(mail).length === 0 ? undefined : mail;

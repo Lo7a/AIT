@@ -449,12 +449,26 @@ export const DIMENSIONS: DimensionDef[] = [
         },
         okText: (f) => `רישום הדומיין בתוקף לעוד ${f.health?.domain?.daysToExpiry} ימים`,
       },
+      // SPF ו-DMARC חולקים כלל אחד: רשומה כפולה אינה הגנה כפולה אלא הגנה מבוטלת (ראו
+      // dns-mail.ts). לכן earned דורש גם קיום וגם היעדר התנגשות, ולפער יש שני ניסוחים -
+      // "אין" ו"יש שתיים", שהם שני מצבים שונים לגמרי עם שני תיקונים שונים
+      {
+        key: "spf", points: 7,
+        known: (f) => f.health?.mail?.hasSpf != null,
+        earned: (f) => f.health?.mail?.hasSpf === true && f.health?.mail?.spfConflict !== true,
+        gapText: (f) => f.health?.mail?.spfConflict === true
+          ? "לדומיין יש יותר מרשומת SPF אחת. לפי התקן זה מבטל את הבדיקה כולה ולא מחזק אותה, ודואר שאתם שולחים עלול להיחסם או ליפול לספאם - צריך לאחד את השתיים לרשומה אחת"
+          : "אין רשומת SPF לדומיין - לא הגדרתם לשרתי הדואר בעולם מי מורשה לשלוח דואר בשם העסק",
+        okText: () => "יש רשומת SPF אחת ותקינה לדומיין",
+      },
       {
         key: "dmarc", points: 7,
         known: (f) => f.health?.mail?.hasDmarc != null,
-        earned: (f) => f.health?.mail?.hasDmarc === true,
+        earned: (f) => f.health?.mail?.hasDmarc === true && f.health?.mail?.dmarcConflict !== true,
         // בלי טענה שהדואר נופל: היעדר DMARC אינו כשל מסירה, הוא היעדר הגנה מפני התחזות
-        gapText: () => "אין רשומת DMARC לדומיין - לא פרסמתם לשרתי הדואר מה לעשות עם הודעות שמתחזות לכתובת שלכם",
+        gapText: (f) => f.health?.mail?.dmarcConflict === true
+          ? "לדומיין יש יותר מרשומת DMARC אחת, ולפי התקן שרתי הדואר מתעלמים מכולן - צריך לאחד אותן לרשומה אחת"
+          : "אין רשומת DMARC לדומיין - לא פרסמתם לשרתי הדואר מה לעשות עם הודעות שמתחזות לכתובת שלכם",
         okText: () => "יש רשומת DMARC לדומיין",
       },
       {

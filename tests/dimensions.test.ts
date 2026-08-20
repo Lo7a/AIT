@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { DIMENSIONS, processRules, buildDimensions } from "../src/pipeline/score/dimensions";
 import { scoreFindings, scoreWithModel } from "../src/pipeline/score/engine";
 import { MODEL_SECTIONS, type BusinessModel, type ModelSection } from "../src/pipeline/model/business-model";
-import type { ScanFindings } from "../src/pipeline/types";
+import type { MailHealth, ScanFindings } from "../src/pipeline/types";
 
 const META = { startedAt: "", durationMs: 0, placesCalls: 0, llmInputTokens: 0, llmOutputTokens: 0, estCostUsd: 0 };
 
@@ -48,8 +48,11 @@ describe("real dimensions", () => {
     // הישראלי (הצהרת נגישות + בדיקת נגישות אוטומטית). המכנה החדש מכוון (ראו הערת PR/משימה) -
     // הציון עצמו תמיד earnedPts/knownPts (engine.ts) ולא ביחס ל-100 הקבוע, כך שהשינוי לא מזיז
     // ציונים קיימים - רק מוסיף עוד עדות אפשרית לממד
+    // infrastructure גדל מ-100 ל-107 ב-20.8 עם הוספת חוק spf (7) לצד dmarc. אותו היגיון
+    // בדיוק כמו accessibility למעלה: המכנה הוא knownPts ולא 100 קבוע, ולכן חוק חדש לא מזיז
+    // ציון של עסק שהחוק לא ידוע אצלו - הוא רק מוסיף עדות אפשרית
     const expectedTotal: Record<string, number> = {
-      visibility: 100, reputation: 100, accessibility: 130, infrastructure: 100, process: 100,
+      visibility: 100, reputation: 100, accessibility: 130, infrastructure: 107, process: 100,
     };
     for (const d of DIMENSIONS) {
       expect(d.rules.reduce((s, r) => s + r.points, 0), d.key).toBe(expectedTotal[d.key]);
@@ -756,5 +759,47 @@ describe("link shortener and direct ordering (20.8)", () => {
     const r = ruleOf(withSignals({ hasDeliveryPlatform: true }), "accessibility", "online_booking");
     expect(r.known).toBe(true);
     expect(r.earned).toBe(false);
+  });
+});
+
+// המקרה החי jems.co.il (20.8): שתי רשומות SPF. "יש רשומה" אינו "ההגנה עובדת" - ריבוי
+// רשומות מבטל את הבדיקה בשני התקנים, ולכן הוא פער ולא זכייה
+describe("mail authentication: a duplicate record is a gap, not a pass (20.8)", () => {
+  function mailRule(mail: MailHealth, key: string) {
+    const findings: ScanFindings = { ...RICH, health: { mail } };
+    const res = scoreFindings(DIMENSIONS, findings);
+    return res.dimensions.find((d) => d.key === "infrastructure")!.rules.find((r) => r.key === key)!;
+  }
+
+  it("a single SPF record earns the rule", () => {
+    const r = mailRule({ hasSpf: true, spfConflict: false }, "spf");
+    expect(r.known).toBe(true);
+    expect(r.earned).toBe(true);
+  });
+
+  it("two SPF records are a gap, and the wording says the check is cancelled", () => {
+    const r = mailRule({ hasSpf: true, spfConflict: true }, "spf");
+    expect(r.known).toBe(true);
+    expect(r.earned).toBe(false);
+    expect(r.text).toContain("יותר מרשומת SPF אחת");
+  });
+
+  it("no SPF at all is a different gap with different wording", () => {
+    const r = mailRule({ hasSpf: false, spfConflict: false }, "spf");
+    expect(r.known).toBe(true);
+    expect(r.earned).toBe(false);
+    expect(r.text).toContain("אין רשומת SPF");
+  });
+
+  it("an unchecked mail lookup is neither known nor a gap", () => {
+    expect(mailRule({}, "spf").known).toBe(false);
+  });
+
+  it("two DMARC records cancel the win there too", () => {
+    expect(mailRule({ hasDmarc: true, dmarcConflict: false }, "dmarc").earned).toBe(true);
+    const conflict = mailRule({ hasDmarc: true, dmarcConflict: true }, "dmarc");
+    expect(conflict.known).toBe(true);
+    expect(conflict.earned).toBe(false);
+    expect(conflict.text).toContain("יותר מרשומת DMARC אחת");
   });
 });

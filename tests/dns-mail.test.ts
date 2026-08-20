@@ -132,6 +132,69 @@ describe("readMailHealth - SPF ו-DMARC", () => {
   });
 });
 
+// המקרה החי jems.co.il (20.8): שתי רשומות SPF על אותו דומיין, אחת של Microsoft 365 ואחת
+// של elasticemail. לפי RFC 7208 סעיף 4.5 זו permerror - הבדיקה מתבטלת כולה, ולא "יש הגנה
+// כפולה". עד התיקון דיווחנו hasSpf=true ופספסנו ממצא דליוורביליות אמיתי
+describe("readMailHealth - רשומה כפולה מבטלת את ההגנה", () => {
+  const JEMS_SPF = [
+    ["v=spf1 include:spf.protection.outlook.com -all"],
+    ["v=spf1 include:_spf.elasticemail.com ~all"],
+  ];
+
+  it("שתי רשומות SPF: הקיום נשאר נכון, וההתנגשות מדווחת בשדה נפרד", async () => {
+    const mail = await readMailHealth("jems.co.il", deps({
+      resolveMx: async () => GOOGLE_MX,
+      resolveTxt: async (host) => (host.startsWith("_dmarc.") ? [] : JEMS_SPF),
+    }));
+    // hasSpf נשאר true כי זו האמת: יש רשומות. מה שלא עובד הוא הבדיקה, וזה השדה השני
+    expect(mail?.hasSpf).toBe(true);
+    expect(mail?.spfConflict).toBe(true);
+  });
+
+  it("רשומת SPF אחת לצד TXT אחרות אינה התנגשות", async () => {
+    const mail = await readMailHealth("example.co.il", deps({
+      resolveMx: async () => GOOGLE_MX,
+      resolveTxt: async (host) =>
+        host.startsWith("_dmarc.")
+          ? []
+          : [["google-site-verification=abc"], ["v=spf1 include:_spf.google.com ~all"], ["MS=ms12345"]],
+    }));
+    expect(mail?.hasSpf).toBe(true);
+    expect(mail?.spfConflict).toBe(false);
+  });
+
+  it("בלי שום רשומת SPF אין גם התנגשות", async () => {
+    const mail = await readMailHealth("example.co.il", deps({
+      resolveMx: async () => GOOGLE_MX,
+      resolveTxt: async () => [["google-site-verification=abc"]],
+    }));
+    expect(mail?.hasSpf).toBe(false);
+    expect(mail?.spfConflict).toBe(false);
+  });
+
+  it("שתי רשומות DMARC נספרות באותה דרך (RFC 7489 - המדיניות נזרקת)", async () => {
+    const mail = await readMailHealth("example.co.il", deps({
+      resolveMx: async () => GOOGLE_MX,
+      resolveTxt: async (host) =>
+        host.startsWith("_dmarc.")
+          ? [["v=DMARC1; p=none"], ["v=DMARC1; p=reject"]]
+          : [["v=spf1 -all"]],
+    }));
+    expect(mail?.hasDmarc).toBe(true);
+    expect(mail?.dmarcConflict).toBe(true);
+  });
+
+  it("ההתנגשות נשארת חסרה כששאילתת ה-TXT לא הושלמה - כמו שאר השדות", async () => {
+    const mail = await readMailHealth("example.co.il", deps({
+      resolveMx: async () => GOOGLE_MX,
+      resolveTxt: fail("SERVFAIL"),
+    }));
+    expect(mail).not.toHaveProperty("spfConflict");
+    expect(mail).not.toHaveProperty("dmarcConflict");
+    expect(mail?.hasMx).toBe(true);
+  });
+});
+
 describe("readMailHealth - כנות: אין רשומה מול לא נבדק", () => {
   it("ENOTFOUND ו-ENODATA שניהם מייצרים hasDmarc=false", async () => {
     for (const code of ["ENOTFOUND", "ENODATA"]) {
@@ -193,8 +256,11 @@ describe("readMailHealth - MX", () => {
     }));
     expect(mail?.hasMx).toBe(false);
     expect(mail?.provider).toBeUndefined();
-    // אין שום שדה נוסף שנגזר מהיעדר ה-MX: המידע היחיד הוא שלא פורסמה רשומה
-    expect(Object.keys(mail ?? {}).sort()).toEqual(["hasDmarc", "hasMx", "hasSpf"]);
+    // אין שום שדה נוסף שנגזר מהיעדר ה-MX: המידע היחיד הוא שלא פורסמה רשומה. שדות
+    // ההתנגשות כן מופיעים, אבל הם נגזרים משאילתות ה-TXT שהושלמו - לא מה-MX שנכשל
+    expect(Object.keys(mail ?? {}).sort()).toEqual([
+      "dmarcConflict", "hasDmarc", "hasMx", "hasSpf", "spfConflict",
+    ]);
   });
 
   it("null MX (רשומה ריקה, RFC 7505) נספר כאין MX ולא כספק", async () => {

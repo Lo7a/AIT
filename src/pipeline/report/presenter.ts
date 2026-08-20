@@ -65,6 +65,7 @@ export const RULE_LABEL_HE: Record<string, string> = {
   multi_page: "אתר רב-עמודי",
   // בדיקות תקינות (health) - דומיין, דואר ואבטחה
   domain_expiry: "תוקף רישום הדומיין",
+  spf: "רשומת SPF לדואר",
   dmarc: "הגנת DMARC לדואר",
   safe_browsing: "סימון ברשימת האתרים המסוכנים",
   local_business_schema: "סימון עסק מקומי באתר",

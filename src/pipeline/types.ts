@@ -119,6 +119,11 @@ export interface MailHealth {
   hasMx?: boolean;
   hasSpf?: boolean;
   hasDmarc?: boolean;
+  // "יש יותר מרשומה אחת מהסוג הזה". בשני התקנים ריבוי רשומות אינו הגנה כפולה אלא ביטול:
+  // ב-SPF זו permerror (RFC 7208) וב-DMARC המדיניות נזרקת (RFC 7489). לכן hasSpf/hasDmarc
+  // לבדם אינם מספיקים כדי לקבוע שההגנה עובדת - ראו dns-mail.ts
+  spfConflict?: boolean;
+  dmarcConflict?: boolean;
 }
 
 export interface SchemaMarkup {
