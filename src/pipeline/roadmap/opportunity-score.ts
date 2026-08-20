@@ -120,6 +120,9 @@ const PHASE_BY_CATALOG_NAME: Record<string, Phase> = {
   "הקמת אתר ראשון לעסק": "automation",
   "מערכת CRM לניהול לקוחות": "automation",
   "אוטומציה בין המערכות הקיימות": "automation",
+  // פריט 18 (נזרע 20.8): עריכת רשומות ב-DNS פעם אחת, מורכבות נמוכה, בלי מערכת מתמשכת
+  // מאחוריה - ההגדרה המדויקת של quick_win, ולא רק "זול"
+  "הגדרת אימות הדואר (SPF ו-DMARC)": "quick_wins",
 };
 
 const DEFAULT_PHASE: Phase = "automation";

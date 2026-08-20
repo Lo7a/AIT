@@ -48,11 +48,10 @@ describe("real dimensions", () => {
     // הישראלי (הצהרת נגישות + בדיקת נגישות אוטומטית). המכנה החדש מכוון (ראו הערת PR/משימה) -
     // הציון עצמו תמיד earnedPts/knownPts (engine.ts) ולא ביחס ל-100 הקבוע, כך שהשינוי לא מזיז
     // ציונים קיימים - רק מוסיף עוד עדות אפשרית לממד
-    // infrastructure גדל מ-100 ל-107 ב-20.8 עם הוספת חוק spf (7) לצד dmarc. אותו היגיון
-    // בדיוק כמו accessibility למעלה: המכנה הוא knownPts ולא 100 קבוע, ולכן חוק חדש לא מזיז
-    // ציון של עסק שהחוק לא ידוע אצלו - הוא רק מוסיף עדות אפשרית
+    // infrastructure נשאר 100 גם אחרי שינוי 20.8: חוק dmarc (7) הוחלף בחוק mail_auth (7)
+    // שמכסה גם את SPF, ולא נוספו נקודות. ממצא אחד עם תיקון אחד, ואפס תזוזה בציונים קיימים
     const expectedTotal: Record<string, number> = {
-      visibility: 100, reputation: 100, accessibility: 130, infrastructure: 107, process: 100,
+      visibility: 100, reputation: 100, accessibility: 130, infrastructure: 100, process: 100,
     };
     for (const d of DIMENSIONS) {
       expect(d.rules.reduce((s, r) => s + r.points, 0), d.key).toBe(expectedTotal[d.key]);
@@ -763,43 +762,56 @@ describe("link shortener and direct ordering (20.8)", () => {
 });
 
 // המקרה החי jems.co.il (20.8): שתי רשומות SPF. "יש רשומה" אינו "ההגנה עובדת" - ריבוי
-// רשומות מבטל את הבדיקה בשני התקנים, ולכן הוא פער ולא זכייה
-describe("mail authentication: a duplicate record is a gap, not a pass (20.8)", () => {
-  function mailRule(mail: MailHealth, key: string) {
+// רשומות מבטל את הבדיקה בשני התקנים. הכרעת מייסד: ממצא אחד (mail_auth) לשניהם
+describe("mail_auth: one finding for the whole mail setup (20.8)", () => {
+  const OK: MailHealth = { hasSpf: true, spfConflict: false, hasDmarc: true, dmarcConflict: false };
+  function rule(mail: MailHealth) {
     const findings: ScanFindings = { ...RICH, health: { mail } };
     const res = scoreFindings(DIMENSIONS, findings);
-    return res.dimensions.find((d) => d.key === "infrastructure")!.rules.find((r) => r.key === key)!;
+    return res.dimensions.find((d) => d.key === "infrastructure")!.rules.find((r) => r.key === "mail_auth")!;
   }
 
-  it("a single SPF record earns the rule", () => {
-    const r = mailRule({ hasSpf: true, spfConflict: false }, "spf");
+  it("SPF and DMARC both present and single earns the rule", () => {
+    const r = rule(OK);
     expect(r.known).toBe(true);
     expect(r.earned).toBe(true);
   });
 
   it("two SPF records are a gap, and the wording says the check is cancelled", () => {
-    const r = mailRule({ hasSpf: true, spfConflict: true }, "spf");
+    const r = rule({ ...OK, spfConflict: true });
     expect(r.known).toBe(true);
     expect(r.earned).toBe(false);
     expect(r.text).toContain("יותר מרשומת SPF אחת");
   });
 
-  it("no SPF at all is a different gap with different wording", () => {
-    const r = mailRule({ hasSpf: false, spfConflict: false }, "spf");
-    expect(r.known).toBe(true);
+  it("two DMARC records are a gap too", () => {
+    const r = rule({ ...OK, dmarcConflict: true });
     expect(r.earned).toBe(false);
-    expect(r.text).toContain("אין רשומת SPF");
+    expect(r.text).toContain("יותר מרשומת DMARC אחת");
+  });
+
+  it("a conflict outranks a plain absence - it breaks a setup that already exists", () => {
+    const r = rule({ hasSpf: true, spfConflict: true, hasDmarc: false, dmarcConflict: false });
+    expect(r.text).toContain("יותר מרשומת SPF אחת");
+  });
+
+  it("no SPF and no DMARC are two different gaps with two different wordings", () => {
+    expect(rule({ ...OK, hasSpf: false }).text).toContain("אין רשומת SPF");
+    expect(rule({ ...OK, hasDmarc: false }).text).toContain("אין רשומת DMARC");
   });
 
   it("an unchecked mail lookup is neither known nor a gap", () => {
-    expect(mailRule({}, "spf").known).toBe(false);
+    const noHealth: ScanFindings = { ...RICH };
+    const res = scoreFindings(DIMENSIONS, noHealth);
+    const r = res.dimensions.find((d) => d.key === "infrastructure")!.rules.find((x) => x.key === "mail_auth")!;
+    expect(r.known).toBe(false);
   });
 
-  it("two DMARC records cancel the win there too", () => {
-    expect(mailRule({ hasDmarc: true, dmarcConflict: false }, "dmarc").earned).toBe(true);
-    const conflict = mailRule({ hasDmarc: true, dmarcConflict: true }, "dmarc");
-    expect(conflict.known).toBe(true);
-    expect(conflict.earned).toBe(false);
-    expect(conflict.text).toContain("יותר מרשומת DMARC אחת");
+  // הכנות שבבסיס: מידע חלקי בלי בעיה שנצפתה אינו שבח. SPF תקין ו-DMARC שלא נבדק כלל
+  // (השאילתה נכשלה) לא יזכה בחוק - הוא יישאר "לא נבדק"
+  it("partial information without an observed problem stays not-checked, never a pass", () => {
+    const r = rule({ hasSpf: true, spfConflict: false });
+    expect(r.known).toBe(false);
+    expect(r.earned).toBe(false);
   });
 });

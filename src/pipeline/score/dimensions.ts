@@ -19,6 +19,31 @@ const knownCrawlNegative = (f: ScanFindings, signal: boolean | undefined): boole
   if (f.websiteSignals?.clientFramework) return false;
   return crawlUsable(f);
 };
+// הגדרת אימות הדואר כממצא אחד: מחזיר את הבעיה החמורה ביותר שנמצאה, null כשהכול תקין,
+// ו-undefined כשאין די מידע כדי לקבוע. שלושת המצבים מכוונים - שבח דורש לדעת ששני החלקים
+// תקינים, ופער דורש בעיה שבאמת נצפתה; מידע חלקי בלי בעיה נשאר "לא נבדק" ולא הופך לשבח.
+// סדר העדיפות: התנגשות לפני היעדר, כי היא שוברת הגדרה שכבר קיימת וזה תיקון דחוף יותר
+// (ראו dns-mail.ts - ריבוי רשומות מבטל את הבדיקה בשני התקנים)
+const mailAuthGap = (f: ScanFindings): string | null | undefined => {
+  const mail = f.health?.mail;
+  if (mail == null) return undefined;
+  if (mail.spfConflict === true) {
+    return "לדומיין יש יותר מרשומת SPF אחת. לפי התקן זה מבטל את הבדיקה כולה ולא מחזק אותה, ודואר שאתם שולחים עלול ליפול לספאם - צריך לאחד אותן לרשומה אחת";
+  }
+  if (mail.dmarcConflict === true) {
+    return "לדומיין יש יותר מרשומת DMARC אחת, ולפי התקן שרתי הדואר מתעלמים מכולן - צריך לאחד אותן לרשומה אחת";
+  }
+  if (mail.hasSpf === false) {
+    return "אין רשומת SPF לדומיין - לא הגדרתם לשרתי הדואר בעולם מי מורשה לשלוח דואר בשם העסק";
+  }
+  // בלי טענה שהדואר נופל: היעדר DMARC אינו כשל מסירה, הוא היעדר הגנה מפני התחזות
+  if (mail.hasDmarc === false) {
+    return "אין רשומת DMARC לדומיין - לא פרסמתם לשרתי הדואר מה לעשות עם הודעות שמתחזות לכתובת שלכם";
+  }
+  if (mail.hasSpf === true && mail.hasDmarc === true) return null;
+  return undefined;
+};
+
 // "חוזרת" = עולה יותר מפעם אחת במדגם שנבדק, לא כל תמה שצוינה
 const recurringProblems = (f: ScanFindings) =>
   (f.reviewInsights?.problemThemes ?? []).filter((t) => t.count >= 2);
@@ -449,27 +474,16 @@ export const DIMENSIONS: DimensionDef[] = [
         },
         okText: (f) => `רישום הדומיין בתוקף לעוד ${f.health?.domain?.daysToExpiry} ימים`,
       },
-      // SPF ו-DMARC חולקים כלל אחד: רשומה כפולה אינה הגנה כפולה אלא הגנה מבוטלת (ראו
-      // dns-mail.ts). לכן earned דורש גם קיום וגם היעדר התנגשות, ולפער יש שני ניסוחים -
-      // "אין" ו"יש שתיים", שהם שני מצבים שונים לגמרי עם שני תיקונים שונים
       {
-        key: "spf", points: 7,
-        known: (f) => f.health?.mail?.hasSpf != null,
-        earned: (f) => f.health?.mail?.hasSpf === true && f.health?.mail?.spfConflict !== true,
-        gapText: (f) => f.health?.mail?.spfConflict === true
-          ? "לדומיין יש יותר מרשומת SPF אחת. לפי התקן זה מבטל את הבדיקה כולה ולא מחזק אותה, ודואר שאתם שולחים עלול להיחסם או ליפול לספאם - צריך לאחד את השתיים לרשומה אחת"
-          : "אין רשומת SPF לדומיין - לא הגדרתם לשרתי הדואר בעולם מי מורשה לשלוח דואר בשם העסק",
-        okText: () => "יש רשומת SPF אחת ותקינה לדומיין",
-      },
-      {
-        key: "dmarc", points: 7,
-        known: (f) => f.health?.mail?.hasDmarc != null,
-        earned: (f) => f.health?.mail?.hasDmarc === true && f.health?.mail?.dmarcConflict !== true,
-        // בלי טענה שהדואר נופל: היעדר DMARC אינו כשל מסירה, הוא היעדר הגנה מפני התחזות
-        gapText: (f) => f.health?.mail?.dmarcConflict === true
-          ? "לדומיין יש יותר מרשומת DMARC אחת, ולפי התקן שרתי הדואר מתעלמים מכולן - צריך לאחד אותן לרשומה אחת"
-          : "אין רשומת DMARC לדומיין - לא פרסמתם לשרתי הדואר מה לעשות עם הודעות שמתחזות לכתובת שלכם",
-        okText: () => "יש רשומת DMARC לדומיין",
+        // ממצא אחד להגדרת הדואר כולה (הכרעת מייסד 20.8), במקום spf ו-dmarc כשני פערים.
+        // שתי סיבות: לבעל עסק זו תקלה אחת עם תיקון אחד (מישהו נכנס ל-DNS ומסדר), ופער בלי
+        // פריט קטלוג הוא חצי הבטחה - עכשיו יש פריט אחד שמכסה את שניהם. 7 נקודות, בדיוק
+        // כמו dmarc לבדו קודם, ולכן סך הממד נשאר 100 ואף ציון קיים לא זז
+        key: "mail_auth", points: 7,
+        known: (f) => mailAuthGap(f) !== undefined,
+        earned: (f) => mailAuthGap(f) === null,
+        gapText: (f) => mailAuthGap(f) ?? "",
+        okText: () => "אימות הדואר של הדומיין מוגדר: רשומת SPF אחת ורשומת DMARC",
       },
       {
         key: "safe_browsing", points: 10,

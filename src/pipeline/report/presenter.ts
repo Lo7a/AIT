@@ -65,8 +65,10 @@ export const RULE_LABEL_HE: Record<string, string> = {
   multi_page: "אתר רב-עמודי",
   // בדיקות תקינות (health) - דומיין, דואר ואבטחה
   domain_expiry: "תוקף רישום הדומיין",
-  spf: "רשומת SPF לדואר",
-  dmarc: "הגנת DMARC לדואר",
+  // החליף את dmarc ב-20.8: ממצא אחד לכל הגדרת הדואר. המפה נשמרת מסונכרנת עם dimensions.ts
+  // בלי מפתחות היסטוריים (בדיקת שמירה ב-presenter.test.ts) - scan.scores שמור מלפני השינוי
+  // ירונדר עם המפתח הגולמי עד הריענון הבא שלו
+  mail_auth: "אימות הדואר של הדומיין",
   safe_browsing: "סימון ברשימת האתרים המסוכנים",
   local_business_schema: "סימון עסק מקומי באתר",
 };
