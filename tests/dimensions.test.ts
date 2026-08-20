@@ -83,9 +83,9 @@ describe("real dimensions", () => {
     expect(access.score).toBe(100); // הטלפון קיים - החוק היחיד הידוע הושג
   });
 
-  it("no-GBP business: gbp_exists is the loudest gap, reputation has no data", () => {
+  it("no-GBP business: gbp_exists is not a fabricated gap (ראו describe ייעודי), reputation has no data", () => {
     const report = scoreFindings(DIMENSIONS, NO_GBP);
-    expect(report.topGaps.map((g) => g.ruleKey)).toContain("gbp_exists");
+    expect(report.topGaps.map((g) => g.ruleKey)).not.toContain("gbp_exists");
     const reputation = report.dimensions.find((d) => d.key === "reputation")!;
     expect(reputation.dataStatus).toBe("none");
   });
@@ -720,6 +720,46 @@ describe("process dimension (אבן דרך 4, משימה 1)", () => {
     }
     const process = report.dimensions.find((d) => d.key === "process")!;
     expect(process.score).not.toBeNull();
+  });
+});
+
+// באג הכנות בחוק gbp_exists (הכרעת מייסד 21.8, המקרה החי: התאחדות התעשיינים): דגל no_gbp מוצב
+// באופן גורף בכל מסלול אתר-בלבד - גם כשהמשתמש רק דחה התאמת Places שגויה (חיפוש ה-URL החזיר את
+// הספקית שבנתה את האתר) - והדוח הכריז "העסק לא קיים במפות גוגל" כפער של 20 נקודות בלי שבדקנו.
+// בלי זהות Places החוק "לא נבדק"; עם זהות הוא מושג - הזהות עצמה היא ההוכחה שהעסק בגוגל
+describe("gbp_exists: לא נבדק בלי זהות Places, מושג איתה (הכרעת מייסד 21.8)", () => {
+  const gbpRuleOf = (f: ScanFindings) =>
+    scoreFindings(DIMENSIONS, f).dimensions.find((d) => d.key === "visibility")!
+      .rules.find((r) => r.key === "gbp_exists")!;
+
+  it("אבחון אתר-בלבד (no_gbp ב-partial): לא ידוע - לא פער ולא זכייה, טקסט ריק", () => {
+    const rule = gbpRuleOf(NO_GBP);
+    expect(rule.known).toBe(false);
+    expect(rule.earned).toBe(false);
+    expect(rule.text).toBe("");
+  });
+
+  it("אבחון אתר-בלבד: החוק לא מופיע לא ב-topGaps ולא ב-topStrengths", () => {
+    const report = scoreFindings(DIMENSIONS, NO_GBP);
+    expect(report.topGaps.map((g) => g.ruleKey)).not.toContain("gbp_exists");
+    expect(report.topStrengths.map((g) => g.ruleKey)).not.toContain("gbp_exists");
+  });
+
+  it("אבחון עם זהות Places: ידוע והושג - העסק הרי נמצא בגוגל", () => {
+    for (const f of [RICH, THIN]) {
+      const rule = gbpRuleOf(f);
+      expect(rule.known).toBe(true);
+      expect(rule.earned).toBe(true);
+      expect(rule.text).toBe("לעסק פרופיל פעיל בגוגל");
+    }
+  });
+
+  it("בלי זהות Places חוקי ה-GBP כולם לא ידועים - הממד partial, לא מוענש", () => {
+    const vis = scoreFindings(DIMENSIONS, NO_GBP).dimensions.find((d) => d.key === "visibility")!;
+    for (const key of ["gbp_exists", "gbp_phone", "gbp_rating"]) {
+      expect(vis.rules.find((r) => r.key === key)!.known, key).toBe(false);
+    }
+    expect(vis.dataStatus).toBe("partial");
   });
 });
 
