@@ -27,14 +27,21 @@ export default async function InterviewPage({ params }: { params: Promise<{ id: 
     if ((await userCanAccessDiagnosis(prisma, acting.user, id).catch(() => null)) !== true) notFound();
   }
 
-  const [state, cookieStore] = await Promise.all([
+  // שם העסק נטען כאן ולא נגזר מהראיון: הראיון לא מחזיק אותו, ובלעדיו זה היה המסך היחיד
+  // במערכת שלא אומר על איזה עסק מדובר (דיווח מייסד 20.8). שאילתה צרה במכוון - שדה אחד,
+  // ובמקביל לשאר ולא אחריהן
+  const [state, cookieStore, biz] = await Promise.all([
     getInterviewState(prisma, id).catch(() => null),
     cookies(),
+    prisma.diagnosis
+      .findUnique({ where: { id }, select: { business: { select: { name: true } } } })
+      .catch(() => null),
   ]);
+  const businessName = biz?.business.name ?? null;
   if (!state || !INTERVIEWABLE.includes(state.status)) notFound();
 
   const snapshot = snapshotOf(state);
   const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
   const { Interview } = getVariant(theme);
-  return <Interview diagnosisId={id} initial={snapshot} />;
+  return <Interview diagnosisId={id} initial={snapshot} businessName={businessName ?? undefined} />;
 }

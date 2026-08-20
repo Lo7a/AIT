@@ -139,8 +139,21 @@ function BlockedScan({ target }: { target: Target }) {
   return <WaitingScreen target={target} message="סריקה לעסק הזה כבר רצה בחלון אחר" showHomeLink />;
 }
 
+// מה שמוצג בשורת הכתובת. שלושה מצבים שונים במכוון, ואף אחד מהם אינו ניחוש:
+// כתובת אמיתית -> המארח בלבד (כמו דפדפן, בלי https ובלי www), נבדק ואין אתר -> נאמר
+// במפורש, ועוד לא ידוע -> נאמר שמחפשים. undefined ו-null אינם אותו דבר כאן
+function addressLabel(website: string | null | undefined, fallbackUrl?: string): string {
+  const raw = website ?? (website === null ? null : fallbackUrl);
+  if (raw == null) return website === null ? "לעסק אין אתר" : "מחפשים את האתר";
+  try {
+    return new URL(raw).hostname.replace(/^www\./, "");
+  } catch {
+    return raw;
+  }
+}
+
 function LiveScan({ target }: { target: Target }) {
-  const { title, lines: steps, error, blocked } = useScanStream(target);
+  const { title, website, lines: steps, error, blocked } = useScanStream(target);
 
   if (blocked) {
     return <BlockedScan target={target} />;
@@ -149,40 +162,53 @@ function LiveScan({ target }: { target: Target }) {
   // מונה כן בלבד: הזרם לא מדווח אחוז התקדמות ולא ידוע כמה שלבים יגיעו בסך הכול, אז מציגים
   // רק מה שקרה באמת - כמה מהשלבים שכבר הופיעו הסתיימו. בלי אחוז מומצא
   const doneCount = steps.filter((s) => s.done).length;
+  const address = addressLabel(website, target.url);
+  const known = website != null || target.url != null;
 
   return (
     <ScanFrame target={target} busy={error == null}>
-      <section className="shell rv d1">
-        <div className="core card-pad">
-          <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">{title}</h1>
-          <p className="mt-1 text-sm" style={{ color: "var(--mut)" }}>בדרך כלל זה לוקח פחות מדקה</p>
+      <h1 className="mb-1 text-xl font-extrabold tracking-tight sm:text-2xl">{title}</h1>
+      <p className="mb-6 text-sm" style={{ color: "var(--mut)" }}>בדרך כלל זה לוקח פחות מדקה</p>
 
-          {error && (
-            <div role="alert" className="form-error mt-6">
-              <div>
-                <p>{error}</p>
-                <a href="/" className="mt-2 inline-block font-bold underline underline-offset-4" style={{ color: "var(--txt)" }}>
-                  חזרה לעמוד הראשי
-                </a>
-              </div>
+      {error && (
+        <div role="alert" className="form-error mb-6">
+          <div>
+            <p>{error}</p>
+            <a href="/hub" className="mt-2 inline-block font-bold underline underline-offset-4" style={{ color: "var(--txt)" }}>
+              חזרה למרכז העסק
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* חלון הדפדפן: אותן מחלקות .term בדיוק של ההדגמה בדף הנחיתה (הנחיית מייסד 20.8),
+          רק שכאן הכתובת אמיתית והשורות הן הסריקה שרצה באמת.
+          מה שלא הועתק מההדגמה במכוון: פס ההתקדמות. שם הוא נשען על מספר שלבים ידוע מראש,
+          וכאן השלבים מגיעים בזרם - הפס היה מטפס ל-100 ונופל ל-50 בכל שלב חדש שנכנס */}
+      {steps.length > 0 && (
+        <div className="shell term rv d2">
+          <div className="core">
+            <div className="term-bar">
+              <span className="addr" dir="ltr" title={website ?? target.url ?? undefined}>
+                {known ? address : <span style={{ color: "var(--dim)" }}>{address}</span>}
+              </span>
+              <span className="pct num">{doneCount}/{steps.length}</span>
             </div>
-          )}
 
-          {steps.length > 0 && (
-            <>
-              <div className="scan-top mt-6">
-                <span className="pct-big num">{doneCount}/{steps.length}</span>
-                <span className="text-sm font-semibold" style={{ color: "var(--mut)" }}>שלבים הושלמו</span>
-              </div>
-              <ul role="status" aria-live="polite" className="mt-1">
+            <div className="term-body">
+              <ul role="status" aria-live="polite">
                 {steps.map((s) => (
                   <StepRow key={s.key} step={s} />
                 ))}
               </ul>
-            </>
-          )}
+            </div>
+
+            <div className="term-foot">
+              <span>{doneCount} מתוך {steps.length} שלבים הושלמו</span>
+            </div>
+          </div>
         </div>
-      </section>
+      )}
     </ScanFrame>
   );
 }

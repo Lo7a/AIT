@@ -302,6 +302,11 @@ export function DefaultRoadmap({
 
   return (
     <AppShell active="roadmap" diagnosisId={report.id} userLabel={report.business.name}>
+      {/* שורת הזהות, זהה לדוח ולראיון: על איזה עסק מדובר. הכותרת "תוכנית העבודה" למטה
+          אומרת מה זה, ולא למי - וכשיש כמה אבחונים זו בדיוק השאלה (דיווח מייסד 20.8) */}
+      <header className="topbar">
+        <span className="brand-txt"><small>תוכנית העבודה</small><b>{report.business.name}</b></span>
+      </header>
       {buildPhase === "ready" && roadmap != null && roadmap.items.length > 0 && (
         <AnchorNav items={phaseAnchors} label="שלבי תוכנית העבודה" />
       )}

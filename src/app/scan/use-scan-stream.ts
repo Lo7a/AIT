@@ -17,6 +17,8 @@ export type StepLine = {
 
 export interface ScanStreamState {
   title: string | null;
+  /** כתובת האתר של העסק. undefined = עוד לא נודעה · null = נבדק ואין לו אתר */
+  website?: string | null;
   lines: StepLine[];
   error: string | null;
   done: boolean;
@@ -44,6 +46,8 @@ export function useScanStream(target: Target): ScanStreamState {
   const key = JSON.stringify(target);
   const guardedRef = useRef<string | null>(null);
   const [title, setTitle] = useState<string | null>("מתחילים את האבחון");
+  // undefined בכוונה ולא null: "עוד לא יודעים" ו"אין אתר" הם שני מצבים שונים על המסך
+  const [website, setWebsite] = useState<string | null | undefined>(undefined);
   const [steps, setSteps] = useState<StepLine[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [finished, setFinished] = useState(false);
@@ -78,6 +82,9 @@ export function useScanStream(target: Target): ScanStreamState {
       switch (e.type) {
         case "created":
           setTitle(`מאבחנים את ${e.businessName}`);
+          break;
+        case "site":
+          setWebsite(e.website);
           break;
         case "step":
           setSteps((prev) => [...prev, { key: e.key, label: e.label, done: false }]);
@@ -161,7 +168,7 @@ export function useScanStream(target: Target): ScanStreamState {
     };
   }, [key, router, target]);
 
-  return { title, lines: steps, error, done: finished, blocked };
+  return { title, website, lines: steps, error, done: finished, blocked };
 }
 
 export interface AttachWaitState {

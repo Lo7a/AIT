@@ -92,10 +92,11 @@ function Bubble({ message }: { message: ChatMessage }) {
 }
 
 export function DefaultInterview({
-  diagnosisId, initial,
+  diagnosisId, initial, businessName,
 }: {
   diagnosisId: string;
   initial: InterviewSnapshot;
+  businessName?: string;
 }) {
   const {
     messages, busy, starting, finishing, input, freeText, visible, sections,
@@ -166,7 +167,16 @@ export function DefaultInterview({
   }
 
   return (
-    <AppShell active="interview" diagnosisId={diagnosisId}>
+    <AppShell active="interview" diagnosisId={diagnosisId} userLabel={businessName ?? null}>
+      {/* שורת הזהות: על איזה עסק הראיון הזה. היה חסר כאן בלבד, וכשיש כמה אבחונים אי אפשר
+          היה לדעת עם מי מדברים (דיווח מייסד 20.8). אותו מבנה בדיוק כמו בדוח וב-Roadmap */}
+      {businessName != null && businessName !== "" && (
+        <header className="topbar">
+          {/* רק הזהות. "הדוח חי" כבר מוצג בכותרת המסך עצמו, ולהראות אותו פעמיים
+              על אותו מסך זה רעש ולא הדגשה */}
+          <span className="brand-txt"><small>הראיון</small><b>{businessName}</b></span>
+        </header>
+      )}
       <main
         className="mx-auto w-full max-w-[760px] flex-1 px-4 pb-16 pt-8 sm:pt-10"
         aria-busy={starting || busy || finishing}

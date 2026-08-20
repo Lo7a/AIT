@@ -20,6 +20,10 @@ export type DiagnoseStepKey =
 
 export type DiagnoseEvent =
   | { type: "created"; diagnosisId: string; businessName: string }
+  // כתובת האתר של העסק ברגע שהיא נודעת. במסלול URL היא ידועה מיד; במסלול חיפוש היא
+  // מגיעה עם פרטי העסק מגוגל, ולכן היא אירוע ולא שדה על created. null = לעסק אין אתר,
+  // וזו עובדה בפני עצמה ולא היעדר מידע (מסך הסריקה מציג את שניהם אחרת)
+  | { type: "site"; website: string | null }
   | { type: "step"; key: DiagnoseStepKey; label: string }
   | { type: "step_done"; key: DiagnoseStepKey; ok: boolean; detail?: string }
   | { type: "done"; diagnosisId: string }

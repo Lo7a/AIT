@@ -581,7 +581,6 @@ export function DefaultReport({
             </span>
           )}
           <span className="chip live"><span className="dot" />דוח חי</span>
-          <Link href="/" className="btn-quiet">אבחון חדש</Link>
         </div>
       </header>
 

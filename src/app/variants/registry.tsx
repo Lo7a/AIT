@@ -38,7 +38,13 @@ export interface VariantScreens {
     // פותחות את הדוח. אופציונלי: undefined/מערך ריק = הסקציה פשוט לא מוצגת
     insights?: import("../../pipeline/roadmap/insights").Insight[];
   }>;
-  Interview: ComponentType<{ diagnosisId: string; initial: import("../../server/run-interview").InterviewSnapshot }>;
+  Interview: ComponentType<{
+    diagnosisId: string;
+    initial: import("../../server/run-interview").InterviewSnapshot;
+    // שם העסק שהראיון הזה שייך לו (דיווח מייסד 20.8): כשיש כמה אבחונים, מסך הראיון
+    // היה המסך היחיד שלא אמר על מי מדובר. אופציונלי כדי שגרסאות עיצוב קיימות יתקמפלו
+    businessName?: string;
+  }>;
   Roadmap: ComponentType<{
     report: NonNullable<Awaited<ReturnType<typeof import("../../server/diagnosis-read").getReport>>>;
     initialRoadmap: import("../../server/roadmap-repo").RoadmapView | null;

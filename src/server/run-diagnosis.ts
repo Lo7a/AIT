@@ -95,6 +95,8 @@ function wrapScanDeps(base: ScanDeps, emit: Emit): ScanDeps {
       // לעסק אין אתר, או שהאתר הרשום הוא בעצם עמוד ברשת חברתית (ממצא מייסד) - בשני המקרים runScan
       // לא יקרא בכלל ל-crawl/pagespeed (ראו scan.ts). פולטים skipped מפורש כדי שהפלח הזה יראה הסבר
       // קצר ולא רשימה תלויה
+      // הכתובת שגוגל מחזיק לעסק - זה מה שהסורק עומד לפתוח בפועל, ולכן זה מה שמוצג
+      emit({ type: "site", website: details.website ?? null });
       const social = details.website ? socialPresenceOf(details.website) : null;
       if (!details.website || social) {
         emitSkippedCrawlPsi(emit, social ? socialOnlyDetail(social.platform) : "לעסק אין אתר");
@@ -154,6 +156,9 @@ export async function runDiagnosis(
       throw err;
     });
   emit({ type: "created", diagnosisId: created.diagnosisId, businessName });
+  // מסלול URL: הכתובת ידועה כבר עכשיו, והמסך יכול להראות אותה מהשנייה הראשונה.
+  // מסלול חיפוש: היא תגיע בהמשך עם פרטי העסק (wrapScanDeps.details)
+  if (target.kind === "url") emit({ type: "site", website: siteUrl!.href });
 
   // שלב 2: סריקה תחת scanning; כל כישלון מחזיר ל-created עם השגיאה המקורית
   await transitionDiagnosis(prisma, created.diagnosisId, "scanning");
