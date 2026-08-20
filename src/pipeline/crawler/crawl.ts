@@ -24,9 +24,10 @@ const EXTRA_ATTEMPTS = 4;
 // אנחנו עוקבים אחרי ההפניות בעצמנו (redirect: "manual"), אז החסם הוא שלנו. אתרים אמיתיים
 // עושים לכל היותר שתיים-שלוש (http-https-www-נתיב); חמש נדיבה ומספיק כדי לא להיתקע בלולאה
 const MAX_REDIRECTS = 5;
-// תקרת קישורים מקוצרים לפתרון בעמוד הבית. בעמוד אמיתי יש בדרך כלל אחד או שניים;
-// התקרה מונעת מעמוד עם עשרות קישורים מקוצרים לנפח את זמן הסריקה
-const MAX_SHORT_LINKS = 3;
+// תקרת קישורים מקוצרים לפתרון, על פני כל האתר. הועלתה מ-3 ל-5 ב-20.8 כשהאיסוף חדל להיות
+// של עמוד הבית בלבד: התקרה מכסה עכשיו שטח גדול פי כמה, ובקצה השני היא רק חמש בקשות שרצות
+// במקביל. התקרה מונעת מאתר עם עשרות קישורים מקוצרים לנפח את זמן הסריקה
+const MAX_SHORT_LINKS = 5;
 
 // מילות מפתח שמקדמות עמוד בתור - העמודים שהכי מלמדים על העסק
 const PRIORITY_KEYWORDS = [
@@ -166,27 +167,11 @@ export async function crawlWebsite(
 
   const merged: Omit<PageSignals, "internalLinks"> = { ...home };
 
-  // קישורים מקוצרים בעמוד הבית: המקרה החי habarber.co.il - כפתור וואטסאפ בולט מאחורי bit.ly,
-  // שהניב "אין וואטסאפ" בביטחון מלא על חוק של 25 נקודות. פותרים את היעד ובודקים אותו מול אותן
-  // טביעות אצבע. hasLinkShortener נשאר true רק אם נשארו קישורים שלא הצלחנו לפתוח - ואז
-  // dimensions.ts מדווח "לא נבדק" במקום פער, כי באמת לא ידוע מה מסתתר שם
-  if (home.hasLinkShortener) {
-    const shortLinks = collectShortenerLinks(homePage.html, homeUrl);
-    const capped = shortLinks.slice(0, MAX_SHORT_LINKS);
-    const settled = await Promise.allSettled(
-      capped.map((u) => resolveShortLink(u, fetchImpl, lookupImpl, timeoutMs)),
-    );
-    const resolved = settled
-      .map((r) => (r.status === "fulfilled" ? r.value : undefined))
-      .filter((u): u is string => !!u);
-    const fromLinks = signalsFromUrls(resolved);
-    merged.hasWhatsappLink = merged.hasWhatsappLink || fromLinks.hasWhatsappLink;
-    merged.hasOnlineBooking = merged.hasOnlineBooking || fromLinks.hasOnlineBooking;
-    merged.hasOrderingSystem = merged.hasOrderingSystem || fromLinks.hasOrderingSystem;
-    merged.hasDeliveryPlatform = merged.hasDeliveryPlatform || fromLinks.hasDeliveryPlatform;
-    // נפתרו כולם ולא נחתכנו בתקרה - אין יותר יעד מוסתר, והשלילה חוזרת להיות ידועה
-    merged.hasLinkShortener = resolved.length !== shortLinks.length;
-  }
+  // קישורים מקוצרים נאספים כאן ונפתרים בסוף, אחרי לולאת העמודים - ראו את הבלוק שם.
+  // Set שומר על סדר ההכנסה, ולכן קישורי עמוד הבית נכנסים לתקרה לפני העמודים הפנימיים
+  const shortLinks = new Set<string>(
+    home.hasLinkShortener ? collectShortenerLinks(homePage.html, homeUrl) : [],
+  );
   const crawledUrls = [homeUrl];
   const visited = new Set([siteUrl, homeUrl]);
 
@@ -214,6 +199,9 @@ export async function crawlWebsite(
       visited.add(finalUrl);
       // baseUrl = הכתובת הסופית של העמוד הנוכחי, לפי החוזה של extractSignals
       const signals = extractSignals(page.html, finalUrl);
+      if (signals.hasLinkShortener) {
+        for (const link of collectShortenerLinks(page.html, finalUrl)) shortLinks.add(link);
+      }
       for (const key of BOOL_KEYS) merged[key] = merged[key] || signals[key];
       merged.platform = merged.platform ?? signals.platform;
       merged.clientFramework = merged.clientFramework ?? signals.clientFramework;
@@ -221,6 +209,31 @@ export async function crawlWebsite(
     } catch {
       // עמוד פנימי שנפל לא מפיל את הסריקה
     }
+  }
+
+  // פתרון הקישורים המקוצרים - אחרי הלולאה, ובכוונה. המקרה החי הראשון (habarber.co.il) היה
+  // כפתור וואטסאפ מאחורי bit.ly בעמוד הבית, ולכן הגרסה הראשונה פתרה את עמוד הבית בלבד -
+  // אבל hasLinkShortener נצבר מכל העמודים, וכך מקצר בעמוד פנימי (jems.co.il) הדליק דגל
+  // שלא היה שום מסלול לכבות אותו, והחוק נשאר "לא נבדק" לנצח. עכשיו האיסוף והפתרון מסתכלים
+  // על אותו שטח בדיוק. רץ גם כשתקציב הזמן נגמר: זו קבוצה חסומה של בקשות מקבילות, והמחיר
+  // שלה קטן מהמחיר של לוותר על חוק של 25 או 30 נקודות
+  if (merged.hasLinkShortener) {
+    const pending = [...shortLinks];
+    const settled = await Promise.allSettled(
+      pending.slice(0, MAX_SHORT_LINKS).map((u) => resolveShortLink(u, fetchImpl, lookupImpl, timeoutMs)),
+    );
+    const resolved = settled
+      .map((r) => (r.status === "fulfilled" ? r.value : undefined))
+      .filter((u): u is string => !!u);
+    const fromLinks = signalsFromUrls(resolved);
+    merged.hasWhatsappLink = merged.hasWhatsappLink || fromLinks.hasWhatsappLink;
+    merged.hasOnlineBooking = merged.hasOnlineBooking || fromLinks.hasOnlineBooking;
+    merged.hasOrderingSystem = merged.hasOrderingSystem || fromLinks.hasOrderingSystem;
+    merged.hasDeliveryPlatform = merged.hasDeliveryPlatform || fromLinks.hasDeliveryPlatform;
+    // נפתרו כולם ולא נחתכנו בתקרה - אין יותר יעד מוסתר, והשלילה חוזרת להיות ידועה.
+    // pending ריק פירושו שהתבנית נמצאה בקוד הגולמי אך לא כ-href של עוגן (וידג'ט טוויטר
+    // עם t.co הוא המקרה הנפוץ) - שם אין יעד שהמשתמש יכול ללחוץ עליו, ולכן הדגל נכבה
+    merged.hasLinkShortener = resolved.length !== pending.length;
   }
 
   return {

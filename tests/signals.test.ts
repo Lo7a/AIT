@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractSignals } from "../src/pipeline/crawler/signals";
+import { extractSignals, collectShortenerLinks } from "../src/pipeline/crawler/signals";
 
 const BASE = "https://example.co.il";
 
@@ -140,6 +140,20 @@ describe("extractSignals", () => {
     expect(s.hasLinkShortener).toBe(true);
     expect(s.hasWhatsappLink).toBe(false);
     expect(extractSignals(`<a href="/x">רגיל</a>`, BASE).hasLinkShortener).toBe(false);
+  });
+
+  // did.li - מקצר ישראלי, המקרה החי jems.co.il: did.li/tabitjems מפנה ל-tabitorder.com
+  it("flags did.li, the Israeli shortener behind the Jems booking link", () => {
+    const s = extractSignals(`<a href="https://did.li/tabitjems">להזמנת מקום</a>`, BASE);
+    expect(s.hasLinkShortener).toBe(true);
+    expect(collectShortenerLinks(`<a href="https://did.li/tabitjems">x</a>`, BASE))
+      .toEqual(["https://did.li/tabitjems"]);
+  });
+
+  // t.co לא מעוגן היה תופס כל מארח שנגמר באותן אותיות, ומכבה חוק של 25 נקודות בהתאמת שווא
+  it("does not mistake a host that merely ends in t.co for the Twitter shortener", () => {
+    expect(extractSignals(`<a href="https://smartsupport.co/help">עזרה</a>`, BASE).hasLinkShortener).toBe(false);
+    expect(extractSignals(`<a href="https://t.co/abc123">קישור</a>`, BASE).hasLinkShortener).toBe(true);
   });
 
   it("plain English prose with the word order is not online booking", () => {

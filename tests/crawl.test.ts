@@ -545,4 +545,35 @@ describe("short link resolution (20.8)", () => {
     // הכתובת הפנימית עצמה מעולם לא נשלחה
     expect(fetchImpl.mock.calls.some((c) => String(c[0]).includes("169.254.169.254"))).toBe(false);
   });
+
+  // המקרה החי jems.co.il (20.8): המקצר יושב בעמוד פנימי, לא בעמוד הבית. עד התיקון האיסוף
+  // רץ על עמוד הבית בלבד בעוד שהדגל נצבר מכל העמודים, ולכן הדגל נדלק ולא היה שום מסלול
+  // לכבות אותו - והחוק נשאר "לא נבדק" לנצח על אתר שיש לו הזמנת מקום מלאה
+  it("resolves a shortener that sits on an inner page, not only the homepage", async () => {
+    const home = `<html><body><a href="/contact">צור קשר</a></body></html>`;
+    const contact = `<html><body><a href="https://did.li/tabitjems">להזמנת מקום</a></body></html>`;
+    const fetchImpl = vi.fn(async (url: string) => {
+      if (url.includes("/contact")) return htmlResponse(contact, url);
+      if (url.startsWith("https://did.li/")) {
+        return redirectResponse(301, "https://www.tabitorder.com/jemsranna");
+      }
+      return htmlResponse(home, url);
+    });
+    const s = await crawl("https://jems.co.il/", { fetchImpl: fetchImpl as never });
+    expect(s.hasOnlineBooking).toBe(true);
+    expect(s.hasLinkShortener).toBe(false);
+  });
+
+  it("keeps the flag when an inner-page shortener cannot be resolved", async () => {
+    const home = `<html><body><a href="/contact">צור קשר</a></body></html>`;
+    const contact = `<html><body><a href="https://did.li/xyz">להזמנת מקום</a></body></html>`;
+    const fetchImpl = vi.fn(async (url: string) => {
+      if (url.includes("/contact")) return htmlResponse(contact, url);
+      if (url.startsWith("https://did.li/")) throw new Error("network down");
+      return htmlResponse(home, url);
+    });
+    const s = await crawl("https://jems.co.il/", { fetchImpl: fetchImpl as never });
+    expect(s.hasOnlineBooking).toBe(false);
+    expect(s.hasLinkShortener).toBe(true);
+  });
 });
