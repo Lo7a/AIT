@@ -759,6 +759,33 @@ describe("link shortener and direct ordering (20.8)", () => {
     expect(r.known).toBe(true);
     expect(r.earned).toBe(false);
   });
+
+  // הגנת המקצר הורחבה לחוק ההזמנה (סקירה 20.8): היא הייתה על הוואטסאפ בלבד, בעוד שהמקרה
+  // החי שהוליד את פתרון המקצרים (jems.co.il, did.li) היה דווקא קישור הזמנה - והחוק הזה
+  // שווה 30 נקודות, היקר בממד
+  it("a link shortener makes a booking negative not-checked, not a 30-point gap", () => {
+    const r = ruleOf(withSignals({ hasLinkShortener: true }), "accessibility", "online_booking");
+    expect(r.known).toBe(false);
+    expect(r.earned).toBe(false);
+  });
+
+  it("without a shortener a booking negative stays a real gap", () => {
+    const r = ruleOf(withSignals({ hasLinkShortener: false }), "accessibility", "online_booking");
+    expect(r.known).toBe(true);
+    expect(r.earned).toBe(false);
+  });
+
+  it("a found booking stays known even when a shortener is present", () => {
+    const r = ruleOf(withSignals({ hasOnlineBooking: true, hasLinkShortener: true }), "accessibility", "online_booking");
+    expect(r.known).toBe(true);
+    expect(r.earned).toBe(true);
+  });
+
+  it("a resolved ordering system stays known even when a shortener is present", () => {
+    const r = ruleOf(withSignals({ hasOrderingSystem: true, hasLinkShortener: true }), "accessibility", "online_booking");
+    expect(r.known).toBe(true);
+    expect(r.earned).toBe(true);
+  });
 });
 
 // המקרה החי jems.co.il (20.8): שתי רשומות SPF. "יש רשומה" אינו "ההגנה עובדת" - ריבוי

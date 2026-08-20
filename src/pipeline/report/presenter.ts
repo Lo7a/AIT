@@ -73,6 +73,19 @@ export const RULE_LABEL_HE: Record<string, string> = {
   local_business_schema: "סימון עסק מקומי באתר",
 };
 
+/**
+ * התווית העברית של חוק, או null כשאין.
+ *
+ * למה null ולא נפילה חזרה על המפתח: scan.scores נשמר בבסיס הנתונים, ולכן דוח ישן מכיל
+ * מפתחות של גרסת ניקוד קודמת. כשחוק משנה שם (dmarc -> mail_auth, 20.8) המפתח הישן נשאר
+ * בדוחות השמורים, והמפה בכוונה לא מחזיקה מפתחות היסטוריים - בדיקה נועלת אותה מול
+ * dimensions.ts. הנפילה חזרה על המפתח הגולמי הדפיסה "dmarc" באנגלית בתוך דוח עברי,
+ * בדיוק הבאג שהמייסד דיווח עליו. מי שמרנדר מחליט מה להציג כשאין תווית - ולא מדפיס מפתח.
+ */
+export function ruleLabelHe(key: string): string | null {
+  return RULE_LABEL_HE[key] ?? null;
+}
+
 export const PARTIAL_FLAG_LABEL: Record<PartialFlag, string> = {
   no_website: "אין אתר לעסק",
   few_reviews: "מעט ביקורות",

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { DIMENSIONS, processRules } from "../src/pipeline/score/dimensions";
-import { RULE_LABEL_HE } from "../src/pipeline/report/presenter";
+import { RULE_LABEL_HE, ruleLabelHe } from "../src/pipeline/report/presenter";
 
 // הדוח היה מציג "לא נבדק - אין מידע (no_problem_themes)" - שם המשתנה הגולמי, לא עברית לבעל
 // העסק (דיווח מייסד). RULE_LABEL_HE הוא מקור האמת היחיד לתרגום מפתח חוק -> שם עברי קצר,
@@ -54,5 +54,23 @@ describe("RULE_LABEL_HE", () => {
         expect(FORBIDDEN_CODEPOINTS.has(cp), `${key}: forbidden U+${cp.toString(16)} in "${label}"`).toBe(false);
       }
     }
+  });
+});
+
+// חוק ששינה שם (dmarc -> mail_auth, 20.8) נשאר במפתחות של דוחות שכבר נשמרו ב-scan.scores,
+// והמפה בכוונה לא מחזיקה מפתחות היסטוריים - הבדיקה למעלה נועלת אותה. לכן מי שמרנדר חייב
+// לקבל null ולא את המפתח הגולמי, אחרת מודפס "dmarc" באנגלית בתוך משפט בעברית
+describe("ruleLabelHe", () => {
+  it("מחזיר את התווית העברית לחוק קיים", () => {
+    expect(ruleLabelHe("mail_auth")).toBe(RULE_LABEL_HE.mail_auth);
+  });
+
+  it("מחזיר null למפתח של גרסת ניקוד ישנה, ולא את המפתח עצמו", () => {
+    expect(ruleLabelHe("dmarc")).toBeNull();
+    expect(ruleLabelHe("spf")).toBeNull();
+  });
+
+  it("מחזיר null למפתח שלא קיים בכלל", () => {
+    expect(ruleLabelHe("no_such_rule_key")).toBeNull();
   });
 });

@@ -19,6 +19,15 @@ const knownCrawlNegative = (f: ScanFindings, signal: boolean | undefined): boole
   if (f.websiteSignals?.clientFramework) return false;
   return crawlUsable(f);
 };
+// נשאר באתר קישור מקוצר שלא הצלחנו לפתוח, ולכן היעד שלו לא ידוע. כל חוק שהראיה שלו היא
+// קישור יוצא חייב להתייחס לזה: "לא נמצא" מול יעד מוסתר אינו ידיעה אלא ניחוש.
+// שני המקרים החיים שהולידו את זה היו בדיוק כאלה - habarber.co.il (וואטסאפ מאחורי bit.ly)
+// ו-jems.co.il (קישור הזמנה מאחורי did.li)
+const hiddenLinkTarget = (f: ScanFindings): boolean => f.websiteSignals?.hasLinkShortener === true;
+// ערוץ הזמנה ישיר שבבעלות העסק: קביעת תור או מערכת הזמנות משלו. משמש גם ב-known וגם
+// ב-earned, כדי ששני הצדדים לא יתפצלו בתיקון הבא
+const bookingFound = (f: ScanFindings): boolean =>
+  !!f.websiteSignals?.hasOnlineBooking || !!f.websiteSignals?.hasOrderingSystem;
 // הגדרת אימות הדואר כממצא אחד: מחזיר את הבעיה החמורה ביותר שנמצאה, null כשהכול תקין,
 // ו-undefined כשאין די מידע כדי לקבוע. שלושת המצבים מכוונים - שבח דורש לדעת ששני החלקים
 // תקינים, ופער דורש בעיה שבאמת נצפתה; מידע חלקי בלי בעיה נשאר "לא נבדק" ולא הופך לשבח.
@@ -366,7 +375,7 @@ export const DIMENSIONS: DimensionDef[] = [
         // habarber.co.il - כפתור וואטסאפ בולט מאחורי bit.ly שהניב פער מלא ובביטחון
         known: (f) =>
           !!f.websiteSignals?.hasWhatsappLink ||
-          (crawlUsable(f) && !f.websiteSignals?.hasLinkShortener),
+          (crawlUsable(f) && !hiddenLinkTarget(f)),
         earned: (f) => !!f.websiteSignals?.hasWhatsappLink,
         gapText: () => "אין קישור וואטסאפ באתר, הערוץ שלקוחות ישראלים מצפים לו",
         okText: () => "וואטסאפ זמין באתר",
@@ -384,9 +393,12 @@ export const DIMENSIONS: DimensionDef[] = [
         // שבבעלות העסק. פלטפורמת משלוחים במכוון אינה מזכה - היא תלות בצד שלישי, לא ערוץ ישיר.
         // הערה לעתיד: כשתיכנס התניית ענף, החוק הזה מתפצל - מסעדה תיבחן על הזמנות והזמנת מקומות,
         // מספרה על תורים, ואוכל מהיר לא ייבחן על תורים בכלל
-        known: (f) =>
-          knownCrawlNegative(f, f.websiteSignals?.hasOnlineBooking || f.websiteSignals?.hasOrderingSystem),
-        earned: (f) => !!f.websiteSignals?.hasOnlineBooking || !!f.websiteSignals?.hasOrderingSystem,
+        // גילוי חיובי תמיד ידוע. שלילה דורשת גם crawl אמין וגם שלא נשאר יעד מוסתר - אותו
+        // סטנדרט בדיוק שחוק הוואטסאפ מחזיק בו, ומאותה סיבה. עד 20.8 ההגנה הזו הייתה על
+        // הוואטסאפ בלבד, וכאן דווקא היא קריטית יותר: זה החוק היקר בממד (30 נקודות),
+        // והמקרה החי שהוליד את פתרון המקצרים (jems.co.il, did.li) היה קישור הזמנה
+        known: (f) => bookingFound(f) || (knownCrawlNegative(f, false) && !hiddenLinkTarget(f)),
+        earned: bookingFound,
         gapText: () => "אין קביעת תור/הזמנה אונליין, כל תיאום דורש טלפון בשעות הפעילות",
         okText: () => "יש קביעת תור אונליין",
       },

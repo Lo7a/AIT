@@ -315,6 +315,18 @@ describe("accessibility statement + widget detection", () => {
     // userway/equalweb וכו' הם שמות ספק ולא מילים אנגליות נפוצות - אין סיכון להתנגשות במילה חופשית
     expect(extractSignals(`<div class="userway-widget"></div>`, BASE).hasAccessibilityWidget).toBe(true);
   });
+
+  // הספק שאומת חי הוא zap.dbusiness.co. בלי עיגון התבנית תפסה גם dbusiness.com,
+  // שאינו אותו ספק - ואזכור אחד מזכה אתר בחוק נגישות שלא מגיע לו (סקירה 20.8)
+  it("detects the verified dbusiness.co widget host", () => {
+    const html = `<script src="https://zap.dbusiness.co/accessibility.js"></script>`;
+    expect(extractSignals(html, BASE).hasAccessibilityWidget).toBe(true);
+  });
+
+  it("does not treat a different dbusiness TLD as the accessibility widget", () => {
+    expect(extractSignals(`<a href="https://dbusiness.com/news">x</a>`, BASE).hasAccessibilityWidget).toBe(false);
+    expect(extractSignals(`<a href="https://dbusiness.couk/x">x</a>`, BASE).hasAccessibilityWidget).toBe(false);
+  });
 });
 
 // זיהוי תשתית קליינט (Vue/React/Angular) - המקרה החי: edrieng.co.il, אתר Vue שה-HTML הגולמי שלו

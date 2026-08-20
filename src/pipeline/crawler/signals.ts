@@ -70,8 +70,10 @@ const A11Y_STATEMENT_HREF_RE = /accessibility[-_]?statement|negishut|הצהרת[
 // ספקי רכיבי נגישות (ווידג'ט) ישראליים ובינלאומיים - טביעת אצבע בקוד הגולמי, לא מילה חופשית
 // (אותה פילוסופיה כמו CHAT_RE/BOOKING_RE). accessible-poetry הוא פלאגין וורדפרס ישראלי (נראה חי
 // היום). enable\.co\.il עם נקודה מפורשת כדי לא להתנגש עם המילה האנגלית הרגילה "enable"
-// zap.dbusiness.co נוסף 20.8 אחרי אימות חי (gal-garage.co.il) - וידג'ט נגישות ישראלי שלא היה ברשימה
-const A11Y_WIDGET_RE = /userway|equalweb|accessibe|acsbapp|nagich|enable\.co\.il|accessible-poetry|accessiway|negishim|dbusiness\.co/;
+// zap.dbusiness.co נוסף 20.8 אחרי אימות חי (gal-garage.co.il) - וידג'ט נגישות ישראלי שלא היה ברשימה.
+// ה-lookahead נוסף בסקירה: בלעדיו התבנית תופסת גם dbusiness.com ו-dbusiness.co.uk, שאינם אותו
+// ספק, ומספיק אזכור אחד כדי לזכות אתר בחוק נגישות שלא מגיע לו
+const A11Y_WIDGET_RE = /userway|equalweb|accessibe|acsbapp|nagich|enable\.co\.il|accessible-poetry|accessiway|negishim|dbusiness\.co(?![a-z])/;
 // טפסים שאינם יצירת קשר: חיפוש, ניוזלטר, התחברות, עגלה, תגובות בלוג
 const NON_CONTACT_FORM_RE = /(?:^|[^a-z])(search|newsletter|subscribe|mc4wp|login|register|cart|coupon|comment)/;
 // קישורים לקבצים - לא עמודים, לא נכנסים לתור הסריקה
@@ -214,16 +216,18 @@ export function extractSignals(html: string, baseUrl: string): PageSignals {
 
   // מערכת תורים עצמית: עסק שבנה לעצמו אין לו דומיין ספק שאפשר לזהות. שני אותות מבניים,
   // ושניהם מחמירים בכוונה (ראו ההערה על BOOKING_ANCHOR_TEXT_RE):
-  // 1. עוגן/כפתור שמבקש לקבוע תור וה-href שלו הוא עמוד אמיתי - לא tel:, לא mailto:, לא בלי href
+  // 1. עוגן שמבקש לקבוע תור וה-href שלו הוא עמוד אמיתי - לא tel: ולא mailto:
   // 2. טופס שיש בו גם שדה תאריך וגם שדה שעה - צירוף שקשה לייצר בטעות
+  //
+  // רק a[href]: הסלקטור כלל גם button, אבל לכפתור אין href ולכן הוא נפסל מיד בשורה
+  // הבאה - חצי מהסלקטור לא יכול היה להתאים לעולם (נמצא בסקירה 20.8). ההתנהגות זהה,
+  // וכפתור בלי קישור באמת לא מעיד על יעד קיים
   let hasCustomBooking = false;
-  $("a[href], button").each((_i, el) => {
+  $("a[href]").each((_i, el) => {
     if (hasCustomBooking) return;
     const $el = $(el);
     if (!BOOKING_ANCHOR_TEXT_RE.test($el.text())) return;
-    const href = $el.attr("href");
-    if (href === undefined) return; // <button> בלי קישור - לא מעיד על יעד קיים
-    const scheme = href.trim().toLowerCase();
+    const scheme = ($el.attr("href") ?? "").trim().toLowerCase();
     if (scheme.startsWith("tel:") || scheme.startsWith("mailto:")) return; // קביעת תור בטלפון
     if (scheme.startsWith("javascript:") || scheme === "#" || scheme === "") return;
     hasCustomBooking = true;
