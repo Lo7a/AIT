@@ -1,5 +1,5 @@
 import { prisma } from "../../../../server/db";
-import { sendBrief, consoleBriefTransport } from "../../../../server/run-brief";
+import { sendBrief, chooseBriefTransport } from "../../../../server/run-brief";
 import { makeBriefHandler } from "../../../../server/api/roadmap-handlers";
 import { InterviewError } from "../../../../pipeline/interview/contract";
 import { currentActingUser } from "../../../../server/auth/supabase-server";
@@ -8,8 +8,8 @@ import { emitUsageEvent } from "../../../../server/usage-events";
 import { guardApiRequest } from "../../../../server/api/request-guards";
 import { enforceRateLimit, RATE_RULES } from "../../../../server/rate-limit";
 
-// חיווט קונקרטי (prisma + מימוש dev של התובלה) - כשיהיה ספק מייל אמיתי (Resend) מחליפים כאן
-// בלבד את consoleBriefTransport. תיחום בעלות: הפריט שייך ל-roadmap ששייך לאבחון - העלייה
+// חיווט קונקרטי (prisma + תובלה לפי env: Resend כש-RESEND_API_KEY מוגדר, console בפיתוח -
+// chooseBriefTransport ב-run-brief.ts). תיחום בעלות: הפריט שייך ל-roadmap ששייך לאבחון - העלייה
 // בשרשרת קורית כאן (שאילתת select צרה) והבדיקה עצמה ב-guard, עם אותו not_found אחיד
 export async function POST(req: Request, ctx: { params: Promise<{ itemId: string }> }) {
   const guard = guardApiRequest(req);
@@ -27,7 +27,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ itemId: string
     const diagnosisId = item?.roadmap?.diagnosisId;
     if (diagnosisId == null) throw new InterviewError("הפריט לא נמצא", "not_found");
     await assertDiagnosisAccess(prisma, acting.user, diagnosisId);
-    const result = await sendBrief(prisma, consoleBriefTransport, id);
+    const result = await sendBrief(prisma, chooseBriefTransport(), id);
     await emitUsageEvent(prisma, {
       type: "brief_sent", userId: acting.user.id, actorUserId: acting.actor.id,
       entityType: "roadmap_item", entityId: id,

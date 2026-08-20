@@ -14,6 +14,9 @@ export interface BriefBusiness {
   city?: string;
   phone?: string;
   website?: string;
+  // המייל של בעל האבחון (Business.owner בסכמה), לא של המשתמש הפועל - בהתחזות אדמין הליד
+  // עדיין שייך לבעלים, וזו הכתובת שאיש המקצוע חוזר אליה
+  ownerEmail?: string;
 }
 
 // שדות שמקורם בסריקה (deriveBusinessModel), לא בדיווח בעל העסק בפועל - "פלטפורמה שזוהתה
@@ -61,6 +64,9 @@ function businessLines(business: BriefBusiness): string {
   if (business.city) lines.push(`עיר: ${business.city}`);
   if (business.phone) lines.push(`טלפון: ${business.phone}`);
   if (business.website) lines.push(`אתר: ${business.website}`);
+  // בניגוד לשאר השדות האופציונליים, השורה תמיד מופיעה - כשאין מייל איש המקצוע צריך לדעת את
+  // זה מראש (הליד הכי חם במערכת), לא לגלות בשטח שאין כתובת חזרה
+  lines.push(`מייל בעל האבחון: ${business.ownerEmail ?? "לא רשום במערכת"}`);
   return lines.join("\n");
 }
 

@@ -306,6 +306,9 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
         const roadmap = roadmaps.find((r) => r.id === it.roadmapId);
         const diagnosis = roadmap ? diagnoses.find((d) => d.id === roadmap.diagnosisId) : undefined;
         const business = diagnosis ? businesses.find((b) => b.id === diagnosis.businessId) : undefined;
+        // בעל האבחון (יחס Business.owner) - run-brief.ts שולף את המייל שלו לגוף ה-Brief;
+        // עסק בלי בעלים (ownerUserId=null, נתוני טסט ותיקים) מחזיר owner:null כמו האמיתי
+        const owner = business ? users.find((u) => u.id === business.ownerUserId) : undefined;
         const modelEntry = diagnosis ? [...models].reverse().find((m) => m.where.diagnosisId === diagnosis.id) : undefined;
         return {
           ...it,
@@ -314,7 +317,7 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
             ...roadmap,
             diagnosis: diagnosis ? {
               ...diagnosis,
-              business: business ? { ...business } : null,
+              business: business ? { ...business, owner: owner ? { email: owner.email } : null } : null,
               businessModel: modelEntry ? { id: genId("bm"), diagnosisId: diagnosis.id, ...modelEntry.payload } : null,
             } : null,
           } : null,

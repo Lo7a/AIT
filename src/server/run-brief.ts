@@ -5,6 +5,7 @@ import { buildBrief, type BriefBusiness } from "../pipeline/roadmap/brief";
 import type { RoadmapItemView } from "./roadmap-repo";
 import { toModelView } from "./diagnosis-read";
 import { InterviewError } from "../pipeline/interview/contract";
+import { defaultFetch, readErrorBody, type FetchLike } from "../pipeline/http";
 
 // אורקסטרטור ה-Brief (אבן דרך 4, משימה 7): מקביל ל-run-roadmap.ts אבל בהיקף מצומצם בהרבה -
 // אין LLM ואין ניקוד, רק טעינה + תבנית טהורה (brief.ts) + שמירה אטומית + ניסיון שליחה מוגן.
@@ -14,18 +15,49 @@ export interface BriefTransport {
   send(to: string, subject: string, body: string): Promise<void>;
 }
 
-// כתובת היעד: BRIEF_EMAIL מה-env, עם נפילה לברירת המחדל הקבועה (אין עדיין ספק מייל - Resend
-// הוא פריט רק-להב: פתיחת חשבון + מפתח ב-env, ראו התוכנית). לעולם לא נדפס ל-log ערך .env גולמי
-// כאן - זה בדיוק המשתנה שנועד להישלח הלאה, לא סוד
+// כתובת היעד: BRIEF_EMAIL מה-env, עם נפילה לברירת המחדל הקבועה. תומך ברשימת נמענים מופרדת
+// בפסיקים - הפיצול קורה בתובלת ה-Resend (console מדפיס את המחרוזת כמו שהיא). לעולם לא נדפס
+// ל-log ערך .env גולמי כאן - זה בדיוק המשתנה שנועד להישלח הלאה, לא סוד
 const BRIEF_EMAIL = process.env.BRIEF_EMAIL ?? "lahavk@raion.co.il";
 
-// ברירת מחדל לפיתוח: כתיבה ללוג השרת בלבד. כשיתווסף ספק מייל אמיתי - מחליפים את המימוש הזה
-// בהזרקה (route.ts), בלי לגעת ב-sendBrief או בשאר הקובץ
+// כתובת השולח: ברירת המחדל היא כתובת ה-sandbox הציבורית של Resend (לא סוד) - עובדת בלי
+// אימות דומיין. שליחה מדומיין אמיתי (BRIEF_FROM_EMAIL) דורשת אימות דומיין בדשבורד של Resend
+const BRIEF_FROM_DEFAULT = "onboarding@resend.dev";
+
+// ברירת מחדל לפיתוח (בלי RESEND_API_KEY): כתיבה ללוג השרת בלבד - ה-Brief עצמו כבר נשמר
+// ב-DB, אז שום ליד לא הולך לאיבוד גם בלי מפתח
 export const consoleBriefTransport: BriefTransport = {
   async send(to, subject, body) {
     console.log(`[AIT Brief] בקשת הטמעה חדשה\nאל: ${to}\nנושא: ${subject}\n\n${body}`);
   },
 };
+
+// תובלת Resend אמיתית דרך REST ישיר (בלי SDK - קריאת fetch יחידה, אפס תלויות חדשות).
+// fetchImpl מוזרק כדי שהבדיקות יישארו אופליין, אותה תבנית כמו pagespeed.ts/places.ts.
+// כשל HTTP נזרק כשגיאה - sendBrief כבר עוטף את השליחה ב-try/catch ולא מפיל את הבקשה
+export function makeResendBriefTransport(apiKey: string, from: string, fetchImpl: FetchLike = defaultFetch): BriefTransport {
+  return {
+    async send(to, subject, body) {
+      const recipients = to.split(",").map((s) => s.trim()).filter((s) => s.length > 0);
+      const res = await fetchImpl("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ from, to: recipients, subject, text: body }),
+      });
+      if (!res.ok) throw new Error(`Resend החזיר ${res.status}: ${await readErrorBody(res)}`);
+    },
+  };
+}
+
+// בחירת התובלה לפי הסביבה: RESEND_API_KEY מוגדר => שליחה אמיתית דרך Resend, אחרת נפילה
+// ל-console (פיתוח מקומי בלי מפתח). env ו-fetch מוזרקים לבדיקות - route.ts קורא בלי ארגומנטים.
+// הטיפוס רחב מ-ProcessEnv בכוונה: הבדיקות מזריקות אובייקט חלקי בלי NODE_ENV
+export function chooseBriefTransport(env: Record<string, string | undefined> = process.env, fetchImpl: FetchLike = defaultFetch): BriefTransport {
+  const apiKey = env.RESEND_API_KEY?.trim();
+  if (!apiKey) return consoleBriefTransport;
+  const from = env.BRIEF_FROM_EMAIL?.trim() || BRIEF_FROM_DEFAULT;
+  return makeResendBriefTransport(apiKey, from, fetchImpl);
+}
 
 interface LoadedBriefItem {
   itemView: RoadmapItemView;
@@ -53,7 +85,15 @@ async function loadItemOrThrow(prisma: PrismaClient, itemId: string): Promise<Lo
           diagnosis: {
             select: {
               businessModel: true,
-              business: { select: { name: true, city: true, phone: true, website: true } },
+              // owner = בעל האבחון (Business.owner בסכמה) - המייל שלו נכנס לגוף ה-Brief כדי
+              // שאיש המקצוע יידע למי לחזור. בכוונה לא המשתמש הפועל: בהתחזות אדמין הפועל הוא
+              // האדמין, והליד שייך לבעלים
+              business: {
+                select: {
+                  name: true, city: true, phone: true, website: true,
+                  owner: { select: { email: true } },
+                },
+              },
             },
           },
         },
@@ -88,6 +128,7 @@ async function loadItemOrThrow(prisma: PrismaClient, itemId: string): Promise<Lo
     ...(businessRow.city ? { city: businessRow.city } : {}),
     ...(businessRow.phone ? { phone: businessRow.phone } : {}),
     ...(businessRow.website ? { website: businessRow.website } : {}),
+    ...(businessRow.owner?.email ? { ownerEmail: businessRow.owner.email } : {}),
   };
 
   const modelRow = item.roadmap.diagnosis.businessModel;

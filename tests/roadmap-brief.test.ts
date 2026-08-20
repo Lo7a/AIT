@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { buildBrief, type BriefBusiness } from "../src/pipeline/roadmap/brief";
-import { sendBrief, consoleBriefTransport, type BriefTransport } from "../src/server/run-brief";
+import {
+  sendBrief, consoleBriefTransport, chooseBriefTransport, makeResendBriefTransport,
+  type BriefTransport,
+} from "../src/server/run-brief";
 import type { RoadmapItemView } from "../src/server/roadmap-repo";
 import type { BusinessModel } from "../src/pipeline/model/business-model";
 import { makeFakeDb } from "./fakes/fake-db";
@@ -50,6 +53,7 @@ const model: BusinessModel = {
 
 const business: BriefBusiness = {
   name: "אופטיקה בק", city: "באר שבע", phone: "08-1234567", website: "https://optikabek.co.il",
+  ownerEmail: "info@optikabek.co.il",
 };
 
 describe("buildBrief - תבנית מלאה", () => {
@@ -77,6 +81,7 @@ describe("buildBrief - תבנית מלאה", () => {
     expect(brief).toContain("באר שבע");
     expect(brief).toContain("08-1234567");
     expect(brief).toContain("https://optikabek.co.il");
+    expect(brief).toContain("מייל בעל האבחון: info@optikabek.co.il");
     expect(brief).toContain(item.problem);
     expect(brief).toContain(item.reasoning);
     expect(brief).toContain(item.solution);
@@ -94,12 +99,19 @@ describe("buildBrief - תבנית מלאה", () => {
       item.reasoning ?? "",
       ...item.benchmarks.map((b) => b.metric), ...item.benchmarks.map((b) => b.range), ...item.benchmarks.map((b) => b.source),
       business.name, business.city ?? "", business.phone ?? "", business.website ?? "",
+      business.ownerEmail ?? "",
     ];
     let stripped = brief;
     for (const value of injectedValues) {
       if (value) stripped = stripped.split(value).join("");
     }
     expect(stripped).not.toMatch(/\d/);
+  });
+
+  it("בלי ownerEmail - השורה עדיין מופיעה עם 'לא רשום במערכת', לא נעלמת בשקט", () => {
+    const { ownerEmail: _omitted, ...withoutEmail } = business;
+    const brief = buildBrief(item, model, withoutEmail);
+    expect(brief).toContain("מייל בעל האבחון: לא רשום במערכת");
   });
 
   it("model=null - גרסה מינימלית וחיננית, בלי קריסה", () => {
@@ -138,12 +150,19 @@ describe("buildBrief - תבנית מלאה", () => {
   });
 });
 
+// ownerEmail: ברירת המחדל זורעת בעלים עם מייל (המסלול של ייצור); null = עסק בלי בעלים
+// (נתוני טסט ותיקים, ownerUserId=null) - לבדיקת הנפילה "לא רשום במערכת" בגוף ה-Brief
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function seedFullChain(fake: any, opts: { itemStatus?: string } = {}) {
-  const { businesses, diagnoses, catalogs, roadmaps, roadmapItems, models } = fake;
+function seedFullChain(fake: any, opts: { itemStatus?: string; ownerEmail?: string | null } = {}) {
+  const { businesses, diagnoses, catalogs, roadmaps, roadmapItems, models, users } = fake;
+  const ownerEmail = opts.ownerEmail === undefined ? "info@optikabek.co.il" : opts.ownerEmail;
+  if (ownerEmail != null) {
+    users.push({ id: "u1", authId: null, email: ownerEmail, role: "owner", createdAt: new Date(), updatedAt: new Date() });
+  }
   businesses.push({
     id: "b1", name: "אופטיקה בק", placeId: "p1", websiteKey: null,
     website: "https://optikabek.co.il", phone: "08-1234567", address: null, city: "באר שבע",
+    ownerUserId: ownerEmail != null ? "u1" : null,
   });
   diagnoses.push({ id: "d1", businessId: "b1", status: "roadmap_ready", createdAt: new Date() });
   catalogs.push({
@@ -172,6 +191,8 @@ describe("sendBrief - אינטגרציה על fake-db (run-brief.ts)", () => {
     expect(fake.briefs).toHaveLength(1);
     expect(fake.briefs[0].sentAt).not.toBeNull();
     expect(fake.briefs[0].content).toContain(item.problem);
+    // המייל של בעל האבחון נשלף דרך היחס business.owner ונכנס לגוף המסמך
+    expect(fake.briefs[0].content).toContain("מייל בעל האבחון: info@optikabek.co.il");
     expect(fake.roadmapItems.find((it: any) => it.id === "it1").status).toBe("requested");
     expect(sent).toHaveLength(1);
     // בלי BRIEF_EMAIL ב-env (כברירת מחדל בסביבת הבדיקות) - נופל לברירת המחדל הקבועה בקוד
@@ -210,6 +231,16 @@ describe("sendBrief - אינטגרציה על fake-db (run-brief.ts)", () => {
     expect(fake.roadmapItems.find((it: any) => it.id === "it1").status).toBe("requested");
   });
 
+  it("עסק בלי בעלים (נתוני טסט ותיקים) - הגוף מציין 'לא רשום במערכת', לא קורס", async () => {
+    const fake = makeFakeDb() as any;
+    seedFullChain(fake, { ownerEmail: null });
+
+    const result = await sendBrief(fake.db, consoleBriefTransport, "it1");
+
+    expect(result.ok).toBe(true);
+    expect(fake.briefs[0].content).toContain("מייל בעל האבחון: לא רשום במערכת");
+  });
+
   it("אטומיות: כשל ביצירת Brief משאיר את הפריט proposed - עדכון הסטטוס מתגלגל אחורה", async () => {
     const fake = makeFakeDb({ failBriefCreate: true }) as any;
     seedFullChain(fake);
@@ -218,5 +249,107 @@ describe("sendBrief - אינטגרציה על fake-db (run-brief.ts)", () => {
 
     expect(fake.briefs).toHaveLength(0);
     expect(fake.roadmapItems.find((it: any) => it.id === "it1").status).toBe("proposed");
+  });
+});
+
+// תגובת HTTP מזויפת בתבנית של crawl.test.ts - אובייקט מינימלי שנראה כמו Response, בלי רשת
+function fakeHttpResponse(status: number, body = "{}") {
+  return {
+    ok: status >= 200 && status < 300, status,
+    text: async () => body,
+  } as unknown as Response;
+}
+
+// fetch מזויף שאוסף את הקריאות - הבדיקות כאן אופליין לחלוטין, אף בקשה לא יוצאת החוצה
+function collectingFetch(response: Response) {
+  const calls: { url: string; init: RequestInit }[] = [];
+  const fetchImpl = (async (url: RequestInfo | URL, init?: RequestInit) => {
+    calls.push({ url: url.toString(), init: init ?? {} });
+    return response;
+  }) as typeof fetch;
+  return { calls, fetchImpl };
+}
+
+describe("chooseBriefTransport - בחירת תובלה לפי env (run-brief.ts)", () => {
+  it("בלי RESEND_API_KEY (או ריק/רווחים) - נופל ל-console לפיתוח", () => {
+    expect(chooseBriefTransport({})).toBe(consoleBriefTransport);
+    expect(chooseBriefTransport({ RESEND_API_KEY: "" })).toBe(consoleBriefTransport);
+    expect(chooseBriefTransport({ RESEND_API_KEY: "   " })).toBe(consoleBriefTransport);
+  });
+
+  it("עם RESEND_API_KEY - תובלת Resend, שולח ברירת מחדל = כתובת ה-sandbox הציבורית", async () => {
+    const { calls, fetchImpl } = collectingFetch(fakeHttpResponse(200));
+    const transport = chooseBriefTransport({ RESEND_API_KEY: "re-test-key" }, fetchImpl);
+
+    expect(transport).not.toBe(consoleBriefTransport);
+    await transport.send("someone@example.com", "נושא", "גוף ההודעה");
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url).toBe("https://api.resend.com/emails");
+    const headers = calls[0].init.headers as Record<string, string>;
+    expect(headers.Authorization).toBe("Bearer re-test-key");
+    const payload = JSON.parse(calls[0].init.body as string);
+    expect(payload.from).toBe("onboarding@resend.dev");
+  });
+
+  it("BRIEF_FROM_EMAIL מוגדר - נכנס כשולח במקום ברירת המחדל", async () => {
+    const { calls, fetchImpl } = collectingFetch(fakeHttpResponse(200));
+    const transport = chooseBriefTransport(
+      { RESEND_API_KEY: "re-test-key", BRIEF_FROM_EMAIL: "brief@example.co.il" }, fetchImpl,
+    );
+
+    await transport.send("someone@example.com", "נושא", "גוף");
+
+    const payload = JSON.parse(calls[0].init.body as string);
+    expect(payload.from).toBe("brief@example.co.il");
+  });
+});
+
+describe("makeResendBriefTransport - קריאת ה-REST עצמה (fetch מוזרק, אופליין)", () => {
+  it("הצלחה: POST יחיד עם from/to/subject/text, הנמען הבודד הופך למערך", async () => {
+    const { calls, fetchImpl } = collectingFetch(fakeHttpResponse(200));
+    const transport = makeResendBriefTransport("re-test-key", "brief@example.co.il", fetchImpl);
+
+    await transport.send("someone@example.com", "בקשת הטמעה", "גוף ה-Brief");
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].init.method).toBe("POST");
+    const payload = JSON.parse(calls[0].init.body as string);
+    expect(payload).toEqual({
+      from: "brief@example.co.il",
+      to: ["someone@example.com"],
+      subject: "בקשת הטמעה",
+      text: "גוף ה-Brief",
+    });
+  });
+
+  it("רשימת נמענים מופרדת בפסיקים - מפוצלת, נגזמת, וריקים נזרקים", async () => {
+    const { calls, fetchImpl } = collectingFetch(fakeHttpResponse(200));
+    const transport = makeResendBriefTransport("re-test-key", "brief@example.co.il", fetchImpl);
+
+    await transport.send(" one@example.com, two@example.co.il ,", "נושא", "גוף");
+
+    const payload = JSON.parse(calls[0].init.body as string);
+    expect(payload.to).toEqual(["one@example.com", "two@example.co.il"]);
+  });
+
+  it("כשל HTTP - נזרקת שגיאה עם הסטטוס (sendBrief כבר תופס אותה ולא מפיל את הבקשה)", async () => {
+    const { fetchImpl } = collectingFetch(fakeHttpResponse(422, "invalid from"));
+    const transport = makeResendBriefTransport("re-test-key", "brief@example.co.il", fetchImpl);
+
+    await expect(transport.send("someone@example.com", "נושא", "גוף")).rejects.toThrow("Resend");
+  });
+
+  it("אינטגרציה עם sendBrief: כשל Resend לא מפיל - Brief נשמר, sentAt נשאר null", async () => {
+    const fake = makeFakeDb() as any;
+    seedFullChain(fake);
+    const { fetchImpl } = collectingFetch(fakeHttpResponse(500));
+    const transport = makeResendBriefTransport("re-test-key", "brief@example.co.il", fetchImpl);
+
+    const result = await sendBrief(fake.db, transport, "it1");
+
+    expect(result).toEqual({ ok: true, sent: false });
+    expect(fake.briefs).toHaveLength(1);
+    expect(fake.briefs[0].sentAt).toBeNull();
   });
 });
