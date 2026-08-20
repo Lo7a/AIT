@@ -1386,8 +1386,10 @@ button.ans-row:not(:disabled):active{background:rgba(var(--acc-rgb),.16)}
 }
 .imp-in::placeholder{color:var(--dim)}
 .imp-in:focus{border-color:rgba(var(--acc-rgb),.45);background:var(--surface-2)}
+/* אותו עיגון ומאותה סיבה כמו תפריט המשתמש - הרשימה רחבה מהתיבה, ובקצה הסרגל
+   היא הייתה נמתחת אל מחוץ למסך */
 .imp-pop{
-  position:absolute;inset-inline-start:0;top:calc(100% + 7px);z-index:20;
+  position:absolute;inset-inline-end:0;top:calc(100% + 7px);z-index:20;
   min-width:min(280px,80vw);max-height:min(320px,60vh);overflow-y:auto;
   padding:5px;border-radius:14px;
   background:var(--float-glass);border:1px solid var(--hair);
@@ -1485,8 +1487,11 @@ button.ans-row:not(:disabled):active{background:rgba(var(--acc-rgb),.16)}
   transition:transform .25s var(--ease-out);
 }
 .umenu-btn:hover{transform:scale(1.06)}
+/* נפתח פנימה ולא החוצה. inset-inline-start:0 יישר את קצה התפריט לקצה ההתחלה של
+   הכפתור, כלומר הוא נמתח שמאלה - והכפתור הזה יושב בקצה השמאלי של הסרגל, אז התפריט
+   ברח מהמסך. עיגון לקצה השני מותח אותו לתוך המסך */
 .umenu-pop{
-  position:absolute;inset-inline-start:0;top:calc(100% + 8px);z-index:20;
+  position:absolute;inset-inline-end:0;top:calc(100% + 8px);z-index:20;
   min-width:min(230px,80vw);padding:6px;border-radius:14px;
   background:var(--bar-bg);border:1px solid var(--hair);
   box-shadow:var(--core-shadow);
