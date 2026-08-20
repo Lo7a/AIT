@@ -314,6 +314,14 @@ html[data-mode="light"] .theme-tgl .ic-moon{display:none}
 }
 .field input:disabled{opacity:.55}
 .fieldrow{display:grid;grid-template-columns:1.6fr 1fr;gap:10px}
+/* עם הפעולה בשורה: שם, עיר וכפתור. הכפתור לוקח את רוחבו ולא נמתח, והשדות מתחלקים
+   בשאר. במסך צר הכל נערם, והכפתור נמתח לרוחב מלא כדי שיהיה קל ללחוץ עליו באגודל */
+.fieldrow.with-act{grid-template-columns:1.6fr 1fr auto;align-items:stretch}
+.fieldrow.with-act .btn{white-space:nowrap}
+@media (max-width:560px){
+  .fieldrow.with-act{grid-template-columns:1fr}
+  .fieldrow.with-act .btn{justify-content:center}
+}
 @media (max-width:560px){.fieldrow{grid-template-columns:1fr}}
 .field-lb{display:block;font-size:12px;font-weight:600;color:var(--mut);margin-bottom:7px}
 .form-error{
@@ -1518,3 +1526,15 @@ button.ans-row:not(:disabled):active{background:rgba(var(--acc-rgb),.16)}
   background:var(--acc2);box-shadow:0 0 8px rgba(var(--acc2-rgb),.8);
   animation:breathe 2.6s var(--ease) infinite;
 }
+/* עוטף כותרת העמוד בדוח: אותו רוחב ומרכוז של .repC, כדי שהכותרת תתיישר עם הכרטיסים
+   ולא תיראה כאילו היא שייכת לסרגל שמעליה */
+.repC-head{
+  width:var(--content-w);max-width:var(--content-max);margin:0 auto;padding:20px 0 0;
+}
+/* אריח מונים שהוא קישור. הכרטיס עצמו לחיץ, ולכן הוא גם מרים מעט ומאיר את המסגרת -
+   בלי החיווי הזה אין שום דבר שמרמז שאפשר ללחוץ */
+.tile-link{
+  display:block;text-decoration:none;color:inherit;cursor:pointer;
+  transition:border-color .25s,transform .25s var(--ease-out);
+}
+.tile-link:hover{border-color:rgba(var(--acc-rgb),.4);transform:translateY(-2px)}

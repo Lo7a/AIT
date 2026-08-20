@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "../../server/db";
 import { getAdminOverview } from "../../server/admin-read";
 import { DIAGNOSIS_STATUS_LABEL } from "../../pipeline/report/presenter";
@@ -14,21 +15,23 @@ export default async function AdminOverviewPage() {
 
   const overview = await getAdminOverview(prisma);
 
+  // כל אריח מוביל למסך שהמספר שלו מגיע ממנו (בקשת מייסד 20.8): מספר על מסך סקירה
+  // הוא שאלה, והקישור הוא התשובה
   const tiles = [
-    { label: "משתמשים", value: overview.users },
-    { label: "עסקים", value: overview.businesses },
-    { label: "סריקות", value: overview.scans },
-    { label: "עלות סריקות (USD)", value: overview.scanCostUsd.toFixed(2) },
+    { label: "משתמשים", value: overview.users, href: "/admin/users" },
+    { label: "עסקים", value: overview.businesses, href: "/admin/businesses" },
+    { label: "סריקות", value: overview.scans, href: "/admin/diagnoses" },
+    { label: "עלות סריקות (USD)", value: overview.scanCostUsd.toFixed(2), href: "/admin/usage" },
   ];
 
   return (
     <main className="board">
       {tiles.map((tile, i) => (
         <section key={tile.label} className={`shell c3 rv d${i + 1}`}>
-          <div className="core card-pad">
+          <Link href={tile.href} className="core card-pad tile-link">
             <div className="text-xs font-semibold" style={{ color: "var(--mut)" }}>{tile.label}</div>
             <div className="num mt-2 text-3xl font-extrabold tracking-tight">{tile.value}</div>
-          </div>
+          </Link>
         </section>
       ))}
 

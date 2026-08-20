@@ -109,7 +109,9 @@ export function SearchBox() {
   return (
     <div className="mt-6">
       <form onSubmit={submit} className="flex flex-col gap-3">
-        <div className="fieldrow">
+        {/* הכפתור בתוך אותה שורה של השדות (הנחיית מייסד 20.8): שם, עיר ופעולה הם
+            צעד אחד, ולכן הם נקראים כשורה אחת ולא כטופס עם זנב */}
+        <div className="fieldrow with-act">
           <label className="field">
             <input
               ref={nameInputRef}
@@ -129,11 +131,11 @@ export function SearchBox() {
             />
             <PinIcon />
           </label>
+          <button type="submit" disabled={busy} className="btn">
+            {busy ? "מחפשים..." : "אבחן את העסק שלי"}
+            <span className="cap"><CapArrow /></span>
+          </button>
         </div>
-        <button type="submit" disabled={busy} className="btn self-start">
-          {busy ? "מחפשים..." : "אבחן את העסק שלי"}
-          <span className="cap"><CapArrow /></span>
-        </button>
       </form>
 
       {error && (

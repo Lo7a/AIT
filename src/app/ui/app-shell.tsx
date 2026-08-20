@@ -18,7 +18,7 @@ const RAIL_MAX_AGE = 31536000;
 
 export type ShellNavKey =
   | "home" | "report" | "interview" | "roadmap"
-  | "admin" | "admin_catalog" | "admin_users" | "admin_diagnoses" | "admin_usage" | "admin_activity";
+  | "admin" | "admin_catalog" | "admin_businesses" | "admin_users" | "admin_diagnoses" | "admin_usage" | "admin_activity";
 
 export type ShellSection = "business" | "admin";
 
@@ -57,6 +57,12 @@ const NAV_ICONS: Record<ShellNavKey, ReactNode> = {
       <path d="m19.2 6.3 1.7 12.1" />
     </svg>
   ),
+  admin_businesses: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 21h18" /><path d="M5 21V7.5L12 4l7 3.5V21" />
+      <path d="M9.4 21v-4.4h5.2V21" /><path d="M9.6 10.6h1.2M13.2 10.6h1.2M9.6 13.6h1.2M13.2 13.6h1.2" />
+    </svg>
+  ),
   admin_users: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="9" cy="8" r="3.2" /><path d="M3.4 19.4a5.9 5.9 0 0 1 11.2 0" />
@@ -88,6 +94,7 @@ export const NAV_LABEL: Record<ShellNavKey, string> = {
   roadmap: "תוכנית העבודה",
   admin: "ניהול",
   admin_catalog: "ספריית השירותים",
+  admin_businesses: "עסקים",
   admin_users: "משתמשים",
   admin_diagnoses: "אבחונים",
   admin_usage: "שימוש ומגבלות",
@@ -99,6 +106,7 @@ export const NAV_LABEL: Record<ShellNavKey, string> = {
 export const ADMIN_ITEMS: { key: ShellNavKey; href: string }[] = [
   { key: "admin", href: "/admin" },
   { key: "admin_catalog", href: "/admin/catalog" },
+  { key: "admin_businesses", href: "/admin/businesses" },
   { key: "admin_users", href: "/admin/users" },
   { key: "admin_diagnoses", href: "/admin/diagnoses" },
   { key: "admin_usage", href: "/admin/usage" },
