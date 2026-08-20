@@ -6,6 +6,7 @@ import { currentActingUser, hasAuthConfig } from "../../server/auth/supabase-ser
 import { userCanAccessDiagnosis } from "../../server/auth/guard";
 import { THEME_COOKIE, parseTheme } from "../theme";
 import { getVariant } from "../variants/registry";
+import { EmptyState } from "../ui/empty-state";
 
 // חלון קצר בהרבה לניתוב אוטומטי לדוח מוכן - רק "בדיוק סיימנו ורעננו" תופס; דוח ישן יותר לא
 // אמור לחטוף רענון-אחזור בלי שהמשתמש ביקש לסרוק שוב במפורש. חלון החיבור לסריקה חיה עבר
@@ -31,21 +32,10 @@ export default async function ScanPage({
   const hasUrl = !!params.url;
   if (!hasPlace && !hasUrl) {
     return (
-      <main className="mx-auto max-w-xl px-4 py-16">
-        <h1 className="animate-fade-up font-[family-name:var(--font-frank)] text-3xl font-bold tracking-tight">
-          חסר יעד לאבחון
-        </h1>
-        <p className="mt-2 animate-fade-up text-[#6F6E6A]" style={{ animationDelay: "80ms" }}>
-          לא נמצאו פרטי עסק או כתובת אתר להתחלת האבחון.
-        </p>
-        <a
-          href="/"
-          className="mt-6 inline-block animate-fade-up text-[#111111] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
-          style={{ animationDelay: "160ms" }}
-        >
-          חזרה לעמוד הראשי
-        </a>
-      </main>
+      <EmptyState
+        title="חסר יעד לאבחון"
+        body="לא נמצאו פרטי עסק או כתובת אתר להתחלת האבחון."
+      />
     );
   }
   const target = hasUrl

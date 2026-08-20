@@ -9,7 +9,7 @@ import { useEffect, useState, type ReactNode } from "react";
 
 const RAIL_KEY = "ait-rail";
 
-export type ShellNavKey = "home" | "report" | "interview" | "roadmap";
+export type ShellNavKey = "home" | "report" | "interview" | "roadmap" | "newscan";
 
 const NAV_ICONS: Record<ShellNavKey, ReactNode> = {
   home: (
@@ -33,6 +33,11 @@ const NAV_ICONS: Record<ShellNavKey, ReactNode> = {
       <path d="M8.2 19H15a4 4 0 0 0 0-8H9a4 4 0 0 1 0-8h6.8" />
     </svg>
   ),
+  newscan: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" /><path d="M20 20l-3.2-3.2" /><path d="M11 8.4v5.2M8.4 11h5.2" />
+    </svg>
+  ),
 };
 
 const NAV_LABEL: Record<ShellNavKey, string> = {
@@ -40,6 +45,7 @@ const NAV_LABEL: Record<ShellNavKey, string> = {
   report: "הדוח המלא",
   interview: "הראיון",
   roadmap: "תוכנית העבודה",
+  newscan: "אבחון לעסק נוסף",
 };
 
 export function AppShell({ active, diagnosisId, userLabel, badge, children }: {
@@ -66,8 +72,10 @@ export function AppShell({ active, diagnosisId, userLabel, badge, children }: {
     });
   }
 
+  // "אבחון לעסק נוסף" קבוע ולא תלוי באבחון פתוח: סריקת עסק אחר היא פעולה זמינה תמיד,
+  // וזו גם נקודת הכניסה העתידית להשוואת מתחרים
   const items: { key: ShellNavKey; href: string }[] = [
-    { key: "home", href: "/" },
+    { key: "home", href: "/hub" },
     ...(diagnosisId != null
       ? ([
           { key: "report" as const, href: `/report/${diagnosisId}` },
@@ -75,6 +83,7 @@ export function AppShell({ active, diagnosisId, userLabel, badge, children }: {
           { key: "roadmap" as const, href: `/roadmap/${diagnosisId}` },
         ])
       : []),
+    { key: "newscan", href: "/hub#new" },
   ];
 
   return (

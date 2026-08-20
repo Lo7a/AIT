@@ -8,17 +8,16 @@ import {
   DATA_STATUS_LABEL, PARTIAL_FLAG_LABEL, RULE_LABEL_HE, scoreTone, type ScoreToneKind,
 } from "../../pipeline/report/presenter";
 import type { DataStatus, RuleResult } from "../../pipeline/score/types";
-import type { DiagnosisStatus } from "../../server/status";
+import { HAS_REPORT_STATUSES } from "../../server/status";
 import type { LossHighlight } from "../../pipeline/roadmap/loss-highlights";
 import type { PersonalLossLine } from "../../pipeline/roadmap/loss-calc";
 import type { QuickWin } from "../../pipeline/roadmap/quick-wins";
 import type { Insight } from "../../pipeline/roadmap/insights";
+import { healthFacts } from "../../pipeline/report/health-facts";
+import type { HealthSignals } from "../../pipeline/types";
 import { AppShell } from "../ui/app-shell";
 import { AnchorNav, type AnchorItem } from "../ui/anchor-nav";
 import { ScoreDial, MiniRing, SegRail, FillBar } from "../ui/motion";
-
-// הדוח קיים גם בזמן ראיון, הקישור לא נעלם
-const HAS_REPORT: DiagnosisStatus[] = ["report_ready", "interviewing", "roadmap_ready"];
 
 // שלושת המסכים בשפת העיצוב הנבחרת (הכרעת מייסד 18.8): כהה פרמיום, סגול וברקת, Rubik.
 // כל הקלאסים מ-globals.css (shell/core/board וכו'); מה שאין לו קלאס גלובלי מקבל סגנון
@@ -79,8 +78,13 @@ export function DefaultHome({
   isAdminUser?: boolean;
   impersonating?: { email: string | null } | null;
 }) {
+  // האבחון הפעיל של המשתמש: הראשון ברשימה שכבר יש לו דוח. בלעדיו הסיידבר במסך הבית
+  // היה מציג רק את "מרכז העסק" ומסתיר את הדוח, הראיון והתוכנית - כלומר הכניסה למסך
+  // הבית "מחקה" למשתמש את שאר המערכת (ממצא מייסד 19.8)
+  const openDiagnosisId = recent.find((d) => HAS_REPORT_STATUSES.includes(d.status))?.id;
+
   return (
-    <AppShell active="home" userLabel={session?.email ?? null}>
+    <AppShell active="home" diagnosisId={openDiagnosisId} userLabel={session?.email ?? null}>
       {/* פס ההתחזות: בולט בכוונה - אדמין שצופה בתור משתמש חייב לראות את זה כל הזמן */}
       {impersonating != null && (
         <div
@@ -156,7 +160,7 @@ export function DefaultHome({
                       {d.status === "roadmap_ready" && (
                         <Link href={`/roadmap/${d.id}`} className="ghost-act">ל-Roadmap</Link>
                       )}
-                      {HAS_REPORT.includes(d.status) && (
+                      {HAS_REPORT_STATUSES.includes(d.status) && (
                         <Link href={`/report/${d.id}`} className="ghost-act">לדוח</Link>
                       )}
                       {/* טבעת ציון רק כשיש ציון אמיתי מהסריקה - שורה בלי ציון נשארת בלי טבעת */}
@@ -472,6 +476,38 @@ function HeadlineCard({
   );
 }
 
+// בדיקות התקינות: מה שנמדד מול רשם הדומיינים, רשומות ה-DNS וגוגל - נתונים שבעל העסק
+// כמעט אף פעם לא ראה, ושאף אחד לא היה צריך לספר לו כדי שנדע אותם.
+//
+// המקטע מציג גם את מה שלא נבדק. זה נראה כמו ויתור, והוא ההפך: שורה שכתוב בה "לא נבדק"
+// היא ההוכחה היחידה שהשורות האחרות נבדקו באמת
+function HealthFactsBlock({ health, className }: { health: HealthSignals | undefined; className: string }) {
+  const facts = healthFacts(health);
+  if (facts.length === 0) return null;
+
+  return (
+    <section id="health" data-anchor className={`shell ${className}`}>
+      <div className="core card-pad">
+        <h2 className="card-title">הדומיין, הדואר והאבטחה</h2>
+        <p className="-mt-2 mb-5 max-w-[64ch] text-sm leading-relaxed" style={{ color: "var(--mut)" }}>
+          כל שורה כאן נמדדה ישירות: רשם הדומיינים, רשומות ה-DNS של הדומיין, קוד האתר
+          ורשימת האתרים המסוכנים של גוגל.
+        </p>
+        <div className="facts wide">
+          {facts.map((f) => (
+            <div key={f.key} className={`f ${f.tone}`}>
+              <span className="k">{f.label}</span>
+              <span className="v">{f.value}</span>
+              {f.why && <span className="why">{f.why}</span>}
+              {f.note && <span className="note">{f.note}</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function DefaultReport({
   report, lossHighlights = [], personalLoss = null, quickWins = [], insights = [],
 }: {
@@ -502,6 +538,9 @@ export function DefaultReport({
   // והציון הוא מדד התקדמות בעמודת הזהות. אין כלום -> הכותרת מובילה, בלי בלוק ריק
   const hasHighlights = lossHighlights.length > 0 || personalLoss !== null;
   const hasPlan = model != null && nextStep != null;
+  // עסק בלי אתר לא מריץ את הבדיקות האלה בכלל, ואז אין מקטע - לא מקטע של ארבע שורות
+  // "לא נבדק" שרק מעמיס
+  const hasHealth = findings.health != null;
 
   // שורת המטא בראש עמודת הזהות: רק שדות שבאמת קיימים על העסק ועל הסריקה הזו
   const identityMeta = [business.city, `נסרק ב-${SCAN_DATE_FMT.format(report.scan.createdAt)}`]
@@ -520,6 +559,7 @@ export function DefaultReport({
   if (insights.length > 0) anchors.push({ id: "insights", label: "מה הבנתי על העסק שלך" });
   if (hasHighlights) anchors.push({ id: "highlights", label: "עיקרי הדוח" });
   if (dimensions.length > 0) anchors.push({ id: "score-detail", label: "פירוט הציון" });
+  if (hasHealth) anchors.push({ id: "health", label: "הדומיין, הדואר והאבטחה" });
   if (topGaps.length > 0) anchors.push({ id: "gaps", label: "הפערים המובילים" });
   if (topStrengths.length > 0) anchors.push({ id: "strengths", label: "מה עובד טוב" });
   if (quickWins.length > 0) anchors.push({ id: "quick-wins", label: "מה אפשר לעשות כבר עכשיו" });
@@ -711,6 +751,10 @@ export function DefaultReport({
               </div>
             </section>
           )}
+
+          {/* אחרי פירוט הציון: אלה הראיות שמאחורי חלק מהחוקים, ולפני הפערים כי הן
+              מסבירות למה חלק מהם בכלל נפתחו */}
+          <HealthFactsBlock health={findings.health} className="rv d4" />
 
           {topGaps.length > 0 && (
             <section id="gaps" data-anchor className="shell rv d5">

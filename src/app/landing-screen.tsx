@@ -914,8 +914,9 @@ function DataSection() {
   );
 }
 
-// מי אנחנו: המבנה מוכן, התוכן מחכה למייסד. מה שכתוב כאן כטיוטה מסומן ככזה בצורה
-// שאי אפשר לפספס - טקסט על העסק שלו הוא לא משהו שאני ממציא
+// מי אנחנו: רק מה שנכון ואפשר לעמוד מאחוריו. הסימוני "למילוי" הכתומים הוסרו אחרי
+// שהתגלו חיים בפרודקשן - שלט "טיוטה" בדף שיווקי גרוע משורה אחת פחות.
+// השמות והתפקידים ייכנסו כשהמייסד ייתן אותם; עד אז "שני שותפים" נכון ומספיק
 function AboutSection() {
   return (
     <section className="pb-14">
@@ -926,12 +927,9 @@ function AboutSection() {
         <div className="shell">
           <div className="core card-pad about">
             <div>
-              <p className="say draft">
+              <p className="say">
                 בנינו את AIT כי בעל עסק מקבל הצעות לפני שמישהו טרח לבדוק מה באמת חסר לו.
                 אנחנו מתחילים מהאבחון, ורק אחר כך מדברים על מה שווה לעשות.
-              </p>
-              <p style={{ marginTop: 12 }}>
-                <span className="fillme">טיוטה - למילוי</span>
               </p>
             </div>
             <div className="facts">
@@ -941,12 +939,11 @@ function AboutSection() {
               </div>
               <div className="f">
                 <span className="k">מי</span>
-                <span className="v draft">שני שותפים</span>
-                <span className="fillme" style={{ marginTop: 4, alignSelf: "flex-start" }}>שמות ותפקידים</span>
+                <span className="v">שני שותפים</span>
               </div>
               <div className="f">
                 <span className="k">מאז</span>
-                <span className="fillme" style={{ alignSelf: "flex-start" }}>תאריך</span>
+                <span className="v">אוגוסט 2026</span>
               </div>
             </div>
           </div>

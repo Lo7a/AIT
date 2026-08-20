@@ -307,12 +307,15 @@ html[data-mode="light"] .theme-tgl .ic-moon{display:none}
   padding:20px 22px 26px;
   width:var(--content-w);max-width:var(--content-max);margin:0 auto;
 }
+/* c3 = ארבעה בשורה. נוסף בשביל אריחי המונים של הניהול; במסך צר הוא נעצר בשניים
+   בשורה ולא יורד ל-12 כמו האחרים - מונה בן שתי ספרות לא צריך רוחב מסך שלם */
+.c3{grid-column:span 3}
 .c4{grid-column:span 4}
 .c6{grid-column:span 6}
 .c8{grid-column:span 8}
 .c12{grid-column:span 12}
 @media (max-width:1060px){
-  .c4,.c6{grid-column:span 6}
+  .c3,.c4,.c6{grid-column:span 6}
   .c8{grid-column:span 12}
 }
 @media (max-width:760px){
@@ -367,12 +370,6 @@ html[data-mode="light"] .theme-tgl .ic-moon{display:none}
 .miniring .v{position:absolute;inset:0;display:grid;place-items:center;font-size:11.5px;font-weight:700}
 
 /* ===== תגיות ושורות תוכן ===== */
-.tag-bad{
-  align-self:flex-start;display:inline-flex;align-items:center;gap:8px;
-  font-size:10.5px;font-weight:700;letter-spacing:.16em;color:var(--bad);
-  border:1px solid rgba(var(--bad-rgb),.35);background:rgba(var(--bad-rgb),.08);
-  border-radius:999px;padding:4px 14px;
-}
 .live-tag{
   align-self:flex-start;display:inline-flex;align-items:center;gap:8px;
   font-size:10.5px;font-weight:700;letter-spacing:.14em;
@@ -400,7 +397,6 @@ html[data-mode="light"] .theme-tgl .ic-moon{display:none}
 html[data-mode="light"] .gap-no{text-shadow:none}
 .gap-row h3{font-size:16.5px;line-height:1.35;letter-spacing:-.01em;font-weight:700}
 .gap-row .pain{font-size:12.5px;color:var(--mut);max-width:52ch;margin-top:3px}
-.door{display:flex;align-items:center;gap:14px;margin-top:11px;flex-wrap:wrap}
 .door-link{
   display:inline-flex;align-items:center;gap:10px;
   font-size:13px;font-weight:700;color:var(--acc-soft);text-decoration:none;cursor:pointer;
@@ -417,7 +413,6 @@ html[data-mode="light"] .gap-no{text-shadow:none}
   background:linear-gradient(135deg,var(--acc-deep1),var(--acc-deep2));
   color:#fff;border-color:transparent;
 }
-.step-note{font-size:11px;color:var(--dim);letter-spacing:.04em}
 
 /* שורת עסק/סריקה */
 .scan-row{
@@ -637,27 +632,6 @@ html[data-mode="light"] .gap-no{text-shadow:none}
   70%{box-shadow:0 0 0 26px rgba(var(--acc-rgb),0)}
   100%{box-shadow:0 0 0 0 rgba(var(--acc-rgb),0)}
 }
-/* ריחוף עדין לכרטיסים אינטראקטיביים */
-.lift{transition:transform .3s var(--ease-out),box-shadow .3s var(--ease-out)}
-.lift:hover{transform:translateY(-3px)}
-/* נצנוץ לטעינות (שלד) */
-.shimmer{position:relative;overflow:hidden;background:var(--surface-1);border-radius:12px}
-.shimmer::after{
-  content:"";position:absolute;inset:0;
-  background:linear-gradient(105deg,transparent 30%,rgba(var(--acc-rgb),.08) 50%,transparent 70%);
-  animation:shimmer 1.6s var(--ease) infinite;
-}
-@keyframes shimmer{from{transform:translateX(120%)}to{transform:translateX(-120%)}}
-/* קו הפרדה עדין עם גרדיאנט */
-.divider{height:1px;border:none;background:linear-gradient(90deg,transparent,var(--hair),transparent)}
-/* הבהוב עדין לנקודת סטטוס בולטת */
-.glow-dot{
-  width:8px;height:8px;border-radius:50%;flex:none;background:var(--acc2);
-  box-shadow:0 0 10px rgba(var(--acc2-rgb),.9);
-  animation:breathe 2.2s var(--ease) infinite;
-}
-/* טקסט מספרי גדול עם זוהר (בכהה בלבד, דרך הטוקן) */
-.num-hero{font-weight:800;letter-spacing:-.03em;text-shadow:var(--num-glow)}
 
 /* ===== היועץ: הישות הזוהרת ותצוגת השיחה (דף הנחיתה) ===== */
 .orb-being{position:relative;width:132px;height:132px;margin:0 auto;flex:none}
@@ -731,10 +705,6 @@ html[data-mode="light"] .gap-no{text-shadow:none}
   transition:opacity .5s var(--ease-out),transform .5s var(--ease-out);
 }
 .cd-update.show{opacity:1;transform:none}
-.cd-note{
-  margin-top:auto;padding-top:12px;border-top:1px dashed var(--hair);
-  font-size:11.5px;color:var(--dim);
-}
 
 /* ===== מסוף הסריקה: פריסה 1 מהמפרט (design/variant-dark.html) =====
    חלון עם סרגל כתובת, פס התקדמות ורשימת בדיקות. שורות הבדיקה הן אותן .sl
@@ -939,9 +909,6 @@ html[data-mode="light"] .gap-no{text-shadow:none}
 .samp-line.src-line span{color:var(--mut)}
 .repC.mini .dim-row .sc.na{font-size:8.5px;letter-spacing:0}
 
-.mini-blk b{display:block;font-size:11px;font-weight:700;line-height:1.4}
-.mini-blk p{font-size:9.5px;color:var(--mut);margin-top:2px;line-height:1.45}
-.mini-blk + .mini-blk{margin-top:8px;padding-top:8px;border-top:1px solid var(--row-line)}
 .mini-h{
   display:flex;align-items:center;gap:8px;margin-bottom:10px;
   font-size:10px;font-weight:700;letter-spacing:.14em;color:var(--mut);
@@ -1087,19 +1054,40 @@ html[data-mode="light"] .gap-no{text-shadow:none}
   font-size:clamp(17px,1.9vw,22px);line-height:1.6;font-weight:600;
   letter-spacing:-.01em;max-width:44ch;text-wrap:pretty;
 }
-.about .facts{display:flex;flex-direction:column;gap:11px}
-.about .facts .f{display:flex;flex-direction:column;gap:3px;padding-bottom:11px;border-bottom:1px solid var(--row-line)}
-.about .facts .f:last-child{border-bottom:none;padding-bottom:0}
-.about .facts .k{font-size:10.5px;font-weight:700;letter-spacing:.14em;color:var(--mut)}
-.about .facts .v{font-size:13.5px;font-weight:600}
-/* סימון בלתי אפשרי להחמצה לטקסט שממתין למילוי - כדי שלא ישודר בטעות */
-.fillme{
-  display:inline-flex;align-items:center;gap:6px;
-  font-size:10px;font-weight:700;letter-spacing:.1em;
-  color:var(--warn);background:rgba(var(--warn-rgb),.1);
-  border:1px dashed rgba(var(--warn-rgb),.5);border-radius:999px;padding:2px 9px;
+/* רשימת עובדות: תווית קטנה וערך. נולדה במקטע "מי אנחנו" בדף הנחיתה, והורחבה למקטע
+   בדיקות התקינות בדוח - אותה משפחה עם מודיפייר, ולא משפחה שנייה שתתפצל בתיקון הראשון */
+.facts{display:flex;flex-direction:column;gap:11px}
+.facts .f{display:flex;flex-direction:column;gap:3px;padding-bottom:11px;border-bottom:1px solid var(--row-line)}
+.facts .f:last-child{border-bottom:none;padding-bottom:0}
+.facts .k{font-size:10.5px;font-weight:700;letter-spacing:.14em;color:var(--mut)}
+.facts .v{font-size:13.5px;font-weight:600}
+
+/* .wide: מה נבדק בעמודה אחת, הממצא וההסבר שלו בשנייה. נקרא כמו תמצית רישום ולא
+   כמו ארבע כרטיסיות - וזה בדיוק מה שזה */
+.facts.wide{gap:0}
+.facts.wide .f{
+  display:grid;grid-template-columns:minmax(118px,190px) minmax(0,1fr);
+  align-items:baseline;column-gap:26px;row-gap:3px;
+  padding:15px 0;
 }
-.draft{color:var(--mut)}
+.facts.wide .f:first-child{padding-top:2px}
+.facts.wide .k{grid-column:1;font-size:13px;font-weight:700;letter-spacing:0;color:var(--txt)}
+.facts.wide .v{grid-column:2;grid-row:1;font-size:15px;font-weight:800;letter-spacing:-.01em}
+.facts.wide .why{grid-column:2;font-size:13px;line-height:1.55;color:var(--mut);max-width:56ch}
+.facts.wide .note{grid-column:2;font-size:11.5px;color:var(--dim)}
+@media (max-width:640px){
+  .facts.wide .f{grid-template-columns:minmax(0,1fr);column-gap:0}
+  .facts.wide .k,.facts.wide .v,.facts.wide .why,.facts.wide .note{grid-column:1}
+  .facts.wide .v{grid-row:auto}
+}
+/* הטון חי בצבע הערך בלבד. בלי פס צד, בלי רקע צבעוני ובלי אייקון לכל שורה - ארבע
+   שורות עם רקע צבעוני הופכות דוח לארבע התראות, וזה ההפך ממה שהמקטע הזה אומר */
+.facts .f.good .v{color:var(--acc2-soft)}
+.facts .f.warn .v{color:var(--warn)}
+.facts .f.bad .v{color:var(--bad)}
+/* "לא נבדק" הוא לא ממצא, ולכן הוא נסוג ולא מתחרה על תשומת הלב */
+.facts .f.unknown .v{color:var(--dim);font-weight:600}
+.facts .f.unknown .k{color:var(--mut)}
 
 /* ===== תיבת התשובות: שאלה אמריקאית (ui/answer-options.tsx) =====
    תיבה אחת עם קו מפריד בין השורות, לא צ'יפים מפוזרים. סימון האות הופך לוי כשנבחר,
@@ -1176,6 +1164,33 @@ button.ans-row:not(:disabled):active{background:rgba(var(--acc-rgb),.16)}
 .ansbox.compact .ans-mark{width:19px;height:19px;font-size:9.5px}
 .ansbox.compact .ans-mark svg{width:10px;height:10px}
 .ansbox.compact .ans-lb{font-size:13px;line-height:1.5;font-weight:500}
+
+/* ===== טבלאות נתונים (מסכי הניהול) =====
+   משפחת מחלקות אחת לכל טבלה במערכת. לא נמצא כאן משהו קיים לעשות בו שימוש חוזר:
+   scan-row/gap-row/dim-row הן שורות של פריט אחד עם פריסה קבועה, ואילו כאן יש עמודות
+   עם כותרות ורוחב משתנה. הגלילה האופקית חיה בתוך tbl-wrap ולא בעמוד - בטלפון גוררים
+   את הטבלה, לא את המסך */
+.tbl-wrap{
+  overflow-x:auto;overscroll-behavior-x:contain;
+  border:1px solid var(--hair-soft);border-radius:14px;
+  background:var(--surface-1);
+  scrollbar-width:thin;
+}
+.tbl{width:100%;min-width:560px;border-collapse:collapse;font-size:13px}
+.tbl th,.tbl td{padding:11px 14px;text-align:start;vertical-align:middle}
+.tbl th{
+  font-size:10.5px;font-weight:700;letter-spacing:.12em;
+  color:var(--mut);white-space:nowrap;
+  border-bottom:1px solid var(--hair);
+}
+.tbl td{border-top:1px solid var(--row-line);color:var(--txt)}
+.tbl tbody tr:first-child td{border-top:none}
+.tbl tbody tr:hover td{background:var(--surface-1)}
+/* מודיפיירים לתאים - הצבעים כאן ולא בתוך המסכים, כדי שמצב בהיר יעבוד מעצמו */
+.tbl .t-strong{font-weight:700}
+.tbl .t-mut{color:var(--mut)}
+.tbl .t-bad{color:var(--bad);font-weight:700}
+.tbl .t-empty{color:var(--mut);padding:18px 14px}
 
 /* ===== נגישות ותנועה ===== */
 @media (hover:none){

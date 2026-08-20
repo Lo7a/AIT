@@ -4,6 +4,12 @@ export const DIAGNOSIS_STATUSES = [
 ] as const;
 export type DiagnosisStatus = (typeof DIAGNOSIS_STATUSES)[number];
 
+// המצבים שבהם כבר קיים דוח להצגה. מקור אמת אחד: גם המסכים וגם הראוטינג
+// (הפניית הכניסה לעסק של המשתמש) שואלים את אותה שאלה
+export const HAS_REPORT_STATUSES: readonly DiagnosisStatus[] = [
+  "report_ready", "interviewing", "roadmap_ready",
+];
+
 const TRANSITIONS: Record<DiagnosisStatus, readonly DiagnosisStatus[]> = {
   created: ["scanning"],
   scanning: ["scanned", "created"], // created = הסריקה נכשלה, אפשר לנסות שוב
