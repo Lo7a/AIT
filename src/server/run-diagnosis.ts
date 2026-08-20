@@ -4,8 +4,7 @@ import {
   scanWebsiteOnly, defaultWebsiteOnlyDeps, type WebsiteOnlyDeps,
 } from "../pipeline/scan-website";
 import { normalizeSiteUrl } from "../pipeline/site-url";
-import { scoreFindings } from "../pipeline/score/engine";
-import { DIMENSIONS } from "../pipeline/score/dimensions";
+import { scoreWithModel } from "../pipeline/score/engine";
 import {
   deriveBusinessModel, recommendNextStep, type BusinessModel, type NextStepRecommendation,
 } from "../pipeline/model/business-model";
@@ -187,7 +186,10 @@ export async function runDiagnosis(
 
   // שלב 3: ציונים ומודל (סינכרוני, אירוע אחד), נרטיב (fallback פנימי - לא מפיל)
   emit({ type: "step", key: "score", label: "מחשבים ציונים ומודל עסק" });
-  const score = scoreFindings(DIMENSIONS, findings);
+  // scoreWithModel(f, null) זהה ל-scoreFindings(DIMENSIONS, f) בכל הנוגע לחוקים, ובנוסף
+  // גוזר את הענף מגוגל - כך שגם הניקוד הראשון, לפני שנשאלה שאלת ראיון אחת, כבר לא
+  // מציג לדוכן פלאפל פער על מערכת תורים (הכרעת מייסד 10)
+  const score = scoreWithModel(findings, null);
   const model = deriveBusinessModel(findings);
   const nextStep = recommendNextStep(model);
   emit({

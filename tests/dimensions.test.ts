@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { DIMENSIONS, processRules, buildDimensions } from "../src/pipeline/score/dimensions";
 import { scoreFindings, scoreWithModel } from "../src/pipeline/score/engine";
 import { MODEL_SECTIONS, type BusinessModel, type ModelSection } from "../src/pipeline/model/business-model";
+import { industryOf, INDUSTRY_LABEL_HE } from "../src/pipeline/industry";
 import type { MailHealth, ScanFindings } from "../src/pipeline/types";
 
 const META = { startedAt: "", durationMs: 0, placesCalls: 0, llmInputTokens: 0, llmOutputTokens: 0, estCostUsd: 0 };
@@ -500,10 +501,14 @@ function makeModel(
 
 describe("process dimension (אבן דרך 4, משימה 1)", () => {
   it("model=null: זהה לחלוטין להתנהגות שלפני המשימה (רגרסיה - חתימת ה-stub)", () => {
+    // הענף מועבר במפורש כי מאז 20.8 scoreWithModel גוזר אותו לבד (הכרעת מייסד 10), ו-THIN
+    // הוא "מאפיה" - כלומר food_takeaway, שחוק קביעת התור מכובה בו. ההשוואה כאן היא על
+    // חתימת ה-stub של process ולא על הכיבוי הענפי, ולכן שני הצדדים מקבלים אותו ענף
     for (const findings of [RICH, THIN, NO_GBP]) {
-      expect(scoreWithModel(findings, null)).toEqual(scoreFindings(DIMENSIONS, findings));
-      expect(scoreFindings(buildDimensions(null), findings)).toEqual(scoreFindings(DIMENSIONS, findings));
-      expect(scoreFindings(buildDimensions(), findings)).toEqual(scoreFindings(DIMENSIONS, findings));
+      const ind = industryOf(findings, null).slug;
+      expect(scoreWithModel(findings, null)).toEqual(scoreFindings(DIMENSIONS, findings, ind));
+      expect(scoreFindings(buildDimensions(null), findings, ind)).toEqual(scoreFindings(DIMENSIONS, findings, ind));
+      expect(scoreFindings(buildDimensions(), findings, ind)).toEqual(scoreFindings(DIMENSIONS, findings, ind));
     }
     const process = scoreWithModel(RICH, null).dimensions.find((d) => d.key === "process")!;
     expect(process.score).toBeNull();
@@ -840,5 +845,77 @@ describe("mail_auth: one finding for the whole mail setup (20.8)", () => {
     const r = rule({ hasSpf: true, spfConflict: false });
     expect(r.known).toBe(false);
     expect(r.earned).toBe(false);
+  });
+});
+
+// --- כיבוי חוק קביעת התור לפי ענף (הכרעת מייסד 10, 20.8) ---
+// המכניקה עצמה נבדקת ב-score-engine.test.ts על חוקים סינתטיים. כאן נבדק החיבור האמיתי:
+// החוק האמיתי, טבלת הענפים האמיתית, ו-scoreWithModel שגוזר את הענף לבד
+describe("online_booking suppression by industry (real rule, real taxonomy)", () => {
+  const at = (business: Partial<ScanFindings["business"]>, booking = false): ScanFindings => ({
+    ...RICH,
+    business: { ...RICH.business, ...business },
+    websiteSignals: { ...RICH.websiteSignals!, hasOnlineBooking: booking },
+  });
+  const bookingRuleOf = (f: ScanFindings) =>
+    scoreWithModel(f, null).dimensions.find((d) => d.key === "accessibility")!
+      .rules.find((r) => r.key === "online_booking");
+
+  it("an on-site trade is not asked about online booking at all", () => {
+    for (const t of ["plumber", "electrician", "locksmith", "painter"]) {
+      expect(bookingRuleOf(at({ primaryType: t })), t).toBeUndefined();
+    }
+  });
+
+  it("everyone with a direct booking or ordering channel to gain is still asked", () => {
+    for (const t of ["restaurant", "cafe", "hair_salon", "dentist", "gym", "car_repair", "lawyer"]) {
+      expect(bookingRuleOf(at({ primaryType: t })), t).toBeDefined();
+    }
+  });
+
+  // הממצא שהאימות החי העלה, ושמצמצם את המשימה מ-3 ענפים לאחד: דוכן פלאפל היה הדוגמה
+  // שהולידה אותה, אבל החוק כבר אינו "תורים בלבד" - הוא מזכה גם על מערכת הזמנות ישירה,
+  // וזו ההזדמנות הכספית הכי מבוססת שיש לנו לאוכל מהיר (עמלת משלוחים 25 עד 33 אחוז).
+  // כיבוי היה מסתיר אותה, ולכן אוכל מהיר **כן** נבחן
+  it("fast food keeps the rule - direct ordering is exactly their strongest opportunity", () => {
+    expect(bookingRuleOf(at({ primaryType: "falafel_restaurant" }))).toBeDefined();
+    expect(bookingRuleOf(at({ primaryType: "bakery" }))).toBeDefined();
+  });
+
+  // קמעונאות הוצאה מהרשימה בכוונה: אופטיקאי כן קובע תור לבדיקת ראייה, וכיבוי גורף על
+  // retail_store היה מוחק לו פער אמיתי. הבדיקות עצמן העלו את זה, על עסק אמיתי מרשימת המייסד
+  it("a retail shop keeps the rule - the taxonomy bundles opticians with grocery stores", () => {
+    expect(bookingRuleOf(at({ primaryType: "store", name: "אופטיקה בק" }))).toBeDefined();
+    expect(bookingRuleOf(at({ primaryType: "clothing_store" }))).toBeDefined();
+  });
+
+  it("an unidentified business keeps the rule (decision 6.1 - no guessing)", () => {
+    expect(bookingRuleOf(at({ primaryType: "establishment", name: "עסק" }))).toBeDefined();
+  });
+
+  // הגבול ישיבה/מהיר הוא החוליה החלשה בטקסונומיה (נמדד 20.8): טביעת אצבע של ספק
+  // גוברת על קטגוריית גוגל, ולכן פלאפליה עם מערכת הזמנות מקבלת את הזכות ולא מאבדת אותה
+  it("a trade that does have booking keeps the rule and the credit", () => {
+    const r = bookingRuleOf(at({ primaryType: "plumber" }, true));
+    expect(r).toBeDefined();
+    expect(r!.earned).toBe(true);
+  });
+
+  // הכיבוי מרים את הציון בלי שהעסק שינה דבר - זו כל הנקודה
+  it("suppression raises the dimension score because the points leave the denominator", () => {
+    const salon = at({ primaryType: "hair_salon" });
+    const plumber = at({ primaryType: "plumber" });
+    const scoreOf = (f: ScanFindings) =>
+      scoreWithModel(f, null).dimensions.find((d) => d.key === "accessibility")!.score!;
+    expect(scoreOf(plumber)).toBeGreaterThan(scoreOf(salon));
+  });
+
+  // תשובת הראיון גוברת על גוגל גם כאן (הכרעה 6.5): מי שגוגל סיווגה כמספרה ואמר בעצמו
+  // שהוא בעל מלאכה לא ייבחן על קביעת תור
+  it("the interview answer decides the suppression too, not just the matching", () => {
+    const f = at({ primaryType: "hair_salon" });
+    const model = makeModel({ profile: { industry: INDUSTRY_LABEL_HE.trades_onsite } }, { profile: 1 });
+    const rules = scoreWithModel(f, model).dimensions.find((d) => d.key === "accessibility")!.rules;
+    expect(rules.find((r) => r.key === "online_booking")).toBeUndefined();
   });
 });

@@ -307,7 +307,7 @@ describe("buildRoadmap - מסלול מלא", () => {
     expect(bookingItem.reasoning).toBe(fallbackSentence({
       problem: booking.problem,
       solution: booking.solution,
-      evidenceTexts: ["אין קביעת תור/הזמנה אונליין, כל תיאום דורש טלפון בשעות הפעילות"],
+      evidenceTexts: ["אין ערוץ הזמנה או קביעת תור באתר, כל פנייה עוברת בטלפון בשעות הפעילות"],
       painQuotes: [],
     }));
     expect(botItem.reasoning).toBe(fallbackSentence({

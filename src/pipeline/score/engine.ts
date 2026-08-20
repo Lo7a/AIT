@@ -1,16 +1,36 @@
 import type { ScanFindings } from "../types";
 import type {
-  DimensionDef, DimensionScore, Highlight, RuleResult, ScoreReport,
+  DimensionDef, DimensionScore, Highlight, RuleDef, RuleResult, ScoreReport,
 } from "./types";
 import { buildDimensions } from "./dimensions";
 import type { BusinessModel } from "../model/business-model";
+import { industryOf, type IndustryValue } from "../industry";
 
 const TOP_COUNT = 3;
 // מתחת ל-75% מהנקודות ידועות - הממד מסומן "מידע חלקי" (אפיון 6: לא מענישים על חוסר דאטה)
 const FULL_DATA_THRESHOLD = 0.75;
 
-function scoreDimension(def: DimensionDef, f: ScanFindings): DimensionScore {
-  const rules: RuleResult[] = def.rules.map((r) => {
+/**
+ * האם החוק בכלל חל על העסק הזה (הכרעת מייסד 10, 20.8). חוק שאינו חל **נעלם לחלוטין**:
+ * לא ברשימת החוקים, לא בפערים, לא בחוזקות, ולא בשני צדי שבר הציון. זה ההבדל מ"לא נבדק" -
+ * שם אין לנו מידע, כאן יש לנו מידע והוא שהשאלה לא רלוונטית.
+ *
+ * שני סייגים, ושניהם נובעים ממדידה ולא מהעדפה:
+ * 1. **ענף לא מזוהה לא מכבה כלום** (הכרעה 6.1). הכיבוי הוא ידיעה, וב-unknown אין ידיעה.
+ * 2. **עדות חיובית גוברת על הסיווג.** עסק שסווג "אוכל מהיר" ובכל זאת נמצאה אצלו מערכת
+ *    הזמנות - החוק נשאר ומזכה אותו. הגבול ישיבה/מהיר הוא החוליה החלשה בטקסונומיה
+ *    (נמדד 20.8, docs/research/2026-08-20-industry-detection-accuracy.md סעיף 5), וטביעת
+ *    אצבע של ספק היא ראיה חזקה יותר מקטגוריית גוגל. בלי הסייג הזה סיווג שגוי היה **מוחק
+ *    חוזקה אמיתית** של עסק - נזק גרוע יותר מהפער שהכיבוי בא למנוע
+ */
+function applies(r: RuleDef, f: ScanFindings, industry: IndustryValue): boolean {
+  if (r.skipFor == null || industry === "unknown") return true;
+  if (!r.skipFor.includes(industry)) return true;
+  return r.known(f) && r.earned(f);
+}
+
+function scoreDimension(def: DimensionDef, f: ScanFindings, industry: IndustryValue): DimensionScore {
+  const rules: RuleResult[] = def.rules.filter((r) => applies(r, f, industry)).map((r) => {
     const known = r.known(f);
     const earned = known && r.earned(f);
     return {
@@ -36,8 +56,12 @@ function scoreDimension(def: DimensionDef, f: ScanFindings): DimensionScore {
   };
 }
 
-export function scoreFindings(defs: DimensionDef[], f: ScanFindings): ScoreReport {
-  const dimensions = defs.map((d) => scoreDimension(d, f));
+// industry ברירת מחדל "unknown" = אף חוק לא מכובה, כלומר בדיוק ההתנהגות שלפני הכיבוי הענפי.
+// קורא שרוצה כיבוי מעביר ענף במפורש, או משתמש ב-scoreWithModel שגוזר אותו בעצמו
+export function scoreFindings(
+  defs: DimensionDef[], f: ScanFindings, industry: IndustryValue = "unknown",
+): ScoreReport {
+  const dimensions = defs.map((d) => scoreDimension(d, f, industry));
 
   // ציון כולל משוקלל רק על ממדים שיש להם מידע - המשקולות מנורמלות מחדש
   const scored = dimensions.filter((d): d is DimensionScore & { score: number } => d.score !== null);
@@ -66,7 +90,9 @@ export function scoreFindings(defs: DimensionDef[], f: ScanFindings): ScoreRepor
 }
 
 // נוחות: ניקוד עם ממד process קשור למודל העסק (אבן דרך 4, משימה 1) - model=null מייצר בדיוק
-// את DIMENSIONS (ה-stub של process, זהה להתנהגות שלפני המשימה הזו) - ראו buildDimensions ב-dimensions.ts
+// את DIMENSIONS (ה-stub של process) - ראו buildDimensions ב-dimensions.ts.
+// **הענף נגזר כאן ולא נדרש מהקורא**: industryOf כבר יודע לקרוא גם את הראיון וגם את גוגל,
+// וגזירה בנקודה אחת מבטיחה שכל מסלולי הניקוד (סריקה, ראיון, Roadmap) רואים אותו ענף
 export function scoreWithModel(f: ScanFindings, model: BusinessModel | null): ScoreReport {
-  return scoreFindings(buildDimensions(model), f);
+  return scoreFindings(buildDimensions(model), f, industryOf(f, model).slug);
 }

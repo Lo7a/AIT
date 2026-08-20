@@ -92,3 +92,61 @@ describe("score engine", () => {
     expect(scoreFindings([d], f()).dimensions[0].dataStatus).toBe("full");
   });
 });
+
+// --- כיבוי חוק לפי ענף (הכרעת מייסד 10, 20.8) ---
+// ההבדל מ"לא נבדק" הוא מהותי: שם אין לנו מידע, כאן יש לנו מידע - שהשאלה לא רלוונטית.
+// לכן החוק לא מוצג בכלל, ולא מוצג כ"לא נבדק"
+describe("industry rule suppression", () => {
+  const skippable = (key: string, points: number, earned: boolean) => ({
+    ...rule(key, points, true, earned),
+    skipFor: ["food_takeaway", "trades_onsite"] as const,
+  });
+
+  it("a suppressed rule vanishes from the rule list - it is not rendered as not-checked", () => {
+    const d = dim([rule("a", 70, true, true), skippable("b", 30, false)]);
+    const kept = scoreFindings([d], f(), "food_dine_in").dimensions[0];
+    const dropped = scoreFindings([d], f(), "food_takeaway").dimensions[0];
+    expect(kept.rules.map((r) => r.key)).toEqual(["a", "b"]);
+    expect(dropped.rules.map((r) => r.key)).toEqual(["a"]);
+    // וגם לא מתחבא כלא-ידוע: אין שום שורה עם המפתח הזה
+    expect(dropped.rules.find((r) => r.key === "b")).toBeUndefined();
+  });
+
+  // זה הלב: החוק יוצא משני צדי השבר, ולכן הציון עולה בלי שהעסק שינה דבר -
+  // פשוט הפסקנו להוריד לו נקודות על מה שלא אמור להיות לו
+  it("the suppressed points leave BOTH sides of the fraction, not just the numerator", () => {
+    const d = dim([rule("a", 70, true, true), skippable("b", 30, false)]);
+    expect(scoreFindings([d], f(), "food_dine_in").dimensions[0].score).toBe(70); // 70/100
+    expect(scoreFindings([d], f(), "food_takeaway").dimensions[0].score).toBe(100); // 70/70
+  });
+
+  it("a suppressed rule is not a top gap either", () => {
+    const d = dim([rule("a", 10, true, false), skippable("b", 90, false)]);
+    expect(scoreFindings([d], f(), "food_dine_in").topGaps.map((g) => g.ruleKey)).toEqual(["b", "a"]);
+    expect(scoreFindings([d], f(), "trades_onsite").topGaps.map((g) => g.ruleKey)).toEqual(["a"]);
+  });
+
+  // הכרעה 6.1: עסק בענף לא מזוהה רואה את הכול. כיבוי הוא ידיעה, וב-unknown אין ידיעה
+  it("an unidentified industry suppresses nothing - and that is the default", () => {
+    const d = dim([rule("a", 70, true, true), skippable("b", 30, false)]);
+    expect(scoreFindings([d], f(), "unknown").dimensions[0].rules).toHaveLength(2);
+    expect(scoreFindings([d], f()).dimensions[0].rules).toHaveLength(2);
+  });
+
+  // הסייג הנמדד: הגבול ישיבה/מהיר הוא החוליה החלשה בטקסונומיה. עסק שסווג "אוכל מהיר"
+  // ובכל זאת נמצאה אצלו מערכת הזמנות - הממצא גובר, והחוק נשאר ומזכה אותו. בלי זה סיווג
+  // שגוי היה מוחק חוזקה אמיתית, נזק גרוע יותר מהפער שהכיבוי בא למנוע
+  it("positive evidence overrides the classification - an earned rule is never suppressed", () => {
+    const d = dim([rule("a", 70, true, false), skippable("b", 30, true)]);
+    const res = scoreFindings([d], f(), "food_takeaway").dimensions[0];
+    expect(res.rules.map((r) => r.key)).toEqual(["a", "b"]);
+    expect(res.score).toBe(30); // 30/100 - הנקודות שהורווחו נספרות במלואן
+  });
+
+  it("a rule without skipFor is never suppressed by any industry", () => {
+    const d = dim([rule("a", 100, true, false)]);
+    for (const ind of ["food_takeaway", "trades_onsite", "retail_store", "unknown"] as const) {
+      expect(scoreFindings([d], f(), ind).dimensions[0].rules, ind).toHaveLength(1);
+    }
+  });
+});

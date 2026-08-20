@@ -1,4 +1,5 @@
 import type { ScanFindings } from "../types";
+import type { IndustrySlug } from "../industry";
 
 export type DataStatus = "full" | "partial" | "none";
 export type DimensionKey =
@@ -11,6 +12,10 @@ export interface RuleDef {
   earned: (f: ScanFindings) => boolean;  // נבדק רק כאשר known
   gapText: (f: ScanFindings) => string;  // עברית - הפער, ננוסח לבעל העסק; נקרא רק כאשר known && !earned
   okText: (f: ScanFindings) => string;   // עברית - מה תקין (אמינות = גם לפרגן); נקרא רק כאשר earned (וזה תמיד מגיע יחד עם known)
+  // ענפים שהחוק אינו רלוונטי להם. **החוק לא מוצג ולא נספר כלל** - לא כפער, לא כ"לא נבדק",
+  // ולא במכנה הציון (הכרעת מייסד 10, 20.8). דוכן פלאפל אינו עסק פגום בגלל שאין לו מערכת
+  // תורים. ראו applies ב-engine.ts לתנאי המדויק - עדות חיובית תמיד גוברת על הסיווג
+  skipFor?: readonly IndustrySlug[];
 }
 
 export interface DimensionDef {
