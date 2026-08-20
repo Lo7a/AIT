@@ -507,7 +507,10 @@ html[data-mode="light"] .gap-no{text-shadow:none}
    הפנימית, וכפתור שחורג מהקצה היה נחתך בדיוק בחצי. לכן הוא ממוקם מול .app, והמרחק
    מהקצה נגזר מרוחב הסיידבר - כולל במצב המכווץ, דרך בורר האחים */
 .rail-tgl{
-  position:absolute;top:50%;transform:translateY(-50%);
+  /* fixed ולא absolute: ב-absolute הוא נמדד מול .app, שגובהו כגובה כל המסמך - כלומר
+     top:50% הוא אמצע **הדף** ולא אמצע המסך, והכפתור היה נודד בגלילה בזמן שהסיידבר
+     עצמו (sticky) נשאר במקומו. fixed מודד מול חלון התצוגה, כמו הסיידבר */
+  position:fixed;top:50%;transform:translateY(-50%);
   inset-inline-start:calc(var(--rail-w) - 15px);
   z-index:9;
   width:30px;height:30px;border-radius:50%;cursor:pointer;
