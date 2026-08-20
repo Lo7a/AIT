@@ -1,5 +1,7 @@
 import type { DimensionKey, RuleResult, ScoreReport } from "../score/types";
 import type { BusinessModel } from "../model/business-model";
+import type { IndustryValue } from "../industry";
+import { normalizeFinals, compileKeyword } from "../hebrew-match";
 
 // מנוע התאמת הזדמנויות (אבן דרך 4, משימה 2): טהור לחלוטין - בלי I/O, בלי Date/random, בלי
 // תלות בשרת. סוגר על ScoreReport + BusinessModel קיימים ומחזיר את פריטי הקטלוג הרלוונטיים
@@ -11,7 +13,10 @@ export interface CatalogRowLite {
   name: string;
   problem: string;
   solution: string;
-  conditions: { gapKeys: string[] };
+  // industries אופציונלי (התניית ענף, 20.8): חסר = פריט כללי שמתאים לכל עסק, וזה מה
+  // ששומר על כל הפריטים הקיימים בלי שינוי. השדה יושב בתוך conditions שהוא כבר Json
+  // בסכמה, ולכן אין צורך במיגרציה
+  conditions: { gapKeys: string[]; industries?: string[] };
   costRange: string;
   savingRange: string;
   complexity: string;
@@ -70,23 +75,13 @@ const PAIN_KEYWORD_RULES: PainKeywordRule[] = [
   { keywords: ["ספאם", "מייל", "מיילים"], ruleKeys: ["mail_auth"] },
 ];
 
-// עברית: אות סופית שוברת חיפוש גזע - "תיאומים" לא מכיל את "תיאום" ו"טלפונים" לא מכיל את
-// "טלפון" (מ' סופית ונ' סופית הן תווים אחרים). ממירים כל אות סופית לצורתה הרגילה בשני הצדדים.
-const FINAL_LETTERS: Record<string, string> = { "ך": "כ", "ם": "מ", "ן": "נ", "ף": "פ", "ץ": "צ" };
-const normalizeFinals = (s: string): string => s.replace(/[ךםןףץ]/g, (c) => FINAL_LETTERS[c]);
+// גבול מילה עברי, נרמול אותיות סופיות והידור מילת מפתח - חולצו ל-hebrew-match.ts ב-20.8
+// כשזיהוי הענף נזקק לאותה לוגיקה בדיוק. ההתנהגות זהה, המימוש אחד.
 
 // "בתור" הוא כמעט תמיד "בתפקיד" ("בתור בעל עסק קטן...") ולא תור לתיאום - מוחקים את המילה הזאת
 // בלבד לפני החיפוש. מחיקה ולא פסילת המשפט כולו: "בתור בעל עסק אני מנהל את התורים ביומן" עדיין
 // מתאים דרך "התורים". אותו עיקרון של רשימה שחורה מפורשת כמו ב-score/dimensions.ts
 const AS_ROLE_RE = /בתור/g;
-
-// גבול מילה עברי: ה-\b של JS מכיר רק תווי ASCII ולכן חסר תועלת כאן, אז בונים גבול ידנית -
-// לפני הגזע מותרות תחיליות נצמדות (ו/ה/ב/כ/ל/מ/ש, עד שתיים: "והתורים", "מהטלפון") ואחריו רק
-// סיומת ריבוי. בלי הגבול הזה "תורנות" ו"תורה" היו נספרים כ"תור" ומצרפים ציטוט לא רלוונטי.
-const HEBREW_PREFIXES = "[והבכלמש]{0,2}";
-const PLURAL_SUFFIX = "(?:ימ|ות)?"; // אחרי נרמול הסופיות צורת הרבים של "תור" היא "תורימ"
-const compileKeyword = (keyword: string): RegExp =>
-  new RegExp(`(?<![א-ת])${HEBREW_PREFIXES}${normalizeFinals(keyword)}${PLURAL_SUFFIX}(?![א-ת])`);
 
 // קומפילציה פעם אחת בטעינת המודול - בלי דגל g (הוא היה שומר lastIndex בין קריאות ל-test
 // והופך את ההתאמה ללא-דטרמיניסטית)
@@ -146,10 +141,50 @@ function compareMatches(a: OpportunityMatch, b: OpportunityMatch): number {
   return 0;
 }
 
+// --- שער הענף והדחקה (מחקר R1, הכרעות מייסד 6.1 ו-6.2) ---
+
+// פריט בלי industries הוא פריט כללי - הוא מתאים לכל עסק, וזה גם מה ששומר על 18 הפריטים
+// הקיימים בדיוק כפי שהם. פריט **עם** industries מוצג רק לענף שברשימתו, ובפרט **אינו מוצג
+// כלל לעסק שענפו לא זוהה** (הכרעה 6.1): להמליץ תפריט QR לעסק שאיננו יודעים מהו זו בדיוק
+// אותה טעות כמו פער מומצא. מסך ה-Roadmap כבר יודע להציג "אין עדיין התאמה בספרייה"
+// **קיים-אך-ריק אינו "חסר".** הגרסה הראשונה כאן החזירה undefined גם למערך ריק, וזה הפך
+// פריט ענפי עם שדה פגום לפריט כללי - כלומר בדיוק תפריט QR לשרברב, הכשל שהמנגנון הזה נועד
+// למנוע. מערך ריק שורד כמערך ריק ולכן לא מתאים לאף ענף, וזו ההידרדרות הבטוחה. זהה במכוון
+// לנרמול ב-roadmap-repo.ts, שם השדה נקרא מעמודת Json בלי אכיפת צורה
+const industriesOf = (item: CatalogRowLite): string[] | undefined => {
+  const list = item.conditions.industries;
+  return Array.isArray(list) ? list : undefined;
+};
+
+const fitsIndustry = (item: CatalogRowLite, industry: IndustryValue): boolean => {
+  const list = industriesOf(item);
+  if (list == null) return true;
+  return industry !== "unknown" && list.includes(industry);
+};
+
+// הדחקה (הכרעה 6.2): כשפריט ענפי נכנס, מודחק כל פריט כללי שקבוצת ה-gapKeys שלו **מוכלת**
+// בשל הענפי. אחרת שני כרטיסים מתחרים על אותו פער אחד - בעיה שהקטלוג כבר סובל ממנה היום.
+// הכלה ולא חיתוך בכוונה: פריט כללי שנוגע גם בפער שהענפי לא מכסה עדיין מביא ערך משלו,
+// ולכן הוא שורד. שני פריטי המסעדות (own_website) אינם מדחיקים את "הקמת אתר ראשון לעסק"
+// (has_website + own_website) בדיוק מהסיבה הזו, וזה מכוון
+function dropDisplacedGenerics(matches: OpportunityMatch[]): OpportunityMatch[] {
+  const verticalKeySets = matches
+    .filter((m) => industriesOf(m.catalog) != null)
+    .map((m) => new Set(m.catalog.conditions.gapKeys));
+  if (verticalKeySets.length === 0) return matches;
+  return matches.filter((m) => {
+    if (industriesOf(m.catalog) != null) return true; // ענפי מול ענפי - הדירוג הקיים מכריע
+    return !verticalKeySets.some((vertical) =>
+      m.catalog.conditions.gapKeys.every((key) => vertical.has(key)));
+  });
+}
+
 export function matchOpportunities(
   report: ScoreReport,
   model: BusinessModel | null,
   catalog: CatalogRowLite[],
+  // ברירת המחדל "unknown" שומרת על ההתנהגות הקיימת בדיוק: כל הפריטים הכלליים, ואף פריט ענפי
+  industry: IndustryValue = "unknown",
 ): OpportunityMatch[] {
   const ruleIndex = indexReport(report);
   // מפתחות החוקים של כל ציטוט מחושבים פעם אחת לכל הקטלוג, לא מחדש לכל פריט
@@ -157,6 +192,7 @@ export function matchOpportunities(
 
   const matches: OpportunityMatch[] = [];
   for (const item of catalog) {
+    if (!fitsIndustry(item, industry)) continue;
     const evidence: MatchEvidence[] = [];
     const unknownKeys: string[] = [];
 
@@ -187,5 +223,5 @@ export function matchOpportunities(
     matches.push({ catalog: item, evidence, unknownKeys, painQuotes });
   }
 
-  return matches.sort(compareMatches);
+  return dropDisplacedGenerics(matches).sort(compareMatches);
 }

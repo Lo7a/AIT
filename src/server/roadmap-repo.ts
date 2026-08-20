@@ -66,6 +66,16 @@ function gapKeysOf(conditions: unknown): string[] {
   return Array.isArray(keys) ? keys.filter((k): k is string => typeof k === "string") : [];
 }
 
+// אותו נרמול בדיוק ל-industries (התניית ענף, 20.8), ומאותה סיבה. כאן הכשל השקט מסוכן יותר:
+// שדה פגום שהופך ל-undefined הופך פריט **ענפי** לפריט **כללי**, כלומר תפריט QR לשרברב.
+// לכן מערך שקיים אך אף איבר בו אינו מחרוזת מוחזר כמערך ריק ולא כ-undefined - פריט כזה לא
+// יתאים לשום ענף, וזו ההידרדרות הבטוחה. undefined מוחזר רק כשהשדה באמת לא קיים
+function industriesOf(conditions: unknown): string[] | undefined {
+  const list = (conditions as { industries?: unknown } | null)?.industries;
+  if (!Array.isArray(list)) return undefined;
+  return list.filter((v): v is string => typeof v === "string");
+}
+
 // טעינה משותפת של שורת הקטלוג המצומצמת ל-matchOpportunities (matching.ts) - שני קוראים: הבנייה
 // המלאה של Roadmap (run-roadmap.ts) והחישוב-בזיכרון-בלבד של "מה מונח על השולחן" למסך הדוח
 // (report-highlights.ts, שלב א' "loss leads, score measures") צריכים בדיוק אותה שורה מצומצמת -
@@ -82,7 +92,10 @@ export async function loadCatalogLite(prisma: PrismaClient): Promise<CatalogRowL
     name: r.name,
     problem: r.problem,
     solution: r.solution,
-    conditions: { gapKeys: gapKeysOf(r.conditions) },
+    conditions: {
+      gapKeys: gapKeysOf(r.conditions),
+      ...(industriesOf(r.conditions) != null ? { industries: industriesOf(r.conditions) } : {}),
+    },
     costRange: r.costRange,
     savingRange: r.savingRange,
     complexity: r.complexity,

@@ -5,6 +5,7 @@ import { getReport } from "../../../server/diagnosis-read";
 import { loadCatalogLite } from "../../../server/roadmap-repo";
 import { getQuantityAnswers } from "../../../server/interview-repo";
 import { reportLossHighlights } from "../../../pipeline/roadmap/report-highlights";
+import { industryOf } from "../../../pipeline/industry";
 import { personalLossLine } from "../../../pipeline/roadmap/loss-calc";
 import { quickWins } from "../../../pipeline/roadmap/quick-wins";
 import { insights } from "../../../pipeline/roadmap/insights";
@@ -54,7 +55,10 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
     loadCatalogLite(prisma).catch(() => []),
     getQuantityAnswers(prisma, id).catch(() => ({ volume: null, responseTime: null, dealValue: null })),
   ]);
-  const highlights = reportLossHighlights(report.scan.scores, report.model, catalog);
+  // הענף (התניית ענף, 20.8) נגזר כאן ומוזרק פנימה: report-highlights סוגר על ScoreReport
+  // בלבד ואין לו findings. פריט ענפי לא יוצג לעסק שענפו לא זוהה (הכרעת מייסד 6.1)
+  const industry = industryOf(report.scan.findings, report.model);
+  const highlights = reportLossHighlights(report.scan.scores, report.model, catalog, 3, industry.slug);
   const personalLoss = personalLossLine(answers.volume, answers.responseTime, answers.dealValue);
 
   // "מה אפשר לעשות כבר עכשיו" (צעדים חינמיים): נגזר באותו אופן בדיוק - חוקים סטטיים מעל

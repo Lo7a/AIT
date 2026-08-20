@@ -1,6 +1,7 @@
 import type { ScoreReport } from "../score/types";
 import type { BusinessModel } from "../model/business-model";
 import { matchOpportunities, type CatalogRowLite } from "./matching";
+import type { IndustryValue } from "../industry";
 import { scoreOpportunity, phaseOf, phaseTierOf } from "./opportunity-score";
 import { lossHighlights, type LossHighlight } from "./loss-highlights";
 
@@ -21,10 +22,13 @@ export function reportLossHighlights(
   model: BusinessModel | null,
   catalog: CatalogRowLite[],
   limit = 3,
+  // הענף מגיע מוזרק ולא מחושב כאן: הפונקציה סוגרת על ScoreReport בלבד ואין לה ScanFindings.
+  // ברירת המחדל "unknown" נותנת בדיוק את ההתנהגות הקיימת - פריטים כלליים בלבד
+  industry: IndustryValue = "unknown",
 ): LossHighlight[] {
   if (!scores) return [];
 
-  const matches = matchOpportunities(scores, model, catalog);
+  const matches = matchOpportunities(scores, model, catalog, industry);
   if (matches.length === 0) return [];
 
   const maxLostPoints = matches.reduce(

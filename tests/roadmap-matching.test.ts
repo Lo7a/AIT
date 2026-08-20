@@ -280,3 +280,61 @@ describe("matchOpportunities", () => {
     expect(result.map((m) => m.catalog.id)).toEqual(["c1"]); // הפער נשאר, פשוט אין ציטוטים
   });
 });
+
+// --- התניית ענף (הכרעות מייסד 6.1 ו-6.2, 20.8) ---
+// הבעיה שזה פותר, בלשון מחקר המסעדות: תפריט QR שמומלץ לשרברב
+describe("industry conditioning", () => {
+  const vertical = (id: string, name: string, gapKeys: string[], industries: string[]): CatalogRowLite => ({
+    ...catalogItem(id, name, gapKeys),
+    conditions: { gapKeys, industries },
+  });
+
+  // online_booking הוא פער ידוע ב-REPORT_KAMPAI, ולכן שני הפריטים זכאים על בסיס הראיה
+  const GENERIC_BOOKING = catalogItem("g1", "קביעת תורים אונליין", ["online_booking"]);
+  const MENU_QR = vertical("v1", "תפריט דיגיטלי למסעדה", ["online_booking"], ["food_dine_in", "food_takeaway"]);
+
+  it("a business with no identified industry sees only the generic items", () => {
+    const result = matchOpportunities(REPORT_KAMPAI, null, [GENERIC_BOOKING, MENU_QR], "unknown");
+    expect(result.map((m) => m.catalog.id)).toEqual(["g1"]);
+  });
+
+  it("omitting the industry argument behaves exactly like unknown - existing callers do not change", () => {
+    const explicit = matchOpportunities(REPORT_KAMPAI, null, [GENERIC_BOOKING, MENU_QR], "unknown");
+    const implicit = matchOpportunities(REPORT_KAMPAI, null, [GENERIC_BOOKING, MENU_QR]);
+    expect(implicit.map((m) => m.catalog.id)).toEqual(explicit.map((m) => m.catalog.id));
+  });
+
+  it("a vertical item reaches only the industries it declares", () => {
+    const inList = matchOpportunities(REPORT_KAMPAI, null, [MENU_QR], "food_dine_in");
+    expect(inList.map((m) => m.catalog.id)).toEqual(["v1"]);
+    // מוסך לא רואה תפריט QR, וזו כל הנקודה
+    expect(matchOpportunities(REPORT_KAMPAI, null, [MENU_QR], "auto_service")).toEqual([]);
+  });
+
+  // הכרעה 6.2: כשפריט ענפי נכנס, מודחק כל פריט כללי שה-gapKeys שלו מוכלים בשלו
+  it("a vertical item displaces the generic item on the same gap", () => {
+    const result = matchOpportunities(REPORT_KAMPAI, null, [GENERIC_BOOKING, MENU_QR], "food_dine_in");
+    expect(result.map((m) => m.catalog.id)).toEqual(["v1"]);
+  });
+
+  // הכלה ולא חיתוך: פריט כללי שנוגע גם בפער שהענפי לא מכסה עדיין מביא ערך משלו ולכן שורד.
+  // זה בדיוק המקרה של "הקמת אתר ראשון לעסק" מול שני פריטי המסעדות
+  it("a generic item that also covers a gap the vertical one does not is kept", () => {
+    const broaderGeneric = catalogItem("g2", "פריט רחב", ["online_booking", "analytics"]);
+    const result = matchOpportunities(REPORT_KAMPAI, null, [broaderGeneric, MENU_QR], "food_dine_in");
+    expect(result.map((m) => m.catalog.id).sort()).toEqual(["g2", "v1"]);
+  });
+
+  it("displacement does not fire when no vertical item matched", () => {
+    const result = matchOpportunities(REPORT_KAMPAI, null, [GENERIC_BOOKING, MENU_QR], "auto_service");
+    expect(result.map((m) => m.catalog.id)).toEqual(["g1"]);
+  });
+
+  // הידרדרות בטוחה, ובאג אמיתי שנתפס: הגרסה הראשונה התייחסה למערך ריק כאילו השדה חסר,
+  // כלומר הפכה פריט ענפי פגום לפריט כללי - בדיוק תפריט QR לשרברב. קיים-אך-ריק אינו "חסר"
+  it("an empty industries array matches nothing, and never degrades into a generic item", () => {
+    const broken: CatalogRowLite = { ...GENERIC_BOOKING, id: "b1", conditions: { gapKeys: ["online_booking"], industries: [] } };
+    expect(matchOpportunities(REPORT_KAMPAI, null, [broken], "food_dine_in")).toEqual([]);
+    expect(matchOpportunities(REPORT_KAMPAI, null, [broken], "unknown")).toEqual([]);
+  });
+});

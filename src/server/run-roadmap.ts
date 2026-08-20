@@ -4,6 +4,7 @@ import type { BusinessModel } from "../pipeline/model/business-model";
 import type { LlmUsage } from "../pipeline/llm/client";
 import { scoreWithModel } from "../pipeline/score/engine";
 import { matchOpportunities, type OpportunityMatch } from "../pipeline/roadmap/matching";
+import { industryOf } from "../pipeline/industry";
 import { scoreOpportunity, phaseOf, phaseTierOf, type Phase } from "../pipeline/roadmap/opportunity-score";
 import { buildReasoning, type CompleteFn, type ReasoningItemInput } from "../pipeline/roadmap/reasoning";
 import { generateNarrative } from "../pipeline/report/narrative";
@@ -106,7 +107,10 @@ export async function buildRoadmap(
   // בסוף הפונקציה (סגירת שער FAIL 2, שינוי 3), אחרי שהבנייה עצמה כבר הצליחה
   const scores = scoreWithModel(state.findings, state.model);
   const catalog = await loadCatalogLite(prisma);
-  const matches = matchOpportunities(scores, state.model, catalog);
+  // הענף נגזר כאן ולא נשמר: הראיון גובר על הסריקה (הכרעה 6.5), ותשובת ראיון יכולה
+  // להשתנות תוך כדי - לכן הגזירה טרייה בכל בנייה, מאותו מקור אמת של שתי השכבות
+  const industry = industryOf(state.findings, state.model);
+  const matches = matchOpportunities(scores, state.model, catalog, industry.slug);
 
   const maxLostPoints = matches.reduce(
     (max, m) => Math.max(max, m.evidence.reduce((sum, e) => sum + e.lostWeightedPoints, 0)),
