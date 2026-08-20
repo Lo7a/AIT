@@ -11,7 +11,7 @@
 //    (הכרעה 6.1), וזה בדיוק כלל הברזל: מה שלא נבדק לא הופך לקביעה.
 import type { ScanFindings } from "./types";
 import type { BusinessModel } from "./model/business-model";
-import { compileKeyword, matchesAnyKeyword } from "./hebrew-match";
+import { compileKeyword, matchesAnyKeyword, normalizeFinals } from "./hebrew-match";
 
 // עשרה ענפים. החלוקה אינה לפי סיווג כלכלי אלא לפי **מה שונה בתוכנית שאנחנו מציעים** -
 // ולכן אוכל בישיבה ואוכל מהיר הם שני ענפים (לאחד יש הזמנת מקומות, לשני אין), ואילו כל
@@ -28,7 +28,7 @@ export interface IndustryResult {
   slug: IndustryValue;
   // high = primaryType ספציפי או תשובת בעלים · medium = נגזר מ-types · none = לא זוהה
   confidence: "high" | "medium" | "none";
-  source: "interview" | "places_primary" | "places_types" | "none";
+  source: "interview" | "places_primary" | "places_types" | "business_name" | "none";
 }
 
 export const INDUSTRY_LABEL_HE: Record<IndustrySlug, string> = {
@@ -111,7 +111,35 @@ const TYPE_TO_INDUSTRY: Readonly<Record<string, IndustrySlug>> = Object.freeze({
   school: "education_training", primary_school: "education_training", secondary_school: "education_training",
   preschool: "education_training", child_care_agency: "education_training", university: "education_training",
   driving_school: "education_training", music_school: "education_training",
+  // סוגים שנמצאו חסרים במדידה חיה מול Places (20.8, 1,200 עסקים ישראליים): laundry לבדו
+  // היה 16 מתוך 47 הכשלים במדגם אחד - הכשל הבודד הגדול ביותר, ופשוט לא היה בטבלה
+  laundry: "retail_store", dry_cleaner: "retail_store", shoe_repair: "retail_store",
+  general_contractor: "trades_onsite", food_court: "food_takeaway",
 });
+
+// כללי תבנית, אחרי הטבלה. הסיבה נמדדה: גוגל מייצרת עשרות סוגי *_restaurant לפי מטבח
+// (romanian_restaurant, turkish_restaurant, dessert_restaurant...) ורשימה סגורה תמיד תפגר
+// אחריהם. ברירת המחדל למסעדה היא ישיבה, והחריגים - אלה שאין בהם שולחנות - מפורשים
+const TAKEAWAY_RESTAURANT_RE = /^(?:fast_food|falafel|shawarma|pizza|hamburger|sandwich|dessert|donut|bagel|juice|ice_cream)_restaurant$/;
+
+function industryFromTypePattern(type: string): IndustrySlug | undefined {
+  if (type.endsWith("_restaurant")) return TAKEAWAY_RESTAURANT_RE.test(type) ? "food_takeaway" : "food_dine_in";
+  if (type.endsWith("_store")) return "retail_store";
+  if (type.endsWith("_school")) return "education_training";
+  return undefined;
+}
+
+// ישויות שאינן קהל היעד של AIT. הן **חייבות** להישאר unknown, והן גם עוצרות את שכבת השם
+// לפני שתנחש: "מקווה בית לחם" ו"עיריית ראשון לציון" אינם עסקים שאנחנו מוכרים להם משהו,
+// ו-unknown עליהם אינו כישלון זיהוי אלא התשובה הנכונה
+const OUT_OF_SCOPE_TYPES: ReadonlySet<string> = new Set([
+  "city_hall", "local_government_office", "government_office", "community_center", "cultural_center",
+  "non_profit_organization", "association_or_organization", "shopping_mall", "park", "city_park",
+  "garden", "museum", "place_of_worship", "hospital", "university", "post_office", "bank", "atm",
+]);
+
+export const isOutOfScopeType = (primaryType?: string): boolean =>
+  primaryType != null && OUT_OF_SCOPE_TYPES.has(primaryType);
 
 // תוויות תשובת הראיון -> סלאג. תווית שנבחרה מהבנק נשמרת verbatim (הנתיב הסטטי, בלי LLM)
 // ולכן ההתאמה המדויקת היא המסלול הרגיל; מילות המפתח כאן קיימות בשביל "אחר - אכתוב בעצמי".
@@ -139,12 +167,77 @@ const NONE: IndustryResult = Object.freeze({ slug: "unknown", confidence: "none"
 
 /** ענף לפי מה שגוגל מדווחת. primaryType קודם (ביטחון גבוה), ואז ההתאמה הראשונה ב-types. */
 export function industryFromPlaces(primaryType?: string, types?: readonly string[]): IndustryResult {
-  const primary = primaryType != null ? TYPE_TO_INDUSTRY[primaryType] : undefined;
+  if (isOutOfScopeType(primaryType)) return NONE; // עירייה/קניון/מקווה - לא קהל היעד, ולא לנחש
+  const primary = primaryType != null
+    ? TYPE_TO_INDUSTRY[primaryType] ?? industryFromTypePattern(primaryType)
+    : undefined;
   if (primary != null) return { slug: primary, confidence: "high", source: "places_primary" };
   // הסדר של types הוא הסדר של גוגל, מהספציפי לגנרי - ולכן ההתאמה הראשונה היא הטובה ביותר
   for (const t of types ?? []) {
-    const hit = TYPE_TO_INDUSTRY[t];
+    const hit = TYPE_TO_INDUSTRY[t] ?? industryFromTypePattern(t);
     if (hit != null) return { slug: hit, confidence: "medium", source: "places_types" };
+  }
+  return NONE;
+}
+
+// --- שכבת שם העסק ---
+// נולדה ממדידה ולא מרעיון: ב-1,200 עסקים ישראליים אמיתיים, כשגוגל החזירה סוג גנרי
+// (store / service / health), **שם העסק כמעט תמיד הכיל את הענף** - "אופטיקה X", "סנדלרית Y",
+// "מכבסת Z". השכבה הזו הרימה 3.2 נקודות אחוז מעל מה שגוגל נתנה, בדיוק של 21 מתוך 22,
+// והסכימה עם גוגל ב-96 אחוז מהמקרים שבהם שתיהן ידעו - כלומר היא לא רועשת.
+//
+// שתי מלכודות עברית שנמדדו, ושתיהן שברו את הגרסה הראשונה:
+// 1. **סמיכות ונקבה.** "מכבסת" אינו "מכבסה", ו"סנדלרית" אינו "סנדלר". לכן מחפשים **גזע**
+//    עם סיומת אופציונלית, לא מילה שלמה.
+// 2. **אותיות סופיות מנורמלות.** אחרי normalizeFinals הרבים של "סנדלר" הוא "סנדלרימ"
+//    ולא "סנדלרים" - סיומת הרבים חייבת להיכתב בצורה המנורמלת. זה הפיל התאמה במדידה.
+// ובנוסף: חצי מחנויות האופטיקה בישראל נקראות Optic/Optica/Eyes ולא במילה עברית כלל,
+// ולכן לכל ענף יש גם מילות מפתח לועזיות
+const NAME_STEM_SUFFIX = "(?:ה|ת|ית|ימ|ות|יה|יות)?";
+
+const compileStem = (stem: string): RegExp =>
+  new RegExp(`(?<![א-ת])[והבכלמש]{0,2}${normalizeFinals(stem)}${NAME_STEM_SUFFIX}(?![א-ת])`);
+
+// \\b ולא \b: בתבנית מחרוזת \b הוא תו backspace, לא גבול מילה. הגרסה הראשונה כאן הידרה
+// ביטוי שלא התאים לשום דבר, וכל מילות המפתח הלועזיות היו מתות בשקט
+const compileLatin = (word: string): RegExp => new RegExp(`\\b${word}`, "i");
+
+// הסדר מכריע: הראשון שמתאים מנצח. beauty לפני retail בכוונה, אחרת "eyebrow" היה נקרא
+// כחנות אופטיקה בגלל "eye"
+const NAME_RULES: readonly { readonly he: readonly string[]; readonly en: readonly string[]; readonly slug: IndustrySlug }[] = [
+  { he: ["מספר", "קוסמטיק", "ציפורניים", "מניקור", "יופי", "טיפוח", "ספא", "עיסוי", "איפור", "גבות"],
+    en: ["barber", "beauty", "nails", "salon", "spa", "brow"], slug: "beauty_grooming" },
+  { he: ["מסעד", "ביסטרו", "פאב", "מזנון", "חומוס", "סושי", "קפה", "בורגר", "גריל", "שיפוד"],
+    en: ["restaurant", "bistro", "cafe", "coffee", "grill", "sushi"], slug: "food_dine_in" },
+  { he: ["פלאפל", "שווארמה", "מאפי", "מאפה", "קונדיטורי", "פיצ", "גלידרי", "גלידה", "קייטרינג"],
+    en: ["pizza", "bakery", "falafel"], slug: "food_takeaway" },
+  { he: ["קליניק", "מרפא", "שיניים", "דנטל", "פיזיותרפי", "וטרינר", "מרקח", "אופטומטריסט"],
+    en: ["dental", "clinic"], slug: "health_clinic" },
+  { he: ["כושר", "יוגה", "פילאטיס", "קרוספיט", "סטודיו"],
+    en: ["fitness", "gym", "yoga", "pilates", "crossfit"], slug: "fitness_studio" },
+  { he: ["מוסך", "פנצ'רי", "פנצרי", "צמיג", "רכב", "גראז"],
+    en: ["garage", "motors", "tire"], slug: "auto_service" },
+  { he: ["אינסטלט", "אינסטלצי", "שרברב", "חשמלאי", "מנעולן", "מנעול", "הובל", "מיזוג", "איטום"],
+    en: ["plumb", "locksmith"], slug: "trades_onsite" },
+  { he: ["אופטיק", "אופטי", "סנדלרי", "סנדלר", "מתפר", "מכבס", "כביס", "בוטיק", "מכולת", "פרחים", "תכשיט"],
+    en: ["optic", "optica", "eyes", "laundry", "laundromat", "cleaners"], slug: "retail_store" },
+  { he: ["עורך דין", "עורכי דין", "רואה חשבון", "יועץ", "ייעוץ", "ביטוח", "תיווך", "אדריכל", "שמאי"],
+    en: ["advocate", "insurance", "realty"], slug: "professional_services" },
+  { he: ["מעון", "צהרון", "גן ילדים", "קורס", "לימוד"],
+    en: ["academy"], slug: "education_training" },
+];
+
+const COMPILED_NAME_RULES = NAME_RULES.map((r) => ({
+  he: r.he.map(compileStem), en: r.en.map(compileLatin), slug: r.slug,
+}));
+
+/** ענף לפי שם העסק. משמש רק כשגוגל החזירה סוג גנרי - ראו ההערה למעלה. */
+export function industryFromName(name: string): IndustryResult {
+  const normalized = normalizeFinals(name);
+  for (const rule of COMPILED_NAME_RULES) {
+    if (rule.he.some((re) => re.test(normalized)) || rule.en.some((re) => re.test(name))) {
+      return { slug: rule.slug, confidence: "medium", source: "business_name" };
+    }
   }
   return NONE;
 }
@@ -173,5 +266,10 @@ export const INDUSTRY_MODEL_FIELD = "industry";
 export function industryOf(findings: ScanFindings, model: BusinessModel | null): IndustryResult {
   const answered = industryFromAnswer(model?.data?.profile?.[INDUSTRY_MODEL_FIELD]);
   if (answered.slug !== "unknown") return answered;
-  return industryFromPlaces(findings.business.primaryType, findings.business.types);
+  const fromPlaces = industryFromPlaces(findings.business.primaryType, findings.business.types);
+  if (fromPlaces.slug !== "unknown") return fromPlaces;
+  // שכבת השם אחרונה, ורק אחרי שגוגל שתקה: כשגוגל יודעת היא הסמכות. ולא על ישות שאינה
+  // קהל היעד - שם unknown הוא התשובה הנכונה ולא כשל, ואסור לנחש עליה
+  if (isOutOfScopeType(findings.business.primaryType)) return NONE;
+  return industryFromName(findings.business.name);
 }

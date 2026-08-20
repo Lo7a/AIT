@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   INDUSTRIES, INDUSTRY_LABEL_HE, INDUSTRY_MODEL_FIELD,
-  industryFromPlaces, industryFromAnswer, industryOf,
+  industryFromPlaces, industryFromAnswer, industryFromName, industryOf, isOutOfScopeType,
 } from "../src/pipeline/industry";
 import type { ScanFindings } from "../src/pipeline/types";
 import type { BusinessModel, ModelSection } from "../src/pipeline/model/business-model";
@@ -120,5 +120,85 @@ describe("שלמות הטבלאות", () => {
     for (const slug of INDUSTRIES) {
       expect(industryFromPlaces(representative[slug]).slug, slug).toBe(slug);
     }
+  });
+});
+
+// --- שכבות שנולדו ממדידה חיה מול Places (20.8, כ-1,200 עסקים ישראליים ב-3 מדגמים) ---
+// כיסוי הטבלה לבדה נמדד 84-86%; עם התוספות כאן הוא נמדד 95.4% על מדגם טרי לגמרי
+describe("type patterns - Google's cuisine long tail", () => {
+  // גוגל מייצרת עשרות סוגי *_restaurant. רשימה סגורה תמיד מפגרת אחריהם, ולכן תבנית
+  it("any unknown *_restaurant defaults to dine-in", () => {
+    for (const t of ["romanian_restaurant", "turkish_restaurant", "greek_restaurant", "thai_restaurant"]) {
+      expect(industryFromPlaces(t).slug, t).toBe("food_dine_in");
+    }
+  });
+
+  it("the no-tables cuisines are explicit exceptions, not dine-in", () => {
+    for (const t of ["dessert_restaurant", "donut_restaurant", "juice_restaurant"]) {
+      expect(industryFromPlaces(t).slug, t).toBe("food_takeaway");
+    }
+  });
+
+  it("*_store and *_school fall to retail and education", () => {
+    expect(industryFromPlaces("vintage_clothing_store").slug).toBe("retail_store");
+    expect(industryFromPlaces("language_school").slug).toBe("education_training");
+  });
+
+  // laundry לבדו היה הכשל הבודד הגדול ביותר במדידה: 16 מתוך 47
+  it("the types the live measurement found missing are mapped", () => {
+    expect(industryFromPlaces("laundry").slug).toBe("retail_store");
+    expect(industryFromPlaces("general_contractor").slug).toBe("trades_onsite");
+    expect(industryFromPlaces("food_court").slug).toBe("food_takeaway");
+  });
+});
+
+describe("out-of-scope entities", () => {
+  // עירייה, קניון ומקווה אינם קהל היעד. unknown עליהם הוא התשובה הנכונה, לא כשל זיהוי
+  it("a city hall or a mall stays unknown and is never guessed from its name", () => {
+    for (const t of ["city_hall", "shopping_mall", "place_of_worship", "non_profit_organization"]) {
+      expect(isOutOfScopeType(t), t).toBe(true);
+      expect(industryFromPlaces(t).slug, t).toBe("unknown");
+    }
+    // גם כשהשם מכיל מילת ענף - "מרכז קפה קהילתי" בעירייה לא הופך אותה לבית קפה
+    const f = findings({ name: "עיריית ראשון לציון - מרכז קפה קהילתי", primaryType: "city_hall" });
+    expect(industryOf(f, null).slug).toBe("unknown");
+  });
+});
+
+describe("business-name layer", () => {
+  // סמיכות ונקבה: "מכבסת" אינו "מכבסה" ו"סנדלרית" אינו "סנדלר" - נמדד חי, שבר את הגרסה הראשונה
+  it("handles Hebrew construct and feminine endings", () => {
+    for (const n of ["מכבסת מונטיפיורי", "מכבסה קטנה", "סנדלרית רוממה", "סנדלריית אלי", "סנדלרים בחולון"]) {
+      expect(industryFromName(n).slug, n).toBe("retail_store");
+    }
+  });
+
+  it("catches the Latin names half the optical shops actually use", () => {
+    for (const n of ["EYE OPTIC", "CLC Optica", "Eyes Too", "Black Sheep Laundry"]) {
+      expect(industryFromName(n).slug, n).toBe("retail_store");
+    }
+  });
+
+  // רגרסיה לבאג אמיתי: בתבנית מחרוזת \b הוא backspace ולא גבול מילה, וכל המילים
+  // הלועזיות היו מתות בשקט בלי שאף בדיקה תיפול
+  it("Latin keywords really compile to word boundaries, not a backspace char", () => {
+    expect(industryFromName("SOHO FITNESS").slug).toBe("fitness_studio");
+    expect(industryFromName("Ramat Gan Dental Center").slug).toBe("health_clinic");
+    // וגבול המילה באמת עובד: "Prodental" אינו מרפאת שיניים, ולכן אינו נתפס
+    expect(industryFromName("Prodental Supplies Import").slug).toBe("unknown");
+  });
+
+  it("beauty is checked before retail so an eyebrow studio is not an optician", () => {
+    expect(industryFromName("Brow Bar Studio").slug).toBe("beauty_grooming");
+  });
+
+  it("the name layer runs only after Google stayed silent", () => {
+    // גוגל אמרה מוסך; השם מכיל "קפה" - גוגל מנצחת
+    const f = findings({ name: "מוסך קפה הפועלים", primaryType: "car_repair" });
+    expect(industryOf(f, null).source).toBe("places_primary");
+    expect(industryOf(f, null).slug).toBe("auto_service");
+    // גוגל שתקה (סוג גנרי) - השם נכנס לפעולה
+    const g = findings({ name: "אופטיקה בק", primaryType: "store" });
+    expect(industryOf(g, null)).toEqual({ slug: "retail_store", confidence: "medium", source: "business_name" });
   });
 });
