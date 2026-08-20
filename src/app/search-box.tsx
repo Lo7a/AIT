@@ -209,12 +209,17 @@ export function SearchBox() {
             ))}
           </ul>
 
-          <div className="mt-3 flex flex-wrap items-center gap-4">
-            <button type="button" onClick={() => researchWithFilter()} className="ghost-act">
+          {/* pill ולא ghost-act (דיווח מייסד 21.8): אלה מסלולי המילוט כשההתאמה שגויה,
+              וכקישורי רפאים של 11.5px המשתמש פשוט לא ראה אותם */}
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <span className="text-xs font-semibold" style={{ color: "var(--mut)" }}>
+              לא העסק שלך?
+            </span>
+            <button type="button" onClick={() => researchWithFilter()} className="pill">
               חפשו שוב עם הטקסט הזה
             </button>
             {siteOnlyTarget && (
-              <button type="button" onClick={scanSiteOnly} className="ghost-act">
+              <button type="button" onClick={scanSiteOnly} className="pill">
                 סריקת האתר בלבד
               </button>
             )}
@@ -239,7 +244,7 @@ export function SearchBox() {
             >
               אכתוב את שם העסק
             </button>
-            <button type="button" onClick={scanSiteOnly} className="ghost-act">
+            <button type="button" onClick={scanSiteOnly} className="pill">
               סריקת האתר בלבד
             </button>
           </div>
