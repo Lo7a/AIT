@@ -1,6 +1,7 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { parseServiceType, type ServiceType } from "../pipeline/roadmap/service-type";
 import { industriesOf } from "./roadmap-repo";
+import { pageWindow, paged, type Paged, type PageRequest } from "./paging";
 
 // שכבת הגישה לספרייה עבור מסכי הניהול. נפרדת מ-roadmap-repo.ts בכוונה: שם קוראים את
 // הקטלוג *לצריכה* (התאמה לעסק, שדות מינימליים), וכאן קוראים וכותבים אותו *לניהול* -
@@ -30,22 +31,16 @@ export interface CatalogAdminRow {
   benchmarkCount: number;
 }
 
-export interface CatalogListResult {
-  rows: CatalogAdminRow[];
-  total: number;
-  page: number;
-  pages: number;
-  perPage: number;
-}
+// אותו טיפוס עימוד של כל שאר מסכי הניהול (paging.ts) ולא צורה משלו - חמישה מסכים
+// שמעמדים חייבים להתנהג זהה
+export type CatalogListResult = Paged<CatalogAdminRow>;
 
-export interface CatalogListQuery {
+export interface CatalogListQuery extends PageRequest {
   q?: string;
   serviceType?: string | null;
   industry?: string | null;
   /** ברירת המחדל מציגה רק פריטים פעילים - מארוכב הוא היסטוריה, לא מלאי */
   includeArchived?: boolean;
-  page?: number;
-  perPage?: number;
 }
 
 // conditions הוא Json בסכמה, ולכן כל קריאה ממנו מנורמלת ולא מונחת. אותה זהירות בדיוק
@@ -86,8 +81,7 @@ function toRow(r: any): CatalogAdminRow {
  * רצות בשאילתה אחת ($transaction) כדי לא לשלם שתי הלוך-חזור לפרנקפורט.
  */
 export async function listCatalogAdmin(db: Db, query: CatalogListQuery = {}): Promise<CatalogListResult> {
-  const perPage = Math.min(Math.max(query.perPage ?? CATALOG_PAGE_SIZE, 1), 100);
-  const page = Math.max(query.page ?? 1, 1);
+  const w = pageWindow(query, CATALOG_PAGE_SIZE);
 
   const and: Prisma.OpportunityCatalogWhereInput[] = [];
   if (!query.includeArchived) and.push({ archivedAt: null });
@@ -123,19 +117,13 @@ export async function listCatalogAdmin(db: Db, query: CatalogListQuery = {}): Pr
       where,
       // מארוכבים לתחתית, ואז לפי סוג שירות ושם - כך הספרייה נקראת מסודרת גם בלי סינון
       orderBy: [{ archivedAt: "asc" }, { serviceType: "asc" }, { name: "asc" }],
-      skip: (page - 1) * perPage,
-      take: perPage,
+      skip: w.skip,
+      take: w.take,
       include: { _count: { select: { benchmarks: true } } },
     }),
   ]);
 
-  return {
-    rows: rows.map(toRow),
-    total,
-    page,
-    perPage,
-    pages: Math.max(Math.ceil(total / perPage), 1),
-  };
+  return paged(rows.map(toRow), total, w);
 }
 
 export interface BenchmarkRow {
