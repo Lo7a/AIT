@@ -25,6 +25,7 @@
 import { resolveMx, resolveTxt } from "node:dns/promises";
 import type { MailHealth } from "../types";
 import { registrableDomain } from "./registrable";
+import { shortFailureReason } from "./failure-reason";
 
 export interface MailDeps {
   resolveMx: (host: string) => Promise<{ exchange: string; priority: number }[]>;
@@ -80,8 +81,11 @@ const PROVIDER_FINGERPRINTS: readonly { readonly provider: string; readonly re: 
 ];
 
 // שלוש התוצאות האפשריות של שאילתה, בניגוד לשתיים: הצליחה, אין רשומה, או לא הושלמה.
-// המצב השלישי הוא הסיבה שהמודול לא מסתפק ב-try/catch עם false בקאץ'
-type Attempt<T> = { readonly done: true; readonly value: T } | { readonly done: false; readonly noRecord: boolean };
+// המצב השלישי הוא הסיבה שהמודול לא מסתפק ב-try/catch עם false בקאץ'. השגיאה נשמרת
+// על כשל שאינו "אין רשומה" כדי שאפשר יהיה לדווח אותה כשכל השאילתות נפלו (תחקיר 21.8)
+type Attempt<T> =
+  | { readonly done: true; readonly value: T }
+  | { readonly done: false; readonly noRecord: boolean; readonly err?: unknown };
 
 function isNoRecordError(err: unknown): boolean {
   const code = (err as { code?: unknown } | null)?.code;
@@ -92,7 +96,8 @@ async function attempt<T>(run: () => Promise<T>): Promise<Attempt<T>> {
   try {
     return { done: true, value: await run() };
   } catch (err) {
-    return { done: false, noRecord: isNoRecordError(err) };
+    const noRecord = isNoRecordError(err);
+    return noRecord ? { done: false, noRecord } : { done: false, noRecord, err };
   }
 }
 
@@ -185,6 +190,14 @@ export async function readMailHealth(hostname: string, deps: Partial<MailDeps> =
     mail.dmarcConflict = false;
   }
 
-  // כל השאילתות לא הושלמו: אובייקט ריק היה נראה כמו בדיקה שרצה ולא מצאה כלום
-  return Object.keys(mail).length === 0 ? undefined : mail;
+  // כל השאילתות לא הושלמו: אובייקט ריק היה נראה כמו בדיקה שרצה ולא מצאה כלום.
+  // כשהסיבה היא כשל תשתית (לא ENODATA/ENOTFOUND, שהם ממצא) - זורקים כדי שהסיבה תגיע
+  // להערות האיסוף דרך collectHealth (תחקיר 21.8: חשד ל-resolveTxt/resolveMx בסביבת
+  // הפונקציות). כשנלמד ולו שדה אחד, כשל חלקי בשאר נשאר "לא נבדק" בשקט כמו היום
+  if (Object.keys(mail).length === 0) {
+    const infra = [mx, txt, dmarcTxt].find((a) => !a.done && a.err != null);
+    if (infra && !infra.done) throw new Error(`שאילתת DNS נכשלה: ${shortFailureReason(infra.err)}`);
+    return undefined;
+  }
+  return mail;
 }

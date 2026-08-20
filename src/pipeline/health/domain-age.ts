@@ -21,6 +21,7 @@
 import { createConnection } from "node:net";
 import type { DomainHealth } from "../types";
 import { registrableDomain } from "./registrable";
+import { shortFailureReason } from "./failure-reason";
 
 export interface DomainDeps {
   /** מחזיר את גוף התשובה הגולמי משרת ה-whois, או זורק */
@@ -276,9 +277,11 @@ export async function readDomainHealth(
       : await queryViaIana(query, domain);
     if (body == null) return undefined;
     return buildHealth(body, now());
-  } catch {
-    // כל כשל - סוקט חסום, timeout, שרת שלא עונה - הוא "לא נבדק" ולא שגיאה שמפילה
-    // סריקה. השגיאה עצמה לא נרשמת ללוג בכוונה: היא עלולה לגרור חלק מגוף התשובה
-    return undefined;
+  } catch (err) {
+    // כשל תשתית - סוקט חסום, timeout, שרת שלא עונה - נזרק הלאה כדי שהסיבה תגיע להערות
+    // האיסוף דרך collectHealth (תחקיר 21.8: חשד שפורט 43 חסום בוורסל נבלע כאן בשקט).
+    // shortFailureReason מעדיף את קוד השגיאה, כך שגוף תשובה לא נגרר להודעה (ראו הערת
+    // הפרטיות בראש הקובץ). שכבת הניקוד עדיין רואה "לא נבדק" - הזריקה אינה ענישה
+    throw new Error(`whois נכשל: ${shortFailureReason(err)}`);
   }
 }

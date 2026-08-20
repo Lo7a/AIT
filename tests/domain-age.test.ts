@@ -189,26 +189,28 @@ source:       IANA
 });
 
 describe("readDomainHealth - כשלים ותאריכים לא תקינים", () => {
-  it("query שזורק מחזיר undefined ולא מפיל את הסריקה", async () => {
+  it("query שזורק נזרק הלאה עם הסיבה - כך היא מגיעה להערות האיסוף (תחקיר 21.8)", async () => {
+    const err = Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" });
     const query = vi.fn<DomainDeps["query"]>(async () => {
-      throw new Error("ECONNREFUSED 43");
+      throw err;
     });
-    expect(await readDomainHealth("example.co.il", { query, now })).toBeUndefined();
+    // קוד השגיאה מועדף על ההודעה: קצר, חד-משמעי, ולא גורר גוף תשובה
+    await expect(readDomainHealth("example.co.il", { query, now })).rejects.toThrow("whois נכשל: ECONNREFUSED");
   });
 
-  it("timeout מחזיר undefined", async () => {
+  it("timeout בלי code נזרק עם ההודעה עצמה", async () => {
     const query = vi.fn<DomainDeps["query"]>(async () => {
       throw new Error("whois timeout");
     });
-    expect(await readDomainHealth("example.com", { query, now })).toBeUndefined();
+    await expect(readDomainHealth("example.com", { query, now })).rejects.toThrow("whois נכשל: whois timeout");
   });
 
-  it("כשל בקפיצה השנייה בלבד גם הוא undefined", async () => {
+  it("כשל בקפיצה השנייה בלבד גם הוא נזרק", async () => {
     const query = vi.fn<DomainDeps["query"]>(async (server) => {
       if (server === "whois.iana.org") return IANA_COM_BODY;
       throw new Error("socket hang up");
     });
-    expect(await readDomainHealth("example.com", { query, now })).toBeUndefined();
+    await expect(readDomainHealth("example.com", { query, now })).rejects.toThrow("whois נכשל");
   });
 
   it("תאריך שלא ניתן לפענוח נשאר לא נבדק ולעולם לא Invalid Date", async () => {

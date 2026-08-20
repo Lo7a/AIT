@@ -238,12 +238,23 @@ describe("readMailHealth - כנות: אין רשומה מול לא נבדק", ()
     expect(mail?.hasMx).toBe(true);
   });
 
-  it("כשכל השאילתות לא הושלמו מוחזר undefined ולא אובייקט ריק", async () => {
-    const mail = await readMailHealth("example.co.il", deps({
+  it("כשכל השאילתות נפלו על כשל תשתית - נזרק עם הקוד, כדי שהסיבה תגיע להערות האיסוף", async () => {
+    // SERVFAIL אינו ENODATA/ENOTFOUND: זה כשל של ה-resolver, לא ממצא על הדומיין.
+    // עד תחקיר 21.8 המצב הזה החזיר undefined זהה לחלוטין ל"אין דומיין לבדוק"
+    await expect(readMailHealth("example.co.il", deps({
       resolveMx: fail("SERVFAIL"),
       resolveTxt: fail("SERVFAIL"),
+    }))).rejects.toThrow("שאילתת DNS נכשלה: SERVFAIL");
+  });
+
+  it("כשל תשתית חלקי לצד שאילתה שהושלמה - עדיין מוחזר מה שנלמד, בלי זריקה", async () => {
+    const mail = await readMailHealth("example.co.il", deps({
+      resolveMx: fail("ETIMEDOUT"),
+      resolveTxt: async (host) => (host.startsWith("_dmarc.") ? [] : [["v=spf1 -all"]]),
     }));
-    expect(mail).toBeUndefined();
+    // ה-MX שנכשל נשאר "לא נבדק" (שדה חסר), וה-TXT שהושלם מדווח כרגיל
+    expect(mail).not.toHaveProperty("hasMx");
+    expect(mail?.hasSpf).toBe(true);
   });
 });
 

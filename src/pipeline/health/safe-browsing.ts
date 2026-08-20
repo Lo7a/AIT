@@ -24,18 +24,24 @@ export interface SafeBrowsingOptions {
 
 type WebRiskBody = { threat?: { threatTypes?: string[] } };
 
+// שגיאת סטטוס שכבר דווחה ליומן הקריאות בנקודת היצירה - ה-catch מזהה אותה ולא מדווח שוב
+class WebRiskHttpError extends Error {}
+
 /**
- * מחזיר undefined כשהבדיקה לא רצה או נכשלה - וזה חייב להישאר כך. "לא בדקנו" ו"בדקנו
- * ולא נמצא" הם שני דברים שונים, והשני הוא היחיד שמותר להציג כתשובה.
+ * מחזיר undefined כשהבדיקה דולגה במכוון (מארח פנימי), וזורק על כשל תשתית - מפתח חסר,
+ * שגיאת HTTP או כשל רשת - כדי שהסיבה תגיע להערות האיסוף דרך collectHealth (תחקיר 21.8:
+ * מפתח חסר בסביבת ורסל היה נבלע כאן בשקט). "לא בדקנו" ו"בדקנו ולא נמצא" נשארים שני
+ * דברים שונים: כשל לעולם לא הופך לתשובה, רק לשדה חסר עם סיבה רשומה.
  */
 export async function readSafeBrowsing(
   url: string,
   opts: SafeBrowsingOptions = {},
 ): Promise<SafeBrowsingCheck | undefined> {
   const apiKey = opts.apiKey ?? process.env.GOOGLE_API_KEY;
-  if (!apiKey) return undefined;
+  if (!apiKey) throw new Error("GOOGLE_API_KEY חסר - בדיקת Safe Browsing לא רצה");
 
-  // מארח פנימי לא נשלח לגוגל: הוא לא ייבדק ממילא, וזו דליפת כתובת פנימית לצד שלישי
+  // מארח פנימי לא נשלח לגוגל: הוא לא ייבדק ממילא, וזו דליפת כתובת פנימית לצד שלישי.
+  // דילוג מכוון ולא כשל - לכן undefined בשקט ולא זריקה
   if (forbiddenHostOf(url)) return undefined;
 
   const fetchImpl: FetchLike = opts.fetchImpl ?? defaultFetch;
@@ -45,8 +51,10 @@ export async function readSafeBrowsing(
   for (const t of THREAT_TYPES) params.append("threatTypes", t);
 
   const startedAt = Date.now();
+  let res: Awaited<ReturnType<FetchLike>>;
+  let body: WebRiskBody;
   try {
-    const res = await fetchImpl(`${WEB_RISK_URL}?${params.toString()}`, {
+    res = await fetchImpl(`${WEB_RISK_URL}?${params.toString()}`, {
       headers: { "x-goog-api-key": apiKey },
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
@@ -56,20 +64,24 @@ export async function readSafeBrowsing(
         service: "webrisk", context: "uris_search", ok: false, durationMs: Date.now() - startedAt,
         payload: { url, status: res.status, error: errText },
       });
-      return undefined;
+      // הסטטוס לבדו מספיק להערות האיסוף; גוף השגיאה המלא נשאר ביומן הקריאות בלבד
+      throw new WebRiskHttpError(`Web Risk החזיר ${res.status}`);
     }
-    const body = (await res.json()) as WebRiskBody;
-    reportExternalCall({
-      service: "webrisk", context: "uris_search", ok: true, durationMs: Date.now() - startedAt,
-      payload: { url, body },
-    });
-    // גוף ריק = לא נמצא ברשימה. נוכחות threat = נמצא
-    return { flagged: body.threat != null, checkedAt: now().toISOString() };
+    body = (await res.json()) as WebRiskBody;
   } catch (err) {
+    // שגיאת סטטוס כבר דווחה ליומן בענף שלה - לא מדווחים פעמיים
+    if (err instanceof WebRiskHttpError) throw err;
     reportExternalCall({
       service: "webrisk", context: "uris_search", ok: false, durationMs: Date.now() - startedAt,
       payload: { url, error: err instanceof Error ? err.message : String(err) },
     });
-    return undefined;
+    // כשל רשת או timeout נזרק הלאה אל הערות האיסוף - לא נבלע יותר
+    throw err;
   }
+  reportExternalCall({
+    service: "webrisk", context: "uris_search", ok: true, durationMs: Date.now() - startedAt,
+    payload: { url, body },
+  });
+  // גוף ריק = לא נמצא ברשימה. נוכחות threat = נמצא
+  return { flagged: body.threat != null, checkedAt: now().toISOString() };
 }
