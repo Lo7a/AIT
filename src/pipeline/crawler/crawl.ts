@@ -58,6 +58,17 @@ function priorityOf(url: string): number {
   return PRIORITY_KEYWORDS.some((k) => lower.includes(k)) ? 0 : 1;
 }
 
+// עמודים שנמחקו לפח בוורדפרס נשארים נגישים תחת נתיב עם __trashed, ואתרים ממשיכים לקשר
+// אליהם (המקרה החי: jems.co.il קישר ל-branches/netanya-piano__trashed/). סריקתם מבזבזת מקום
+// סריקה ומנפחת את pagesCrawled שמזין את חוק multi_page (דורש 4+), ולכן הם לא נכנסים לתור כלל
+function isTrashedPath(url: string): boolean {
+  try {
+    return new URL(url).pathname.includes("__trashed");
+  } catch {
+    return false; // כתובת לא תקינה - לא מסננים כאן, היא תיפסל ממילא בשלב ה-fetch
+  }
+}
+
 interface FetchedPage {
   html: string;
   finalUrl: string;
@@ -177,6 +188,7 @@ export async function crawlWebsite(
 
   // מחשבים עדיפות פעם אחת לכל קישור; מיון יציב שומר סדר מקורי בתוך אותה עדיפות
   const queue = home.internalLinks
+    .filter((url) => !isTrashedPath(url))
     .map((url) => ({ url, priority: priorityOf(url) }))
     .sort((a, b) => a.priority - b.priority)
     .map((entry) => entry.url);

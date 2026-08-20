@@ -577,3 +577,31 @@ describe("short link resolution (20.8)", () => {
     expect(s.hasLinkShortener).toBe(true);
   });
 });
+
+// הכרעת מייסד 21.8: וורדפרס משאיר עמודים שנמחקו לפח נגישים תחת נתיב עם __trashed, ואתרים
+// ממשיכים לקשר אליהם. המקרה החי (jems.co.il): branches/netanya-piano__trashed/ בזבז אחד
+// משמונה מקומות סריקה, ה-bit.ly שבתוכו הדליק את דגל המקצרים, ו-pagesCrawled שמזין את
+// חוק multi_page (דורש 4+) נופח בעמוד רפאים
+describe("skipping WordPress __trashed paths (21.8)", () => {
+  it("a __trashed inner link is never fetched or counted; a normal link still is", async () => {
+    const home = `<html><body>
+      <a href="/branches/netanya-piano__trashed/">סניף ישן</a>
+      <a href="/contact">צור קשר</a>
+    </body></html>`;
+    // העמוד המחוק מכיל מקצר - בדיוק הצורה שהדליקה את הדגל אצל ג'מס; הוא לא אמור להיקרא בכלל
+    const trashed = `<html><body><a href="https://bit.ly/oldbranch">קישור ישן</a></body></html>`;
+    const fetchImpl = vi.fn(async (url: RequestInfo | URL) => {
+      const u = url.toString();
+      if (u.includes("__trashed")) return htmlResponse(trashed, u);
+      if (u.includes("/contact")) return htmlResponse(CONTACT, u);
+      return htmlResponse(home, u);
+    });
+    const signals = await crawl("https://jems.co.il/", { fetchImpl, maxPages: 8 });
+    expect(signals.pagesCrawled).toBe(2); // בית + צור קשר; העמוד המחוק לא נספר
+    expect(signals.crawledUrls.some((u) => u.includes("__trashed"))).toBe(false);
+    // לא רק שלא נספר - הבקשה עצמה מעולם לא נשלחה
+    expect(fetchImpl.mock.calls.some((c) => String(c[0]).includes("__trashed"))).toBe(false);
+    expect(signals.hasWhatsappLink).toBe(true); // הקישור הרגיל המשיך להיסרק
+    expect(signals.hasLinkShortener).toBe(false); // ה-bit.ly שבעמוד המחוק לא הדליק את הדגל
+  });
+});
