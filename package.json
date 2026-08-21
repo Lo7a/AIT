@@ -14,6 +14,10 @@
     "typecheck": "tsc --noEmit",
     "postinstall": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
+    "chat:read": "tsx scripts/agent-chat.ts read",
+    "chat:send": "tsx scripts/agent-chat.ts send",
+    "chat:update": "tsx scripts/agent-chat.ts update",
+    "chat:board": "tsx scripts/agent-chat.ts board",
     "db:cleanup": "tsx prisma/cleanup.ts",
     "dev": "next dev",
     "build": "next build",
@@ -30,6 +34,7 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22.5.0",
     "@types/react": "^19.2.18",
@@ -39,6 +44,7 @@
     "tailwindcss": "^4.3.3",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
-    "vitest": "^2.1.0"
+    "vitest": "^2.1.0",
+    "zod": "^4.4.3"
   }
 }

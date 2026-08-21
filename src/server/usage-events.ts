@@ -26,6 +26,9 @@ export const USAGE_EVENT_TYPES = [
   "settings_changed",
   // אדמין ערך את ספריית השירותים (20.8): metadata = {action, name/metric}; userId = האדמין
   "catalog_changed",
+  // מייסד שלח הודעה בערוץ הסוכנים (21.8): ההודעה נשמרת כ-author="founder" כדי שמייל אישי
+  // לא ייכנס לקוד, והאירוע הזה הוא שקושר אותה לחשבון ששלח; metadata = {messageId, thread}
+  "agent_message_sent",
 ] as const;
 
 export type UsageEventType = (typeof USAGE_EVENT_TYPES)[number];
