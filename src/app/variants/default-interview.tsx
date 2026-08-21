@@ -103,11 +103,20 @@ export function DefaultInterview({
   userEmail?: string | null;
 }) {
   const {
-    messages, busy, starting, finishing, input, freeText, visible, sections,
+    messages, busy, starting, finishing, input, freeText, freeTextIntent, visible, sections,
+    askedCount, maxQuestions,
     completenessPct, error, closed, canSend, canFinish, canSkip, canAnswer, canConfirmOptions,
     selectedOptions, customInputOpen,
     send, skip, finish, selectOption, confirmOptions, toggleOption, openCustomInput, setInput, setFreeText,
   } = useInterviewChat(diagnosisId, initial);
+
+  // המונה מוצג רק על שאלה חיה. askedCount סופר את מה שכבר נשאל, ולכן הנוכחית היא הבאה
+  // בתור; "לכל היותר" כי ראיון יכול להסתיים מוקדם כשכל הסקציות כוסו - הבטחת מספר מדויק
+  // הייתה נשברת בדיוק אצל מי שענה הכי טוב
+  const counterLine = `שאלה ${askedCount + 1} מתוך ${maxQuestions} לכל היותר`;
+  // כל השאלות מוצו בלי שהמשתמש בחר בעצמו כתיבה חופשית - זה סיום, לא עוד תיבת טקסט
+  // (דיווח מסמך ההמרה 20.8: מי שסיים 13 תשובות קיבל תיבה ריקה בלי הסבר)
+  const questionsDone = visible == null && !freeTextIntent && askedCount > 0;
 
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -261,31 +270,46 @@ export function DefaultInterview({
           {freeText ? (
             <div className="shell">
               <div className="core card-pad">
-                <p className="text-[16.5px] font-bold leading-snug tracking-[-.01em]">ספרו לי על העסק במילים שלכם</p>
-                {visible == null && (
-                  <p className="mt-1 text-[12.5px] text-[color:var(--mut)]">אפשר להמשיך בכתיבה חופשית או לסיים</p>
+                {questionsDone ? (
+                  <>
+                    <p className="text-[16.5px] font-bold leading-snug tracking-[-.01em]">עברנו על כל השאלות - תודה!</p>
+                    <p className="mt-1 text-[12.5px] leading-relaxed text-[color:var(--mut)]">
+                      כל תשובה כבר עדכנה את הדוח. אפשר להוסיף פרטים בכתיבה חופשית למטה, או לעבור אליו.
+                    </p>
+                    <div className="mt-4">
+                      <button type="button" className="btn sm" disabled={!canFinish} onClick={() => void finish()}>
+                        לדוח המעודכן
+                        <CapArrow />
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[16.5px] font-bold leading-snug tracking-[-.01em]">ספרו לי על העסק במילים שלכם</p>
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                      {visible != null && (
+                        <button
+                          type="button"
+                          className="btn-quiet"
+                          disabled={!canSkip}
+                          onClick={() => handleSetFreeText(false)}
+                        >
+                          חזרה לשאלות
+                        </button>
+                      )}
+                      <button type="button" className={GHOST_BTN} disabled={!canFinish} onClick={() => void finish()}>
+                        סיום הראיון
+                      </button>
+                    </div>
+                  </>
                 )}
-                <div className="mt-4 flex flex-wrap items-center gap-3">
-                  {visible != null && (
-                    <button
-                      type="button"
-                      className="btn-quiet"
-                      disabled={!canSkip}
-                      onClick={() => handleSetFreeText(false)}
-                    >
-                      חזרה לשאלות
-                    </button>
-                  )}
-                  <button type="button" className={GHOST_BTN} disabled={!canFinish} onClick={() => void finish()}>
-                    סיום הראיון
-                  </button>
-                </div>
               </div>
             </div>
           ) : showChips && visible?.options ? (
             <div className="shell">
               <div className="core card-pad">
-                <p id={promptId} className="text-[16.5px] font-bold leading-snug tracking-[-.01em]">{visible.text}</p>
+                <p className="text-[10.5px] font-bold tracking-[.14em] text-[color:var(--dim)]">{counterLine}</p>
+                <p id={promptId} className="mt-1.5 text-[16.5px] font-bold leading-snug tracking-[-.01em]">{visible.text}</p>
                 {/* תיבת התשובות המשותפת (ui/answer-options.tsx) - אותה תיבה משרתת גם את
                     ההדגמה בדף הנחיתה. key על מפתח השאלה: תיבה חדשה לכל שאלה, אחרת סימון
                     ה"נבחר" של התשובה הקודמת נגרר לשאלה הבאה */}
@@ -336,7 +360,8 @@ export function DefaultInterview({
             visible && (
               <div className="shell">
                 <div className="core card-pad">
-                  <p className="text-[16.5px] font-bold leading-snug tracking-[-.01em]">{visible.text}</p>
+                  <p className="text-[10.5px] font-bold tracking-[.14em] text-[color:var(--dim)]">{counterLine}</p>
+                  <p className="mt-1.5 text-[16.5px] font-bold leading-snug tracking-[-.01em]">{visible.text}</p>
                   {visible.options != null && customInputOpen && (
                     <p className="mt-1 text-[12.5px] text-[color:var(--mut)]">אפשר לכתוב את התשובה למטה</p>
                   )}

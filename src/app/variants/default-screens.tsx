@@ -645,27 +645,13 @@ export function DefaultReport({
             </div>
           </section>
 
-          {dimensions.length > 0 && (
-            <section className="shell rv d2">
-              <div className="core">
-                <h2 className="side-h4">ציון לפי תחומים</h2>
-                {dimensions.map((d) => (
-                  <div key={d.key} className="dim-row">
-                    <span className="lb">{d.label}</span>
-                    {/* ממד בלי ציון לא מקבל פס בכלל: פס באורך אפס נקרא כמו "קיבל אפס"
-                        ולא כמו "אין מידע". הגריד מקפל את שורת הפס כשאין פס (globals.css) */}
-                    {d.score != null && <FillBar percent={d.score} />}
-                    <span className={d.score == null ? "sc na" : "sc num"}>{d.score ?? "לא נבדק"}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+          {/* חמשת הממדים הוצגו כאן פעם שנייה, זהים לפירוט הציון בעמודה הראשית - במובייל
+              שני הבלוקים נערמו ברצף ונראו כמו באג. הכפל ירד (מסמך ההמרה 20.8 + ספירת 21.8);
+              העותק שנשאר הוא "פירוט הציון", שנושא גם את מצב הנתונים ואת ההסברים */}
 
           {hasPlan && (
-            <section className="shell rv d3">
+            <section className="shell rv d2">
               <div className="core flex flex-col gap-3">
-                <span className="live-tag"><span className="dot" />הדוח חי</span>
                 <div className="flex items-baseline justify-between gap-3">
                   <b className="text-[15px] font-bold">שלמות האבחון</b>
                   <span className="num text-2xl font-extrabold tracking-tight" style={{ color: "var(--acc-soft)" }}>
@@ -824,19 +810,53 @@ export function DefaultReport({
             </div>
           )}
 
-          {/* דלת התוכנית: קישור פעיל לכל סטטוס שממנו מותר לבנות/לצפות ב-Roadmap
-              (report_ready/interviewing/roadmap_ready - ראו status.ts). כשכבר יש Roadmap קיים
-              (roadmap_ready) הניסוח משתנה כדי לא להטעות כאילו זו הפעלה ראשונה */}
+          {/* דלת התוכנית נבנתה מחדש (מסמך ההמרה 20.8): "דלג ל-Roadmap" היה מילה באנגלית
+              שסותרת את ההמלצה על הראיון לידה, בלי להגיד מה מקבלים. עכשיו הבלוק אומר מה
+              הצעד הנכון לפי מצב האבחון - וכשהוא ממליץ על הראיון, הדלת לתוכנית נשארת
+              פתוחה כקישור משני, בלי המילה "דלג". אין כאן אף מספר מומצא: הנימוק מגיע
+              מ-recommendNextStep שמסתכל על הקרדיטים בפועל */}
           {hasPlan && (
             <section id="plan" data-anchor className="shell rv d6">
-              <div className="core card-pad flex flex-wrap items-center justify-between gap-6" style={PLAN_WASH_STYLE}>
+              <div className="core card-pad" style={PLAN_WASH_STYLE}>
                 <div className="text-[11px] font-bold tracking-[.18em]" style={{ color: "var(--acc-soft)" }}>
-                  תוכנית העבודה
+                  הצעד הבא
                 </div>
-                <Link href={`/roadmap/${report.id}`} className="btn-invert">
-                  {report.status === "roadmap_ready" ? "לצפייה ב-Roadmap" : "דלג ל-Roadmap"}
-                  <span className="cap"><CapArrow size={14} /></span>
-                </Link>
+                {report.status === "roadmap_ready" ? (
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-5">
+                    <p className="text-sm leading-relaxed" style={{ color: "var(--mut)" }}>
+                      תוכנית העבודה כבר בנויה, וכל תשובה נוספת בראיון מעדכנת אותה.
+                    </p>
+                    <Link href={`/roadmap/${report.id}`} className="btn-invert">
+                      לצפייה בתוכנית העבודה
+                      <span className="cap"><CapArrow size={14} /></span>
+                    </Link>
+                  </div>
+                ) : model.completenessPct >= 100 ? (
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-5">
+                    <p className="text-sm leading-relaxed" style={{ color: "var(--mut)" }}>
+                      הראיון הושלם, והתוכנית תיבנה על התמונה המלאה.
+                    </p>
+                    <Link href={`/roadmap/${report.id}`} className="btn-invert">
+                      לבניית תוכנית העבודה
+                      <span className="cap"><CapArrow size={14} /></span>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-5">
+                    <p className="max-w-[52ch] text-sm leading-relaxed" style={{ color: "var(--mut)" }}>
+                      {nextStep.reason}
+                    </p>
+                    <span className="flex flex-wrap items-center gap-4">
+                      <Link href={`/interview/${report.id}`} className="btn-invert">
+                        להמשך הראיון
+                        <span className="cap"><CapArrow size={14} /></span>
+                      </Link>
+                      <Link href={`/roadmap/${report.id}`} className="ghost-act">
+                        לבנות את התוכנית עם מה שיש
+                      </Link>
+                    </span>
+                  </div>
+                )}
               </div>
             </section>
           )}
