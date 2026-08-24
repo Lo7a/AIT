@@ -83,7 +83,8 @@ export default async function AdminTasksPage({
               </span>
             </div>
 
-            {/* שורה זורמת אחת לכל הקטגוריות (תיקון מייסד 21.8) - נשברת רק כשנגמר המקום */}
+            {/* שתי שורות (הכרעת מייסד 21.8, אחרי ניסיון של שורה אחת): מצב המשימה למעלה,
+                זהות ומיון למטה - מאוזן יותר לעין */}
             <div className="fchips">
               <span className="fchips-cap">סטטוס</span>
               {TASK_STATUSES.map((s) => (
@@ -99,6 +100,8 @@ export default async function AdminTasksPage({
                   <span>{TASK_PRIORITY_LABEL_HE[p]}</span>
                 </label>
               ))}
+            </div>
+            <div className="fchips">
               <span className="fchips-cap">סוג</span>
               {TASK_TYPES.map((t) => (
                 <label key={t} className="fchip">
