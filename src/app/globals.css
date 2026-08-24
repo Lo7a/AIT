@@ -1543,12 +1543,21 @@ button.ans-row:not(:disabled):active{background:rgba(var(--acc-rgb),.16)}
 }
 .tile-link:hover{border-color:rgba(var(--acc-rgb),.4);transform:translateY(-2px)}
 
-/* --- אקורדיון לוח המשימות (21.8): details נייטיבי, שורה = summary --- */
-.acc-row{border-top:1px solid var(--row-line)}
+/* --- אקורדיון לוח המשימות (21.8): details נייטיבי, שורה = summary ---
+   שורת הסיכום היא גריד עם עמודות קבועות (תיקון מייסד 21.8: הצ'יפים צפו בלי יישור,
+   וכל שורה נשברה אחרת) - אותה תבנית משמשת גם את שורת הכותרות, כדי שלא יזוזו זו מזו */
+.acc-grid{
+  display:grid;align-items:center;gap:10px;
+  grid-template-columns:18px 40px minmax(0,1fr) 64px 74px 84px 118px;
+}
+.acc-head{
+  padding:8px 6px 6px;font-size:10.5px;font-weight:700;letter-spacing:.12em;
+  color:var(--dim);border-bottom:1px solid var(--hair-soft);
+}
 .acc-row:first-of-type{border-top:none}
+.acc-row{border-top:1px solid var(--row-line)}
 .acc-row>summary{
-  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
-  padding:12px 6px;cursor:pointer;list-style:none;
+  padding:11px 6px;cursor:pointer;list-style:none;
   transition:background .2s;
 }
 .acc-row>summary::-webkit-details-marker{display:none}
@@ -1559,4 +1568,9 @@ button.ans-row:not(:disabled):active{background:rgba(var(--acc-rgb),.16)}
 .acc-row[open]>summary .acc-arrow{transform:rotate(90deg)}
 .acc-row[open]>summary{background:rgba(var(--acc-rgb),.06)}
 .acc-row .acc-body{padding:4px 30px 16px}
-@media (max-width:640px){.acc-row .acc-body{padding-inline:10px}}
+/* במסך צר הגריד מוותר על העמודות: הכותרות מוסתרות והשורה נשברת בזרימה */
+@media (max-width:760px){
+  .acc-head{display:none}
+  .acc-grid{display:flex;flex-wrap:wrap;gap:8px}
+  .acc-row .acc-body{padding-inline:10px}
+}

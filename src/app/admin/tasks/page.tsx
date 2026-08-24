@@ -121,26 +121,48 @@ export default async function AdminTasksPage({
             </p>
           ) : (
             <div>
+              {/* שורת הכותרות והשורות חולקות את אותו גריד - העמודות לא יכולות לזוז זו מזו */}
+              <div className="acc-grid acc-head" aria-hidden="true">
+                <span />
+                <span>#</span>
+                <span>משימה</span>
+                <span>סוג</span>
+                <span>עדיפות</span>
+                <span>סטטוס</span>
+                <span>אחראי</span>
+              </div>
               {tasks.map((t) => (
                 <details key={t.id} className="acc-row">
-                  <summary>
+                  <summary className="acc-grid">
                     <span className="acc-arrow" aria-hidden="true">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M14 6l-6 6 6 6" />
                       </svg>
                     </span>
-                    <span className="num text-xs" style={{ color: "var(--dim)" }}>#{t.num}</span>
-                    <span className="min-w-0 flex-1 text-sm font-bold">
+                    <span className="num text-xs" style={{ color: "var(--dim)" }}>{t.num}</span>
+                    <span className="min-w-0 text-sm font-bold">
                       {t.title}
                       {t.blockedOn != null && (
                         <span className="block text-xs font-normal" style={{ color: "var(--warn)" }}>חסום על: {t.blockedOn}</span>
                       )}
                     </span>
                     <span className="text-xs" style={{ color: "var(--mut)" }}>{TASK_TYPE_LABEL_HE[t.type as TaskType] ?? t.type}</span>
-                    <PriorityChip priority={t.priority} />
-                    <StatusChip status={t.status} />
-                    <span className="text-xs" style={{ color: "var(--mut)" }}>
-                      {t.assignee != null ? ASSIGNEE_LABEL_HE[t.assignee] ?? t.assignee : ""}
+                    {/* צ'יפ צבעוני רק כשיש מה להדגיש - רגיל/בהמשך ופתוח הם טקסט שקט,
+                        אחרת כל הלוח צועק והצבע מאבד את המשמעות שלו */}
+                    <span>
+                      {t.priority <= 1 ? <PriorityChip priority={t.priority} /> : (
+                        <span className="text-xs" style={{ color: "var(--dim)" }}>{TASK_PRIORITY_LABEL_HE[t.priority]}</span>
+                      )}
+                    </span>
+                    <span>
+                      {t.status === "open" ? (
+                        <span className="text-xs" style={{ color: "var(--mut)" }}>פתוח</span>
+                      ) : (
+                        <StatusChip status={t.status} />
+                      )}
+                    </span>
+                    <span className="truncate text-xs" style={{ color: "var(--mut)" }}>
+                      {t.assignee != null ? ASSIGNEE_LABEL_HE[t.assignee] ?? t.assignee : "-"}
                     </span>
                   </summary>
                   <TaskPanel task={t} events={eventsByTask.get(t.id) ?? []} />
