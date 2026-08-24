@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { scoreTone, type ScoreToneKind } from "../../pipeline/report/presenter";
+
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { RAIL_COOKIE } from "../rail";
@@ -129,13 +129,13 @@ export const ADMIN_ITEMS: { key: ShellNavKey; href: string }[] = [
   { key: "admin_agents", href: "/admin/agents" },
 ];
 
-// צבע נקודת הציון לפי אותה שפת תקין/חלש/חסר של שאר המערכת (presenter.scoreTone)
-const SCORE_DOT_COLOR: Record<ScoreToneKind, string> = {
-  good: "var(--acc2-soft)",
-  mid: "var(--warn)",
-  low: "var(--bad)",
-  unknown: "var(--dim)",
-};
+// ראשי תיבות לאווטאר זהות: אות ראשונה משתי המילים הראשונות, או שתי הראשונות בשם קצר.
+// יוצא מכאן ולא מ-default-screens כדי שרשימת האבחונים ועוגן הסיידבר יגזרו מאותה פונקציה
+export function initialsOf(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return `${words[0][0]}${words[1][0]}`;
+  return name.trim().slice(0, 2);
+}
 
 export function AppShell({
   active, diagnosisId, userLabel, badge, business, section = "business", isAdmin = false, children,
@@ -148,10 +148,9 @@ export function AppShell({
   userLabel?: string | null;
   // מונה קטן ליד "הראיון" (שאלות פתוחות) - אופציונלי
   badge?: number;
-  // עוגן העסק (משימה 19, בקשת אלעד 24.8): שם העסק והציון נשארים על המסך בכל מעבר בין
-  // העמודים. קודם הם ישבו בכרטיסייה בעמודה הימנית של הדוח בלבד, ונעלמו במעבר לראיון
-  // או לתוכנית העבודה. score=null הוא מצב לגיטימי (אבחון בלי ציון), לא שגיאה
-  business?: { name: string; score: number | null };
+  // עוגן העסק (משימה 19, בקשת אלעד 24.8): איזה עסק נמצא על המסך, בכל מעבר בין העמודים.
+  // בלי ציון - הוא כבר מוצג בטבעת בראש הדוח (משוב 24.8). subtitle ריק => "העסק שנבדק"
+  business?: { name: string; subtitle?: string };
   section?: ShellSection;
   // מציג את הכניסה ל"ניהול" בתחתית הסיידבר. רק אדמין - למשתמש רגיל הקישור לא קיים כלל
   // ולא רק מוסתר, כי הסיידבר מרונדר בצד השרת עם הערך הזה
@@ -211,18 +210,15 @@ export function AppShell({
           </span>
         </div>
 
-        {/* עוגן העסק: מספר ונקודת צבע ולא טבעת. טבעת בסיידבר מושכת את העין מהניווט,
-            והציון כבר מוצג בגדול בראש הדוח - כאן תפקידו להזכיר "על איזה עסק אני מסתכל"
-            ובכמה הוא עומד. במצב מכווץ נשארת הנקודה והמספר בלבד (globals) */}
+        {/* עוגן העסק: זהות בלבד. הציון הוסר במשוב אלעד 24.8 - הוא כבר יושב בטבעת
+            הגדולה בראש הדוח, ואותו מספר פעמיים על אותו מסך הוא רעש. מה שכן חסר כאן
+            הוא הפנקס (מה חסר לאבחון), והוא ייכנס לכאן כשיהיה - זה המקום שרואים בכל מסך */}
         {section === "business" && business != null && diagnosisId != null && (
           <Link href={`/report/${diagnosisId}`} className="biz-anchor" title={business.name}>
-            <span className="biz-score" style={{ color: SCORE_DOT_COLOR[scoreTone(business.score)] }}>
-              <span className="biz-dot" aria-hidden="true" />
-              <span className="num">{business.score ?? "--"}</span>
-            </span>
+            <span className="biz-mark" aria-hidden="true">{initialsOf(business.name)}</span>
             <span className="biz-who">
               <b>{business.name}</b>
-              <i>{business.score != null ? "ציון מתוך 100" : "אין ציון עדיין"}</i>
+              <i>{business.subtitle ?? "העסק שנבדק"}</i>
             </span>
           </Link>
         )}

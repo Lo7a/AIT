@@ -292,7 +292,7 @@ export function DefaultRoadmap({
       diagnosisId={report.id}
       userLabel={userEmail}
       isAdmin={isAdmin}
-      business={{ name: report.business.name, score: scores.overall }}
+      business={{ name: report.business.name, subtitle: report.business.city ?? undefined }}
     >
       {/* שורת הזהות, זהה לדוח ולראיון: על איזה עסק מדובר. הכותרת "תוכנית העבודה" למטה
           אומרת מה זה, ולא למי - וכשיש כמה אבחונים זו בדיוק השאלה (דיווח מייסד 20.8) */}

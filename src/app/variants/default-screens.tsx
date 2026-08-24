@@ -15,7 +15,7 @@ import type { QuickWin } from "../../pipeline/roadmap/quick-wins";
 import type { Insight } from "../../pipeline/roadmap/insights";
 import { healthFacts } from "../../pipeline/report/health-facts";
 import type { HealthSignals } from "../../pipeline/types";
-import { AppShell } from "../ui/app-shell";
+import { AppShell, initialsOf } from "../ui/app-shell";
 import { AnchorNav, type AnchorItem } from "../ui/anchor-nav";
 import { ImpersonateSearch } from "../ui/impersonate-search";
 import { UserMenu } from "../ui/user-menu";
@@ -63,13 +63,6 @@ function CapArrow({ size = 13 }: { size?: number }) {
       <path d="M19 12H5" /><path d="m12 19-7-7 7-7" />
     </svg>
   );
-}
-
-// ראשי תיבות לאווטאר שורת עסק: אות ראשונה משתי המילים הראשונות, או שתי הראשונות בשם קצר
-function initialsOf(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (words.length >= 2) return `${words[0][0]}${words[1][0]}`;
-  return name.trim().slice(0, 2);
 }
 
 export function DefaultHome({
@@ -576,7 +569,7 @@ export function DefaultReport({
       diagnosisId={report.id}
       userLabel={userEmail}
       isAdmin={isAdmin}
-      business={{ name: business.name, score: overall }}
+      business={{ name: business.name, subtitle: business.city ?? undefined }}
     >
       <header className="topbar">
         <span className="brand-txt"><small>הדוח המלא</small><b>{business.name}</b></span>
