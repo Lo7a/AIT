@@ -29,6 +29,9 @@ export const USAGE_EVENT_TYPES = [
   // מייסד שלח הודעה בערוץ הסוכנים (21.8): ההודעה נשמרת כ-author="founder" כדי שמייל אישי
   // לא ייכנס לקוד, והאירוע הזה הוא שקושר אותה לחשבון ששלח; metadata = {messageId, thread}
   "agent_message_sent",
+  // מייסד יצר או ערך משימה בלוח המשימות מהמסך (21.8): metadata = {num, action}; ההיסטוריה
+  // המלאה של השינוי עצמו יושבת ב-task_events, האירוע כאן קושר את החשבון
+  "task_changed",
 ] as const;
 
 export type UsageEventType = (typeof USAGE_EVENT_TYPES)[number];

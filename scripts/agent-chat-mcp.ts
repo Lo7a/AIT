@@ -6,6 +6,12 @@ import {
   CHAT_TIME_FMT as FMT, authorLabel as label, requireAgentName as me,
   MAX_BODY_CHARS, MAX_FIELD_CHARS, listBoard, readInbox, sendMessage, setStatus,
 } from "../src/server/agent-chat";
+import {
+  TASK_TYPES, TASK_STATUSES, TASK_ASSIGNEES, TASK_TYPE_LABEL_HE, TASK_STATUS_LABEL_HE,
+  TASK_PRIORITY_LABEL_HE, ASSIGNEE_LABEL_HE, MAX_TITLE_CHARS, MAX_DETAILS_CHARS,
+  listTasks, createTask, updateTask,
+  type TaskRow, type TaskType, type TaskStatus, type TaskAssignee,
+} from "../src/server/tasks";
 
 // שרת MCP מקומי לערוץ הסוכנים - אותן ארבע פעולות של scripts/agent-chat.ts, חשופות
 // ככלים כדי ששני הקלודים יראו אותן בכל סשן וישתמשו בהן בטבעיות. רץ stdio מקומית על
@@ -79,6 +85,69 @@ server.tool(
   async ({ task, areas, commit, blockedOn }) => {
     await setStatus(prisma, me(), { task, areas, commit, blockedOn });
     return asText("הלוח עודכן.");
+  },
+);
+
+// --- לוח המשימות (הכרעת מייסד 21.8) ---
+
+function taskLine(t: TaskRow): string {
+  const parts = [
+    `#${t.num}`,
+    `[${TASK_TYPE_LABEL_HE[t.type as TaskType] ?? t.type}]`,
+    t.title,
+    `(${TASK_STATUS_LABEL_HE[t.status as TaskStatus] ?? t.status} · ${TASK_PRIORITY_LABEL_HE[t.priority] ?? t.priority})`,
+  ];
+  if (t.assignee) parts.push(`אצל ${ASSIGNEE_LABEL_HE[t.assignee] ?? t.assignee}`);
+  if (t.blockedOn) parts.push(`| חסום על: ${t.blockedOn}`);
+  return parts.join(" ");
+}
+
+server.tool(
+  "task_list",
+  "לוח המשימות: מה פתוח ומה בוער, ממוין עדיפות. ברירת המחדל מסתירה משימות שנסגרו. לבדוק לפני שמתחילים עבודה חדשה - ראש הלוח הוא התור.",
+  {
+    status: z.enum(TASK_STATUSES).optional().describe("סינון סטטוס; בלעדיו מוצג כל מה שלא נסגר"),
+    type: z.enum(TASK_TYPES).optional(),
+    assignee: z.enum(TASK_ASSIGNEES).optional(),
+    q: z.string().max(120).optional().describe("חיפוש בכותרת ובתיאור"),
+  },
+  async ({ status, type, assignee, q }) => {
+    const tasks = await listTasks(prisma, { status, type, assignee, q });
+    if (tasks.length === 0) return asText("אין משימות שמתאימות לסינון.");
+    return asText(tasks.map(taskLine).join("\n"));
+  },
+);
+
+server.tool(
+  "task_create",
+  "פותח משימה חדשה בלוח (באג, פיצ'ר, משימה או רעיון). לפתוח כשמתגלה עבודה שלא מתועדת בלוח - במקום לתת לה ללכת לאיבוד בצ'אט.",
+  {
+    title: z.string().min(1).max(MAX_TITLE_CHARS).describe("כותרת קצרה בעברית"),
+    type: z.enum(TASK_TYPES),
+    details: z.string().max(MAX_DETAILS_CHARS).optional(),
+    priority: z.number().int().min(0).max(3).optional().describe("0 בוער · 1 חשוב · 2 רגיל (ברירת מחדל) · 3 בהמשך"),
+    assignee: z.enum(TASK_ASSIGNEES).optional(),
+  },
+  async ({ title, type, details, priority, assignee }) => {
+    const t = await createTask(prisma, me(), { title, type, details, priority, assignee });
+    return asText(`נפתחה משימה #${t.num}: ${t.title}`);
+  },
+);
+
+server.tool(
+  "task_update",
+  "מעדכן משימה לפי המספר שלה: סטטוס, עדיפות, אחראי, חסימה, או הצמדת קומיט. מתחיל לעבוד על משימה = בעבודה + השם שלך; סוגר = הושלם + הקומיט. כל שינוי נרשם עם מי-ממה-למה.",
+  {
+    num: z.number().int().min(1).describe("מספר המשימה (#)"),
+    status: z.enum(TASK_STATUSES).optional(),
+    priority: z.number().int().min(0).max(3).optional(),
+    assignee: z.enum(TASK_ASSIGNEES).optional(),
+    blockedOn: z.string().max(300).optional().describe("על מה חסום; מחרוזת ריקה מנקה"),
+    addCommit: z.string().regex(/^[0-9a-f]{7,40}$/i).optional().describe("hash של קומיט שקשור למשימה"),
+  },
+  async ({ num, status, priority, assignee, blockedOn, addCommit }) => {
+    const t = await updateTask(prisma, me(), num, { status, priority, assignee, blockedOn, addCommit });
+    return asText(`עודכנה #${t.num}: ${taskLine(t)}`);
   },
 );
 

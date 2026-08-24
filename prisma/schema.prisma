@@ -290,3 +290,42 @@ model AgentMessage {
   @@index([createdAt])
   @@map("agent_messages")
 }
+
+// לוח המשימות (הכרעת מייסד 21.8): באגים, פיצ'רים, משימות ורעיונות - במקום אחד, עם
+// עדיפות, סטטוס ואחראי. הסוכנים מעדכנים דרך ה-MCP והסקריפטים, המייסדים מהמסך בניהול.
+// num הוא המזהה האנושי ("משימה 14") - uuid לא נועד להיאמר בקול או להיכתב בקומיט
+model Task {
+  id        String      @id @default(uuid()) @db.Uuid
+  num       Int         @unique @default(autoincrement())
+  title     String
+  details   String      @default("")
+  type      String // bug | feature | task | idea
+  status    String      @default("open") // open | in_progress | blocked | done | dropped
+  priority  Int         @default(2) // 0 בוער · 1 חשוב · 2 רגיל · 3 בהמשך
+  assignee  String? // lahav-claude | elad-claude | lahav | elad
+  blockedOn String?     @map("blocked_on")
+  commits   String[]    @default([]) // הקומיטים שקשורים למשימה - נצמדים בעדכון ובסגירה
+  createdBy String      @map("created_by")
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+  events    TaskEvent[]
+
+  @@index([status, priority])
+  @@map("tasks")
+}
+
+// מי שינה מה ומתי - עונה על "מי עשה את השינוי" בלי לגעת ב-usage_events (שם נרשם בנוסף
+// איזה חשבון מייסד ביצע עריכות מהמסך, באותה תבנית כמו הודעות הערוץ)
+model TaskEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  taskId    String   @map("task_id") @db.Uuid
+  task      Task     @relation(fields: [taskId], references: [id])
+  author    String // lahav-claude | elad-claude | founder
+  field     String // created | status | priority | assignee | blockedOn | commits | title | details | type
+  fromValue String?  @map("from_value")
+  toValue   String?  @map("to_value")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([taskId, createdAt])
+  @@map("task_events")
+}

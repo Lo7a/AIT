@@ -19,7 +19,7 @@ const RAIL_MAX_AGE = 31536000;
 export type ShellNavKey =
   | "home" | "report" | "interview" | "roadmap"
   | "admin" | "admin_catalog" | "admin_businesses" | "admin_users" | "admin_diagnoses" | "admin_usage" | "admin_activity"
-  | "admin_agents";
+  | "admin_agents" | "admin_tasks";
 
 export type ShellSection = "business" | "admin";
 
@@ -91,6 +91,11 @@ const NAV_ICONS: Record<ShellNavKey, ReactNode> = {
       <path d="M4 5.5h11v8H8l-4 3.5z" /><path d="M20 10.5v8l-3-2.5h-5" />
     </svg>
   ),
+  admin_tasks: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 6.5h2.2M4 12h2.2M4 17.5h2.2" /><path d="M9.5 6.5H20M9.5 12H20M9.5 17.5H20" />
+    </svg>
+  ),
 };
 
 export const NAV_LABEL: Record<ShellNavKey, string> = {
@@ -106,6 +111,7 @@ export const NAV_LABEL: Record<ShellNavKey, string> = {
   admin_usage: "שימוש ומגבלות",
   admin_activity: "יומן",
   admin_agents: "ערוץ הסוכנים",
+  admin_tasks: "לוח המשימות",
 };
 
 // מסכי הניהול. הסדר הוא סדר העבודה: מה קורה עכשיו, מי המשתמשים, מה נסרק, כמה זה עולה,
@@ -118,6 +124,7 @@ export const ADMIN_ITEMS: { key: ShellNavKey; href: string }[] = [
   { key: "admin_diagnoses", href: "/admin/diagnoses" },
   { key: "admin_usage", href: "/admin/usage" },
   { key: "admin_activity", href: "/admin/activity" },
+  { key: "admin_tasks", href: "/admin/tasks" },
   { key: "admin_agents", href: "/admin/agents" },
 ];
 

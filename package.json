@@ -18,6 +18,7 @@
     "chat:send": "tsx scripts/agent-chat.ts send",
     "chat:update": "tsx scripts/agent-chat.ts update",
     "chat:board": "tsx scripts/agent-chat.ts board",
+    "tasks": "tsx scripts/agent-tasks.ts",
     "db:cleanup": "tsx prisma/cleanup.ts",
     "dev": "next dev",
     "build": "next build",
