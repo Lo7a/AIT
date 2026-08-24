@@ -62,6 +62,14 @@ export interface TaskRow {
   updatedAt: Date;
 }
 
+export const TASK_SORTS = ["priority", "newest", "oldest"] as const;
+export type TaskSort = (typeof TASK_SORTS)[number];
+export const TASK_SORT_LABEL_HE: Record<TaskSort, string> = {
+  priority: "לפי עדיפות", newest: "מהחדש לישן", oldest: "מהישן לחדש",
+};
+export const isTaskSort = (v: unknown): v is TaskSort =>
+  typeof v === "string" && (TASK_SORTS as readonly string[]).includes(v);
+
 export interface TaskListFilter {
   /** כל מסנן הוא רשימה - סינון מרובה (צ'קבוקסים במסך, 21.8). רשימה ריקה = בלי סינון */
   statuses?: TaskStatus[];
@@ -69,9 +77,16 @@ export interface TaskListFilter {
   assignees?: TaskAssignee[];
   priorities?: number[];
   q?: string;
+  /** ברירת המחדל: עדיפות ואז ותק - ראש הלוח הוא תור העבודה */
+  sort?: TaskSort;
 }
 
-const TASK_ORDER = [{ priority: "asc" }, { createdAt: "asc" }] as const;
+type TaskOrder = ({ priority: "asc" } | { createdAt: "asc" | "desc" })[];
+function taskOrder(sort: TaskSort = "priority"): TaskOrder {
+  if (sort === "newest") return [{ createdAt: "desc" }];
+  if (sort === "oldest") return [{ createdAt: "asc" }];
+  return [{ priority: "asc" }, { createdAt: "asc" }];
+}
 
 function taskWhere(f: TaskListFilter): Record<string, unknown> {
   const where: Record<string, unknown> = {};
@@ -92,7 +107,7 @@ function taskWhere(f: TaskListFilter): Record<string, unknown> {
 /** הפתוח והבוער קודם. בלי סינון סטטוס מוצג רק מה שלא נסגר - הלוח הוא "מה עכשיו",
  *  לא ארכיון; מי שרוצה את הסגורות מסמן אותן במפורש. בלי עימוד - זה הכלי של הסוכנים */
 export async function listTasks(prisma: PrismaClient, f: TaskListFilter = {}): Promise<TaskRow[]> {
-  return prisma.task.findMany({ where: taskWhere(f), orderBy: [...TASK_ORDER] });
+  return prisma.task.findMany({ where: taskWhere(f), orderBy: taskOrder(f.sort) });
 }
 
 export const TASKS_PER_PAGE = 10;
@@ -107,7 +122,7 @@ export async function listTasksPaged(
   const where = taskWhere(f);
   const [total, rows] = await Promise.all([
     prisma.task.count({ where }),
-    prisma.task.findMany({ where, orderBy: [...TASK_ORDER], skip: w.skip, take: w.take }),
+    prisma.task.findMany({ where, orderBy: taskOrder(f.sort), skip: w.skip, take: w.take }),
   ]);
   return paged(rows, total, w);
 }

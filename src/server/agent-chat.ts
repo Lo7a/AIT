@@ -2,6 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import { isAdmin } from "./auth/guard";
 import type { SessionUser } from "./auth/session";
 import { normalizeTypography } from "../pipeline/interview/extract";
+import { pageWindow, paged, type Paged } from "./paging";
 
 // ערוץ הסוכנים (הכרעת מייסד 21.8): לוח מצב ותיבת הודעות בין הקלוד של להב לקלוד של אלעד,
 // על המסד המשותף - הריפו ציבורי ושיח פנימי לא עובר בו.
@@ -86,6 +87,31 @@ export interface AgentMessageRow {
 export interface Board {
   statuses: AgentStatusRow[];
   messages: AgentMessageRow[];
+}
+
+export const MESSAGES_PER_PAGE = 20;
+
+export interface MessageListFilter {
+  /** סינון לפי כותבים (צ'קבוקסים במסך הניהול, 21.8). רשימה ריקה = כולם */
+  authors?: AuthorName[];
+  q?: string;
+}
+
+/** ההודעות בעמודים של 20, חדשות קודם - למסך הניהול. הסוכנים ממשיכים עם readInbox */
+export async function listMessagesPaged(
+  prisma: PrismaClient,
+  f: MessageListFilter,
+  page: number,
+): Promise<Paged<AgentMessageRow>> {
+  const where: Record<string, unknown> = {};
+  if (f.authors != null && f.authors.length > 0) where.author = { in: f.authors };
+  if (f.q) where.body = { contains: f.q, mode: "insensitive" };
+  const w = pageWindow({ page }, MESSAGES_PER_PAGE);
+  const [total, rows] = await Promise.all([
+    prisma.agentMessage.count({ where }),
+    prisma.agentMessage.findMany({ where, orderBy: { createdAt: "desc" }, skip: w.skip, take: w.take }),
+  ]);
+  return paged(rows, total, w);
 }
 
 /** הלוח המלא: מצב שני הסוכנים + ההודעות האחרונות, חדשות קודם */

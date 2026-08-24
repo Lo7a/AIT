@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { prisma } from "../../../server/db";
 import {
-  listTasksPaged, TASK_TYPES, TASK_STATUSES, TASK_ASSIGNEES,
-  TASK_TYPE_LABEL_HE, TASK_STATUS_LABEL_HE, TASK_PRIORITY_LABEL_HE, ASSIGNEE_LABEL_HE,
-  isTaskType, isTaskStatus, isTaskAssignee,
+  listTasksPaged, TASK_TYPES, TASK_STATUSES, TASK_ASSIGNEES, TASK_SORTS,
+  TASK_TYPE_LABEL_HE, TASK_STATUS_LABEL_HE, TASK_PRIORITY_LABEL_HE, ASSIGNEE_LABEL_HE, TASK_SORT_LABEL_HE,
+  isTaskType, isTaskStatus, isTaskAssignee, isTaskSort,
   type TaskType, type TaskStatus, type TaskAssignee,
 } from "../../../server/tasks";
 import { pageParam } from "../../../server/paging";
 import { requireAdmin } from "../require-admin";
 import { Pager } from "../../ui/pager";
+import { DATE_ONLY_FMT } from "../labels";
 import { StatusChip, PriorityChip, TaskPanel, type TaskEventRow } from "./task-panel";
 
 export const dynamic = "force-dynamic";
@@ -36,10 +37,12 @@ export default async function AdminTasksPage({
   const q = one(sp.q) ?? "";
   const created = one(sp.created);
   const page = pageParam(one(sp.page));
+  const sortRaw = one(sp.sort);
+  const sort = isTaskSort(sortRaw) ? sortRaw : "priority";
 
-  const list = await listTasksPaged(prisma, { statuses, types, assignees, priorities, q: q || undefined }, page);
+  const list = await listTasksPaged(prisma, { statuses, types, assignees, priorities, q: q || undefined, sort }, page);
   const tasks = list.rows;
-  const filtered = statuses.length + types.length + assignees.length + priorities.length > 0 || q !== "";
+  const filtered = statuses.length + types.length + assignees.length + priorities.length > 0 || q !== "" || sort !== "priority";
   // הסינונים שורדים מעבר עמוד - ה-Pager משכפל מפתחות חוזרים בדיוק כמו שהטופס מגיש
   const pagerParams = {
     q: q || undefined,
@@ -47,6 +50,7 @@ export default async function AdminTasksPage({
     type: types.length > 0 ? types : undefined,
     assignee: assignees.length > 0 ? assignees : undefined,
     priority: priorities.length > 0 ? priorities.map(String) : undefined,
+    sort: sort !== "priority" ? sort : undefined,
   };
 
   // ההיסטוריה של כל המשימות שבעמוד, בשליפה אחת - לא שאילתה לכל שורה
@@ -112,6 +116,14 @@ export default async function AdminTasksPage({
                   <span>{ASSIGNEE_LABEL_HE[a]}</span>
                 </label>
               ))}
+              {/* מיון הוא בחירה יחידה - radio באותו לבוש של הצ'יפים */}
+              <span className="fchips-cap ms-4">מיון</span>
+              {TASK_SORTS.map((s) => (
+                <label key={s} className="fchip">
+                  <input type="radio" name="sort" value={s} defaultChecked={sort === s} />
+                  <span>{TASK_SORT_LABEL_HE[s]}</span>
+                </label>
+              ))}
             </div>
           </form>
 
@@ -131,13 +143,15 @@ export default async function AdminTasksPage({
               <div className="acc-grid acc-head" aria-hidden="true">
                 <span />
                 <span>#</span>
+                <span>מס'</span>
                 <span>משימה</span>
                 <span>סוג</span>
                 <span>עדיפות</span>
                 <span>סטטוס</span>
                 <span>אחראי</span>
+                <span>נוצרה</span>
               </div>
-              {tasks.map((t) => (
+              {tasks.map((t, i) => (
                 <details key={t.id} className="acc-row">
                   <summary className="acc-grid">
                     <span className="acc-arrow" aria-hidden="true">
@@ -145,7 +159,12 @@ export default async function AdminTasksPage({
                         <path d="M14 6l-6 6 6 6" />
                       </svg>
                     </span>
-                    <span className="num text-xs" style={{ color: "var(--dim)" }}>{t.num}</span>
+                    {/* מספר רץ של התצוגה (בקשת מייסד 21.8): תמיד 1 בראש, ממשיך בין עמודים -
+                        עונה על "כמה יש ואיפה אני" גם כשהסינון והמיון משנים את הסדר */}
+                    <span className="num text-xs" style={{ color: "var(--dim)" }}>
+                      {(list.page - 1) * list.perPage + i + 1}
+                    </span>
+                    <span className="num text-xs font-semibold" style={{ color: "var(--mut)" }}>{t.num}</span>
                     <span className="min-w-0 text-sm font-bold">
                       {t.title}
                       {t.blockedOn != null && (
@@ -170,6 +189,7 @@ export default async function AdminTasksPage({
                     <span className="truncate text-xs" style={{ color: "var(--mut)" }}>
                       {t.assignee != null ? ASSIGNEE_LABEL_HE[t.assignee] ?? t.assignee : "-"}
                     </span>
+                    <span className="num text-xs" style={{ color: "var(--dim)" }}>{DATE_ONLY_FMT.format(t.createdAt)}</span>
                   </summary>
                   <TaskPanel task={t} events={eventsByTask.get(t.id) ?? []} />
                 </details>

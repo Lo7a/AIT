@@ -33,3 +33,5 @@ export const SETTING_LABEL: Record<string, string> = {
 };
 
 export const DATE_FMT = new Intl.DateTimeFormat("he-IL", { dateStyle: "short", timeStyle: "short" });
+/** תאריך בלי שעה - לעמודות צפופות (עמודת "נוצרה" בלוח המשימות) */
+export const DATE_ONLY_FMT = new Intl.DateTimeFormat("he-IL", { dateStyle: "short" });

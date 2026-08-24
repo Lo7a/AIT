@@ -1548,7 +1548,7 @@ button.ans-row:not(:disabled):active{background:rgba(var(--acc-rgb),.16)}
    וכל שורה נשברה אחרת) - אותה תבנית משמשת גם את שורת הכותרות, כדי שלא יזוזו זו מזו */
 .acc-grid{
   display:grid;align-items:center;gap:10px;
-  grid-template-columns:18px 40px minmax(0,1fr) 64px 74px 84px 118px;
+  grid-template-columns:18px 30px 40px minmax(0,1fr) 64px 74px 84px 118px 84px;
 }
 .acc-head{
   padding:8px 6px 6px;font-size:10.5px;font-weight:700;letter-spacing:.12em;
