@@ -7,6 +7,7 @@ import {
 import { pageParam } from "../../../server/paging";
 import { requireAdmin } from "../require-admin";
 import { Pager } from "../../ui/pager";
+import { AutoRefresh } from "../../ui/auto-refresh";
 import { DATE_FMT } from "../labels";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +52,7 @@ export default async function AdminAgentsPage({
 
   return (
     <main className="board">
+      <AutoRefresh />
       <section className="shell c12 rv d1">
         <div className="core card-pad">
           <h2 className="card-title">לוח המצב</h2>
