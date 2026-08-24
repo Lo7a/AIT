@@ -140,17 +140,36 @@ describe("pickNextQuestion", () => {
     expect(q?.key).toBe("lead_flow_intake");
   });
 
-  it("מדלג על שאלות שכבר נשאלו בתוך הסקציה", () => {
+  it("אחרי שאלת הפתיחה מגיעות שאלות הכסף, לא השאלה הבאה בסקציה (משימה 7)", () => {
     const model = deriveBusinessModel(richFindings);
     const q = pickNextQuestion(model, richFindings, ["lead_flow_intake"]);
-    expect(q?.key).toBe("lead_flow_lost");
+    expect(q?.key).toBe("lead_flow_volume");
   });
 
-  it("סקציה עם קרדיט 1 מדולגת כולה", () => {
+  it("מדלג על שאלות שכבר נשאלו בתוך הסקציה", () => {
+    const model = deriveBusinessModel(richFindings);
+    // אחרי שאלות החובה, סבב הרוחב חוזר לסקציה שנשאלה הכי מעט - וכאן service_repeat כבר נשאלה
+    const asked = ["lead_flow_intake", ...REQUIRED_QUESTION_KEYS, "service_repeat"];
+    const q = pickNextQuestion(model, richFindings, asked);
+    expect(q?.key).toBe("billing_flow");
+  });
+
+  it("קרדיט סקציה כבר לא מדלג על שאלות - זה היה שורש באג הכסף (משימה 7)", () => {
+    // קרדיט lead_flow=1 הוא בדיוק מה שקורה בייצור אחרי התשובה הראשונה (merge.ts). קודם זה
+    // מחק את ארבע שאלות ההמשך של הסקציה, ובהן שלוש שאלות הכסף. עכשיו הקרדיט לא משתתף בבחירה
     const model = deriveBusinessModel(richFindings);
     model.credits.lead_flow = 1;
-    const q = pickNextQuestion(model, richFindings, []);
+    expect(pickNextQuestion(model, richFindings, [])?.key).toBe("lead_flow_intake");
+    expect(pickNextQuestion(model, richFindings, ["lead_flow_intake"])?.key).toBe("lead_flow_volume");
+  });
+
+  it("סבב רוחב: אחרי שאלות הכסף עוברים לסקציה שנשאלה הכי מעט, לא נשארים ב-lead_flow", () => {
+    const model = deriveBusinessModel(richFindings);
+    const asked = ["lead_flow_intake", ...REQUIRED_QUESTION_KEYS];
+    const q = pickNextQuestion(model, richFindings, asked);
+    // ל-lead_flow נותרה lead_flow_lost, אבל היא נשאלה כבר 4 פעמים וכל השאר אפס
     expect(q?.section).toBe("service");
+    expect(q?.key).toBe("service_repeat");
   });
 
   it("אחרי כל השאלות הרגילות שנשאלו - שאלת הסיכום היא הצעד הבא (לא null)", () => {
@@ -174,7 +193,7 @@ describe("pickNextQuestion", () => {
     // הנבדקת כאן היא שקרדיט pains עצמו לא בולע את שאלת הסיכום, לא סדר הניקוז
     const model = deriveBusinessModel(richFindings);
     for (const k of Object.keys(model.credits)) model.credits[k as keyof typeof model.credits] = 1;
-    expect(pickNextQuestion(model, richFindings, [...REQUIRED_QUESTION_KEYS])?.key).toBe(CLOSING_QUESTION_KEY);
+    expect(pickNextQuestion(model, richFindings, REGULAR_KEYS)?.key).toBe(CLOSING_QUESTION_KEY);
   });
 
   it("התקרה הקשיחה של הבנק הרגיל עומדת בפני עצמה, גם כשהמפתחות שנשאלו אינם מהבנק - עדיין נופל לשאלת הסיכום", () => {
@@ -185,9 +204,12 @@ describe("pickNextQuestion", () => {
     expect(q?.key).toBe(CLOSING_QUESTION_KEY);
   });
 
-  it("רזרבת עומק: תשובה שלא זיכתה סקציה עם שתי שאלות (lead_flow) עוברת לשאלה השנייה, לא ישר לסיכום", () => {
+  it("רזרבת עומק: השאלה השנייה של סקציה חוזרת בסיבוב הבא, לא נופלת בשקט", () => {
+    // lead_flow_lost אינה שאלת חובה ולכן היא ממתינה לסיבוב השני של סבב הרוחב. הנקודה: היא
+    // עדיין מגיעה, ולא נמחקת כמו שקרה כשקרדיט הסקציה היה השער
     const model = deriveBusinessModel(richFindings);
-    const q = pickNextQuestion(model, richFindings, ["lead_flow_intake"]);
+    const asked = REGULAR_KEYS.filter((k) => k !== "lead_flow_lost");
+    const q = pickNextQuestion(model, richFindings, asked);
     expect(q?.key).toBe("lead_flow_lost");
     expect(q?.key).not.toBe(CLOSING_QUESTION_KEY);
   });
@@ -209,26 +231,28 @@ describe("pickNextQuestion - ניקוז שאלות החובה", () => {
     expect(q?.key).toBe("lead_flow_volume");
   });
 
-  it("סדר הניקוז הוא סדר הבנק: כמות, זמן תגובה, שווי - ורק אז שאלת הסיכום", () => {
+  it("סדר שאלות הכסף הוא סדר הבנק: כמות, זמן תגובה, שווי - שלושתן ברצף אחרי הפתיחה", () => {
     const model = allCredited();
     const asked = ["lead_flow_intake"];
     const seen: string[] = [];
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 3; i++) {
       const q = pickNextQuestion(model, richFindings, asked);
-      expect(q, `צעד ${i} החזיר null לפני שאלת הסיכום`).not.toBeNull();
+      expect(q, `צעד ${i} החזיר null באמצע שאלות הכסף`).not.toBeNull();
       seen.push(q!.key);
       asked.push(q!.key);
     }
     expect(seen).toEqual([
-      "lead_flow_volume", "lead_flow_response_time", "lead_flow_deal_value", CLOSING_QUESTION_KEY,
+      "lead_flow_volume", "lead_flow_response_time", "lead_flow_deal_value",
     ]);
+    // ורק אחריהן חוזר סבב הרוחב - שורת ההפסד כבר מלאה בנקודה הזו
+    expect(pickNextQuestion(model, richFindings, asked)?.section).toBe("service");
   });
 
   it("שאלת חובה שנשאלה כבר לא חוזרת - גם כשהתשובה עליה לא חילצה כלום למודל", () => {
     // המודל כאן לא מכיל אף שדה מהשאלות האלה (חילוץ שנכשל/תשובת "אחר"), ובכל זאת הן לא חוזרות:
     // התנאי הוא חברות ב-askedKeys בלבד, כך שכשל חילוץ לא לוכד את בעל העסק בלולאה על אותה שאלה
     const q = pickNextQuestion(allCredited(), richFindings, [...REQUIRED_QUESTION_KEYS]);
-    expect(q?.key).toBe(CLOSING_QUESTION_KEY);
+    expect(REQUIRED_QUESTION_KEYS).not.toContain(q?.key);
   });
 
   it("REQUIRED_QUESTION_KEYS: כל המפתחות קיימים בבנק, ובאותו סדר שבו הם מופיעים בו", () => {
@@ -266,13 +290,32 @@ describe("סשן ראיון שלם", () => {
     }
   });
 
-  it("סדר הסשן: שאלה אחת לכל סקציה, אחריהן ניקוז שאלות הכמות, ובסוף שאלת הסיכום", () => {
+  it("סדר הסשן: פתיחה, שלוש שאלות הכסף, ואז סבב רוחב - ובסוף שאלת הסיכום (משימה 7)", () => {
+    // ההבדל מהגרסה הקודמת: שאלות הכסף עברו ממקומות 10-12 למקומות 2-4. שורת ההפסד בדוח החי
+    // מלאה בשאלה הרביעית במקום השתים-עשרה. הזנב (service_load, billing_tool, lead_flow_lost)
+    // הוא הסיבוב השני של סבב הרוחב - שאלות שקודם נמחקו לגמרי בגלל קרדיט הסקציה
     expect(simulateSession().asked).toEqual([
-      "lead_flow_intake", "service_repeat", "billing_flow", "manual_tasks_top", "profile_basics",
-      "channels_main", "scheduling_how", "retention_contact", "tools_used",
+      "lead_flow_intake",
       "lead_flow_volume", "lead_flow_response_time", "lead_flow_deal_value",
+      "service_repeat", "billing_flow", "manual_tasks_top", "profile_basics",
+      "channels_main", "scheduling_how", "retention_contact", "tools_used",
+      "service_load", "billing_tool", "lead_flow_lost",
       CLOSING_QUESTION_KEY,
     ]);
+  });
+
+  it("כל הבנק הרגיל נשאל בסשן מלא - אף שאלה לא נמחקת בגלל קרדיט סקציה", () => {
+    const { asked } = simulateSession();
+    for (const key of REGULAR_KEYS) {
+      expect(asked, `${key} לא נשאלה בסשן מלא`).toContain(key);
+    }
+  });
+
+  it("שורת ההפסד מלאה עד השאלה הרביעית - ההכרעה המוצרית של 24.8", () => {
+    const firstFour = simulateSession().asked.slice(0, 4);
+    for (const key of REQUIRED_QUESTION_KEYS) {
+      expect(firstFour, `${key} לא נשאלה בארבע הראשונות`).toContain(key);
+    }
   });
 
   it("הסשן מסתיים, שאלת הסיכום פעם אחת ואחרונה, בלי כפילויות ובלי חריגה מהתקרה", () => {

@@ -109,7 +109,7 @@ describe("staticUpdateFor", () => {
 });
 
 describe("runInterviewTurn - הנתיב הסטטי", () => {
-  it("תשובת צ'יפים: אפס קריאות LLM, קרדיט מלא, שאלה הבאה מסקציה אחרת", async () => {
+  it("תשובת צ'יפים: אפס קריאות LLM, קרדיט מלא, ואחריה שאלת הכסף הראשונה", async () => {
     const { db, diagnoses, scans, messages, models } = makeFakeDb() as any;
     seed(diagnoses, scans);
     const r = await runInterviewTurn(db, "d1",
@@ -120,7 +120,9 @@ describe("runInterviewTurn - הנתיב הסטטי", () => {
     // חוזה no-echo: האישור לא מצטט את התשובה
     expect(r.reply).not.toContain("טלפון");
     expect(r.credits.lead_flow).toBe(1);
-    expect(r.nextQuestion?.key).toBe("service_repeat");
+    // הנתיב הסטטי מזכה את הסקציה במלוא הקרדיט, ובכל זאת השאלה הבאה נשארת בתוך lead_flow:
+    // מאז משימה 7 הקרדיט לא בוחר את השאלה, ושאלות הכסף קודמות לסבב הרוחב
+    expect(r.nextQuestion?.key).toBe("lead_flow_volume");
     expect(messages).toHaveLength(2);
     expect(models).toHaveLength(1);
     // צורת רישום ה-upsert ב-fake-db: create/update מוחזקים כפי שנשלחו ל-prisma

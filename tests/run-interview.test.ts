@@ -77,9 +77,9 @@ describe("runInterviewTurn", () => {
       { content: "דנה עונה תוך שעה", questionKey: "lead_flow_intake", isFreeText: false },
       { complete: okComplete });
     expect(r.reply).toContain("דנה");
-    // okComplete מחזיר עדכון לסקציית lead_flow - הסקציה מזוכה (קרדיט 1), אז pickNextQuestion
-    // מדלג עליה כולה וקופץ לסקציה החסרה הבאה בתור, לא לשאלה השנייה של lead_flow עצמה
-    expect(r.nextQuestion?.key).toBe("service_repeat");
+    // אחרי שאלת הפתיחה מגיעה שאלת הכסף הראשונה (משימה 7). הקרדיט עדיין עולה ל-1 - הוא מזין
+    // את completenessPct ואת recommendNextStep - אבל הוא כבר לא משתתף בבחירת השאלה הבאה
+    expect(r.nextQuestion?.key).toBe("lead_flow_volume");
     expect(r.completenessPct).toBeGreaterThan(0);
     expect(messages).toHaveLength(2);
     expect(models).toHaveLength(1);
@@ -98,13 +98,15 @@ describe("runInterviewTurn", () => {
     expect(resumed.nextQuestion?.key).toBe(r.nextQuestion?.key);
   });
 
-  it("רזרבת עומק: תשובה שלא זיכתה את הסקציה מובילה לשאלה השנייה באותה סקציה", async () => {
+  it("חילוץ שנכשל לא לוכד על אותה שאלה - ממשיכים לשאלת הכסף הראשונה", async () => {
+    // התשובה לא חילצה כלום (קרדיט לא עלה), ובכל זאת השאלה הבאה מתקדמת: הבחירה נשענת על
+    // askedKeys ולא על תוכן שחולץ, כך שכשל חילוץ לא מחזיר את בעל העסק לאותה שאלה
     const { db, diagnoses, scans } = makeFakeDb() as any;
     seed(diagnoses, scans, "interviewing");
     const r = await runInterviewTurn(db, "d1",
       { content: "לא בטוח", questionKey: "lead_flow_intake", isFreeText: false },
       { complete: async () => ({ data: { updates: [], reply: "לא הבנתי" }, usage: { inputTokens: 1, outputTokens: 1 } }) });
-    expect(r.nextQuestion?.key).toBe("lead_flow_lost");
+    expect(r.nextQuestion?.key).toBe("lead_flow_volume");
   });
 
   it("סטטוס לא interviewing - זריקה, כלום לא נשמר", async () => {
