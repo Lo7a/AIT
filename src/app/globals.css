@@ -25,6 +25,8 @@
   --acc2-soft:#7ee8c3;
   --warn:#fbbf24;
   --warn-rgb:251,191,36;
+  --work:#fb923c;
+  --work-rgb:251,146,60;
   --bad:#fb7185;
   --bad-rgb:251,113,133;
   --surface-1:rgba(255,255,255,.05);
@@ -79,6 +81,8 @@ html[data-mode="light"]{
   --acc2-soft:#0b6b4b;
   --warn:#b3761f;
   --warn-rgb:179,118,31;
+  --work:#c2601b;
+  --work-rgb:194,96,27;
   --bad:#c94357;
   --bad-rgb:201,67,87;
   --surface-1:rgba(25,22,33,.045);
@@ -1538,3 +1542,21 @@ button.ans-row:not(:disabled):active{background:rgba(var(--acc-rgb),.16)}
   transition:border-color .25s,transform .25s var(--ease-out);
 }
 .tile-link:hover{border-color:rgba(var(--acc-rgb),.4);transform:translateY(-2px)}
+
+/* --- אקורדיון לוח המשימות (21.8): details נייטיבי, שורה = summary --- */
+.acc-row{border-top:1px solid var(--row-line)}
+.acc-row:first-of-type{border-top:none}
+.acc-row>summary{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:12px 6px;cursor:pointer;list-style:none;
+  transition:background .2s;
+}
+.acc-row>summary::-webkit-details-marker{display:none}
+.acc-row>summary:hover{background:rgba(var(--acc-rgb),.05)}
+.acc-row>summary .acc-arrow{
+  flex:none;color:var(--dim);transition:transform .25s var(--ease-out);
+}
+.acc-row[open]>summary .acc-arrow{transform:rotate(90deg)}
+.acc-row[open]>summary{background:rgba(var(--acc-rgb),.06)}
+.acc-row .acc-body{padding:4px 30px 16px}
+@media (max-width:640px){.acc-row .acc-body{padding-inline:10px}}

@@ -3,23 +3,19 @@ import { prisma } from "../../../server/db";
 import {
   listTasks, TASK_TYPES, TASK_STATUSES, TASK_ASSIGNEES,
   TASK_TYPE_LABEL_HE, TASK_STATUS_LABEL_HE, TASK_PRIORITY_LABEL_HE, ASSIGNEE_LABEL_HE,
-  isTaskType, isTaskStatus, isTaskAssignee,
-  type TaskType, type TaskStatus, type TaskAssignee,
+  isTaskType, isTaskStatus, isTaskAssignee, isTaskPriority,
+  type TaskType, type TaskAssignee,
 } from "../../../server/tasks";
 import { requireAdmin } from "../require-admin";
+import { StatusChip, PriorityChip, TaskPanel, type TaskEventRow } from "./task-panel";
 
 export const dynamic = "force-dynamic";
 
 const one = (v: string | string[] | undefined): string | undefined => (Array.isArray(v) ? v[0] : v);
 
-// גוון לפי סטטוס: הכללים כבר קיימים בטוקנים - חסום ובוער בולטים, סגור דהוי
-const STATUS_COLOR: Record<string, string> = {
-  open: "var(--txt)", in_progress: "var(--acc-soft)", blocked: "var(--warn)",
-  done: "var(--mut)", dropped: "var(--mut)",
-};
-
-// לוח המשימות (הכרעת מייסד 21.8): הכל מהכל - באגים, פיצ'רים, משימות ורעיונות - עם סינון,
-// עדיפות וסטטוס. ראש הלוח הוא התור: ממוין עדיפות ואז ותק, וסגורות מוסתרות כברירת מחדל
+// לוח המשימות (הכרעת מייסד 21.8): הכל מהכל, עם סינון מלא וצבעים לפי הסכמה שנקבעה -
+// ירוק הושלם, כתום בעבודה, צהוב נקודת עצירה, אדום בוער. "לפרטים" הוא אקורדיון נייטיבי
+// (details, בלי JS): הפתיחה מרחיבה את השורה עם התיאור, הקומיטים, העריכה וההיסטוריה
 export default async function AdminTasksPage({
   searchParams,
 }: {
@@ -31,6 +27,8 @@ export default async function AdminTasksPage({
   const status = one(sp.status);
   const type = one(sp.type);
   const assignee = one(sp.assignee);
+  const priorityRaw = one(sp.priority);
+  const priority = priorityRaw != null && priorityRaw !== "" ? Number(priorityRaw) : undefined;
   const q = one(sp.q) ?? "";
   const created = one(sp.created);
 
@@ -38,10 +36,24 @@ export default async function AdminTasksPage({
     status: isTaskStatus(status) ? status : undefined,
     type: isTaskType(type) ? type : undefined,
     assignee: isTaskAssignee(assignee) ? assignee : undefined,
+    priority: isTaskPriority(priority) ? priority : undefined,
     q: q || undefined,
-    includeClosed: status === "done" || status === "dropped",
+    // "all" = להציג גם את מה שנסגר; סטטוס ספציפי ממילא גובר על ברירת המחדל
+    includeClosed: status === "all",
   });
-  const filtered = Boolean(status || type || assignee || q);
+  const filtered = Boolean(status || type || assignee || priority != null || q);
+
+  // ההיסטוריה של כל המשימות שמוצגות, בשליפה אחת - לא שאילתה לכל שורה
+  const events = await prisma.taskEvent.findMany({
+    where: { taskId: { in: tasks.map((t) => t.id) } },
+    orderBy: { createdAt: "desc" },
+  });
+  const eventsByTask = new Map<string, TaskEventRow[]>();
+  for (const e of events) {
+    const list = eventsByTask.get(e.taskId) ?? [];
+    list.push(e);
+    eventsByTask.set(e.taskId, list);
+  }
 
   return (
     <main className="board">
@@ -57,9 +69,19 @@ export default async function AdminTasksPage({
             <span className="fld">
               <label htmlFor="tk-status">סטטוס</label>
               <select id="tk-status" name="status" defaultValue={status ?? ""}>
-                <option value="">פתוח (הכל)</option>
+                <option value="">כל הפתוח</option>
                 {TASK_STATUSES.map((s) => (
                   <option key={s} value={s}>{TASK_STATUS_LABEL_HE[s]}</option>
+                ))}
+                <option value="all">הכל, כולל סגורות</option>
+              </select>
+            </span>
+            <span className="fld">
+              <label htmlFor="tk-priority">עדיפות</label>
+              <select id="tk-priority" name="priority" defaultValue={priorityRaw ?? ""}>
+                <option value="">הכל</option>
+                {[0, 1, 2, 3].map((p) => (
+                  <option key={p} value={p}>{TASK_PRIORITY_LABEL_HE[p]}</option>
                 ))}
               </select>
             </span>
@@ -98,40 +120,32 @@ export default async function AdminTasksPage({
               {filtered ? "אין משימות שמתאימות לסינון." : "הלוח ריק - הכל סגור."}
             </p>
           ) : (
-            <div className="tbl-wrap">
-              <table className="tbl">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>משימה</th>
-                    <th>סוג</th>
-                    <th>עדיפות</th>
-                    <th>סטטוס</th>
-                    <th>אחראי</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tasks.map((t) => (
-                    <tr key={t.id}>
-                      <td className="num t-mut">{t.num}</td>
-                      <td className="t-strong">
-                        {t.title}
-                        {t.blockedOn != null && (
-                          <span className="block text-xs" style={{ color: "var(--warn)" }}>חסום על: {t.blockedOn}</span>
-                        )}
-                      </td>
-                      <td className="t-mut">{TASK_TYPE_LABEL_HE[t.type as TaskType] ?? t.type}</td>
-                      <td>{TASK_PRIORITY_LABEL_HE[t.priority] ?? t.priority}</td>
-                      <td style={{ color: STATUS_COLOR[t.status] ?? "var(--txt)" }}>
-                        {TASK_STATUS_LABEL_HE[t.status as TaskStatus] ?? t.status}
-                      </td>
-                      <td className="t-mut">{t.assignee != null ? ASSIGNEE_LABEL_HE[t.assignee] ?? t.assignee : "-"}</td>
-                      <td><Link href={`/admin/tasks/${t.num}`} className="ghost-act">לפרטים</Link></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div>
+              {tasks.map((t) => (
+                <details key={t.id} className="acc-row">
+                  <summary>
+                    <span className="acc-arrow" aria-hidden="true">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 6l-6 6 6 6" />
+                      </svg>
+                    </span>
+                    <span className="num text-xs" style={{ color: "var(--dim)" }}>#{t.num}</span>
+                    <span className="min-w-0 flex-1 text-sm font-bold">
+                      {t.title}
+                      {t.blockedOn != null && (
+                        <span className="block text-xs font-normal" style={{ color: "var(--warn)" }}>חסום על: {t.blockedOn}</span>
+                      )}
+                    </span>
+                    <span className="text-xs" style={{ color: "var(--mut)" }}>{TASK_TYPE_LABEL_HE[t.type as TaskType] ?? t.type}</span>
+                    <PriorityChip priority={t.priority} />
+                    <StatusChip status={t.status} />
+                    <span className="text-xs" style={{ color: "var(--mut)" }}>
+                      {t.assignee != null ? ASSIGNEE_LABEL_HE[t.assignee] ?? t.assignee : ""}
+                    </span>
+                  </summary>
+                  <TaskPanel task={t} events={eventsByTask.get(t.id) ?? []} />
+                </details>
+              ))}
             </div>
           )}
         </div>
