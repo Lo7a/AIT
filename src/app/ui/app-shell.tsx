@@ -137,6 +137,14 @@ export function initialsOf(name: string): string {
   return name.trim().slice(0, 2);
 }
 
+/** יחיד/רבים בעברית: "חסרים 1 נתונים" נקרא כרשלנות, בכרטיס שכל תפקידו לבקש אמון */
+function missingLabel(missing: number | undefined): string {
+  if (missing == null) return "העסק שנבדק";
+  if (missing === 0) return "האבחון מלא";
+  if (missing === 1) return "חסר נתון אחד";
+  return `חסרים ${missing} נתונים`;
+}
+
 export function AppShell({
   active, diagnosisId, userLabel, badge, business, section = "business", isAdmin = false, children,
 }: {
@@ -149,8 +157,9 @@ export function AppShell({
   // מונה קטן ליד "הראיון" (שאלות פתוחות) - אופציונלי
   badge?: number;
   // עוגן העסק (משימה 19, בקשת אלעד 24.8): איזה עסק נמצא על המסך, בכל מעבר בין העמודים.
-  // בלי ציון - הוא כבר מוצג בטבעת בראש הדוח (משוב 24.8). subtitle ריק => "העסק שנבדק"
-  business?: { name: string; subtitle?: string };
+  // בלי ציון - הוא כבר מוצג בטבעת בראש הדוח (משוב 24.8). מה שכן מוצג כאן הוא מונה החוסרים
+  // מפנקס האבחון: מידע שלא מופיע בשום מקום אחר בכל המסכים, ולכן מצדיק את המקום שהעוגן תופס
+  business?: { name: string; missing?: number };
   section?: ShellSection;
   // מציג את הכניסה ל"ניהול" בתחתית הסיידבר. רק אדמין - למשתמש רגיל הקישור לא קיים כלל
   // ולא רק מוסתר, כי הסיידבר מרונדר בצד השרת עם הערך הזה
@@ -218,7 +227,7 @@ export function AppShell({
             <span className="biz-mark" aria-hidden="true">{initialsOf(business.name)}</span>
             <span className="biz-who">
               <b>{business.name}</b>
-              <i>{business.subtitle ?? "העסק שנבדק"}</i>
+              <i>{missingLabel(business.missing)}</i>
             </span>
           </Link>
         )}

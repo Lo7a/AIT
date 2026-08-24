@@ -17,6 +17,7 @@ import { ImpersonateSearch } from "../ui/impersonate-search";
 import { UserMenu } from "../ui/user-menu";
 import { AnchorNav, type AnchorItem } from "../ui/anchor-nav";
 import { CompletenessCard } from "../ui/completeness-card";
+import { missingCount, type LedgerEntry } from "../../pipeline/model/ledger";
 
 // מסך ה-Roadmap בשפת העיצוב הנבחרת (הכרעת מייסד 18.8: כהה פרמיום, סגול וברקת, Rubik - ראו
 // globals.css) - אין כאן שום לוגיקת עסק, רק תצוגה על גבי useRoadmap. הצבעים/הפאנלים של
@@ -93,10 +94,10 @@ function BusinessMap({ scores, model }: { scores: ScoreReport; model: ReportView
   );
 }
 
-function CompletenessMeter({ diagnosisId, model }: { diagnosisId: string; model: NonNullable<ReportView["model"]> }) {
+function CompletenessMeter({ diagnosisId, ledger }: { diagnosisId: string; ledger: LedgerEntry[] }) {
   return (
     <CompletenessCard
-      percent={model.completenessPct}
+      ledger={ledger}
       cta={{ href: `/interview/${diagnosisId}`, label: "שפר את הדיוק - ראיון קצר" }}
       ctaIcon={<CapArrow />}
       className="c12 rv d2"
@@ -257,9 +258,11 @@ function ItemCard({
 }
 
 export function DefaultRoadmap({
-  report, initialRoadmap, personalLoss = null, isAdmin = false, userEmail = null,
+  report, initialRoadmap, personalLoss = null, isAdmin = false, userEmail = null, ledger = [],
 }: {
   report: ReportView;
+  /** פנקס החוסרים (משימה 19). נבנה בעמוד כי הוא דורש את תשובות הכמות מההודעות */
+  ledger?: LedgerEntry[];
   initialRoadmap: RoadmapView | null;
   personalLoss?: PersonalLossLine | null;
   isAdmin?: boolean;
@@ -292,7 +295,7 @@ export function DefaultRoadmap({
       diagnosisId={report.id}
       userLabel={userEmail}
       isAdmin={isAdmin}
-      business={{ name: report.business.name, subtitle: report.business.city ?? undefined }}
+      business={{ name: report.business.name, missing: missingCount(ledger) }}
     >
       {/* שורת הזהות, זהה לדוח ולראיון: על איזה עסק מדובר. הכותרת "תוכנית העבודה" למטה
           אומרת מה זה, ולא למי - וכשיש כמה אבחונים זו בדיוק השאלה (דיווח מייסד 20.8) */}
@@ -326,7 +329,7 @@ export function DefaultRoadmap({
 
           <BusinessMap scores={scores} model={report.model} />
 
-          {report.model && <CompletenessMeter diagnosisId={report.id} model={report.model} />}
+          <CompletenessMeter diagnosisId={report.id} ledger={ledger} />
 
           <section aria-live="polite" className="c12 mt-2">
             {building && (

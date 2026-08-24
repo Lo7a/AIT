@@ -9,6 +9,7 @@ import { ImpersonateSearch } from "../ui/impersonate-search";
 import { UserMenu } from "../ui/user-menu";
 import { AnswerOptions } from "../ui/answer-options";
 import { CompletenessCard } from "../ui/completeness-card";
+import { missingCount } from "../../pipeline/model/ledger";
 
 // מסך הראיון בשפת העיצוב הנבחרת (הכרעת מייסד 18.8: כהה פרמיום, סגול וברקת, Rubik - ראו
 // globals.css) - אין כאן שום לוגיקת עסק, רק תצוגה על גבי useInterviewChat. ניהול פוקוס
@@ -71,9 +72,9 @@ export function DefaultInterview({
   userEmail?: string | null;
 }) {
   const {
-    messages, busy, starting, finishing, input, freeText, freeTextIntent, visible, sections,
-    askedCount, maxQuestions,
-    completenessPct, error, closed, canSend, canFinish, canSkip, canAnswer, canConfirmOptions,
+    messages, busy, starting, finishing, input, freeText, freeTextIntent, visible,
+    askedCount, maxQuestions, ledger,
+    error, closed, canSend, canFinish, canSkip, canAnswer, canConfirmOptions,
     selectedOptions, customInputOpen,
     send, skip, finish, selectOption, confirmOptions, toggleOption, openCustomInput, setInput, setFreeText,
   } = useInterviewChat(diagnosisId, initial);
@@ -148,7 +149,13 @@ export function DefaultInterview({
   }
 
   return (
-    <AppShell active="interview" diagnosisId={diagnosisId} userLabel={userEmail} isAdmin={isAdmin}>
+    <AppShell
+      active="interview"
+      diagnosisId={diagnosisId}
+      userLabel={userEmail}
+      isAdmin={isAdmin}
+      business={businessName ? { name: businessName, missing: missingCount(ledger) } : undefined}
+    >
       {/* שורת הזהות: על איזה עסק הראיון הזה. היה חסר כאן בלבד, וכשיש כמה אבחונים אי אפשר
           היה לדעת עם מי מדברים (דיווח מייסד 20.8). אותו מבנה בדיוק כמו בדוח וב-Roadmap */}
       {businessName != null && businessName !== "" && (
@@ -187,8 +194,7 @@ export function DefaultInterview({
             העבודה. הסדר שנקבע כאן נשמר בתוכו: מה המספר, מה הפס אומר, מה כבר נאסף,
             ובסוף מה שהתג הירוק המרחף באמת התכוון לומר - כמשפט ולא כסיסמה */}
         <CompletenessCard
-          percent={completenessPct}
-          sections={sections}
+          ledger={ledger}
           live
           className="rv d1"
         />

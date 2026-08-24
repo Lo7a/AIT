@@ -4,11 +4,12 @@ import { extractAnswer, type ExtractOptions } from "../pipeline/interview/extrac
 import { applyInterviewUpdates } from "../pipeline/interview/merge";
 import { InterviewError, NOT_ACTIVE_MESSAGE } from "../pipeline/interview/contract";
 import { recommendNextStep } from "../pipeline/model/business-model";
+import { buildLedger, type LedgerEntry } from "../pipeline/model/ledger";
 import { scoreWithModel } from "../pipeline/score/engine";
 import type { ScoreReport } from "../pipeline/score/types";
 import { generateNarrative, type NarrativeOptions } from "../pipeline/report/narrative";
 import { transitionDiagnosis } from "./diagnosis-repo";
-import { appendExchange, getInterviewState, type InterviewState } from "./interview-repo";
+import { appendExchange, getInterviewState, quantityAnswersFrom, type InterviewState } from "./interview-repo";
 import type { DiagnosisStatus } from "./status";
 
 // אורקסטרטור הראיון: הראיון לא חוסם כלום, ניתן לעצירה בכל רגע, וכל תור נשמר אטומית.
@@ -27,6 +28,9 @@ export interface InterviewSnapshot {
   // לצייר צ'יפים, בלי לגרור טיפוס פנימי של הבנק אל חוזה ה-API.
   nextQuestion: { key: string; section: string; text: string; options?: string[]; multiSelect?: boolean } | null;
   recommendFreeText: boolean; // שלמות נמוכה - עדיף לפתוח בסיפור חופשי (recommendNextStep)
+  // פנקס החוסרים (משימה 19): מה חסר לאבחון ומה כל חוסר פותח. נבנה מחדש בכל תור, ולכן הוא
+  // מתעדכן חי בזמן הראיון בדיוק כמו scan.scores - זו הדרישה "כל שינוי מתעדכן בלייב"
+  ledger: LedgerEntry[];
 }
 
 export interface TurnInput { content: string; questionKey?: string; isFreeText: boolean; }
@@ -42,6 +46,7 @@ export interface TurnResult {
   credits: Record<string, number>; // ראו InterviewSnapshot.credits
   askedCount: number;
   done: boolean;
+  ledger: LedgerEntry[]; // ראו InterviewSnapshot.ledger - מוחזר בכל תור כדי שהכרטיס יתעדכן מיד
 }
 
 export function snapshotOf(state: InterviewState): InterviewSnapshot {
@@ -60,6 +65,8 @@ export function snapshotOf(state: InterviewState): InterviewSnapshot {
       }
       : null,
     recommendFreeText: recommendNextStep(state.model).action === "free_text",
+    // תשובות הכמות נגזרות מההודעות שכבר טעונות ב-state, בלי סיבוב נוסף למסד
+    ledger: buildLedger(state.findings, state.model, quantityAnswersFrom(state.messages)),
   };
 }
 
@@ -160,9 +167,15 @@ export async function runInterviewTurn(
     : state.askedKeys;
   // בוחרים את השאלה הבאה לפי המודל המעודכן (אחרי המיזוג), לא לפי המצב שלפני התור - כך
   // שהתוצאה זהה למה ש-resume (startInterview על אבחון שכבר interviewing) היה מחשב מהמצב השמור.
-  // כשהתשובה מזכה את הסקציה (קרדיט 1) עוברים לסקציה החסרה הבאה - שאלה שנייה באותה סקציה
-  // (כמו lead_flow_lost) היא רזרבת עומק שמופעלת רק כשהתשובה לא זיכתה את הסקציה.
+  // מאז משימה 7 הבחירה לא נשענת על קרדיט הסקציה בכלל: אחרי שאלת הפתיחה מגיעות שלוש שאלות
+  // הכסף ברצף, ואחריהן סבב רוחב לפי הסקציה שנשאלה הכי מעט (ראו questions.ts).
   const next = pickNextQuestion(updated, state.findings, askedKeys);
+  // הפנקס נבנה מההודעות השמורות **בתוספת התשובה של התור הזה** - היא טרם נטענה מחדש מהמסד,
+  // ובלעדיה הכרטיס היה מפגר תור אחד אחרי המשתמש ומראה כחסר את מה שהרגע ענה עליו
+  const ledger = buildLedger(state.findings, updated, quantityAnswersFrom([
+    ...state.messages,
+    { role: "user", questionKey: question?.key ?? null, content },
+  ]));
   return {
     reply: result.reply,
     usedFallback: result.usedFallback,
@@ -176,6 +189,7 @@ export async function runInterviewTurn(
     credits: updated.credits,
     askedCount: askedKeys.length,
     done: next == null,
+    ledger,
   };
 }
 

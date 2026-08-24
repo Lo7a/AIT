@@ -37,6 +37,9 @@ export interface VariantScreens {
     // "מה הבנתי על העסק שלך" (insights.ts) - מסקנות שמחברות כמה אותות מאומתים לתמונה אחת,
     // פותחות את הדוח. אופציונלי: undefined/מערך ריק = הסקציה פשוט לא מוצגת
     insights?: import("../../pipeline/roadmap/insights").Insight[];
+    // פנקס החוסרים (משימה 19) - מה חסר לאבחון ומה כל חוסר פותח. נבנה ב-RSC כי הוא דורש
+    // את תשובות הכמות מההודעות. אופציונלי: undefined/ריק = הכרטיס מציג "האבחון מלא"
+    ledger?: import("../../pipeline/model/ledger").LedgerEntry[];
     // הצופה הוא אדמין אמיתי: מציג את חיפוש ההתחזות בסרגל העליון ואת הכניסה לניהול
     // בסיידבר. נקבע בשרת - הלקוח לעולם לא מחליט על הרשאה
     isAdmin?: boolean;
@@ -57,6 +60,9 @@ export interface VariantScreens {
     report: NonNullable<Awaited<ReturnType<typeof import("../../server/diagnosis-read").getReport>>>;
     initialRoadmap: import("../../server/roadmap-repo").RoadmapView | null;
     personalLoss?: import("../../pipeline/roadmap/loss-calc").PersonalLossLine | null;
+    // פנקס החוסרים (משימה 19) - מה חסר לאבחון ומה כל חוסר פותח. נבנה ב-RSC כי הוא דורש
+    // את תשובות הכמות מההודעות. אופציונלי: undefined/ריק = הכרטיס מציג "האבחון מלא"
+    ledger?: import("../../pipeline/model/ledger").LedgerEntry[];
     isAdmin?: boolean;
     // האימייל של המשתמש המחובר - לתפריט המשתמש בסרגל ולתחתית הסיידבר
     userEmail?: string | null;

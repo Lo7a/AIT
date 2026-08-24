@@ -21,6 +21,7 @@ import { ImpersonateSearch } from "../ui/impersonate-search";
 import { UserMenu } from "../ui/user-menu";
 import { ScoreDial, MiniRing, FillBar } from "../ui/motion";
 import { CompletenessCard } from "../ui/completeness-card";
+import { missingCount, type LedgerEntry } from "../../pipeline/model/ledger";
 
 // שלושת המסכים בשפת העיצוב הנבחרת (הכרעת מייסד 18.8): כהה פרמיום, סגול וברקת, Rubik.
 // כל הקלאסים מ-globals.css (shell/core/board וכו'); מה שאין לו קלאס גלובלי מקבל סגנון
@@ -505,9 +506,11 @@ function HealthFactsBlock({ health, className }: { health: HealthSignals | undef
 
 export function DefaultReport({
   report, lossHighlights = [], personalLoss = null, quickWins = [], insights = [], isAdmin = false,
-  userEmail = null,
+  userEmail = null, ledger = [],
 }: {
   report: ReportView;
+  /** פנקס החוסרים (משימה 19). נבנה בעמוד כי הוא דורש את תשובות הכמות מההודעות */
+  ledger?: LedgerEntry[];
   lossHighlights?: LossHighlight[];
   personalLoss?: PersonalLossLine | null;
   quickWins?: QuickWin[];
@@ -569,7 +572,7 @@ export function DefaultReport({
       diagnosisId={report.id}
       userLabel={userEmail}
       isAdmin={isAdmin}
-      business={{ name: business.name, subtitle: business.city ?? undefined }}
+      business={{ name: business.name, missing: missingCount(ledger) }}
     >
       <header className="topbar">
         <span className="brand-txt"><small>הדוח המלא</small><b>{business.name}</b></span>
@@ -651,8 +654,7 @@ export function DefaultReport({
 
           {hasPlan && (
             <CompletenessCard
-              percent={model.completenessPct}
-              note={nextStep.reason}
+              ledger={ledger}
               cta={{ href: `/interview/${report.id}`, label: "רוצה דיוק גבוה יותר? ראיון של 5 דקות" }}
               ctaIcon={<span className="cap"><CapArrow /></span>}
               className="rv d2"

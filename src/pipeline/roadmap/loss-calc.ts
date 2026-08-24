@@ -90,6 +90,18 @@ function ownLookup<T>(map: Record<string, T>, label: string): T | undefined {
   return Object.prototype.hasOwnProperty.call(map, label) ? map[label] : undefined;
 }
 
+// שלושת הפרדיקטים האלה קיימים בשביל פנקס החוסרים (model/ledger.ts, משימה 19): הפנקס צריך לדעת
+// אם תשובה **נפרסת**, לא רק אם היא קיימת. תשובת "אחר" או טקסט חופשי נשמרת במסד ובכל זאת
+// personalLossLine מחזיר null עליה, ופנקס שהיה בודק "יש ערך בשדה" היה מסמן חוסר כמולא ומבטיח
+// לבעל העסק שורה שלא תופיע. הם יושבים כאן ולא ב-ledger.ts כדי שהבדיקה תרוץ מול אותן טבלאות
+// שהחישוב עצמו משתמש בהן - שתי רשימות מקבילות היו מתפצלות בשינוי הבא של בנק השאלות
+export const isKnownVolume = (a: string | null | undefined): boolean =>
+  ownLookup(VOLUME_RANGES, a?.trim() ?? "") != null;
+export const isKnownResponseTime = (a: string | null | undefined): boolean =>
+  ownLookup(RESPONSE_TIERS, a?.trim() ?? "") != null;
+export const isKnownDealValue = (a: string | null | undefined): boolean =>
+  DEAL_VALUE_LABELS.has(a?.trim() ?? "");
+
 // dealValueAnswer אופציונלי בכוונה (הכרעת מייסד 18.8): שאלת השווי היא שדרוג, לא תנאי. בלעדיה,
 // או כשהתשובה היא טקסט חופשי/"אחר" שלא תואם אף טווח מוכר, השורה נשארת בדיוק כפי שהייתה -
 // ספירת פניות בלבד. כסף מוצג רק כשכל שלושת הרכיבים הם תשובות מדויקות שלו מהתפריט

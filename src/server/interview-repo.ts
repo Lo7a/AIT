@@ -117,16 +117,25 @@ export interface QuantityAnswers {
   dealValue: string | null;
 }
 
-export async function getQuantityAnswers(prisma: PrismaClient, diagnosisId: string): Promise<QuantityAnswers> {
-  const rows = await prisma.interviewMessage.findMany({
-    where: { diagnosisId }, orderBy: [{ createdAt: "asc" }],
-  });
+// הגזירה עצמה, טהורה: אותה לולאה בדיוק, רק בלי הגישה למסד. snapshotOf (run-interview.ts) קורא
+// לה ישירות על state.messages כדי לבנות את פנקס החוסרים בכל תור, בלי סיבוב נוסף למסד -
+// ההודעות כבר טעונות שם. שתי גרסאות של הלוגיקה הזו היו מתפצלות ברגע שמפתח שאלה משתנה
+export function quantityAnswersFrom(
+  messages: readonly { role: string; questionKey: string | null; content: string }[],
+): QuantityAnswers {
   const answers: QuantityAnswers = { volume: null, responseTime: null, dealValue: null };
-  for (const m of rows) {
+  for (const m of messages) {
     if (m.role !== "user") continue;
     if (m.questionKey === "lead_flow_volume") answers.volume = m.content;
     if (m.questionKey === "lead_flow_response_time") answers.responseTime = m.content;
     if (m.questionKey === "lead_flow_deal_value") answers.dealValue = m.content;
   }
   return answers;
+}
+
+export async function getQuantityAnswers(prisma: PrismaClient, diagnosisId: string): Promise<QuantityAnswers> {
+  const rows = await prisma.interviewMessage.findMany({
+    where: { diagnosisId }, orderBy: [{ createdAt: "asc" }],
+  });
+  return quantityAnswersFrom(rows);
 }

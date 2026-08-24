@@ -79,7 +79,9 @@ export function useInterviewChat(diagnosisId: string, initial: InterviewSnapshot
   }, [diagnosisId, initial.status]);
 
   const visible = visibleNext(state.next, state.skippedKeys);
-  const sections = sectionProgress(state.credits);
+  // הערה (משימה 19): צ'יפי הסקציות ירדו מהמסך יחד עם אחוז השלמות, והכרטיס מציג עכשיו את
+  // פנקס החוסרים. sectionProgress עצמו נשאר מיוצא ונבדק ב-chat-logic - הוא פונקציה טהורה
+  // שעשויה לשמש מסך ניהול - אבל אין לו יותר צרכן בנתיב הריצה, ולכן הוא לא מחושב כאן לחינם
 
   // בוליאנים נגזרים חשופים מההוק ולא מחושבים שוב בתצוגה: כלל "מתי מותר לשלוח/לסיים/לדלג"
   // הוא חוק לוגי, לא פרט ויזואלי - גרסת עיצוב עתידית שמחליפה את default-interview.tsx לא
@@ -210,7 +212,6 @@ export function useInterviewChat(diagnosisId: string, initial: InterviewSnapshot
   return {
     ...state,
     visible,
-    sections,
     canSend,
     canFinish,
     canSkip,

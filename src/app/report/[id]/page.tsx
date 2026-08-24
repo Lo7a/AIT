@@ -14,6 +14,7 @@ import { userCanAccessDiagnosis, isAdmin } from "../../../server/auth/guard";
 import { emitUsageEvent } from "../../../server/usage-events";
 import { THEME_COOKIE, parseTheme } from "../../theme";
 import { getVariant } from "../../variants/registry";
+import { buildLedger } from "../../../pipeline/model/ledger";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +61,9 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
   const industry = industryOf(report.scan.findings, report.model);
   const highlights = reportLossHighlights(report.scan.scores, report.model, catalog, 3, industry.slug);
   const personalLoss = personalLossLine(answers.volume, answers.responseTime, answers.dealValue);
+  // פנקס החוסרים (משימה 19): נבנה כאן ולא ב-getReport כי הוא דורש את תשובות הכמות, שנקראות
+  // מההודעות לפי questionKey ולא מהמודל. אותם answers שכבר נטענו למעלה - בלי סיבוב נוסף
+  const ledger = buildLedger(report.scan.findings, report.model, answers);
 
   // "מה אפשר לעשות כבר עכשיו" (צעדים חינמיים): נגזר באותו אופן בדיוק - חוקים סטטיים מעל
   // הציונים *כפי שהם שמורים*, בזיכרון בלבד, בלי LLM ובלי שמירה. רק חוקים שנבדקו בפועל
@@ -84,6 +88,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
       personalLoss={personalLoss}
       quickWins={freeSteps}
       insights={understood}
+      ledger={ledger}
     />
   );
 }

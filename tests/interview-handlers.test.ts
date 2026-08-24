@@ -36,7 +36,7 @@ describe("makeStateHandler", () => {
 describe("makeMessageHandler", () => {
   it("תור תקין - 200 עם התוצאה", async () => {
     const h = makeMessageHandler(async () => ({
-      reply: "רשמתי", usedFallback: false, nextQuestion: null, completenessPct: 40, askedCount: 1, credits: {}, done: true,
+      reply: "רשמתי", usedFallback: false, nextQuestion: null, completenessPct: 40, askedCount: 1, credits: {}, done: true, ledger: [],
     }));
     const res = await h(post({ content: "תשובה", isFreeText: true }), "d1");
     expect(res.status).toBe(200);
@@ -76,7 +76,7 @@ describe("makeMessageHandler", () => {
     let seenContent: string | null = null;
     const h = makeMessageHandler(async (_id, input) => {
       seenContent = input.content;
-      return { reply: "אוקיי", usedFallback: false, nextQuestion: null, completenessPct: 0, askedCount: 0, credits: {}, done: true };
+      return { reply: "אוקיי", usedFallback: false, nextQuestion: null, completenessPct: 0, askedCount: 0, credits: {}, done: true, ledger: [] };
     });
     const ok = "א".repeat(MAX_CONTENT_CHARS);
     const res1 = await h(post({ content: ok, isFreeText: true }), "d1");

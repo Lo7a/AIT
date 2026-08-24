@@ -11,6 +11,7 @@ import { userCanAccessDiagnosis, isAdmin } from "../../../server/auth/guard";
 import { emitUsageEvent } from "../../../server/usage-events";
 import { THEME_COOKIE, parseTheme } from "../../theme";
 import { getVariant } from "../../variants/registry";
+import { buildLedger } from "../../../pipeline/model/ledger";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,7 @@ export default async function RoadmapPage({ params }: { params: Promise<{ id: st
       report={report}
       initialRoadmap={roadmap}
       personalLoss={personalLossLine(answers.volume, answers.responseTime, answers.dealValue)}
+      ledger={buildLedger(report.scan.findings, report.model, answers)}
       isAdmin={acting != null && isAdmin(acting.actor)}
       userEmail={acting?.actor.email ?? null}
     />

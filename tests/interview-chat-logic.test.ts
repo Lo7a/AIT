@@ -27,6 +27,7 @@ function makeSnapshot(overrides: Partial<InterviewSnapshot> = {}): InterviewSnap
     credits: emptyCredits(),
     nextQuestion: Q1,
     recommendFreeText: false,
+    ledger: [],
     ...overrides,
   };
 }
@@ -179,7 +180,7 @@ describe("chatReducer - איפוס מצב צ'יפים במעברי הקשר", ()
     const sent = chatReducer(withChips, { type: "send" });
     const turn: TurnResult = {
       reply: "טוב", usedFallback: false, nextQuestion: Q2, completenessPct: 25,
-      credits: emptyCredits(), askedCount: 1, done: false,
+      credits: emptyCredits(), askedCount: 1, done: false, ledger: [],
     };
     const next = chatReducer(sent, { type: "turnOk", payload: turn });
     expect(next.selectedOptions).toEqual([]);
@@ -228,6 +229,7 @@ describe("chatReducer - turnOk", () => {
       credits: emptyCredits({ lead_flow: 1 }),
       askedCount: 1,
       done: false,
+      ledger: [],
     };
     const next = chatReducer(sent, { type: "turnOk", payload: turn });
     expect(next.busy).toBe(false);
@@ -250,6 +252,7 @@ describe("chatReducer - turnOk", () => {
       credits: emptyCredits(),
       askedCount: 1,
       done: true,
+      ledger: [],
     };
     const next = chatReducer(sent, { type: "turnOk", payload: turn });
     expect(next.messages[1].content).toBe("תשובת ברירת מחדל בלי חילוץ");
@@ -263,7 +266,7 @@ describe("chatReducer - turnOk", () => {
     );
     const turn: TurnResult = {
       reply: "טוב", usedFallback: false, nextQuestion: Q2, completenessPct: 30,
-      credits: emptyCredits(), askedCount: 1, done: false,
+      credits: emptyCredits(), askedCount: 1, done: false, ledger: [],
     };
     expect(chatReducer(sent, { type: "turnOk", payload: turn }).freeText).toBe(false);
   });
@@ -273,7 +276,7 @@ describe("chatReducer - turnOk", () => {
     const sent = chatReducer(withSkip, { type: "send" });
     const turn: TurnResult = {
       reply: "עוד תודה", usedFallback: false, nextQuestion: Q2, completenessPct: 25,
-      credits: emptyCredits(), askedCount: 1, done: false,
+      credits: emptyCredits(), askedCount: 1, done: false, ledger: [],
     };
     const next = chatReducer(sent, { type: "turnOk", payload: turn });
     expect(next.freeText).toBe(true);
@@ -290,7 +293,7 @@ describe("chatReducer - setFreeText וכוונה דביקה (freeTextIntent)", (
     const sent = chatReducer({ ...state, input: "תשובה" }, { type: "send" });
     const turn: TurnResult = {
       reply: "טוב", usedFallback: false, nextQuestion: Q2, completenessPct: 25,
-      credits: emptyCredits(), askedCount: 1, done: false,
+      credits: emptyCredits(), askedCount: 1, done: false, ledger: [],
     };
     const next = chatReducer(sent, { type: "turnOk", payload: turn });
     expect(next.freeText).toBe(true);
@@ -306,7 +309,7 @@ describe("chatReducer - setFreeText וכוונה דביקה (freeTextIntent)", (
     const sent = chatReducer({ ...state, input: "תשובה" }, { type: "send" });
     const turn: TurnResult = {
       reply: "טוב", usedFallback: false, nextQuestion: Q2, completenessPct: 25,
-      credits: emptyCredits(), askedCount: 1, done: false,
+      credits: emptyCredits(), askedCount: 1, done: false, ledger: [],
     };
     const next = chatReducer(sent, { type: "turnOk", payload: turn });
     expect(next.freeText).toBe(false);
@@ -320,7 +323,7 @@ describe("chatReducer - setFreeText וכוונה דביקה (freeTextIntent)", (
     const sent = chatReducer({ ...skipped, input: "תשובה" }, { type: "send" });
     const turn: TurnResult = {
       reply: "טוב", usedFallback: false, nextQuestion: Q2, completenessPct: 25,
-      credits: emptyCredits(), askedCount: 1, done: false,
+      credits: emptyCredits(), askedCount: 1, done: false, ledger: [],
     };
     const next = chatReducer(sent, { type: "turnOk", payload: turn });
     expect(next.freeText).toBe(false);

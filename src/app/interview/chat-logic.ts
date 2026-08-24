@@ -1,5 +1,6 @@
 import type { InterviewSnapshot, TurnResult } from "../../server/run-interview";
 import { INTERVIEW_SECTIONS } from "../../pipeline/interview/questions";
+import type { LedgerEntry } from "../../pipeline/model/ledger";
 
 // לוגיקה טהורה של מסך הראיון (משימה 11): בלי React ובלי fetch, כך שגרסת עיצוב עתידית תחליף
 // רק JSX/CSS בלי לגעת כאן. use-interview-chat.ts הוא השכבה היחידה שקוראת ל-API ומתרגמת
@@ -51,6 +52,8 @@ export interface ChatState {
   selectedOptions: string[];
   customInputOpen: boolean;
   completenessPct: number;
+  // פנקס החוסרים (משימה 19): מגיע מכל snapshot ומכל תור, ולכן הכרטיס מתעדכן חי בזמן הראיון
+  ledger: LedgerEntry[];
   credits: Record<string, number>;
   askedCount: number;
   maxQuestions: number;
@@ -85,6 +88,7 @@ export function initialChatState(initial: InterviewSnapshot): ChatState {
     selectedOptions: [],
     customInputOpen: false,
     completenessPct: initial.completenessPct,
+    ledger: initial.ledger,
     credits: initial.credits,
     askedCount: initial.askedCount,
     maxQuestions: initial.maxQuestions,
@@ -124,6 +128,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...state,
         messages: action.payload.messages.map(toChatMessage),
         completenessPct: action.payload.completenessPct,
+        ledger: action.payload.ledger,
         credits: action.payload.credits,
         askedCount: action.payload.askedCount,
         maxQuestions: action.payload.maxQuestions,
@@ -164,6 +169,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...state,
         messages: [...state.messages, reply],
         completenessPct: action.payload.completenessPct,
+        ledger: action.payload.ledger,
         credits: action.payload.credits,
         askedCount: action.payload.askedCount,
         next: action.payload.nextQuestion,
