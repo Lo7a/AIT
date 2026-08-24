@@ -112,7 +112,12 @@ server.tool(
     q: z.string().max(120).optional().describe("חיפוש בכותרת ובתיאור"),
   },
   async ({ status, type, assignee, q }) => {
-    const tasks = await listTasks(prisma, { status, type, assignee, q });
+    const tasks = await listTasks(prisma, {
+      statuses: status != null ? [status] : undefined,
+      types: type != null ? [type] : undefined,
+      assignees: assignee != null ? [assignee] : undefined,
+      q,
+    });
     if (tasks.length === 0) return asText("אין משימות שמתאימות לסינון.");
     return asText(tasks.map(taskLine).join("\n"));
   },

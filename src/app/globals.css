@@ -1574,3 +1574,25 @@ button.ans-row:not(:disabled):active{background:rgba(var(--acc-rgb),.16)}
   .acc-grid{display:flex;flex-wrap:wrap;gap:8px}
   .acc-row .acc-body{padding-inline:10px}
 }
+
+/* --- צ'יפ-סינון (לוח המשימות, 21.8): צ'קבוקס שנראה כמו גלולה, בלי JS.
+   ה-input מוסתר חזותית אבל נשאר נגיש - מקלדת מקבלת את טבעת המיקוד על הגלולה --- */
+.fchips{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.fchip{position:relative;display:inline-flex}
+.fchip input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.fchip span{
+  display:inline-flex;align-items:center;border-radius:999px;cursor:pointer;
+  padding:4px 12px;font-size:12px;font-weight:600;
+  color:var(--mut);background:var(--surface-1);border:1px solid var(--hair);
+  transition:color .2s,background .2s,border-color .2s;
+}
+.fchip:hover span{color:var(--txt)}
+.fchip input:checked+span{
+  color:var(--acc-soft);background:rgba(var(--acc-rgb),.12);
+  border-color:rgba(var(--acc-rgb),.4);
+}
+.fchip input:focus-visible+span{outline:2px solid var(--acc);outline-offset:2px}
+.fchips .fchips-cap{
+  font-size:10.5px;font-weight:700;letter-spacing:.12em;color:var(--dim);
+  margin-inline-end:2px;
+}

@@ -2,6 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import { isAdmin } from "./auth/guard";
 import type { SessionUser } from "./auth/session";
 import { sanitizeChatText, AGENT_NAMES } from "./agent-chat";
+import { pageWindow, paged, type Paged } from "./paging";
 
 // לוח המשימות (הכרעת מייסד 21.8): כל הבאגים, הפיצ'רים, המשימות והרעיונות במקום אחד,
 // עם עדיפות, סטטוס, אחראי וקישור לקומיטים. הסוכנים מעדכנים דרך ה-MCP והסקריפטים
@@ -62,30 +63,53 @@ export interface TaskRow {
 }
 
 export interface TaskListFilter {
-  status?: TaskStatus;
-  type?: TaskType;
-  assignee?: TaskAssignee;
-  priority?: number;
+  /** כל מסנן הוא רשימה - סינון מרובה (צ'קבוקסים במסך, 21.8). רשימה ריקה = בלי סינון */
+  statuses?: TaskStatus[];
+  types?: TaskType[];
+  assignees?: TaskAssignee[];
+  priorities?: number[];
   q?: string;
-  /** ברירת המחדל מסתירה את מה שנסגר - הלוח הוא "מה עכשיו", לא ארכיון */
-  includeClosed?: boolean;
 }
 
-/** הפתוח והבוער קודם: סטטוס פתוח/בעבודה/חסום לפני הושלם/ירד, ובתוך זה עדיפות ואז ותק */
-export async function listTasks(prisma: PrismaClient, f: TaskListFilter = {}): Promise<TaskRow[]> {
+const TASK_ORDER = [{ priority: "asc" }, { createdAt: "asc" }] as const;
+
+function taskWhere(f: TaskListFilter): Record<string, unknown> {
   const where: Record<string, unknown> = {};
-  if (f.status != null) where.status = f.status;
-  else if (!f.includeClosed) where.status = { notIn: ["done", "dropped"] };
-  if (f.type != null) where.type = f.type;
-  if (f.assignee != null) where.assignee = f.assignee;
-  if (f.priority != null) where.priority = f.priority;
+  if (f.statuses != null && f.statuses.length > 0) where.status = { in: f.statuses };
+  else where.status = { notIn: ["done", "dropped"] };
+  if (f.types != null && f.types.length > 0) where.type = { in: f.types };
+  if (f.assignees != null && f.assignees.length > 0) where.assignee = { in: f.assignees };
+  if (f.priorities != null && f.priorities.length > 0) where.priority = { in: f.priorities };
   if (f.q) {
     where.OR = [
       { title: { contains: f.q, mode: "insensitive" } },
       { details: { contains: f.q, mode: "insensitive" } },
     ];
   }
-  return prisma.task.findMany({ where, orderBy: [{ priority: "asc" }, { createdAt: "asc" }] });
+  return where;
+}
+
+/** הפתוח והבוער קודם. בלי סינון סטטוס מוצג רק מה שלא נסגר - הלוח הוא "מה עכשיו",
+ *  לא ארכיון; מי שרוצה את הסגורות מסמן אותן במפורש. בלי עימוד - זה הכלי של הסוכנים */
+export async function listTasks(prisma: PrismaClient, f: TaskListFilter = {}): Promise<TaskRow[]> {
+  return prisma.task.findMany({ where: taskWhere(f), orderBy: [...TASK_ORDER] });
+}
+
+export const TASKS_PER_PAGE = 10;
+
+/** אותו סינון, בעמודים של 10 - למסך הניהול (בקשת מייסד 21.8) */
+export async function listTasksPaged(
+  prisma: PrismaClient,
+  f: TaskListFilter,
+  page: number,
+): Promise<Paged<TaskRow>> {
+  const w = pageWindow({ page }, TASKS_PER_PAGE);
+  const where = taskWhere(f);
+  const [total, rows] = await Promise.all([
+    prisma.task.count({ where }),
+    prisma.task.findMany({ where, orderBy: [...TASK_ORDER], skip: w.skip, take: w.take }),
+  ]);
+  return paged(rows, total, w);
 }
 
 export interface CreateTaskInput {
