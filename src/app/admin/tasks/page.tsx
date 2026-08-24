@@ -155,7 +155,7 @@ export default async function AdminTasksPage({
                 <span>סוג</span>
                 <span>עדיפות</span>
                 <span>סטטוס</span>
-                <span>אחראי</span>
+                <span>מי פתח</span>
                 <span>עדכון אחרון</span>
                 <span>נוצרה</span>
               </div>
@@ -194,8 +194,10 @@ export default async function AdminTasksPage({
                         <StatusChip status={t.status} />
                       )}
                     </span>
+                    {/* מי פתח ולא מי אחראי (הכרעת מייסד 24.8): הפותח קבוע, האחריות נודדת
+                        בין הסוכנים תוך כדי עבודה - האחראי נשאר בסינון ובעריכה שבפאנל */}
                     <span className="truncate text-xs" style={{ color: "var(--mut)" }}>
-                      {t.assignee != null ? ASSIGNEE_LABEL_HE[t.assignee] ?? t.assignee : "-"}
+                      {t.createdBy === "founder" ? "מייסד" : ASSIGNEE_LABEL_HE[t.createdBy] ?? t.createdBy}
                     </span>
                     {/* השינוי האחרון: התאריך ומי ביצע - מהאירוע העדכני ביותר שכבר נשלף */}
                     <span className="text-xs" style={{ color: "var(--mut)" }}>
