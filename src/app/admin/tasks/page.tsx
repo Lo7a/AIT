@@ -149,6 +149,7 @@ export default async function AdminTasksPage({
                 <span>עדיפות</span>
                 <span>סטטוס</span>
                 <span>אחראי</span>
+                <span>עדכון אחרון</span>
                 <span>נוצרה</span>
               </div>
               {tasks.map((t, i) => (
@@ -188,6 +189,21 @@ export default async function AdminTasksPage({
                     </span>
                     <span className="truncate text-xs" style={{ color: "var(--mut)" }}>
                       {t.assignee != null ? ASSIGNEE_LABEL_HE[t.assignee] ?? t.assignee : "-"}
+                    </span>
+                    {/* השינוי האחרון: התאריך ומי ביצע - מהאירוע העדכני ביותר שכבר נשלף */}
+                    <span className="text-xs" style={{ color: "var(--mut)" }}>
+                      {(() => {
+                        const last = eventsByTask.get(t.id)?.[0];
+                        if (last == null) return <span className="num">{DATE_ONLY_FMT.format(t.updatedAt)}</span>;
+                        return (
+                          <>
+                            <span className="num">{DATE_ONLY_FMT.format(last.createdAt)}</span>
+                            <span className="block truncate text-[10.5px]" style={{ color: "var(--dim)" }}>
+                              {last.author === "founder" ? "מייסד" : ASSIGNEE_LABEL_HE[last.author] ?? last.author}
+                            </span>
+                          </>
+                        );
+                      })()}
                     </span>
                     <span className="num text-xs" style={{ color: "var(--dim)" }}>{DATE_ONLY_FMT.format(t.createdAt)}</span>
                   </summary>
