@@ -8,6 +8,7 @@ import { pageParam } from "../../../server/paging";
 import { requireAdmin } from "../require-admin";
 import { Pager } from "../../ui/pager";
 import { AutoRefresh } from "../../ui/auto-refresh";
+import { LiveFilterForm } from "../../ui/live-filter-form";
 import { DATE_FMT } from "../labels";
 
 export const dynamic = "force-dynamic";
@@ -83,7 +84,7 @@ export default async function AdminAgentsPage({
         <div className="core card-pad">
           <h2 className="card-title">השיח</h2>
 
-          <form method="get" action="/admin/agents" className="mb-4 flex flex-col gap-2.5">
+          <LiveFilterForm action="/admin/agents" className="mb-4 flex flex-col gap-2.5">
             <div className="fbar" style={{ marginBottom: 0 }}>
               <span className="fld" style={{ flex: 1 }}>
                 <label htmlFor="ag-q">חיפוש</label>
@@ -103,7 +104,7 @@ export default async function AdminAgentsPage({
                 </label>
               ))}
             </div>
-          </form>
+          </LiveFilterForm>
 
           {list.rows.length === 0 ? (
             <p className="t-empty" style={{ color: "var(--mut)" }}>

@@ -10,6 +10,7 @@ import { pageParam } from "../../../server/paging";
 import { requireAdmin } from "../require-admin";
 import { Pager } from "../../ui/pager";
 import { AutoRefresh } from "../../ui/auto-refresh";
+import { LiveFilterForm } from "../../ui/live-filter-form";
 import { DATE_ONLY_FMT } from "../labels";
 import { StatusChip, PriorityChip, TaskPanel, type TaskEventRow } from "./task-panel";
 
@@ -73,7 +74,7 @@ export default async function AdminTasksPage({
         <div className="core card-pad">
           <h2 className="card-title">מה על הלוח</h2>
 
-          <form method="get" action="/admin/tasks" className="mb-4 flex flex-col gap-2.5">
+          <LiveFilterForm action="/admin/tasks" className="mb-4 flex flex-col gap-2.5">
             <div className="fbar" style={{ marginBottom: 0 }}>
               <span className="fld" style={{ flex: 1 }}>
                 <label htmlFor="tk-q">חיפוש</label>
@@ -127,7 +128,7 @@ export default async function AdminTasksPage({
                 </label>
               ))}
             </div>
-          </form>
+          </LiveFilterForm>
 
           {created != null && (
             <p className="mb-3 text-xs font-semibold" style={{ color: "var(--acc2-soft)" }}>
