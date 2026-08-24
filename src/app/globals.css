@@ -598,10 +598,29 @@ html[data-rail="mini"] .rail-tgl path{transform:none}
 .side-nav .foot .who{flex:1;min-width:0}
 .side-nav .foot .who b{display:block;font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .side-nav .foot .who i{font-style:normal;font-size:10.5px;color:var(--dim)}
+/* עוגן העסק (משימה 19): שם העסק והציון נשארים על המסך בכל מעבר בין העמודים. מספר
+   ונקודת צבע ולא טבעת - טבעת בסיידבר מושכת את העין מהניווט, והציון כבר מוצג בגדול
+   בראש הדוח. צבע הנקודה מגיע מ-scoreTone דרך style, כמו שאר תגי הטון במערכת */
+.side-nav .biz-anchor{
+  display:flex;align-items:center;gap:9px;
+  margin:2px 6px 12px;padding:10px;border-radius:14px;
+  background:var(--surface-1);border:1px solid var(--hair-soft);
+  text-decoration:none;color:inherit;
+}
+.side-nav .biz-anchor:hover{border-color:rgba(var(--acc-rgb),.35)}
+.side-nav .biz-anchor .biz-score{display:flex;align-items:center;gap:5px;flex:none;font-size:13.5px;font-weight:800}
+.side-nav .biz-anchor .biz-dot{width:7px;height:7px;border-radius:999px;background:currentColor;flex:none}
+.side-nav .biz-anchor .biz-who{flex:1;min-width:0}
+.side-nav .biz-anchor .biz-who b{display:block;font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side-nav .biz-anchor .biz-who i{font-style:normal;font-size:10.5px;color:var(--dim)}
+html[data-rail="mini"] .side-nav .biz-anchor{
+  justify-content:center;margin-inline:0;padding:10px 0;background:transparent;border-color:transparent;
+}
 html[data-rail="mini"] .side-nav{width:var(--rail-mini-w);padding:16px 10px}
 html[data-rail="mini"] .side-nav .lbl,
 html[data-rail="mini"] .side-nav .bdg,
 html[data-rail="mini"] .side-nav .brand-txt,
+html[data-rail="mini"] .side-nav .biz-anchor .biz-who,
 html[data-rail="mini"] .side-nav .foot .who{display:none}
 html[data-rail="mini"] .side-nav .head{justify-content:center;padding-inline:0}
 html[data-rail="mini"] .side-nav .head .brand{display:none}

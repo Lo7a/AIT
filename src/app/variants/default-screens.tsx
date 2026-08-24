@@ -19,7 +19,8 @@ import { AppShell } from "../ui/app-shell";
 import { AnchorNav, type AnchorItem } from "../ui/anchor-nav";
 import { ImpersonateSearch } from "../ui/impersonate-search";
 import { UserMenu } from "../ui/user-menu";
-import { ScoreDial, MiniRing, SegRail, FillBar } from "../ui/motion";
+import { ScoreDial, MiniRing, FillBar } from "../ui/motion";
+import { CompletenessCard } from "../ui/completeness-card";
 
 // שלושת המסכים בשפת העיצוב הנבחרת (הכרעת מייסד 18.8): כהה פרמיום, סגול וברקת, Rubik.
 // כל הקלאסים מ-globals.css (shell/core/board וכו'); מה שאין לו קלאס גלובלי מקבל סגנון
@@ -570,7 +571,13 @@ export function DefaultReport({
   if (hasPlan) anchors.push({ id: "plan", label: "תוכנית העבודה" });
 
   return (
-    <AppShell active="report" diagnosisId={report.id} userLabel={userEmail} isAdmin={isAdmin}>
+    <AppShell
+      active="report"
+      diagnosisId={report.id}
+      userLabel={userEmail}
+      isAdmin={isAdmin}
+      business={{ name: business.name, score: overall }}
+    >
       <header className="topbar">
         <span className="brand-txt"><small>הדוח המלא</small><b>{business.name}</b></span>
         <div className="side">
@@ -650,24 +657,13 @@ export function DefaultReport({
               העותק שנשאר הוא "פירוט הציון", שנושא גם את מצב הנתונים ואת ההסברים */}
 
           {hasPlan && (
-            <section className="shell rv d2">
-              <div className="core flex flex-col gap-3">
-                <div className="flex items-baseline justify-between gap-3">
-                  <b className="text-[15px] font-bold">שלמות האבחון</b>
-                  <span className="num text-2xl font-extrabold tracking-tight" style={{ color: "var(--acc-soft)" }}>
-                    {model.completenessPct}<small className="text-xs font-semibold" style={{ color: "var(--dim)" }}>%</small>
-                  </span>
-                </div>
-                <SegRail percent={model.completenessPct} />
-                <p className="text-sm leading-relaxed" style={{ color: "var(--mut)" }}>{nextStep.reason}</p>
-                {/* btn wide ולא הגלולה הצרה: ברוחב הרייל (318px) הכיתוב המלא נשבר לשתי
-                    שורות, וכפתור במלוא הרוחב קורא נכון במקום גלולה עקומה */}
-                <Link href={`/interview/${report.id}`} className="btn sm wide mt-1">
-                  רוצה דיוק גבוה יותר? ראיון של 5 דקות
-                  <span className="cap"><CapArrow /></span>
-                </Link>
-              </div>
-            </section>
+            <CompletenessCard
+              percent={model.completenessPct}
+              note={nextStep.reason}
+              cta={{ href: `/interview/${report.id}`, label: "רוצה דיוק גבוה יותר? ראיון של 5 דקות" }}
+              ctaIcon={<span className="cap"><CapArrow /></span>}
+              className="rv d2"
+            />
           )}
         </aside>
 

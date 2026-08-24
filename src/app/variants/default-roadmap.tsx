@@ -16,7 +16,7 @@ import { AppShell } from "../ui/app-shell";
 import { ImpersonateSearch } from "../ui/impersonate-search";
 import { UserMenu } from "../ui/user-menu";
 import { AnchorNav, type AnchorItem } from "../ui/anchor-nav";
-import { FillBar } from "../ui/motion";
+import { CompletenessCard } from "../ui/completeness-card";
 
 // מסך ה-Roadmap בשפת העיצוב הנבחרת (הכרעת מייסד 18.8: כהה פרמיום, סגול וברקת, Rubik - ראו
 // globals.css) - אין כאן שום לוגיקת עסק, רק תצוגה על גבי useRoadmap. הצבעים/הפאנלים של
@@ -95,30 +95,12 @@ function BusinessMap({ scores, model }: { scores: ScoreReport; model: ReportView
 
 function CompletenessMeter({ diagnosisId, model }: { diagnosisId: string; model: NonNullable<ReportView["model"]> }) {
   return (
-    <div className="shell c12 rv d2">
-      <section className="core card-pad">
-        <div className="flex items-baseline justify-between gap-4">
-          <h2 className="text-[15px] font-bold">שלמות האבחון</h2>
-          <span className="num text-2xl font-extrabold tracking-[-.02em] text-[color:var(--acc-soft)]">
-            {model.completenessPct}%
-          </span>
-        </div>
-        <div
-          role="progressbar"
-          aria-valuenow={model.completenessPct}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-label="שלמות האבחון"
-          className="mt-3 flex"
-        >
-          <FillBar percent={model.completenessPct} />
-        </div>
-        <Link href={`/interview/${diagnosisId}`} className="door-link mt-4">
-          שפר את הדיוק - ראיון קצר
-          <CapArrow />
-        </Link>
-      </section>
-    </div>
+    <CompletenessCard
+      percent={model.completenessPct}
+      cta={{ href: `/interview/${diagnosisId}`, label: "שפר את הדיוק - ראיון קצר" }}
+      ctaIcon={<CapArrow />}
+      className="c12 rv d2"
+    />
   );
 }
 
@@ -305,7 +287,13 @@ export function DefaultRoadmap({
   }));
 
   return (
-    <AppShell active="roadmap" diagnosisId={report.id} userLabel={userEmail} isAdmin={isAdmin}>
+    <AppShell
+      active="roadmap"
+      diagnosisId={report.id}
+      userLabel={userEmail}
+      isAdmin={isAdmin}
+      business={{ name: report.business.name, score: scores.overall }}
+    >
       {/* שורת הזהות, זהה לדוח ולראיון: על איזה עסק מדובר. הכותרת "תוכנית העבודה" למטה
           אומרת מה זה, ולא למי - וכשיש כמה אבחונים זו בדיוק השאלה (דיווח מייסד 20.8) */}
       <header className="topbar">

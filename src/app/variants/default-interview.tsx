@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useId, useRef, type CSSProperties } from "react";
+import { useEffect, useId, useRef } from "react";
 import type { InterviewSnapshot } from "../../server/run-interview";
 import { useInterviewChat } from "../interview/use-interview-chat";
-import type { ChatMessage, SectionProgressItem } from "../interview/chat-logic";
+import type { ChatMessage } from "../interview/chat-logic";
 import { AppShell } from "../ui/app-shell";
 import { ImpersonateSearch } from "../ui/impersonate-search";
 import { UserMenu } from "../ui/user-menu";
 import { AnswerOptions } from "../ui/answer-options";
-import { FillBar } from "../ui/motion";
+import { CompletenessCard } from "../ui/completeness-card";
 
 // מסך הראיון בשפת העיצוב הנבחרת (הכרעת מייסד 18.8: כהה פרמיום, סגול וברקת, Rubik - ראו
 // globals.css) - אין כאן שום לוגיקת עסק, רק תצוגה על גבי useInterviewChat. ניהול פוקוס
@@ -16,40 +16,8 @@ import { FillBar } from "../ui/motion";
 // כללי החלקים המונפשים: מחלקות .rv יושבות רק על עטיפות סטטיות שנטענות פעם אחת עם המסך -
 // אף פעם לא על הודעות/פאנלים שמתחלפים עם ה-state, כדי ששינוי state לא יריץ כניסה מחדש.
 
-// הבדל מלא/חלקי/כלום לא נשען על צבע בלבד: full מלא ובגבול רציף, partial בגבול מקווקו
-// עם נקודה מוקפת, none בגבול רציף דהוי בלי נקודה בכלל - ניתן להבחין גם
-// בגווני אפור/עיוורון צבעים
-const SECTION_CHIP_STYLE: Record<SectionProgressItem["state"], CSSProperties> = {
-  full: { color: "var(--acc2-soft)", background: "rgba(var(--acc2-rgb),.09)", borderColor: "rgba(var(--acc2-rgb),.35)" },
-  partial: { color: "var(--txt)", background: "var(--surface-1)", borderStyle: "dashed", borderColor: "rgba(var(--acc-rgb),.5)" },
-  none: { color: "var(--dim)", background: "transparent", borderColor: "var(--hair-soft)" },
-};
-const STATE_LABEL: Record<SectionProgressItem["state"], string> = {
-  full: "הושלם",
-  partial: "חלקי",
-  none: "עוד לא",
-};
-
 // כפתור-קו שקט (סיום הראיון): ghost-act מ-globals בלי מצב disabled משלו, אז מוסיפים כאן
 const GHOST_BTN = "ghost-act disabled:cursor-not-allowed disabled:opacity-40";
-
-function SectionChip({ item }: { item: SectionProgressItem }) {
-  return (
-    <li
-      className="flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"
-      style={SECTION_CHIP_STYLE[item.state]}
-      aria-label={`${item.label}: ${STATE_LABEL[item.state]}`}
-    >
-      {item.state !== "none" && (
-        <span
-          aria-hidden="true"
-          className={`h-1.5 w-1.5 shrink-0 rounded-full ${item.state === "full" ? "bg-current" : "border border-current"}`}
-        />
-      )}
-      {item.label}
-    </li>
-  );
-}
 
 // החץ בעיגול של כפתורי .btn (globals) - בממשק עברי קדימה = שמאלה
 function CapArrow() {
@@ -214,45 +182,16 @@ export function DefaultInterview({
             הראשית: כותרת של 32 פיקסלים ופסקה של 52 תווים בתוך רצועה של 318 פיקסלים
             נשברות לשבע שורות, וגם ככה מקומה של כותרת העמוד הוא בראש התוכן */}
         <aside className="rep-side">
-        {/* הכרטיס נבנה מחדש (דיווח מייסד 20.8: "הדוח חי" לא התחבר לשאר).
-            הוא היה גלולה ירוקה מרחפת בראש הכרטיס בלי הקשר - תג בלי משפט. עכשיו יש
-            כאן סדר אחד: מה המספר, מה הפס שמתחתיו אומר, מה כבר נאסף, ובסוף מה שהתג
-            באמת התכוון לומר - בעברית פשוטה ולא כסיסמה */}
-        <section className="shell rv d1">
-          <div className="core card-pad">
-            <h2 className="card-title flush">שלמות האבחון</h2>
-            <div
-              role="progressbar"
-              aria-valuenow={completenessPct}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label="שלמות האבחון"
-              className="mt-3"
-            >
-              <span className="num block text-[34px] font-extrabold leading-none tracking-[-.03em] text-[color:var(--acc-soft)]">
-                {completenessPct}%
-              </span>
-              <div className="mt-3"><FillBar percent={completenessPct} /></div>
-            </div>
-
-            <p className="mt-5 text-[10.5px] font-bold tracking-[.12em] text-[color:var(--dim)]">
-              מה כבר יש לנו
-            </p>
-            <ul className="mt-2.5 flex flex-wrap gap-2">
-              {sections.map((s) => (
-                <SectionChip key={s.key} item={s} />
-              ))}
-            </ul>
-
-            {/* מה ש"הדוח חי" ניסה להגיד, אמור: כל תשובה מרעננת את scan.scores מיד
-                (run-interview). עובדה מערכתית, ולכן היא נאמרת כמשפט ולא כתג */}
-            <p className="mt-5 flex items-start gap-2 border-t pt-4 text-[12px] leading-relaxed"
-              style={{ borderColor: "var(--row-line)", color: "var(--mut)" }}>
-              <span className="live-dot" aria-hidden="true" />
-              כל תשובה מעדכנת את הדוח מיד. אפשר לעצור באמצע ולחזור.
-            </p>
-          </div>
-        </section>
+        {/* הכרטיס נבנה מחדש (דיווח מייסד 20.8: "הדוח חי" לא התחבר לשאר), ומאז משימה 19
+            הוא הרכיב המשותף ב-ui/completeness-card - אותו כרטיס בדיוק בדוח ובתוכנית
+            העבודה. הסדר שנקבע כאן נשמר בתוכו: מה המספר, מה הפס אומר, מה כבר נאסף,
+            ובסוף מה שהתג הירוק המרחף באמת התכוון לומר - כמשפט ולא כסיסמה */}
+        <CompletenessCard
+          percent={completenessPct}
+          sections={sections}
+          live
+          className="rv d1"
+        />
         </aside>
 
         <div className="rep-main">
