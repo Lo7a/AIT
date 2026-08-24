@@ -7,7 +7,8 @@ import { getQuantityAnswers } from "../../../server/interview-repo";
 import { personalLossLine } from "../../../pipeline/roadmap/loss-calc";
 import type { DiagnosisStatus } from "../../../server/status";
 import { currentActingUser, hasAuthConfig } from "../../../server/auth/supabase-server";
-import { userCanAccessDiagnosis, isAdmin } from "../../../server/auth/guard";
+import { userCanAccessDiagnosis } from "../../../server/auth/guard";
+import { viewAsAdmin } from "../../../server/auth/impersonation";
 import { emitUsageEvent } from "../../../server/usage-events";
 import { THEME_COOKIE, parseTheme } from "../../theme";
 import { getVariant } from "../../variants/registry";
@@ -54,7 +55,7 @@ export default async function RoadmapPage({ params }: { params: Promise<{ id: st
       report={report}
       initialRoadmap={roadmap}
       personalLoss={personalLossLine(answers.volume, answers.responseTime, answers.dealValue)}
-      isAdmin={acting != null && isAdmin(acting.actor)}
+      isAdmin={viewAsAdmin(acting)}
       userEmail={acting?.actor.email ?? null}
     />
   );

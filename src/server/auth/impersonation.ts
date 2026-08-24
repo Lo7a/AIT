@@ -39,3 +39,12 @@ export async function resolveActingUser(
 export function isImpersonating(acting: ActingUser): boolean {
   return acting.user.id !== acting.actor.id;
 }
+
+// הדמיה מלאה (הכרעת מייסד 24.8): מה שהצופה רואה נקבע לפי הזהות המדומה, לא האמיתית.
+// אדמין שמתחזה לבעל עסק לא רואה ניהול - לא בסיידבר ולא בכניסה ישירה - כי המטרה של
+// ההתחזות היא QA: לראות בדיוק את מה שהמשתמש רואה. דרך המילוט היא פס ההתחזות עם כפתור
+// העצירה שיושב על מסכי העסק, ולכן אין סכנת נעילה. האבטחה לא זזה: ההרשאות האמיתיות
+// ממשיכות להיבדק לפי actor בכל ה-API (ובפרט עצירת ההתחזות עצמה עובדת תמיד)
+export function viewAsAdmin(acting: ActingUser | null): boolean {
+  return acting != null && isAdmin(acting.user);
+}
