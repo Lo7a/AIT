@@ -83,6 +83,7 @@ export default async function AdminTasksPage({
               </span>
             </div>
 
+            {/* שורה זורמת אחת לכל הקטגוריות (תיקון מייסד 21.8) - נשברת רק כשנגמר המקום */}
             <div className="fchips">
               <span className="fchips-cap">סטטוס</span>
               {TASK_STATUSES.map((s) => (
@@ -91,8 +92,6 @@ export default async function AdminTasksPage({
                   <span>{TASK_STATUS_LABEL_HE[s]}</span>
                 </label>
               ))}
-            </div>
-            <div className="fchips">
               <span className="fchips-cap">עדיפות</span>
               {[0, 1, 2, 3].map((p) => (
                 <label key={p} className="fchip">
@@ -100,8 +99,6 @@ export default async function AdminTasksPage({
                   <span>{TASK_PRIORITY_LABEL_HE[p]}</span>
                 </label>
               ))}
-            </div>
-            <div className="fchips">
               <span className="fchips-cap">סוג</span>
               {TASK_TYPES.map((t) => (
                 <label key={t} className="fchip">
@@ -109,7 +106,7 @@ export default async function AdminTasksPage({
                   <span>{TASK_TYPE_LABEL_HE[t]}</span>
                 </label>
               ))}
-              <span className="fchips-cap ms-4">אחראי</span>
+              <span className="fchips-cap">אחראי</span>
               {TASK_ASSIGNEES.map((a) => (
                 <label key={a} className="fchip">
                   <input type="checkbox" name="assignee" value={a} defaultChecked={assignees.includes(a as TaskAssignee)} />
@@ -117,7 +114,7 @@ export default async function AdminTasksPage({
                 </label>
               ))}
               {/* מיון הוא בחירה יחידה - radio באותו לבוש של הצ'יפים */}
-              <span className="fchips-cap ms-4">מיון</span>
+              <span className="fchips-cap">מיון</span>
               {TASK_SORTS.map((s) => (
                 <label key={s} className="fchip">
                   <input type="radio" name="sort" value={s} defaultChecked={sort === s} />
