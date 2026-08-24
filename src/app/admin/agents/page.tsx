@@ -10,6 +10,7 @@ import { Pager } from "../../ui/pager";
 import { AutoRefresh } from "../../ui/auto-refresh";
 import { LiveFilterForm } from "../../ui/live-filter-form";
 import { DATE_FMT } from "../labels";
+import { TaskRefs, toTaskNums } from "../../ui/task-refs";
 
 export const dynamic = "force-dynamic";
 
@@ -42,10 +43,13 @@ export default async function AdminAgentsPage({
   const page = pageParam(one(sp.page));
   const filtered = authors.length > 0 || q !== "";
 
-  const [{ statuses }, list] = await Promise.all([
+  const [{ statuses }, list, taskRows] = await Promise.all([
     listBoard(prisma),
     listMessagesPaged(prisma, { authors, q: q || undefined }, page),
+    // המספרים החיים בלוח - כדי שאזכור "משימה 15" בהודעה יהפוך לקישור רק אם היא קיימת
+    prisma.task.findMany({ select: { num: true } }),
   ]);
+  const taskNums = toTaskNums(taskRows);
   const pagerParams = {
     q: q || undefined,
     author: authors.length > 0 ? authors : undefined,
@@ -67,10 +71,10 @@ export default async function AdminAgentsPage({
                     {label(s.agent)} · {DATE_FMT.format(s.updatedAt)}
                   </span>
                   <span className="v">
-                    {s.task}
-                    <span className="block text-xs" style={{ color: "var(--dim)" }}>נוגע ב: {s.areas}</span>
+                    <TaskRefs text={s.task} nums={taskNums} />
+                    <span className="block text-xs" style={{ color: "var(--dim)" }}>נוגע ב: <TaskRefs text={s.areas} nums={taskNums} /></span>
                     {s.blockedOn != null && (
-                      <span className="block text-xs" style={{ color: "var(--warn)" }}>חסום על: {s.blockedOn}</span>
+                      <span className="block text-xs" style={{ color: "var(--warn)" }}>חסום על: <TaskRefs text={s.blockedOn} nums={taskNums} /></span>
                     )}
                   </span>
                 </div>
@@ -126,7 +130,7 @@ export default async function AdminAgentsPage({
                       </span>
                     )}
                   </p>
-                  <p className="mt-1 max-w-[78ch] whitespace-pre-wrap text-sm leading-relaxed">{m.body}</p>
+                  <p className="mt-1 max-w-[78ch] whitespace-pre-wrap text-sm leading-relaxed"><TaskRefs text={m.body} nums={taskNums} /></p>
                 </li>
               ))}
             </ul>

@@ -12,6 +12,7 @@ import { Pager } from "../../ui/pager";
 import { AutoRefresh } from "../../ui/auto-refresh";
 import { LiveFilterForm } from "../../ui/live-filter-form";
 import { DATE_ONLY_FMT } from "../labels";
+import { TaskRefs, toTaskNums } from "../../ui/task-refs";
 import { StatusChip, PriorityChip, TaskPanel, type TaskEventRow } from "./task-panel";
 
 export const dynamic = "force-dynamic";
@@ -54,6 +55,9 @@ export default async function AdminTasksPage({
     priority: priorities.length > 0 ? priorities.map(String) : undefined,
     sort: sort !== "priority" ? sort : undefined,
   };
+
+  // אזכורי משימות בשדות חופשיים ("חסום על משימה 7") הופכים לקישורים - רק לקיימות
+  const taskNums = toTaskNums(await prisma.task.findMany({ select: { num: true } }));
 
   // ההיסטוריה של כל המשימות שבעמוד, בשליפה אחת - לא שאילתה לכל שורה
   const events = await prisma.taskEvent.findMany({
@@ -172,7 +176,7 @@ export default async function AdminTasksPage({
                     <span className="min-w-0 text-sm font-bold">
                       {t.title}
                       {t.blockedOn != null && (
-                        <span className="block text-xs font-normal" style={{ color: "var(--warn)" }}>חסום על: {t.blockedOn}</span>
+                        <span className="block text-xs font-normal" style={{ color: "var(--warn)" }}>חסום על: <TaskRefs text={t.blockedOn} nums={taskNums} /></span>
                       )}
                     </span>
                     <span className="text-xs" style={{ color: "var(--mut)" }}>{TASK_TYPE_LABEL_HE[t.type as TaskType] ?? t.type}</span>
