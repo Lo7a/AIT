@@ -7,17 +7,17 @@ import {
 // ערוץ הסוכנים משורת הפקודה - הכלי שכל קלוד מריץ לפי הפרוטוקול ב-CLAUDE.md:
 //   npm run chat:read              מה חדש בשבילי + הלוח (מסמן כנקרא)
 //   npm run chat:send -- "הודעה" [thread]
-//   npm run chat:update -- "על מה אני עובד" "קבצים/אזורים" [--commit c] [--blocked b]
+//   npm run chat:update -- "על מה אני עובד" "קבצים/אזורים" [--task N] [--commit c] [--blocked b]
 //   npm run chat:board             הלוח בלבד, בלי לסמן כלום (גם למייסד שמציץ)
 //
 // הזהות מגיעה מ-AIT_AGENT_NAME ב-.env המקומי ולא מהקוד - הריפו ציבורי.
 
-function printBoard(statuses: { agent: string; task: string; areas: string; commit: string | null; blockedOn: string | null; updatedAt: Date }[]) {
+function printBoard(statuses: { agent: string; task: string; taskNum: number | null; areas: string; commit: string | null; blockedOn: string | null; updatedAt: Date }[]) {
   console.log("--- לוח המצב ---");
   if (statuses.length === 0) console.log("(עוד אף סוכן לא עדכן מצב)");
   for (const s of statuses) {
     console.log(`${label(s.agent)} (${FMT.format(s.updatedAt)}):`);
-    console.log(`  עובד על: ${s.task}`);
+    console.log(`  עובד על: ${s.task}${s.taskNum != null ? ` (משימה #${s.taskNum})` : ""}`);
     console.log(`  נוגע ב: ${s.areas}`);
     if (s.commit) console.log(`  קומיט אחרון: ${s.commit}`);
     if (s.blockedOn) console.log(`  חסום על: ${s.blockedOn}`);
@@ -59,7 +59,12 @@ async function main() {
           console.error('שימוש: npm run chat:update -- "על מה אני עובד" "קבצים/אזורים" [--commit c] [--blocked b]');
           process.exit(1);
         }
-        await setStatus(prisma, agent, { task, areas, commit: flag("commit"), blockedOn: flag("blocked") });
+        const taskFlag = flag("task");
+        await setStatus(prisma, agent, {
+          task, areas,
+          taskNum: taskFlag != null ? Number(taskFlag) : undefined,
+          commit: flag("commit"), blockedOn: flag("blocked"),
+        });
         console.log("הלוח עודכן.");
         break;
       }

@@ -69,6 +69,7 @@ export function sanitizeChatText(s: string): string {
 export interface AgentStatusRow {
   agent: string;
   task: string;
+  taskNum: number | null;
   areas: string;
   commit: string | null;
   blockedOn: string | null;
@@ -157,6 +158,8 @@ export async function sendMessage(
 export interface StatusInput {
   task: string;
   areas: string;
+  /** מספר המשימה בלוח כשהעבודה היא משימה משם - קשר FK אמיתי, לא טקסט (משימה 11) */
+  taskNum?: number;
   commit?: string;
   blockedOn?: string;
 }
@@ -170,8 +173,20 @@ export async function setStatus(prisma: PrismaClient, agent: AgentName, input: S
   for (const v of [task, areas, commit, blockedOn]) {
     if (v.length > MAX_FIELD_CHARS) throw new Error(`שדה סטטוס ארוך מדי (מעל ${MAX_FIELD_CHARS} תווים)`);
   }
-  const data = { task, areas, commit: commit || null, blockedOn: blockedOn || null };
-  await prisma.agentStatus.upsert({ where: { agent }, create: { agent, ...data }, update: data });
+  if (input.taskNum != null && (!Number.isInteger(input.taskNum) || input.taskNum < 1)) {
+    throw new Error("מספר משימה חייב להיות שלם וחיובי");
+  }
+  // עדכון מצב מחליף את השורה כולה: בלי taskNum = העבודה הנוכחית אינה משימה מהלוח,
+  // והקישור הקודם מתנקה. הפרת FK (מספר שלא קיים) חוזרת כהודעה ברורה ולא כשגיאת מסד
+  const data = { task, areas, taskNum: input.taskNum ?? null, commit: commit || null, blockedOn: blockedOn || null };
+  try {
+    await prisma.agentStatus.upsert({ where: { agent }, create: { agent, ...data }, update: data });
+  } catch (e) {
+    if (input.taskNum != null && e instanceof Error && e.message.toLowerCase().includes("foreign key")) {
+      throw new Error("אין משימה מספר " + input.taskNum + " בלוח");
+    }
+    throw e;
+  }
 }
 
 // --- ההאנדלר של הטופס במסך הניהול ---

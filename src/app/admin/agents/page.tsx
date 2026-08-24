@@ -72,6 +72,11 @@ export default async function AdminAgentsPage({
                   </span>
                   <span className="v">
                     <TaskRefs text={s.task} nums={taskNums} />
+                    {s.taskNum != null && (
+                      <Link href={`/admin/tasks/${s.taskNum}`} className="ms-2 text-xs font-semibold underline decoration-dotted underline-offset-2" style={{ color: "var(--acc-soft)" }}>
+                        משימה #{s.taskNum}
+                      </Link>
+                    )}
                     <span className="block text-xs" style={{ color: "var(--dim)" }}>נוגע ב: <TaskRefs text={s.areas} nums={taskNums} /></span>
                     {s.blockedOn != null && (
                       <span className="block text-xs" style={{ color: "var(--warn)" }}>חסום על: <TaskRefs text={s.blockedOn} nums={taskNums} /></span>

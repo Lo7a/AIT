@@ -79,11 +79,12 @@ server.tool(
   {
     task: z.string().min(1).max(MAX_FIELD_CHARS).describe("על מה אני עובד עכשיו"),
     areas: z.string().min(1).max(MAX_FIELD_CHARS).describe("קבצים ואזורים שאני נוגע בהם"),
+    taskNum: z.number().int().min(1).optional().describe("מספר המשימה בלוח כשהעבודה היא משימה משם - תמיד להעביר כשתפסת משימה"),
     commit: z.string().max(MAX_FIELD_CHARS).optional().describe("הקומיט האחרון שנדחף"),
     blockedOn: z.string().max(MAX_FIELD_CHARS).optional().describe("על מה אני חסום, אם בכלל"),
   },
-  async ({ task, areas, commit, blockedOn }) => {
-    await setStatus(prisma, me(), { task, areas, commit, blockedOn });
+  async ({ task, areas, taskNum, commit, blockedOn }) => {
+    await setStatus(prisma, me(), { task, areas, taskNum, commit, blockedOn });
     return asText("הלוח עודכן.");
   },
 );
