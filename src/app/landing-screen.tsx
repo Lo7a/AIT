@@ -504,12 +504,8 @@ function InterviewPreview({ enabled = true }: { enabled?: boolean }) {
   return (
     <div ref={liveRef}>
       <div className="flex items-center gap-4">
-        <div className="orb-being" style={{ width: 74, height: 74, margin: 0 }} aria-hidden="true">
-          <span className="orb-halo" />
-          <span className="orb-ring" />
-          <span className="orb-ring b" />
-          <span className="orb-core" style={{ inset: 14 }} />
-        </div>
+        {/* הפנים של הדמות במקום האורב הגנרי (מייסד 26.8) - היועץ הוא מישהו */}
+        <BrandFace size={64} />
         <div>
           <b className="block text-sm font-bold">היועץ הדיגיטלי של בדק עסק</b>
           <span className="text-xs" style={{ color: "var(--dim)" }}>

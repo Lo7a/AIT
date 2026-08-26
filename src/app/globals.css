@@ -328,9 +328,15 @@ html:not([data-mode="light"]) .only-light{display:none}
 .proof-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
 /* הירו ואיך זה עובד תופסים עמוד מלא בדסקטופ (מייסד 26.8); במובייל גובה טבעי */
 @media (min-width:921px){
-  .hero-v4{min-height:calc(100dvh - 120px);align-content:center}
-  /* אותו קיזוז כמו ההירו - אחרת הניווט הדביק מכסה את ראש הסקשן הממורכז */
-  .stage-sec{min-height:calc(100dvh - 120px);display:flex;flex-direction:column;justify-content:center;padding-bottom:0}
+  /* התוכן נמתח על כל גובה העמוד במקום לרחף באמצע (משוב מייסד 26.8): שורת הגריד
+     של ההירו ממלאת את הגובה, החלון מתמרכז בחצי שלו, והכותרת והטופס בקצוות */
+  .hero-v4{min-height:calc(100dvh - 120px)}
+  .hero-v4 .hero-demo .scan-peek{margin-block:auto}
+  /* אותו עיקרון בסקשן השלבים: שורת התצוגה תופסת את כל הגובה שנשאר אחרי הכרטיסיות */
+  .stage-sec{min-height:calc(100dvh - 120px);display:flex;flex-direction:column;padding-bottom:0}
+  .stage-sec > :last-child{flex:1;display:flex;flex-direction:column;min-height:0}
+  .stage-sec .stage-wrap{flex:1;grid-template-rows:auto minmax(0,1fr)}
+  .stage-guide{height:min(64vh,660px)}
 }
 /* כרטיס האבחון בהירו - עוצב מחדש (26.8): כותרת קצרה, שדה גדול, שטיפה סגולה עדינה */
 .diag-card{
@@ -801,10 +807,11 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
 .hero-v4 .trust span{font-size:13.5px}
 /* הטופס בעמודה: שדה וכפתור באותה שורה, בערך 70/30 (משוב מייסד 26.8).
    מתחת ל-560px החוק הבסיסי של .fieldrow כבר עורם אותם */
-.hero-v4 .hero-form{margin-top:auto;padding-top:20px}
+.hero-v4 .hero-form{margin-top:auto;padding-top:30px}
 .hero-v4 .hero-form .fieldrow{grid-template-columns:2.2fr 1fr}
-/* המצב היום יושב בין הסלוגן לכרטיס הבדיקה - בלי קו מפריד, זה רצף של טיעון */
-.hero-v4 .hero-sit{margin-top:24px}
+/* המצב היום יושב בין הסלוגן לכרטיס הבדיקה - בלי קו מפריד, זה רצף של טיעון.
+   המרווחים הפנימיים נדיבים - הסקשן ממלא עמוד ונושם (משוב מייסד 26.8) */
+.hero-v4 .hero-sit{margin-top:34px}
 /* דוגמאות לחיצות בתוך כרטיס הטופס */
 .ex-chips{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:10px}
 .ex-lb{font-size:11.5px;font-weight:600;color:var(--dim)}
@@ -836,7 +843,7 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
 .trust{display:flex;gap:14px;flex-wrap:wrap}
 .trust span{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--mut);font-weight:500}
 .trust svg{color:var(--acc2);flex:none}
-.how-head{display:flex;align-items:center;gap:16px;margin-bottom:26px}
+.how-head{display:flex;align-items:center;gap:16px;margin-bottom:34px}
 .how-head h2{font-size:13px;font-weight:700;letter-spacing:.2em;color:var(--mut);white-space:nowrap}
 .how-head::after{content:"";flex:1;height:1px;background:linear-gradient(-90deg,var(--hair),transparent)}
 /* כותרת רצועת הסגירה - הסקאלה שהייתה מוגדרת inline עברה הנה (ממצא סקירה 26.8) */
@@ -1078,8 +1085,9 @@ html{scroll-behavior:smooth}
 /* ===== דף הנחיתה: מסלול השלבים עם תצוגה חיה לכל שלב ===== */
 /* סידור מייסד 26.8, גרסה שנייה: הכרטיסיות בשורה אופקית מעל, ומתחתן הדמות בחצי
    הימני מצביעה על הפאנל בחצי השמאלי. אותו מבנה בכל הרוחבים - רק הצפיפות משתנה */
-.stage-wrap{display:grid;grid-template-columns:1fr;grid-template-areas:"list" "show";row-gap:30px}
-.stage-show{grid-area:show;display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:center;min-width:0}
+.stage-wrap{display:grid;grid-template-columns:1fr;grid-template-areas:"list" "show";row-gap:42px}
+/* הדמות בערך שליש, הפאנל בערך שני שלישים (משוב מייסד 26.8) */
+.stage-show{grid-area:show;display:grid;grid-template-columns:3fr 7fr;gap:30px;align-items:center;min-width:0}
 .stage-list{grid-area:list}
 @media (max-width:920px){
   .stage-wrap{row-gap:12px}
