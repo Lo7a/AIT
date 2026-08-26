@@ -22,9 +22,23 @@ const rubik = Rubik({
   display: "swap",
 });
 
+// כתובת הפרודקשן מגיעה מהסביבה של Vercel; בלעדיה (פיתוח מקומי) אין metadataBase
+// ותמונת השיתוף פשוט לא תקבל כתובת מוחלטת - לא שוברים כלום
+const productionUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+
 export const metadata: Metadata = {
+  metadataBase: productionUrl ? new URL(`https://${productionUrl}`) : undefined,
   title: "בדק עסק | אבחון דיגיטלי לעסק",
   description: "שם עסק או כתובת אתר, ותוך דקה יש אבחון",
+  // כרטיס השיתוף: מה שרואים כששולחים את הקישור בוואטסאפ - שם רוב הקהל שלנו
+  openGraph: {
+    title: "בדק עסק",
+    description: "שם עסק או כתובת אתר, ותוך דקה יש אבחון",
+    type: "website",
+    locale: "he_IL",
+    images: [{ url: "/brand/og.jpg", width: 1200, height: 630 }],
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

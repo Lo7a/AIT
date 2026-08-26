@@ -1201,6 +1201,28 @@ export function LandingScreen() {
           </Reveal>
         </section>
       </main>
+
+      {/* פוטר (בקשת מייסד 26.8): הלוקאפ המלא נבנה נייטיב - הדמות הנקייה לצד הוורדמארק
+          החי - כי לקובצי הלוקאפ שנוצרו יש שאריות רקע בתוך האותיות. הדמות המצביעה
+          בגוף מלא עומדת בקצה ומצביעה אל הקישורים */}
+      <footer className="land-foot">
+        <div className="land-wrap land-foot-in">
+          <div className="foot-brand">
+            <img src="/brand/inspecting.webp" alt="" aria-hidden="true" className="foot-face" />
+            <div>
+              <BrandName />
+              <span className="foot-rule" aria-hidden="true" />
+              <p className="foot-tag">יועץ דיגיטלי לעסקים קטנים בישראל</p>
+            </div>
+          </div>
+          <nav className="foot-nav" aria-label="קישורי תחתית">
+            <a href="#stages">איך זה עובד</a>
+            <a href="/login">כניסה</a>
+          </nav>
+          <img src="/brand/pointing-full.webp" alt="" aria-hidden="true" className="foot-point" />
+        </div>
+        <p className="foot-line">בדק עסק - נבנה בישראל, לעסקים בישראל</p>
+      </footer>
     </>
   );
 }
