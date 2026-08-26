@@ -40,7 +40,7 @@ function TypingDots() {
   return (
     // הטקסט "חושב" נשאר נגיש (לא aria-hidden) כדי שהוא ייקרא בתוך אזור ה-aria-live של
     // ההודעות - רק הנקודות המונפשות עצמן דקורטיביות
-    <div className="flex max-w-[85%] animate-fade-up items-center gap-2 self-start rounded-2xl border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-4 py-2.5 text-sm text-[color:var(--mut)]">
+    <div className="flex max-w-[85%] animate-fade-up items-center gap-2 self-end rounded-2xl border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-3.5 py-2 text-[14px] text-[color:var(--mut)]">
       <span>חושב</span>
       <span className="flex items-end gap-0.5" aria-hidden="true">
         <span className="h-1 w-1 animate-bounce rounded-full bg-[color:var(--acc)]" style={{ animationDelay: "0ms" }} />
@@ -51,16 +51,19 @@ function TypingDots() {
   );
 }
 
+// הצד נקבע לפי כיוון הכתיבה ולא לפי שמאל/ימין קשיחים: self-start הוא הקצה שממנו הטקסט
+// מתחיל, כלומר ימין בעברית. בעל העסק מימין, הסוכן משמאל - כמו בכל אפליקציית הודעות
+// בעברית (דיווח אלעד 26.8: הצדדים היו הפוכים, כי self-end בעמודה RTL הוא שמאל)
 function Bubble({ message }: { message: ChatMessage }) {
   if (message.role === "user") {
     return (
-      <div className="max-w-[62ch] self-end whitespace-pre-wrap break-words rounded-2xl border border-[rgba(var(--acc-rgb),.3)] bg-[rgba(var(--acc-rgb),.14)] px-4 py-2.5">
+      <div className="max-w-[58ch] self-start whitespace-pre-wrap break-words rounded-2xl border border-[rgba(var(--acc-rgb),.3)] bg-[rgba(var(--acc-rgb),.14)] px-3.5 py-2 text-[14px] leading-relaxed">
         {message.content}
       </div>
     );
   }
   return (
-    <div className="max-w-[62ch] self-start whitespace-pre-wrap break-words rounded-2xl border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-4 py-2.5">
+    <div className="max-w-[58ch] self-end whitespace-pre-wrap break-words rounded-2xl border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-3.5 py-2 text-[14px] leading-relaxed">
       {message.content}
     </div>
   );
@@ -359,7 +362,7 @@ export function DefaultInterview({
                         {/* תיבת התשובות המשותפת (ui/answer-options.tsx) - אותה תיבה משרתת גם את
                             ההדגמה בדף הנחיתה. key על מפתח השאלה: תיבה חדשה לכל שאלה, אחרת סימון
                             ה"נבחר" של התשובה הקודמת נגרר לשאלה הבאה */}
-                        <div className="mt-4">
+                        <div className="mt-3">
                           <AnswerOptions
                             key={visible.key}
                             options={visible.options}
@@ -370,10 +373,13 @@ export function DefaultInterview({
                             onPick={(label) => (visible.multiSelect ? toggleOption(label) : selectOption(label))}
                             onOther={openCustomInput}
                             labelledBy={promptId}
+                            // הגרסה המצומצמת של אותה תיבה: חמש שורות בגובה מלא לקחו כמעט מחצית
+                            // מגובה המסך, וכל פיקסל כאן נגרע מהשיחה (דיווח אלעד 26.8)
+                            compact
                           />
                         </div>
                         {visible.multiSelect && (
-                          <div className="mt-4">
+                          <div className="mt-3">
                             <button
                               type="button"
                               className="btn sm"
@@ -395,7 +401,7 @@ export function DefaultInterview({
                       onFreeText={() => handleSetFreeText(true)}
                       onCancelRevisit={handleCancelRevisit}
                       onFinish={() => void finish()}
-                      className={showChips ? "mt-4 border-t border-dashed border-[color:var(--hair)] pt-4" : "mt-4"}
+                      className={showChips ? "mt-3 border-t border-dashed border-[color:var(--hair)] pt-3" : "mt-3"}
                     />
                   </div>
                 </div>
