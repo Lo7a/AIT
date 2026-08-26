@@ -332,18 +332,38 @@ html:not([data-mode="light"]) .only-light{display:none}
   width:100vw;transform:translateX(-50%);pointer-events:none;
   background:linear-gradient(180deg,
     transparent,
-    rgba(var(--acc-rgb),.05) 28%,
-    rgba(var(--acc2-rgb),.045) 72%,
+    rgba(var(--acc-rgb),.07) 28%,
+    rgba(var(--acc2-rgb),.06) 72%,
     transparent);
+}
+/* הזוהר (מייסד 26.8: אפקט מורגש): שני כתמי אור גדולים, סגול למעלה-ימין וברקת
+   למטה-שמאל, שנכנסים עם הגלילה, נסחפים דרך הסקשן ונעלמים ביציאה - בשני הכיוונים */
+.stage-sec::after{
+  content:"";position:absolute;inset-block:-12%;left:50%;z-index:-1;
+  width:100vw;transform:translateX(-50%);pointer-events:none;
+  background:
+    radial-gradient(42% 34% at 76% 26%, rgba(var(--acc-rgb),.22), transparent 68%),
+    radial-gradient(40% 32% at 22% 74%, rgba(var(--acc2-rgb),.17), transparent 68%);
+  opacity:.5;
 }
 @keyframes wash-drift{
   from{transform:translateX(-50%) translateY(-3.5%)}
   to{transform:translateX(-50%) translateY(3.5%)}
 }
+@keyframes aurora-pass{
+  0%{opacity:0;transform:translateX(-50%) translateY(-8%) scale(.96)}
+  45%{opacity:.95}
+  100%{opacity:0;transform:translateX(-50%) translateY(8%) scale(1.04)}
+}
 @supports (animation-timeline: view()){
   @media (prefers-reduced-motion:no-preference){
     .stage-sec::before{
       animation:wash-drift linear both;
+      animation-timeline:view();
+      animation-range:cover 0% cover 100%;
+    }
+    .stage-sec::after{
+      animation:aurora-pass linear both;
       animation-timeline:view();
       animation-range:cover 0% cover 100%;
     }
