@@ -40,7 +40,7 @@ function TypingDots() {
   return (
     // הטקסט "חושב" נשאר נגיש (לא aria-hidden) כדי שהוא ייקרא בתוך אזור ה-aria-live של
     // ההודעות - רק הנקודות המונפשות עצמן דקורטיביות
-    <div className="flex max-w-[85%] animate-fade-up items-center gap-2 self-end rounded-2xl border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-3.5 py-2 text-[14px] text-[color:var(--mut)]">
+    <div className="flex max-w-[85%] animate-fade-up items-center gap-2 self-end rounded-2xl border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-3.5 py-1.5 text-[14px] leading-snug text-[color:var(--mut)]">
       <span>חושב</span>
       <span className="flex items-end gap-0.5" aria-hidden="true">
         <span className="h-1 w-1 animate-bounce rounded-full bg-[color:var(--acc)]" style={{ animationDelay: "0ms" }} />
@@ -57,13 +57,13 @@ function TypingDots() {
 function Bubble({ message }: { message: ChatMessage }) {
   if (message.role === "user") {
     return (
-      <div className="max-w-[58ch] self-start whitespace-pre-wrap break-words rounded-2xl border border-[rgba(var(--acc-rgb),.3)] bg-[rgba(var(--acc-rgb),.14)] px-3.5 py-2 text-[14px] leading-relaxed">
+      <div className="max-w-[58ch] self-start whitespace-pre-wrap break-words rounded-[13px] border border-[rgba(var(--acc-rgb),.3)] bg-[rgba(var(--acc-rgb),.14)] px-3.5 py-1.5 text-[14px] leading-snug">
         {message.content}
       </div>
     );
   }
   return (
-    <div className="max-w-[58ch] self-end whitespace-pre-wrap break-words rounded-2xl border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-3.5 py-2 text-[14px] leading-relaxed">
+    <div className="max-w-[58ch] self-end whitespace-pre-wrap break-words rounded-[13px] border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-3.5 py-1.5 text-[14px] leading-snug">
       {message.content}
     </div>
   );
