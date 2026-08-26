@@ -296,15 +296,22 @@ html[data-mode="light"] .theme-tgl .ic-moon{display:none}
   position:absolute;top:-56px;inset-inline-end:36px;width:116px;z-index:1;
   pointer-events:none;user-select:none;
 }
-/* דלת התוכנית בדוח: הדמות עומדת בקצה הכרטיס, והתוכן מפנה לה מקום */
-.plan-core{position:relative;padding-inline-end:128px}
+/* דלת התוכנית בדוח: הדמות עומדת בקצה הכרטיס, והתוכן מפנה לה מקום.
+   .core.plan-core ולא .plan-core: הריפוד חייב לגבור על ה-padding של .card-pad,
+   שמאוחר ממנו בקובץ ולכן מנצח בסדר המקור בספציפיות שווה (ממצא סקירה 26.8) */
+.core.plan-core{position:relative;padding-inline-end:128px}
 .plan-buddy{
   position:absolute;bottom:0;inset-inline-end:16px;width:102px;z-index:1;
   pointer-events:none;user-select:none;
 }
+/* רצועת הסגירה בנחיתה: הדמות המציגה מציצה מעל הפס, קו החיתוך מוסתר מאחורי הליבה */
+.cta-buddy{
+  position:absolute;top:-58px;inset-inline-end:26px;width:112px;
+  pointer-events:none;user-select:none;
+}
 @media (max-width:880px){
-  .hub-buddy,.plan-buddy{display:none}
-  .plan-core{padding-inline-end:0}
+  .hub-buddy,.plan-buddy,.cta-buddy{display:none}
+  .core.plan-core{padding-inline-end:0}
 }
 @media (max-width:760px){.scan-buddy{display:none}}
 .brand-txt small{display:block;font-size:10.5px;color:var(--dim);letter-spacing:.12em;font-weight:600}
@@ -691,11 +698,27 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
 }
 @media (max-width:880px){.land-wrap{width:var(--content-w)}}
 .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:46px;align-items:start;padding:44px 0 48px}
-/* עמודת ההדגמה יורדת מעט: הדמות שמעל החלון יושבת בגובה הכותרת ומגשרת בין העמודות */
-.hero-demo{padding-top:64px}
+/* מבנה הסקיצה (26.8): שורת כותרת על כל הרוחב, מתחתיה החלון מימין והטופס משמאל.
+   כיס של 104px מעל שתי העמודות: בדיוק גובה הדמות שמעל החלון - היא לא נחתכת
+   ולא נוגעת בניווט, וקצה הטופס מיושר לקצה החלון */
+.hero-v2{
+  grid-template-areas:"head head" "demo form";
+  row-gap:18px;column-gap:46px;
+}
+.hero-head{grid-area:head}
+.hero-v2 .hero-demo{grid-area:demo;padding-top:104px}
+.hero-form{grid-area:form;padding-top:104px}
+/* בעמודה הצרה הטופס נערם אנכית: שדה מעל, כפתור ברוחב מלא מתחתיו.
+   .fieldrow הוא גריד, לכן ההערמה נעשית בקריסת העמודות - לא ב-flex (ממצא סקירה 26.8) */
+.hero-form .fieldrow{grid-template-columns:1fr}
+.hero-form .btn.wide{width:100%;justify-content:center}
 @media (max-width:920px){
   .hero-grid{grid-template-columns:1fr;gap:26px;padding:24px 0 30px}
-  .hero-demo{padding-top:0}
+  /* במובייל: כותרת, טופס (ההמרה קודם), ואז ההדגמה - בלי כיסי הדמות.
+     הדמות נעלמת כאן יחד עם הכיס, לא ב-760 - אחרת היא דורסת את תחתית הטופס */
+  .hero-v2{grid-template-areas:"head" "form" "demo";row-gap:22px}
+  .hero-v2 .hero-demo,.hero-form{padding-top:0}
+  .hero-v2 .scan-buddy{display:none}
 }
 .hero-h1{
   font-size:clamp(29px,3.3vw,44px);font-weight:800;line-height:1.2;

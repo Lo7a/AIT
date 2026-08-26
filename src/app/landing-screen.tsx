@@ -364,17 +364,19 @@ function Ph({ w }: { w: string }) {
 
 // תצוגת הדוח: המבנה האמיתי (פריסה 3 - עמודת זהות דביקה + עמודת תוכן) עם שורת
 // ניווט העוגן שעוברת בין המקטעים. זו הדגמת מבנה וניווט, לכן אין בה נתונים
-function ReportPreview() {
+// enabled מגיע ממסלול השלבים: הפאנלים חיים תמיד בשביל הגובה הקבוע, אבל טיימר של
+// פאנל מוסתר לא רץ - בלי זה שלוש ההדגמות היו מתקתקות לנצח מאחורי opacity:0
+function ReportPreview({ enabled = true }: { enabled?: boolean }) {
   const [active, setActive] = useState(0);
   const [liveRef, live] = useInView<HTMLDivElement>(false);
 
   useEffect(() => {
-    if (prefersReducedMotion() || !live) return;
+    if (prefersReducedMotion() || !live || !enabled) return;
     const id = window.setInterval(() => {
       setActive((a) => (a + 1) % REPORT_SECTIONS.length);
     }, 1500);
     return () => window.clearInterval(id);
-  }, [live]);
+  }, [live, enabled]);
 
   return (
     <div ref={liveRef}>
@@ -496,7 +498,7 @@ const DEMO_QA: { q: string; chips: string[]; picked: number }[] = [
 
 // הראיון: הישות הזוהרת + חלון שיחה חי. מכונת פאזות פשוטה - הקלדה, שאלה, צ'יפים,
 // בחירה, תשובה, "הדוח התעדכן" - ואז השאלה הבאה, בלופ
-function InterviewPreview() {
+function InterviewPreview({ enabled = true }: { enabled?: boolean }) {
   const [tick, setTick] = useState(0);
   const [reduced, setReduced] = useState(false);
   const [liveRef, live] = useInView<HTMLDivElement>(false);
@@ -506,10 +508,10 @@ function InterviewPreview() {
       setReduced(true);
       return;
     }
-    if (!live) return;
+    if (!live || !enabled) return;
     const id = window.setInterval(() => setTick((t) => t + 1), 1000);
     return () => window.clearInterval(id);
-  }, [live]);
+  }, [live, enabled]);
 
   const CYCLE = 7; // פאזות 0-5 + פעימת החזקה לפני איפוס
   const qi = reduced ? 0 : Math.floor(tick / CYCLE) % DEMO_QA.length;
@@ -566,7 +568,8 @@ function InterviewPreview() {
 
 // תוכנית העבודה: מבנה הכרטיס כמו במסך האמיתי, עם פריטים מהקטלוג ובלי מחירים.
 // טווח מחיר נקוב שייך לתוכנית של עסק אמיתי, מתוך הקטלוג הנחקר
-function PlanPreview() {
+// enabled מתקבל לאחידות החתימה מול שני האחים; אין כאן טיימר שצריך לעצור
+function PlanPreview(_props: { enabled?: boolean }) {
   return (
     <>
       <div className="mini-h" style={{ fontSize: 10.5 }}>
@@ -1013,9 +1016,10 @@ function StageWalk() {
       </div>
 
       {/* שלושת הפאנלים חיים תמיד, ערומים זה על זה בגריד: הגובה הוא של הגבוה מביניהם
-          וקבוע, כך שמעבר שלב (אוטומטי או ידני) לא מקפיץ את העמוד (בקשת מייסד 26.8) */}
+          וקבוע, כך שמעבר שלב (אוטומטי או ידני) לא מקפיץ את העמוד (בקשת מייסד 26.8).
+          inert חוסם פוקוס מקלדת לפאנל שקוף, ו-enabled עוצר את הטיימר של מי שמוסתר */}
       <div className="stage-panel">
-        {[<ReportPreview key="r" />, <InterviewPreview key="i" />, <PlanPreview key="p" />].map((preview, i) => (
+        {[ReportPreview, InterviewPreview, PlanPreview].map((Preview, i) => (
           <div
             key={i}
             className={i === stage ? "shell stage-card on" : "shell stage-card"}
@@ -1023,8 +1027,11 @@ function StageWalk() {
             role="tabpanel"
             aria-labelledby={`stage-tab-${i}`}
             aria-hidden={i !== stage}
+            {...(i !== stage ? { inert: true } : {})}
           >
-            <div className="core" style={{ padding: "16px 16px 14px" }}>{preview}</div>
+            <div className="core" style={{ padding: "16px 16px 14px" }}>
+              <Preview enabled={i === stage} />
+            </div>
           </div>
         ))}
       </div>
@@ -1101,18 +1108,22 @@ export function LandingScreen() {
       </nav>
 
       <main className="land-wrap">
-        {/* הירו בשתי עמודות: הטופס הוא העוגן, לצדו הסריקה רצה */}
-        <section className="hero-grid">
-          <div>
+        {/* ההירו לפי הסקיצה של להב (26.8): כותרת וסלוגן מימין למעלה, מתחתם חלון
+            הסריקה עם הדמות, וטופס האבחון בעמודה השמאלית לצדו. שורת head משותפת
+            ושתי עמודות בגריד עם אזורים - במובייל הטופס קודם לחלון */}
+        <section className="hero-grid hero-v2">
+          <header className="hero-head">
             {/* בלי תג "אבחון דיגיטלי לעסקים" - הניווט כבר אומר את זה מילה במילה */}
             <h1 className="hero-h1 rv d1">
               כמה שווה <span className="hl2">הנוכחות הדיגיטלית</span> של העסק שלך?
             </h1>
-            <p className="hero-sub rv d2" style={{ marginBottom: 16, marginTop: 10 }}>
+            <p className="hero-sub rv d2" style={{ marginTop: 10 }}>
               יועץ דיגיטלי לעסקים: סריקה מקיפה, שיחה קצרה על העסק, ותוכנית עבודה
               מסודרת - <b>הכול במקום אחד.</b>
             </p>
+          </header>
 
+          <div className="hero-form">
             <form onSubmit={(e) => { e.preventDefault(); startDiagnosis(); }}>
               <div className="shell rv d3">
                 <div className="core" style={{ padding: 11 }}>
@@ -1201,7 +1212,9 @@ export function LandingScreen() {
             בירו, וחזרה עליה כאן רק מעמיסה בלי להוסיף */}
         <section className="pb-16">
           <Reveal>
-            <div className="shell">
+            <div className="shell" style={{ position: "relative" }}>
+              {/* הדמות מציגה את ההזמנה האחרונה בעמוד - כף יד פתוחה אל הכפתור */}
+              <img src="/brand/presenting.webp" alt="" aria-hidden="true" className="cta-buddy" />
               <div className="core cta-core">
                 <h2 style={{
                   flex: 1, minWidth: 220,

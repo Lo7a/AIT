@@ -9,6 +9,7 @@ import { ImpersonateSearch } from "../ui/impersonate-search";
 import { UserMenu } from "../ui/user-menu";
 import { AnswerOptions } from "../ui/answer-options";
 import { FillBar } from "../ui/motion";
+import { BrandFace } from "../ui/brand";
 
 // מסך הראיון בשפת העיצוב הנבחרת (הכרעת מייסד 18.8: כהה פרמיום, סגול וברקת, Rubik - ראו
 // globals.css) - אין כאן שום לוגיקת עסק, רק תצוגה על גבי useInterviewChat. ניהול פוקוס
@@ -67,17 +68,22 @@ function TypingDots() {
   return (
     // הטקסט "חושב" נשאר נגיש (לא aria-hidden) כדי שהוא ייקרא בתוך אזור ה-aria-live של
     // ההודעות - רק הנקודות המונפשות עצמן דקורטיביות
-    <div className="flex max-w-[85%] animate-fade-up items-center gap-2 self-start rounded-2xl border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-4 py-2.5 text-sm text-[color:var(--mut)]">
-      <span>חושב</span>
-      <span className="flex items-end gap-0.5" aria-hidden="true">
-        <span className="h-1 w-1 animate-bounce rounded-full bg-[color:var(--acc)]" style={{ animationDelay: "0ms" }} />
-        <span className="h-1 w-1 animate-bounce rounded-full bg-[color:var(--acc)]" style={{ animationDelay: "150ms" }} />
-        <span className="h-1 w-1 animate-bounce rounded-full bg-[color:var(--acc)]" style={{ animationDelay: "300ms" }} />
-      </span>
+    <div className="flex max-w-[85%] items-end gap-2 self-start">
+      <BrandFace size={26} />
+      <div className="flex animate-fade-up items-center gap-2 rounded-2xl border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-4 py-2.5 text-sm text-[color:var(--mut)]">
+        <span>חושב</span>
+        <span className="flex items-end gap-0.5" aria-hidden="true">
+          <span className="h-1 w-1 animate-bounce rounded-full bg-[color:var(--acc)]" style={{ animationDelay: "0ms" }} />
+          <span className="h-1 w-1 animate-bounce rounded-full bg-[color:var(--acc)]" style={{ animationDelay: "150ms" }} />
+          <span className="h-1 w-1 animate-bounce rounded-full bg-[color:var(--acc)]" style={{ animationDelay: "300ms" }} />
+        </span>
+      </div>
     </div>
   );
 }
 
+// בועת היועץ נושאת את הפנים של הדמות (26.8) - שיחה עם מישהו, לא עם מערכת.
+// הפנים בתחתית הבועה כמו בכל ממשק צ'אט, ורק בצד היועץ - המשתמש נשאר בלי אווטאר
 function Bubble({ message }: { message: ChatMessage }) {
   if (message.role === "user") {
     return (
@@ -87,8 +93,11 @@ function Bubble({ message }: { message: ChatMessage }) {
     );
   }
   return (
-    <div className="max-w-[62ch] self-start whitespace-pre-wrap break-words rounded-2xl border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-4 py-2.5">
-      {message.content}
+    <div className="flex max-w-[62ch] items-end gap-2 self-start">
+      <BrandFace size={26} />
+      <div className="min-w-0 whitespace-pre-wrap break-words rounded-2xl border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-4 py-2.5">
+        {message.content}
+      </div>
     </div>
   );
 }
