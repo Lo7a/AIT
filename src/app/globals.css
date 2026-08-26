@@ -336,37 +336,42 @@ html:not([data-mode="light"]) .only-light{display:none}
     rgba(var(--acc2-rgb),.06) 72%,
     transparent);
 }
-/* הזוהר (מייסד 26.8: אפקט מורגש): שני כתמי אור גדולים, סגול למעלה-ימין וברקת
-   למטה-שמאל, שנכנסים עם הגלילה, נסחפים דרך הסקשן ונעלמים ביציאה - בשני הכיוונים */
+/* אלומת האור (עידון 26.8): פס אור אלכסוני רך אחד, סגול שנמהל בברקת, שחולף דרך
+   הסקשן עם הגלילה - כמו אור מחלון. רך ורחב, בלי קצוות קשים */
 .stage-sec::after{
-  content:"";position:absolute;inset-block:-12%;left:50%;z-index:-1;
-  width:100vw;transform:translateX(-50%);pointer-events:none;
-  background:
-    radial-gradient(42% 34% at 76% 26%, rgba(var(--acc-rgb),.22), transparent 68%),
-    radial-gradient(40% 32% at 22% 74%, rgba(var(--acc2-rgb),.17), transparent 68%);
-  opacity:.5;
+  content:"";position:absolute;inset-block:-18%;left:50%;z-index:-1;
+  width:120vw;transform:translateX(-50%) rotate(-9deg);pointer-events:none;
+  background:linear-gradient(105deg,
+    transparent 28%,
+    rgba(var(--acc-rgb),.10) 44%,
+    rgba(var(--acc2-rgb),.08) 58%,
+    transparent 74%);
+  opacity:.8;
 }
 /* על רקע בהיר אותם אחוזי שקיפות נבלעים - המצב הבהיר מקבל עוצמה כפולה (26.8) */
 html[data-mode="light"] .stage-sec::before{
   background:linear-gradient(180deg,
     transparent,
-    rgba(var(--acc-rgb),.12) 28%,
-    rgba(var(--acc2-rgb),.10) 72%,
+    rgba(var(--acc-rgb),.09) 28%,
+    rgba(var(--acc2-rgb),.075) 72%,
     transparent);
 }
 html[data-mode="light"] .stage-sec::after{
-  background:
-    radial-gradient(42% 34% at 76% 26%, rgba(var(--acc-rgb),.36), transparent 68%),
-    radial-gradient(40% 32% at 22% 74%, rgba(var(--acc2-rgb),.28), transparent 68%);
+  background:linear-gradient(105deg,
+    transparent 28%,
+    rgba(var(--acc-rgb),.17) 44%,
+    rgba(var(--acc2-rgb),.13) 58%,
+    transparent 74%);
 }
 @keyframes wash-drift{
   from{transform:translateX(-50%) translateY(-3.5%)}
   to{transform:translateX(-50%) translateY(3.5%)}
 }
+/* האלומה מחליקה הצידה בעדינות עם הגלילה - תנועה קטנה, בלי שינויי גודל */
 @keyframes aurora-pass{
-  0%{opacity:0;transform:translateX(-50%) translateY(-8%) scale(.96)}
-  45%{opacity:.95}
-  100%{opacity:0;transform:translateX(-50%) translateY(8%) scale(1.04)}
+  0%{opacity:0;transform:translateX(-46%) rotate(-9deg)}
+  45%{opacity:1}
+  100%{opacity:0;transform:translateX(-54%) rotate(-9deg)}
 }
 @supports (animation-timeline: view()){
   @media (prefers-reduced-motion:no-preference){
@@ -389,7 +394,8 @@ body{overflow-x:clip}
    הטון: מקצועי ושקט - דהיות, מתיחות קווים וכיווצים עדינים. בלי קפיצות */
 @keyframes view-rise{from{opacity:0;translate:0 48px}to{opacity:1;translate:0 0}}
 @keyframes view-scale{from{opacity:0;scale:.86}to{opacity:1;scale:1}}
-@keyframes hero-exit{to{opacity:.22;scale:.965;translate:0 -26px}}
+/* דהייה בלבד - הכיווץ והתזוזה הרגישו כקפיצה בגלילה (מייסד 26.8) */
+@keyframes hero-exit{to{opacity:.3}}
 @keyframes line-draw{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 @supports (animation-timeline: view()){
   @media (prefers-reduced-motion:no-preference){
@@ -1234,15 +1240,15 @@ html{scroll-behavior:smooth}
   transition:background .35s var(--ease-out),border-color .35s,transform .2s var(--ease-out);
 }
 .stage-btn:hover{
-  background:var(--surface-2);border-color:rgba(var(--acc-rgb),.28);
+  background:var(--surface-2);border-color:rgba(var(--acc-rgb),.2);
   transform:translateY(-2px);
 }
 .stage-btn:active{transform:scale(.985)}
-/* הפעיל נוכח באמת (עיצוב מחדש 26.8): שטיפה סגולה, מסגרת ברורה וצל צבע עדין */
+/* הפעיל נוכח אבל רגוע (עידון 26.8): שטיפה עדינה, מסגרת מרומזת, צל רך */
 .stage-btn.on{
-  background:linear-gradient(180deg,rgba(var(--acc-rgb),.15),rgba(var(--acc-rgb),.05));
-  border-color:rgba(var(--acc-rgb),.5);
-  box-shadow:0 18px 42px -20px rgba(var(--accd-rgb),.45);
+  background:linear-gradient(180deg,rgba(var(--acc-rgb),.09),rgba(var(--acc-rgb),.03));
+  border-color:rgba(var(--acc-rgb),.32);
+  box-shadow:0 16px 38px -22px rgba(var(--accd-rgb),.3);
 }
 .stage-btn .n{
   width:26px;height:26px;border-radius:9px;flex:none;
