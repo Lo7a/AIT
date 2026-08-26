@@ -393,12 +393,22 @@ html:not([data-mode="light"]) .only-light{display:none}
    בשורה אחת שקטה ליד שמו. קווים דקים ולא גלולות - חמש גלולות בסרגל דק נקראות כחמישה
    כפתורים, והן לא כפתורים אלא עובדות. המספרים לבד מודגשים, כי הם מה שהעין מחפשת */
 .bar-facts{
-  display:flex;align-items:center;flex-wrap:wrap;gap:5px 15px;
-  min-width:0;font-size:12px;line-height:1.5;color:var(--dim);
+  display:flex;align-items:center;flex-wrap:wrap;gap:5px 14px;
+  min-width:0;font-size:12px;line-height:1.5;color:var(--mut);
 }
-.bar-facts > * + *{border-inline-start:1px solid var(--hair-soft);padding-inline-start:15px}
-.bar-facts b{color:var(--mut);font-weight:700}
-.bar-facts .clip{max-width:26ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-facts > *{white-space:nowrap}
+.bar-facts > * + *{border-inline-start:1px solid var(--hair-soft);padding-inline-start:14px}
+/* האייקון לפני הטקסט, נמוך מעט מקו הבסיס כדי לשבת מול אמצע האות ולא מול הכתר שלה */
+.bar-facts svg{width:13px;height:13px;vertical-align:-2.5px;margin-inline-end:6px;color:var(--dim)}
+.bar-facts b{color:var(--txt);font-weight:700}
+/* הכוכב בצבע הכוכב: ענבר. זה הצבע היחיד בשורה, ולכן העין מוצאת את הדירוג ראשון */
+.bar-facts .star svg{color:var(--warn)}
+.bar-facts .sep{margin-inline:6px;color:var(--dim)}
+/* קישור שקט: אותו צבע כמו השכנים, וקו רק בריחוף - בסרגל של עובדות קישור צבעוני היה
+   צועק. הקו התחתון הקבוע הוא של האתר בלבד, כי הוא היחיד כאן שאפשר ללחוץ עליו */
+.bar-facts a{color:inherit;text-decoration:none;border-bottom:1px solid var(--hair);transition:color .2s,border-color .2s}
+.bar-facts a:hover{color:var(--txt);border-bottom-color:var(--acc)}
+.bar-facts .clip{display:inline-block;max-width:26ch;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
 @media (max-width:1180px){
   /* בסרגל צר העובדות היו נדחסות על תפריט המשתמש. הן יורדות לשורה משלהן בתוך אותו סרגל
      ולא נעלמות ולא משוכפלות במקום אחר */
@@ -524,8 +534,8 @@ html:not([data-mode="light"]) .only-light{display:none}
   filter:drop-shadow(0 0 9px rgba(var(--acc-rgb),.5)) drop-shadow(0 0 22px rgba(var(--acc2-rgb),.2));
 }
 .dial .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
-.dial .mid .big{font-size:50px;font-weight:800;letter-spacing:-.03em;text-shadow:var(--num-glow)}
-.dial .mid small{font-size:11px;color:var(--dim);margin-top:8px;letter-spacing:.1em}
+.dial .mid .big{font-size:calc(var(--dial-size,172px) * .29);font-weight:800;letter-spacing:-.03em;text-shadow:var(--num-glow)}
+.dial .mid small{font-size:max(9.5px,calc(var(--dial-size,172px) * .064));color:var(--dim);margin-top:calc(var(--dial-size,172px) * .045);letter-spacing:.1em}
 .dial-cap{font-size:12px;color:var(--dim);margin-top:2px}
 .fill-bar{height:7px;border-radius:99px;background:var(--rail);overflow:hidden;position:relative;flex:1}
 .fill-bar i{
@@ -1232,7 +1242,13 @@ html{scroll-behavior:smooth}
   display:flex;align-items:center;justify-content:space-between;gap:26px;flex-wrap:wrap;
 }
 .rep-head .who{min-width:0;flex:1 1 420px}
-.rep-head-score{display:flex;flex-direction:column;align-items:center;gap:7px;flex:none}
+.rep-head-score{
+  display:flex;flex-direction:column;align-items:center;gap:8px;flex:none;
+  padding:14px 24px 15px;border-radius:24px;
+  background:var(--surface-1);border:1px solid var(--hair-soft);
+}
+.rep-head-score .dial-cap{display:inline-flex;align-items:center;gap:7px;margin-top:0;font-size:11.5px}
+.rep-head-score .live-dot{margin-top:0}
 @media (max-width:760px){
   /* בטלפון החוגה עוברת מתחת לזהות ולא לצדה, והראש נקרא כטור אחד */
   .page-head.rep-head{gap:16px}

@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { useAttachWait, useBlockedWait, useScanStream, type StepLine, type Target } from "./use-scan-stream";
 import { BrandFace, BrandName } from "../ui/brand";
+import { hostOf } from "../../pipeline/report/presenter";
 
 export type ScanAttach = { diagnosisId: string; status: string };
 
@@ -140,11 +141,7 @@ function BlockedScan({ target }: { target: Target }) {
 function addressLabel(website: string | null | undefined, fallbackUrl?: string): string {
   const raw = website ?? (website === null ? null : fallbackUrl);
   if (raw == null) return website === null ? "לעסק אין אתר" : "מחפשים את האתר";
-  try {
-    return new URL(raw).hostname.replace(/^www\./, "");
-  } catch {
-    return raw;
-  }
+  return hostOf(raw);
 }
 
 function LiveScan({ target }: { target: Target }) {

@@ -26,6 +26,16 @@ export function initialsOf(name: string): string {
   return name.trim().slice(0, 2);
 }
 
+// כתובת אתר -> המארח בלבד, כמו שדפדפן מציג: בלי הפרוטוקול, בלי www ובלי הלוכסן בסוף.
+// כתובת שאינה נפרסת חוזרת כמו שהיא ולא נבלעת - עדיף כתובת מכוערת ממחרוזת ריקה
+export function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
 export const DIAGNOSIS_STATUS_LABEL: Record<DiagnosisStatus, string> = {
   created: "נוצר, טרם נסרק",
   scanning: "בסריקה",

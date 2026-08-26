@@ -51,7 +51,9 @@ export function ScoreDial({ score, size = 172, stroke = 11, label = "מתוך 10
   }, [target]);
 
   return (
-    <div className="dial" style={{ width: size, height: size }}>
+    // הגודל נחשף גם כמשתנה CSS: המספר והכיתוב שבפנים נגזרים ממנו (globals, .dial .mid),
+    // אחרת חוגה של 118 פיקסלים מקבלת את אותו 50px שנבנה לחוגה של 172 והמספר נוגע בטבעת
+    <div className="dial" style={{ width: size, height: size, ["--dial-size" as string]: `${size}px` }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <circle className="track" cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} />
         <circle

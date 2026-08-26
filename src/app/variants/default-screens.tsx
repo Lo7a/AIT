@@ -2,7 +2,7 @@ import Link from "next/link";
 import { SearchBox } from "../search-box";
 import { ScanRunner } from "../scan/scan-runner";
 import type { Target } from "../scan/use-scan-stream";
-import { DIAGNOSIS_STATUS_LABEL, initialsOf } from "../../pipeline/report/presenter";
+import { DIAGNOSIS_STATUS_LABEL, initialsOf, hostOf } from "../../pipeline/report/presenter";
 import type { DiagnosisListItem, ReportView } from "../../server/diagnosis-read";
 import {
   DATA_STATUS_LABEL, PARTIAL_FLAG_LABEL, ruleLabelHe, scoreTone, type ScoreToneKind,
@@ -55,6 +55,37 @@ const WARN_STRIP_STYLE = {
 // תאריך הסריקה בשורת הזהות של הדוח. נבנה פעם אחת ברמת המודול - הפורמט זהה בכל קריאה,
 // והמסך הוא RSC (אין רינדור חוזר בדפדפן שיכול לייצר טקסט אחר מזה שנשלח)
 const SCAN_DATE_FMT = new Intl.DateTimeFormat("he-IL", { dateStyle: "long" });
+
+// גליפי העובדות בסרגל הדוח: קו אחד, אותו סגנון של NAV_ICONS במעטפת. אייקון לפני כל עובדה
+// הוא מה שמאפשר לסרוק שורה של חמישה פרטים בלי לקרוא אותה - העין תופסת "מיקום, תאריך, אתר,
+// דירוג, עמודים" מהצורות. הכוכב מלא ולא בקו, כי כוכב מלא הוא הסימן שכולם מכירים מגוגל
+const FACT_GLYPH = {
+  pin: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z" /><circle cx="12" cy="10" r="2.5" />
+    </svg>
+  ),
+  clock: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
+    </svg>
+  ),
+  globe: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a14 14 0 0 1 0 18" /><path d="M12 3a14 14 0 0 0 0 18" />
+    </svg>
+  ),
+  star: (
+    <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+      <path d="m12 2.8 2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4L2.8 9.5l6.4-.8z" />
+    </svg>
+  ),
+  doc: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 3h8l4 4v14H6z" /><path d="M14 3v4h4" /><path d="M9 12h6M9 16h6" />
+    </svg>
+  ),
+};
 
 // חץ הגלולה (btn .cap) - מצביע שמאלה, כיוון ההתקדמות ב-RTL
 function CapArrow({ size = 13 }: { size?: number }) {
@@ -556,10 +587,6 @@ export function DefaultReport({
   // "לא נבדק" שרק מעמיס
   const hasHealth = findings.health != null;
 
-  // שורת המטא בראש עמודת הזהות: רק שדות שבאמת קיימים על העסק ועל הסריקה הזו
-  const identityMeta = [business.city, `נסרק ב-${SCAN_DATE_FMT.format(report.scan.createdAt)}`]
-    .filter((part): part is string => part != null && part !== "")
-    .join(" · ");
   // צ'יפים: כל מספר כאן הוא ממצא שנאסף בפועל (findings.business מ-Places, pagesCrawled מהזחילה).
   // שדה שלא הגיע פשוט לא מקבל צ'יפ - עדיף פחות צ'יפים מאשר מספר שלא נמדד
   const pagesCrawled = findings.websiteSignals?.pagesCrawled ?? null;
@@ -591,17 +618,32 @@ export function DefaultReport({
       <header className="topbar">
         <span className="brand-txt"><small>הדוח המלא</small><b>{business.name}</b></span>
         <div className="bar-facts">
-          {identityMeta !== "" && <span>{identityMeta}</span>}
-          {business.website && <span className="clip" dir="ltr">{business.website}</span>}
-          {findings.business.reviewCount != null && (
-            <span><b className="num">{findings.business.reviewCount}</b> ביקורות</span>
+          {business.city && <span>{FACT_GLYPH.pin}{business.city}</span>}
+          <span>{FACT_GLYPH.clock}נסרק {SCAN_DATE_FMT.format(report.scan.createdAt)}</span>
+          {/* קישור אמיתי, ומציג את המארח בלבד כמו שדפדפן מציג. הכתובת המלאה עם הפרוטוקול
+              והלוכסן היא מה שהמכונה צריכה, לא מה שבעל העסק קורא */}
+          {business.website && (
+            <a href={business.website} target="_blank" rel="noopener noreferrer" dir="ltr">
+              {FACT_GLYPH.globe}<span className="clip">{hostOf(business.website)}</span>
+            </a>
           )}
-          {findings.business.rating != null && (
-            <span>דירוג <b className="num">{findings.business.rating}</b></span>
+          {/* דירוג וביקורות יחד, כמו שגוגל מציג אותם - זו צורה שכל בעל עסק מזהה מיד */}
+          {(findings.business.rating != null || findings.business.reviewCount != null) && (
+            <span>
+              {findings.business.rating != null && (
+                <><span className="star">{FACT_GLYPH.star}</span><b className="num">{findings.business.rating}</b></>
+              )}
+              {findings.business.rating != null && findings.business.reviewCount != null && (
+                <span className="sep" aria-hidden="true">·</span>
+              )}
+              {findings.business.reviewCount != null && (
+                <><b className="num">{findings.business.reviewCount.toLocaleString("he-IL")}</b> ביקורות</>
+              )}
+            </span>
           )}
           {/* "נסרקו" ולא "יש": זה מה שהזחילה עברה בפועל, לא מספר העמודים באתר */}
           {pagesCrawled != null && pagesCrawled > 0 && (
-            <span><b className="num">{pagesCrawled}</b> עמודים נסרקו</span>
+            <span>{FACT_GLYPH.doc}<b className="num">{pagesCrawled}</b> עמודים נסרקו</span>
           )}
         </div>
         <div className="side">
@@ -629,8 +671,10 @@ export function DefaultReport({
               <p className="text-2xl font-extrabold" style={{ color: "var(--mut)" }}>אין די מידע</p>
             ) : (
               <>
-                <ScoreDial score={overall} size={126} />
-                <span className="dial-cap">הציון מתעדכן עם כל תשובה</span>
+                <ScoreDial score={overall} size={118} stroke={9} />
+                {/* אותה נקודה נושמת של "הדוח חי" בסרגל ובפנקס - השורה הזו אומרת את
+                    אותו דבר, ולכן היא נראית אותו דבר */}
+                <span className="dial-cap"><span className="live-dot" aria-hidden="true" />הציון מתעדכן עם כל תשובה</span>
               </>
             )}
           </div>
