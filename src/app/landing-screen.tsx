@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 import { stashPendingSearch } from "./landing-logic";
 import { AnswerOptions } from "./ui/answer-options";
 import { CountUp } from "./ui/motion";
+import { BrandFace, BrandName } from "./ui/brand";
 
 const STEPS: { title: string; body: string }[] = [
   {
@@ -292,11 +293,14 @@ function ScanTerminal() {
   const pct = Math.round((done / total) * 100);
 
   return (
+    <div className="scan-peek">
+      {/* הדמות מציצה מעל חלון ההדגמה - אותו רגע בדיוק כמו במסך הסריקה האמיתי */}
+      <img src="/brand/inspecting.webp" alt="" aria-hidden="true" className="scan-buddy" />
     <div className="shell term rv d4" ref={liveRef}>
       <div className="core">
         {/* בלי שלוש נקודות הצבע של חלון - קישוט טהור שרק מוסיף רעש לסרגל */}
         <div className="term-bar">
-          <span className="addr" dir="ltr">ait.scan</span>
+          <span className="addr" dir="ltr">bedek-esek.scan</span>
           <span className="pct num">{pct}%</span>
         </div>
         <div className="pbar" aria-hidden="true">
@@ -341,6 +345,7 @@ function ScanTerminal() {
           </span>
         </div>
       </div>
+    </div>
     </div>
   );
 }
@@ -521,7 +526,7 @@ function InterviewPreview() {
           <span className="orb-core" style={{ inset: 14 }} />
         </div>
         <div>
-          <b className="block text-sm font-bold">היועץ הדיגיטלי של AIT</b>
+          <b className="block text-sm font-bold">היועץ הדיגיטלי של בדק עסק</b>
           <span className="text-xs" style={{ color: "var(--dim)" }}>
             הראיון הוא בחירה שלך, לא שלב חובה
           </span>
@@ -889,7 +894,7 @@ function DataSection() {
                   </span>
                 ))}
               </div>
-              <p className="src">משקלי הממדים במנוע הניקוד של AIT.</p>
+              <p className="src">משקלי הממדים במנוע הניקוד של בדק עסק.</p>
             </div>
           </div>
 
@@ -928,7 +933,7 @@ function AboutSection() {
           <div className="core card-pad about">
             <div>
               <p className="say">
-                בנינו את AIT כי בעל עסק מקבל הצעות לפני שמישהו טרח לבדוק מה באמת חסר לו.
+                בנינו את בדק עסק כי בעל עסק מקבל הצעות לפני שמישהו טרח לבדוק מה באמת חסר לו.
                 אנחנו מתחילים מהאבחון, ורק אחר כך מדברים על מה שווה לעשות.
               </p>
             </div>
@@ -1081,10 +1086,10 @@ export function LandingScreen() {
       {/* ניווט דביק: מותג מימין, כניסה משמאל */}
       <nav className={scrolled ? "land-nav on" : "land-nav"}>
         <a className="brand" href="/">
-          <span className="brand-mark">AIT</span>
+          <BrandFace />
           <span className="brand-txt">
             <small>יועץ דיגיטלי לעסקים</small>
-            <b>AIT</b>
+            <BrandName />
           </span>
         </a>
         <div className="side">

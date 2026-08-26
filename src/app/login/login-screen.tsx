@@ -5,16 +5,17 @@
 import type { ReactNode } from "react";
 import { useLogin } from "./use-login";
 import { linkErrorMessage } from "./login-logic";
+import { BrandFace, BrandName } from "../ui/brand";
 
 // ניווט עליון מינימלי: מותג שמחזיר לדף הבית
 function AuthNav() {
   return (
     <nav className="land-nav">
       <a className="brand" href="/">
-        <span className="brand-mark">AIT</span>
+        <BrandFace />
         <span className="brand-txt">
           <small>יועץ דיגיטלי לעסקים</small>
-          <b>AIT</b>
+          <BrandName />
         </span>
       </a>
     </nav>
@@ -28,12 +29,7 @@ function AuthCard({ children }: { children: ReactNode }) {
       <div className="auth-shell shell rv d1">
         <div className="core auth-core">
           <div className="flex justify-center">
-            <span
-              className="brand-mark"
-              style={{ width: 44, height: 44, borderRadius: 14, fontSize: 15 }}
-            >
-              AIT
-            </span>
+            <BrandFace size={56} />
           </div>
           {children}
         </div>

@@ -23,7 +23,7 @@ const rubik = Rubik({
 });
 
 export const metadata: Metadata = {
-  title: "AIT | אבחון דיגיטלי לעסק",
+  title: "בדק עסק | אבחון דיגיטלי לעסק",
   description: "שם עסק או כתובת אתר, ותוך דקה יש אבחון",
 };
 

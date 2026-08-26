@@ -28,7 +28,7 @@ const BRIEF_FROM_DEFAULT = "onboarding@resend.dev";
 // ב-DB, אז שום ליד לא הולך לאיבוד גם בלי מפתח
 export const consoleBriefTransport: BriefTransport = {
   async send(to, subject, body) {
-    console.log(`[AIT Brief] בקשת הטמעה חדשה\nאל: ${to}\nנושא: ${subject}\n\n${body}`);
+    console.log(`[BedekEsek Brief] בקשת הטמעה חדשה\nאל: ${to}\nנושא: ${subject}\n\n${body}`);
   },
 };
 

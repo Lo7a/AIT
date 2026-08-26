@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useAttachWait, useBlockedWait, useScanStream, type StepLine, type Target } from "./use-scan-stream";
+import { BrandFace, BrandName } from "../ui/brand";
 
 export type ScanAttach = { diagnosisId: string; status: string };
 
@@ -46,8 +47,8 @@ function ScanFrame({ target, busy, children }: { target: Target; busy: boolean; 
     <div className="above-ambient flex min-h-dvh flex-col">
       <header className="topbar">
         <span className="brand">
-          <span className="brand-mark">AIT</span>
-          <span className="brand-txt"><small>יועץ דיגיטלי</small><b>אבחון דיגיטלי</b></span>
+          <BrandFace />
+          <span className="brand-txt"><small>אבחון דיגיטלי</small><BrandName /></span>
         </span>
         <div className="side">
           {chip != null && (
@@ -186,6 +187,10 @@ function LiveScan({ target }: { target: Target }) {
           מה שלא הועתק מההדגמה במכוון: פס ההתקדמות. שם הוא נשען על מספר שלבים ידוע מראש,
           וכאן השלבים מגיעים בזרם - הפס היה מטפס ל-100 ונופל ל-50 בכל שלב חדש שנכנס */}
       {steps.length > 0 && (
+        <div className="scan-peek">
+          {/* הדמות מציצה מעל החלון עם הזכוכית מגדלת - היא באמת בודקת עכשיו. קו החיתוך
+              של חצי הגוף מוסתר מאחורי הסרגל העליון (z-index על ה-shell) */}
+          <img src="/brand/inspecting.webp" alt="" aria-hidden="true" className="scan-buddy" />
         <div className="shell term rv d2">
           <div className="core">
             <div className="term-bar">
@@ -207,6 +212,7 @@ function LiveScan({ target }: { target: Target }) {
               <span>{doneCount} מתוך {steps.length} שלבים הושלמו</span>
             </div>
           </div>
+        </div>
         </div>
       )}
     </ScanFrame>

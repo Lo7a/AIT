@@ -93,7 +93,7 @@ async function fetchPage(
     // מביא מארח שטרם נבדק (ראו resolve-guard.ts, כולל חלון ה-rebinding שנשאר במודע)
     await assertResolvesPublic(current, lookupImpl);
     const res = await fetchImpl(currentUrl, {
-      headers: { "User-Agent": "AIT-Scanner/0.1 (+business diagnosis)" },
+      headers: { "User-Agent": "BedekEsek-Scanner/0.1 (+business diagnosis)" },
       redirect: "manual",
       signal: AbortSignal.timeout(timeoutMs),
     });
@@ -135,7 +135,7 @@ async function resolveShortLink(
     const current = assertFetchableUrl(currentUrl);
     await assertResolvesPublic(current, lookupImpl);
     const res = await fetchImpl(currentUrl, {
-      headers: { "User-Agent": "AIT-Scanner/0.1 (+business diagnosis)" },
+      headers: { "User-Agent": "BedekEsek-Scanner/0.1 (+business diagnosis)" },
       redirect: "manual",
       signal: AbortSignal.timeout(timeoutMs),
     });

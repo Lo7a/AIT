@@ -124,7 +124,7 @@ function buildPrompt(
   const safe = stripFenceMarkers(answer);
   // גם שם העסק מגיע ממקור חיצוני (Places) ונכנס לפרומפט - JSON.stringify מגן על מרכאות, לא על תוחמים
   const safeName = stripFenceMarkers(findings.business.name);
-  return `אתה מראיין עסקי של AIT. בעל עסק בשם ${JSON.stringify(safeName)} ענה לך, ותפקידך לחלץ מהתשובה עובדות למודל העסק ולהשיב באישור קצר וחם.
+  return `אתה מראיין עסקי של בדק עסק. בעל עסק בשם ${JSON.stringify(safeName)} ענה לך, ותפקידך לחלץ מהתשובה עובדות למודל העסק ולהשיב באישור קצר וחם.
 
 ${context}
 

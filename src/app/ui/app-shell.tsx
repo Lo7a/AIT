@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { RAIL_COOKIE } from "../rail";
+import { BrandFace, BrandName } from "./brand";
 
 // מעטפת המערכת למשתמש מחובר: סיידבר בסגנון CRM שנפתח ונסגר. במצב סגור נשארים
 // האייקונים (רוחב 74px) - אף פעם לא נעלם לגמרי. הבחירה נשמרת בדפדפן. במובייל
@@ -193,8 +194,8 @@ export function AppShell({
       <aside className="side-nav">
         <div className="head">
           <span className="brand">
-            <span className="brand-mark">AIT</span>
-            <span className="brand-txt"><small>יועץ דיגיטלי</small><b>{brandLabel}</b></span>
+            <BrandFace />
+            <span className="brand-txt"><small>{brandLabel}</small><BrandName /></span>
           </span>
         </div>
 
