@@ -287,10 +287,14 @@ export function DefaultInterview({
       {/* השורה מרונדרת תמיד - בלי שם עסק המשתמש עדיין צריך את תפריט המשתמש ואת
           חיפוש ההתחזות; רק שורת הזהות עצמה מותנית (ממצא סקירה 26.8) */}
       <header className="topbar">
-        {businessName != null && businessName !== "" && (
-          <span className="brand-txt"><small>הראיון</small><b>{businessName}</b></span>
-        )}
-        {facts != null && <BusinessFacts {...facts} />}
+        {/* שם המסך בקצה, שם העסק והעובדות במרכז - אותו בלוק כמו בדוח (בקשת אלעד 26.8).
+            בלי facts (רשומת העסק לא נטענה) נשאר לפחות השם, כשיש */}
+        <span className="brand-txt"><small>הראיון</small></span>
+        {facts != null
+          ? <BusinessFacts name={businessName} {...facts} />
+          : businessName != null && businessName !== "" && (
+            <BusinessFacts name={businessName} city={null} website={null} scannedAt={null} reviewCount={null} rating={null} pagesCrawled={null} />
+          )}
         <div className="side">
           {isAdmin && <ImpersonateSearch />}
           <UserMenu email={userEmail} isAdmin={isAdmin} />

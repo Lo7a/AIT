@@ -8,6 +8,8 @@ import { hostOf } from "../../pipeline/report/presenter";
 // שלא נמדד (כלל אפס המצאות ב-CLAUDE.md).
 
 export interface BusinessFactsProps {
+  /** שם העסק מעל העובדות, במרכז הסרגל (בקשת אלעד 26.8). בלעדיו מוצגת שורת העובדות לבדה */
+  name?: string;
   city: string | null;
   website: string | null;
   scannedAt: Date | null;
@@ -68,13 +70,20 @@ const GLYPH = {
   ),
 };
 
-export function BusinessFacts({ city, website, scannedAt, reviewCount, rating, pagesCrawled }: BusinessFactsProps) {
+export function BusinessFacts({ name, city, website, scannedAt, reviewCount, rating, pagesCrawled }: BusinessFactsProps) {
   const hasGoogle = rating != null || reviewCount != null;
   const hasPages = pagesCrawled != null && pagesCrawled > 0;
-  // בלי אף עובדה אין שורה - לא מכל ריק שתופס מקום בסרגל
-  if (city == null && website == null && scannedAt == null && !hasGoogle && !hasPages) return null;
+  const hasFacts = city != null || website != null || scannedAt != null || hasGoogle || hasPages;
+  // בלי שם ובלי אף עובדה אין בלוק - לא מכל ריק שתופס מקום בסרגל
+  if (name == null && !hasFacts) return null;
 
+  // השם מעל העובדות, שניהם ממורכזים: כותרת ושורת משנה, אותו דפוס של page-head. העובדות
+  // בלי מסגרות - מופרדות בנקודה, כמו שורת המטא של הדוח מאז ומתמיד; חמישה אריחים בסרגל
+  // נראו כמו סרגל כלים (משוב אלעד 26.8)
   return (
+    <div className="bar-ident">
+      {name != null && <b>{name}</b>}
+      {hasFacts && (
     <div className="bar-facts">
       {city != null && city !== "" && <span>{GLYPH.pin}{city}</span>}
       {scannedAt != null && <span>{GLYPH.clock}נסרק {SCAN_DATE_FMT.format(scannedAt)}</span>}
@@ -97,6 +106,8 @@ export function BusinessFacts({ city, website, scannedAt, reviewCount, rating, p
       )}
       {/* "נסרקו" ולא "יש": זה מה שהזחילה עברה בפועל, לא מספר העמודים באתר */}
       {hasPages && <span>{GLYPH.doc}<b className="num">{pagesCrawled}</b> עמודים נסרקו</span>}
+    </div>
+      )}
     </div>
   );
 }

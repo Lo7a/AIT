@@ -290,12 +290,12 @@ export function DefaultRoadmap({
       {/* שורת הזהות, זהה לדוח ולראיון: על איזה עסק מדובר. הכותרת "תוכנית העבודה" למטה
           אומרת מה זה, ולא למי - וכשיש כמה אבחונים זו בדיוק השאלה (דיווח מייסד 20.8) */}
       <header className="topbar">
-        <span className="brand-txt"><small>תוכנית העבודה</small><b>{report.business.name}</b></span>
-        {/* אותה שורת עובדות כמו בדוח ובראיון (בקשת אלעד 26.8) - הסריקה יכולה להיות חסרה
-            רק באבחון שטרם נסרק, ואז אין תוכנית עבודה ממילא */}
-        {report.scan != null && (
-          <BusinessFacts {...factsOf(report.scan.findings, report.business, report.scan.createdAt)} />
-        )}
+        {/* שם המסך בקצה, שם העסק והעובדות במרכז - אותו בלוק כמו בדוח ובראיון (בקשת אלעד
+            26.8). הסריקה יכולה להיות חסרה רק באבחון שטרם נסרק, ואז אין תוכנית עבודה ממילא */}
+        <span className="brand-txt"><small>תוכנית העבודה</small></span>
+        {report.scan != null
+          ? <BusinessFacts name={report.business.name} {...factsOf(report.scan.findings, report.business, report.scan.createdAt)} />
+          : <BusinessFacts name={report.business.name} city={null} website={null} scannedAt={null} reviewCount={null} rating={null} pagesCrawled={null} />}
         <div className="side">
           {isAdmin && <ImpersonateSearch />}
           <UserMenu email={userEmail} isAdmin={isAdmin} />

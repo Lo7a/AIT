@@ -392,19 +392,28 @@ html:not([data-mode="light"]) .only-light{display:none}
 /* שורת העובדות בסרגל העליון של הדוח (בקשת אלעד 26.8): כל מה שידוע על העסק ועל הסריקה,
    בשורה אחת שקטה ליד שמו. קווים דקים ולא גלולות - חמש גלולות בסרגל דק נקראות כחמישה
    כפתורים, והן לא כפתורים אלא עובדות. המספרים לבד מודגשים, כי הם מה שהעין מחפשת */
+/* בלוק הזהות במרכז הסרגל (בקשת אלעד 26.8): שם העסק, ומתחתיו שורת העובדות. כותרת ושורת
+   משנה - אותו דפוס של page-head, רק קטן. תופס את מה שנשאר בין תווית המסך לתפריט המשתמש */
+.bar-ident{
+  flex:1;min-width:0;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+}
+.bar-ident > b{
+  max-width:100%;font-size:15px;font-weight:700;letter-spacing:-.01em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+/* העובדות בלי מסגרות. הגלגול הקודם שם כל עובדה על אריח, וחמישה אריחים בשורה נראו כמו
+   סרגל כלים ולא כמו פרטי עסק (משוב אלעד 26.8). ההפרדה היא נקודה, כמו בשורת המטא של
+   הדוח מאז ומתמיד. flex ולא inline: ה-preflight של Tailwind הופך כל svg ל-display:block,
+   ובשורה אינליין האייקון נערם מעל הטקסט; בשורת flex הסדר הוא סדר ה-DOM בכיוון הכתיבה,
+   כלומר האייקון (הראשון) מימין לטקסט */
 .bar-facts{
-  display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;
-  flex:1;min-width:0;font-size:12px;line-height:1.4;color:var(--mut);
+  display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:2px 11px;
+  min-width:0;font-size:12px;line-height:1.4;color:var(--mut);
 }
-/* כל עובדה על אריח משלה (בקשת אלעד 26.8) - זו ההפרדה בין נתון לנתון, במקום קווים דקים.
-   רדיוס קטן ולא גלולה: תא נתונים, לא כפתור. flex ולא inline: ה-preflight של Tailwind
-   הופך כל svg ל-display:block, ובתוך שורה אינליין האייקון נערם מעל הטקסט במקום לצדו.
-   בשורת flex הסדר הוא סדר ה-DOM בכיוון הכתיבה, כלומר האייקון (הראשון) מימין לטקסט */
-.bar-facts > *{
-  display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
-  padding:4px 9px;border-radius:9px;
-  background:var(--surface-1);border:1px solid var(--hair-soft);
-}
+.bar-facts > *{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+/* הנקודה המפרידה, ממורכזת בין השכנים: 11 מהרווח לפניה, 6+5 (שוליים + gap) אחריה */
+.bar-facts > * + *::before{content:"·";color:var(--dim);margin-inline-end:6px}
 .bar-facts svg{width:13px;height:13px;flex:none;color:var(--dim)}
 .bar-facts b{color:var(--txt);font-weight:700}
 /* הכוכב בצבע הכוכב: ענבר. זה הצבע היחיד בשורה, ולכן העין מוצאת את הדירוג ראשון */
@@ -412,8 +421,8 @@ html:not([data-mode="light"]) .only-light{display:none}
 .bar-facts .sep{margin-inline:6px;color:var(--dim)}
 /* קישור שקט: אותו צבע כמו השכנים, וקו רק בריחוף - בסרגל של עובדות קישור צבעוני היה
    צועק. הקו התחתון הקבוע הוא של האתר בלבד, כי הוא היחיד כאן שאפשר ללחוץ עליו */
-.bar-facts a{color:inherit;text-decoration:none;transition:color .2s,border-color .2s,background .2s}
-.bar-facts a:hover{color:var(--txt);border-color:rgba(var(--acc-rgb),.45);background:rgba(var(--acc-rgb),.08)}
+.bar-facts a{color:inherit;text-decoration:none;transition:color .2s}
+.bar-facts a:hover{color:var(--txt)}
 /* המארח: הטקסט עצמו מקבל קו תחתון דק, כי הוא היחיד בשורה שאפשר ללחוץ עליו */
 .bar-facts .clip{
   min-width:0;max-width:26ch;overflow:hidden;text-overflow:ellipsis;
@@ -424,7 +433,7 @@ html:not([data-mode="light"]) .only-light{display:none}
   /* בסרגל צר העובדות היו נדחסות על תפריט המשתמש. הן יורדות לשורה משלהן בתוך אותו סרגל
      ולא נעלמות ולא משוכפלות במקום אחר */
   .topbar{flex-wrap:wrap}
-  .bar-facts{order:3;flex-basis:100%;padding-top:2px}
+  .bar-ident{order:3;flex-basis:100%;padding-top:2px}
 }
 .chip{
   font-size:12px;font-weight:600;color:var(--mut);

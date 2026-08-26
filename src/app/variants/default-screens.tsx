@@ -578,8 +578,9 @@ export function DefaultReport({
           כאן ולא בכותרת: הסרגל דביק, כך שהתשובה ל"על מי מדובר ומה נמדד" נשארת על המסך
           גם בעומק הדוח. כל פרט הוא ממצא שנאסף בפועל - שדה שלא הגיע פשוט לא מוצג */}
       <header className="topbar">
-        <span className="brand-txt"><small>הדוח המלא</small><b>{business.name}</b></span>
-        <BusinessFacts {...factsOf(findings, business, report.scan.createdAt)} />
+        {/* שם המסך בקצה, שם העסק והעובדות במרכז (בקשת אלעד 26.8) */}
+        <span className="brand-txt"><small>הדוח המלא</small></span>
+        <BusinessFacts name={business.name} {...factsOf(findings, business, report.scan.createdAt)} />
         <div className="side">
           {/* התחזות מהסרגל העליון, לאדמין בלבד (בקשת מייסד 20.8) */}
           {isAdmin && <ImpersonateSearch />}
