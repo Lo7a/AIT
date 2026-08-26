@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { RAIL_COOKIE } from "../rail";
+import { initialsOf } from "../../pipeline/report/presenter";
 
 // מעטפת המערכת למשתמש מחובר: סיידבר בסגנון CRM שנפתח ונסגר. במצב סגור נשארים
 // האייקונים (רוחב 74px) - אף פעם לא נעלם לגמרי. הבחירה נשמרת בדפדפן. במובייל
@@ -128,14 +129,6 @@ export const ADMIN_ITEMS: { key: ShellNavKey; href: string }[] = [
   { key: "admin_tasks", href: "/admin/tasks" },
   { key: "admin_agents", href: "/admin/agents" },
 ];
-
-// ראשי תיבות לאווטאר זהות: אות ראשונה משתי המילים הראשונות, או שתי הראשונות בשם קצר.
-// יוצא מכאן ולא מ-default-screens כדי שרשימת האבחונים ועוגן הסיידבר יגזרו מאותה פונקציה
-export function initialsOf(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (words.length >= 2) return `${words[0][0]}${words[1][0]}`;
-  return name.trim().slice(0, 2);
-}
 
 /** יחיד/רבים בעברית: "חסרים 1 נתונים" נקרא כרשלנות, בכרטיס שכל תפקידו לבקש אמון */
 function missingLabel(missing: number | undefined): string {

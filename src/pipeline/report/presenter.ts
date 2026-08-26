@@ -17,6 +17,15 @@ export const DATA_TAG: Record<string, string> = {
   none: ` (${DATA_STATUS_LABEL.none})`,
 };
 
+// ראשי תיבות לאווטאר זהות: אות ראשונה משתי המילים הראשונות, או שתי הראשונות בשם קצר.
+// יושב כאן ולא במעטפת: רשימת האבחונים היא רכיב שרת והמעטפת היא "use client", ופונקציה
+// שחוצה את הגבול הזה קורסת בזמן ריצה. שכבת התצוגה הטהורה נגישה לשני הצדדים
+export function initialsOf(name: string): string {
+  const words = name.trim().split(/s+/).filter(Boolean);
+  if (words.length >= 2) return `${words[0][0]}${words[1][0]}`;
+  return name.trim().slice(0, 2);
+}
+
 export const DIAGNOSIS_STATUS_LABEL: Record<DiagnosisStatus, string> = {
   created: "נוצר, טרם נסרק",
   scanning: "בסריקה",

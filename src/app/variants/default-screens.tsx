@@ -2,7 +2,7 @@ import Link from "next/link";
 import { SearchBox } from "../search-box";
 import { ScanRunner } from "../scan/scan-runner";
 import type { Target } from "../scan/use-scan-stream";
-import { DIAGNOSIS_STATUS_LABEL } from "../../pipeline/report/presenter";
+import { DIAGNOSIS_STATUS_LABEL, initialsOf } from "../../pipeline/report/presenter";
 import type { DiagnosisListItem, ReportView } from "../../server/diagnosis-read";
 import {
   DATA_STATUS_LABEL, PARTIAL_FLAG_LABEL, ruleLabelHe, scoreTone, type ScoreToneKind,
@@ -15,7 +15,7 @@ import type { QuickWin } from "../../pipeline/roadmap/quick-wins";
 import type { Insight } from "../../pipeline/roadmap/insights";
 import { healthFacts } from "../../pipeline/report/health-facts";
 import type { HealthSignals } from "../../pipeline/types";
-import { AppShell, initialsOf } from "../ui/app-shell";
+import { AppShell } from "../ui/app-shell";
 import { AnchorNav, type AnchorItem } from "../ui/anchor-nav";
 import { ImpersonateSearch } from "../ui/impersonate-search";
 import { UserMenu } from "../ui/user-menu";
