@@ -358,7 +358,9 @@ export function DefaultRoadmap({
                     style={{ borderTopColor: "var(--acc)", animation: "rot .8s linear infinite" }}
                   />
                   <p className="font-bold">
-                    {roadmap ? "מחשבים Roadmap מעודכן" : "בונים Roadmap - מתאימים הזדמנויות מהקטלוג לעסק שלכם"}
+                    {roadmap
+                      ? "מחשבים תוכנית עבודה מעודכנת"
+                      : "בונים את תוכנית העבודה - מתאימים הזדמנויות מספריית הפתרונות לעסק שלכם"}
                   </p>
                   <p className="text-[12.5px] text-[color:var(--mut)]">זה לוקח כמה שניות</p>
                 </div>

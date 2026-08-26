@@ -468,7 +468,8 @@ function HeadlineCard({
     <section className={`shell ${className}`}>
       <div className="core card-pad flex h-full flex-col justify-center">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-xl font-extrabold leading-snug tracking-tight sm:text-2xl">{headline}</h1>
+          {/* h2 ולא h1: כותרת העמוד היא "הדוח המלא" - שתי h1 סותרות את מתאר המסמך */}
+          <h2 className="text-xl font-extrabold leading-snug tracking-tight sm:text-2xl">{headline}</h2>
           {usedFallback && <span className="chip">נוסח אוטומטי</span>}
         </div>
         {summary && (
@@ -580,11 +581,7 @@ export function DefaultReport({
           {isAdmin && <ImpersonateSearch />}
           <UserMenu email={userEmail} isAdmin={isAdmin} />
           {business.website && (
-            <span
-              className="chip hidden md:inline-block"
-              dir="ltr"
-              style={{ maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-            >
+            <span className="chip clip hidden md:inline-block" dir="ltr">
               {business.website}
             </span>
           )}
@@ -745,7 +742,7 @@ export function DefaultReport({
                               <RuleIcon rule={r} />
                               <RuleLine rule={r} />
                             </span>
-                            <span className="num shrink-0" style={{ color: "var(--dim)" }}>{r.points} נק'</span>
+                            <span className="num shrink-0" style={{ color: "var(--mut)" }}>{r.points} נק'</span>
                           </li>
                         ))}
                       </ul>

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useBusinessSearch } from "./use-business-search";
 import { popPendingSearch } from "./landing-logic";
+import { AlertIcon } from "./ui/icons";
 
 const LISTBOX_ID = "candidate-listbox";
 const optionId = (placeId: string) => `candidate-option-${placeId}`;
@@ -32,13 +33,6 @@ function CapArrow() {
   );
 }
 
-function AlertIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="mt-0.5 shrink-0" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" /><path d="M12 8v4" /><path d="M12 16h.01" />
-    </svg>
-  );
-}
 
 export function SearchBox() {
   const {
@@ -140,7 +134,7 @@ export function SearchBox() {
 
       {error && (
         <p role="alert" className="form-error mt-3">
-          <AlertIcon />
+          <AlertIcon className="mt-0.5 shrink-0" />
           {error}
         </p>
       )}

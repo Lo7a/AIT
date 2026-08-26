@@ -79,10 +79,12 @@ html[data-mode="light"]{
   --acc2:#0e8a60;
   --acc2-rgb:14,138,96;
   --acc2-soft:#0b6b4b;
-  --warn:#b3761f;
-  --warn-rgb:179,118,31;
-  --work:#c2601b;
-  --work-rgb:194,96,27;
+  /* הוכהו ב-26.8: הערכים הקודמים (#b3761f, #c2601b) נפלו מתחת ל-4.5:1 על הרקע
+     הבהיר בגדלים שבהם הם צובעים טקסט (אזהרת ההתחברות, תגי הסטטוס בלוח) */
+  --warn:#8a5a14;
+  --warn-rgb:138,90,20;
+  --work:#a04a12;
+  --work-rgb:160,74,18;
   --bad:#c94357;
   --bad-rgb:201,67,87;
   --surface-1:rgba(25,22,33,.045);
@@ -333,6 +335,8 @@ html[data-mode="light"] .theme-tgl .ic-moon{display:none}
 }
 .chip.live .dot{width:7px;height:7px;border-radius:50%;background:var(--acc2);
   box-shadow:0 0 10px rgba(var(--acc2-rgb),.9);animation:breathe 2.4s var(--ease) infinite}
+/* צ'יפ שנושא טקסט באורך לא ידוע (שם עסק, כתובת) - חיתוך במקום גלישה */
+.chip.clip{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @keyframes breathe{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.72)}}
 .avatar{
   width:38px;height:38px;border-radius:50%;flex:none;
@@ -344,7 +348,9 @@ html[data-mode="light"] .theme-tgl .ic-moon{display:none}
 .field{position:relative;display:block}
 .field > svg{position:absolute;top:50%;inset-inline-end:16px;transform:translateY(-50%);opacity:.4;pointer-events:none}
 .field input{
-  width:100%;padding:15px 46px 15px 16px;
+  /* המרזב לאייקון בריפוד לוגי, כמו העוגן של האייקון עצמו (inset-inline-end) -
+     כך השדה מיושר נכון גם ב-RTL וגם בעטיפת ה-ltr של שדה האימייל (ממצא סקירה 26.8) */
+  width:100%;padding-block:15px;padding-inline-start:16px;padding-inline-end:46px;
   background:var(--surface-1);border:1px solid var(--hair-soft);border-radius:14px;
   font-size:15px;font-weight:500;outline:none;color:var(--txt);
   transition:border-color .3s,background .3s,box-shadow .3s;
@@ -372,6 +378,12 @@ html[data-mode="light"] .theme-tgl .ic-moon{display:none}
   font-size:12.5px;color:var(--bad);
   background:rgba(var(--bad-rgb),.07);border:1px solid rgba(var(--bad-rgb),.3);
   border-radius:12px;padding:10px 14px;
+}
+.form-error>svg{flex:none;margin-top:2px}
+/* אותה קופסה בגווני אזהרה - למצבים כנים שאינם שגיאה (התחברות לא מוגדרת) */
+.form-error.warn{
+  color:var(--warn);
+  background:rgba(var(--warn-rgb),.08);border-color:rgba(var(--warn-rgb),.3);
 }
 
 /* ===== לוח (גריד 12) ===== */
@@ -541,6 +553,11 @@ html[data-mode="light"] .gap-no{text-shadow:none}
 .sl .res{display:block;font-size:12px;color:var(--acc2-soft);font-weight:600;
   max-height:0;overflow:hidden;opacity:0;transition:max-height .5s var(--ease-out),opacity .5s}
 .sl.done .res{max-height:24px;opacity:1;margin-top:1px}
+/* שלב שנכשל בסריקה החיה: וי אדום ושורת תוצאה מעומעמת - מודיפייר, לא סגנון ידני */
+.sl.fail .chk span{
+  background:rgba(var(--bad-rgb),.12);border-color:rgba(var(--bad-rgb),.4);color:var(--bad);
+}
+.sl.fail .res{color:var(--mut)}
 
 /* ===== מעטפת המערכת: סיידבר מתקפל (ui/app-shell.tsx) ===== */
 .app{position:relative;z-index:1;min-height:100dvh;display:flex}
@@ -712,6 +729,13 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
    .fieldrow הוא גריד, לכן ההערמה נעשית בקריסת העמודות - לא ב-flex (ממצא סקירה 26.8) */
 .hero-form .fieldrow{grid-template-columns:1fr}
 .hero-form .btn.wide{width:100%;justify-content:center}
+/* המצב היום בתוך עמודת הטופס: אותה טיפוגרפיה שקטה, סקאלה של עמודה צרה */
+.hero-sit{margin-top:30px;border-top:1px solid var(--hair-soft);padding-top:20px}
+.hero-sit .sit-k{
+  font-size:11px;font-weight:700;letter-spacing:.2em;color:var(--dim);margin-bottom:12px;
+}
+.hero-sit .sit-say{font-size:16px;line-height:1.65;max-width:none}
+.hero-sit .sit-say + .sit-say{margin-top:12px}
 @media (max-width:920px){
   .hero-grid{grid-template-columns:1fr;gap:26px;padding:24px 0 30px}
   /* במובייל: כותרת, טופס (ההמרה קודם), ואז ההדגמה - בלי כיסי הדמות.
@@ -733,6 +757,12 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
 .how-head{display:flex;align-items:center;gap:16px;margin-bottom:22px}
 .how-head h2{font-size:12px;font-weight:700;letter-spacing:.2em;color:var(--mut);white-space:nowrap}
 .how-head::after{content:"";flex:1;height:1px;background:linear-gradient(-90deg,var(--hair),transparent)}
+/* כותרת רצועת הסגירה - הסקאלה שהייתה מוגדרת inline עברה הנה (ממצא סקירה 26.8) */
+.cta-h{
+  flex:1;min-width:220px;
+  font-size:clamp(16px,1.7vw,21px);line-height:1.4;
+  letter-spacing:-.01em;max-width:26ch;font-weight:700;text-wrap:balance;
+}
 .cta-core{
   padding:34px 34px;
   display:flex;align-items:center;gap:30px;flex-wrap:wrap;
@@ -858,7 +888,7 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
   background:var(--surface-1);border:1px solid var(--hair-soft);border-radius:8px;padding:4px 11px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.term-bar .pct{font-size:12px;font-weight:700;color:var(--acc-soft);min-width:36px;text-align:left;flex:none}
+.term-bar .pct{font-size:12px;font-weight:700;color:var(--acc-soft);min-width:36px;text-align:end;flex:none}
 .pbar{height:2px;background:var(--rail);position:relative;overflow:hidden}
 .pbar i{
   position:absolute;inset-block:0;inset-inline-start:0;width:100%;display:block;
@@ -1020,6 +1050,11 @@ html{scroll-behavior:smooth}
 
 /* תצוגה מוקטנת של הדוח בתוך דף הנחיתה - אותן מחלקות, בקנה מידה קטן */
 .repC.mini{padding:0;gap:12px;grid-template-columns:172px minmax(0,1fr);max-width:none}
+/* הכרטיס הפעיל בהדגמה - אותו מנגנון on של שאר המערכת, עם מעבר רך כמו ניווט העוגן */
+.repC.mini .core.on{
+  border-color:rgba(var(--acc-rgb),.45);background:rgba(var(--acc-rgb),.05);
+  transition:border-color .3s,background .3s;
+}
 .repC.mini .rep-side{position:static;gap:9px}
 .repC.mini .rep-main{gap:9px}
 .repC.mini .shell{border-radius:16px;padding:5px}

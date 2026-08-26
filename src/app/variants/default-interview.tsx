@@ -192,17 +192,17 @@ export function DefaultInterview({
     <AppShell active="interview" diagnosisId={diagnosisId} userLabel={userEmail} isAdmin={isAdmin}>
       {/* שורת הזהות: על איזה עסק הראיון הזה. היה חסר כאן בלבד, וכשיש כמה אבחונים אי אפשר
           היה לדעת עם מי מדברים (דיווח מייסד 20.8). אותו מבנה בדיוק כמו בדוח וב-Roadmap */}
-      {businessName != null && businessName !== "" && (
-        <header className="topbar">
-          {/* רק הזהות. "הדוח חי" כבר מוצג בכותרת המסך עצמו, ולהראות אותו פעמיים
-              על אותו מסך זה רעש ולא הדגשה */}
+      {/* השורה מרונדרת תמיד - בלי שם עסק המשתמש עדיין צריך את תפריט המשתמש ואת
+          חיפוש ההתחזות; רק שורת הזהות עצמה מותנית (ממצא סקירה 26.8) */}
+      <header className="topbar">
+        {businessName != null && businessName !== "" && (
           <span className="brand-txt"><small>הראיון</small><b>{businessName}</b></span>
-          <div className="side">
-            {isAdmin && <ImpersonateSearch />}
-            <UserMenu email={userEmail} isAdmin={isAdmin} />
-          </div>
-        </header>
-      )}
+        )}
+        <div className="side">
+          {isAdmin && <ImpersonateSearch />}
+          <UserMenu email={userEmail} isAdmin={isAdmin} />
+        </div>
+      </header>
       {/* אותה פריסת שתי-עמודות של הדוח (.repC) ולא רוחב משלו. עד 20.8 המסך הזה ישב על
           760 פיקסלים בזמן שכל שאר המערכת על 94 אחוז - הוא נראה כמו מסך של מוצר אחר.
           העמודה הצדדית נושאת את "איפה אני עומד" והראשית את השיחה עצמה.

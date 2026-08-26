@@ -350,18 +350,6 @@ function ScanTerminal() {
   );
 }
 
-// קו מציין מקום: מייצג טקסט שיתמלא מהסריקה של העסק. ניטרלי בכוונה - טקסט לדוגמה
-// בדוח לדוגמה הוא בדיוק המקום שבו נולדים מספרים מומצאים
-function Ph({ w }: { w: string }) {
-  return (
-    <span
-      className="mt-1.5 block rounded-full first:mt-0"
-      style={{ width: w, height: 5, background: "var(--surface-2)" }}
-      aria-hidden="true"
-    />
-  );
-}
-
 // תצוגת הדוח: המבנה האמיתי (פריסה 3 - עמודת זהות דביקה + עמודת תוכן) עם שורת
 // ניווט העוגן שעוברת בין המקטעים. זו הדגמת מבנה וניווט, לכן אין בה נתונים
 // enabled מגיע ממסלול השלבים: הפאנלים חיים תמיד בשביל הגובה הקבוע, אבל טיימר של
@@ -441,12 +429,7 @@ function ReportPreview({ enabled = true }: { enabled?: boolean }) {
         <div className="rep-main">
           {REPORT_SECTIONS.map((s, i) => (
             <div key={s.id} className="shell">
-              <div
-                className="core"
-                style={i === active
-                  ? { borderColor: "rgba(var(--acc-rgb),.45)", background: "rgba(var(--acc-rgb),.05)" }
-                  : undefined}
-              >
+              <div className={i === active ? "core on" : "core"}>
                 <div className="mini-h">
                   <span className={s.tone === "acc" ? "ic" : `ic ${s.tone}`} aria-hidden="true">
                     <CheckIcon size={10} />
@@ -631,25 +614,6 @@ const REPORT_TOC: { t: string; free?: boolean }[] = [
   { t: "מה אפשר לעשות כבר עכשיו", free: true },
   { t: "תוכנית עבודה עם טווחי מחיר ממקור" },
 ];
-
-function SituationSection() {
-  return (
-    <section className="pb-14">
-      <Reveal>
-        <div className="how-head"><h2>המצב היום</h2></div>
-      </Reveal>
-      <div>
-        {SITUATION.map((line, i) => (
-          <Reveal key={line.hl} delay={i * 90}>
-            <p className="sit-say">
-              {line.before}<em>{line.hl}</em>{line.after}
-            </p>
-          </Reveal>
-        ))}
-      </div>
-    </section>
-  );
-}
 
 function ReportTocSection() {
   return (
@@ -993,7 +957,9 @@ function StageWalk() {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <div className="stage-list" role="tablist" aria-label="שלבי התהליך">
+      {/* כל טאב שולט בפאנל שלו עצמו דרך מזהה יציב - לא במזהה נודד של הפאנל הפעיל
+          (ממצא סקירה 26.8: הקישור הקודם שייך כל טאב לפאנל של מישהו אחר) */}
+      <div className="stage-list" role="tablist" aria-label="שלבי התהליך" aria-orientation="vertical">
         {STEPS.map((step, i) => (
           <button
             key={step.title}
@@ -1001,7 +967,7 @@ function StageWalk() {
             role="tab"
             id={`stage-tab-${i}`}
             aria-selected={i === stage}
-            aria-controls="stage-panel"
+            aria-controls={`stage-panel-${i}`}
             className={i === stage ? "stage-btn on" : "stage-btn"}
             onClick={() => pick(i)}
           >
@@ -1023,7 +989,7 @@ function StageWalk() {
           <div
             key={i}
             className={i === stage ? "shell stage-card on" : "shell stage-card"}
-            id={i === stage ? "stage-panel" : undefined}
+            id={`stage-panel-${i}`}
             role="tabpanel"
             aria-labelledby={`stage-tab-${i}`}
             aria-hidden={i !== stage}
@@ -1173,6 +1139,18 @@ export function LandingScreen() {
                 האבחון דורש חשבון - נכניס אותך ברגע, בלי סיסמה, והחיפוש שהקלדת מחכה לך בפנים.
               </p>
             </form>
+
+            {/* המצב היום עלה לכאן מתחתית העמוד (בקשת מייסד 26.8): הוא ממלא את החלל
+                מתחת לטופס ומיישר את שתי עמודות ההירו לגובה דומה. אותן שורות, סקאלה
+                צנועה יותר - הן משלימות את הטופס, לא מתחרות בכותרת */}
+            <div className="hero-sit rv d5">
+              <p className="sit-k">המצב היום</p>
+              {SITUATION.map((line) => (
+                <p key={line.hl} className="sit-say">
+                  {line.before}<em>{line.hl}</em>{line.after}
+                </p>
+              ))}
+            </div>
           </div>
 
           {/* שלב הסריקה, רץ ומתואר. בלי כותרת מעליו - סרגל הכתובת ושורת הסיכום של המסוף
@@ -1189,10 +1167,7 @@ export function LandingScreen() {
           </div>
         </section>
 
-        {/* לפני שמראים מכונה - הרגע שבו הוא מזהה את עצמו */}
-        <SituationSection />
-
-        {/* מסלול השלבים: כל שלב עם התצוגה החיה שלו */}
+        {/* מסלול השלבים: כל שלב עם התצוגה החיה שלו. "המצב היום" עבר לתוך ההירו */}
         <section id="stages" className="pb-14">
           <Reveal>
             <div className="how-head"><h2>איך זה עובד</h2></div>
@@ -1216,14 +1191,7 @@ export function LandingScreen() {
               {/* הדמות מציגה את ההזמנה האחרונה בעמוד - כף יד פתוחה אל הכפתור */}
               <img src="/brand/presenting.webp" alt="" aria-hidden="true" className="cta-buddy" />
               <div className="core cta-core">
-                <h2 style={{
-                  flex: 1, minWidth: 220,
-                  fontSize: "clamp(16px,1.7vw,21px)", lineHeight: 1.4,
-                  letterSpacing: "-.01em", maxWidth: "26ch", fontWeight: 700,
-                  textWrap: "balance",
-                }}>
-                  כמה שווה הנוכחות הדיגיטלית של העסק שלך?
-                </h2>
+                <h2 className="cta-h">כמה שווה הנוכחות הדיגיטלית של העסק שלך?</h2>
                 <button type="button" className="btn-invert" onClick={startDiagnosis}>
                   אבחן את העסק שלי
                   <CapArrow />
