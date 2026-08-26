@@ -867,6 +867,11 @@ export function LandingScreen() {
             סלוגן, טופס עם דוגמאות לחיצות, והמצב היום. החלון בעמודה השמאלית עם
             הדמות בפינה השמאלית-עליונה שלו, מהופכת כך שהיא פונה ימינה אל התוכן */}
         <section className="hero-grid hero-v4">
+          {/* הלוקאפ כשכבה נפרדת (מייסד 26.8): ממורכז מעל שתי העמודות, לא בתוכן */}
+          <div className="hero-brand rv">
+            <img src="/brand/lockup-dark.webp" alt="בדק עסק" className="only-dark" />
+            <img src="/brand/lockup-light.webp" alt="בדק עסק" className="only-light" />
+          </div>
           <div className="hero-main">
           <header className="hero-head">
             {/* בלי תג "אבחון דיגיטלי לעסקים" - הניווט כבר אומר את זה מילה במילה */}
@@ -985,13 +990,6 @@ export function LandingScreen() {
         {/* רצועת סגירה: הכותרת המאושרת בלבד. תת-הכותרת ירדה - היא מופיעה מילה במילה
             בירו, וחזרה עליה כאן רק מעמיסה בלי להוסיף */}
         <section className="pb-16">
-          {/* הלוקאפ חוזר למטה (מייסד 26.8) - רגע המותג לפני הקריאה האחרונה */}
-          <Reveal>
-            <div className="about-brand">
-              <img src="/brand/lockup-dark.webp" alt="בדק עסק" className="only-dark" />
-              <img src="/brand/lockup-light.webp" alt="בדק עסק" className="only-light" />
-            </div>
-          </Reveal>
           <Reveal delay={60}>
             <div className="shell">
               {/* רצועת הסגירה: היועץ היושב מימין, הטקסט והכפתור משמאל, קרובים

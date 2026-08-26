@@ -419,7 +419,8 @@ body{overflow-x:clip}
      בקו התחתון. ריפוד עליון שמור לדמות שמציצה מעל הקו */
   /* הקיזוז הוא גובה הניווט האמיתי (כ-56px) - קיזוז גדול מדי השאיר רצועה שבה
      הסקשן הבא הציץ לתוך המסך הראשון (דיווח מייסד 26.8) */
-  .hero-v4{min-height:calc(100dvh - 58px);align-content:center;padding-top:132px;padding-bottom:48px}
+  /* שורת הלוקאפ שמעל העמודות היא גם הכיס שאליו מציצה הדמות - אין צורך בריפוד ענק */
+  .hero-v4{min-height:calc(100dvh - 58px);align-content:center;padding-top:44px;padding-bottom:48px}
   /* החלון עצמו מתארך משמעותית (מייסד 26.8, סבב שני): שורות גבוהות, סרגלים עבים */
   .hero-v4 .sl{padding-block:21px}
   .hero-v4 .term-bar{padding-block:17px}
@@ -1010,6 +1011,11 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
 /* stretch ולא start הבסיסי: בלי זה העמודה הנמוכה לא נמתחת, והיישור של שתי
    שורות ההערה החזיק רק ברוחבים שבהם העמודה הימנית במקרה גבוהה יותר (באג 26.8) */
 .hero-v4{grid-template-columns:1.02fr .98fr;column-gap:52px;align-items:stretch}
+/* שכבת הלוקאפ: שורה מלאה מעל שתי העמודות, ממורכזת. הגובה שלה משמש גם כמרווח
+   שאליו מציצה הדמות שעל החלון */
+.hero-brand{grid-column:1/-1;display:flex;justify-content:center;margin-bottom:30px}
+.hero-brand img{width:min(320px,70%);pointer-events:none;user-select:none}
+@media (max-width:920px){.hero-brand{margin-bottom:8px}.hero-brand img{width:min(250px,80%)}}
 /* שתי העמודות: flex עמודה, ההערה האחרונה מעוגנת לתחתית - נגמרות באותו קו בכל רוחב */
 .hero-v4 .hero-main{min-width:0;display:flex;flex-direction:column}
 .hero-v4 .hero-demo{display:flex;flex-direction:column}
