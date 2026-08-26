@@ -419,8 +419,8 @@ body{overflow-x:clip}
   .stage-sec .stage-panel{min-height:min(58vh,600px)}
 }
 /* בלוק האבחון בהירו - בלי קופסה (עיצוב מחדש 26.8): יושב ישירות בעמודה, מופרד
-   בקו שיער, ברוחב מלא - הקצה שלו הוא הקצה של העמודה */
-.diag-card{border-top:1px solid var(--hair-soft);padding-top:24px}
+   בקו שיער. הרוחב תואם בערך את רוחב הטקסט שמעליו - שדה וכפתור קצרים (מייסד 26.8) */
+.diag-card{border-top:1px solid var(--hair-soft);padding-top:24px;max-width:640px}
 .diag-t{font-size:17px;font-weight:700;margin-bottom:12px}
 .diag-card .field input{padding-block:14px;font-size:15.5px}
 /* מלבני ולא גלולה (מייסד 26.8), והחץ הוא חלק מהשורה - בלי צ'יפ עגול שנשבר
