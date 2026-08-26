@@ -824,7 +824,8 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
 .hero-v4 .trust span{font-size:13.5px}
 /* הטופס בעמודה: שדה וכפתור באותה שורה, בערך 70/30 (משוב מייסד 26.8).
    מתחת ל-560px החוק הבסיסי של .fieldrow כבר עורם אותם */
-.hero-v4 .hero-form{margin-top:auto;padding-top:30px}
+/* רוחב מוגבל (שיקול דעת שאושר 26.8): שדה ברוחב ריצה מאבד פרופורציה במסך רחב */
+.hero-v4 .hero-form{margin-top:auto;padding-top:30px;max-width:620px}
 .hero-v4 .hero-form .fieldrow{grid-template-columns:2.2fr 1fr}
 /* המצב היום יושב בין הסלוגן לכרטיס הבדיקה - בלי קו מפריד, זה רצף של טיעון.
    המרווחים הפנימיים נדיבים - הסקשן ממלא עמוד ונושם (משוב מייסד 26.8) */
