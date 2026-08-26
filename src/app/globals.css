@@ -770,11 +770,14 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
    עמודה שמאלית - החלון, עם הדמות בפינה השמאלית-עליונה שלו פונה ימינה (ברירת
    המחדל של .scan-buddy: מעוגנת ל-inline-end ומהופכת) */
 .hero-v4{grid-template-columns:1.02fr .98fr;column-gap:52px}
-.hero-v4 .hero-main{min-width:0}
+/* העמודה נמתחת לגובה השורה, והכרטיס נדחף לתחתיתה - כך תחתית "בדוק את העסק שלך"
+   מתיישרת עם תחתית החלון משמאל (משוב מייסד 26.8). padding-bottom מפצה על שורת
+   ההערה הקטנה שמתחת לחלון */
+.hero-v4 .hero-main{min-width:0;display:flex;flex-direction:column;padding-bottom:30px}
 .hero-v4 .hero-demo{padding-top:104px}
 /* הטופס בעמודה: שדה וכפתור באותה שורה, בערך 70/30 (משוב מייסד 26.8).
    מתחת ל-560px החוק הבסיסי של .fieldrow כבר עורם אותם */
-.hero-v4 .hero-form{margin-top:20px}
+.hero-v4 .hero-form{margin-top:auto;padding-top:20px}
 .hero-v4 .hero-form .fieldrow{grid-template-columns:2.2fr 1fr}
 /* המצב היום יושב בין הסלוגן לכרטיס הבדיקה - בלי קו מפריד, זה רצף של טיעון */
 .hero-v4 .hero-sit{margin-top:24px}
@@ -794,6 +797,8 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
 .hero-sit .sit-say + .sit-say{margin-top:12px}
 @media (max-width:920px){
   .hero-grid{grid-template-columns:1fr;gap:26px;padding:24px 0 30px}
+  .hero-v4 .hero-main{padding-bottom:0}
+  .hero-v4 .hero-form{margin-top:0}
   .hero-v4 .hero-demo{padding-top:0}
   .hero-v4 .scan-buddy{display:none}
 }
