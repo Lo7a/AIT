@@ -58,6 +58,10 @@
   --rail-w:232px;
   --content-w:94%;
   --content-max:1860px;
+  /* רוחב עמוד האפליקציה - מדד אחד לכל המסכים (בקשת אלעד 26.8). ראו .app-w למטה */
+  --app-w:94%;
+  --app-max:1440px;
+  --app-pad:22px;
   /* גובה שתי השורות שנשארות למעלה בגלילה (הנחיית מייסד 20.8). הן נאכפות ב-min-height
      על .topbar ועל .anch, ולכן אלה לא הערכות אלא חוזה - כל מי שצריך להיערם מתחתיהן
      (סרגל העוגנים, העמודה הדביקה בדוח) מחשב מהן ולא ממספר משלו */
@@ -437,12 +441,21 @@ html:not([data-mode="light"]) .only-light{display:none}
   background:rgba(var(--warn-rgb),.08);border-color:rgba(var(--warn-rgb),.3);
 }
 
+/* ===== רוחב העמוד: מדד אחד לכל מסכי האפליקציה (בקשת אלעד 26.8) =====
+   מסך הבית, הדוח, הראיון, תוכנית העבודה וכל שלושה-עשר מסכי הניהול נמדדים מכאן, ולא כל
+   אחד לעצמו. עד עכשיו .board ו-.repC נבדלו ב-22 פיקסלים של ריפוד צדדי ובנקודת השבירה
+   (760 מול 1100), וזה הספיק כדי שהתוכן יקפוץ בכל מעבר בין מסך למסך.
+   התקרה ירדה מ-1860: טבלה או שורת טקסט ברוחב 1860 פיקסלים אינה רוחב עמוד אלא היעדר
+   רוחב עמוד. דף הנחיתה נשאר על --content-max שלו - הוא לא מסך עבודה */
+.app-w,.board,.repC,.repC-head{
+  width:var(--app-w);max-width:var(--app-max);margin-inline:auto;
+}
+
 /* ===== לוח (גריד 12) ===== */
 .board{
   position:relative;z-index:1;
   display:grid;grid-template-columns:repeat(12,1fr);gap:14px;
-  padding:20px 22px 26px;
-  width:var(--content-w);max-width:var(--content-max);margin:0 auto;
+  padding:20px var(--app-pad) 26px;
 }
 /* c3 = ארבעה בשורה. נוסף בשביל אריחי המונים של הניהול; במסך צר הוא נעצר בשניים
    בשורה ולא יורד ל-12 כמו האחרים - מונה בן שתי ספרות לא צריך רוחב מסך שלם */
@@ -456,7 +469,9 @@ html:not([data-mode="light"]) .only-light{display:none}
   .c8{grid-column:span 12}
 }
 @media (max-width:760px){
-  .board{padding:16px 14px 22px;gap:12px}
+  /* הריפוד הצדדי יורד מהטוקן, כלומר בכל המסכים יחד ולא רק כאן */
+  :root{--app-pad:14px}
+  .board{padding:16px var(--app-pad) 22px;gap:12px}
   .c4,.c6,.c8{grid-column:span 12}
 }
 .card-pad{padding:22px 24px}
@@ -712,6 +727,14 @@ html[data-rail="mini"] .rail-tgl path{transform:none}
 .rail-ledger .btn .cap{display:none}
 /* ברצועה מכווצת (74 פיקסלים) אין מקום לטקסט בכלל, בדיוק כמו תוויות הניווט ועוגן העסק */
 html[data-rail="mini"] .rail-ledger{display:none}
+
+/* משבצת המובייל של אותו פנקס. מתחת ל-880 הרצועה כולה מוסתרת (ראו m-tabs למטה), ובלי
+   המשבצת הזו הפנקס לא היה קיים בטלפון בכלל. אחת מהשתיים גלויה בכל רגע, אף פעם לא שתיהן */
+.ledger-mobile{display:none}
+.ledger-mobile .rail-ledger{margin-inline:0;padding-top:16px}
+@media (max-width:880px){
+  .ledger-mobile{display:block;padding-inline:var(--app-pad);padding-bottom:22px}
+}
 
 .nav-item.admin-gate{
   margin-top:auto;margin-bottom:2px;
@@ -1059,7 +1082,7 @@ html{scroll-behavior:smooth}
 .repC{
   position:relative;z-index:1;
   display:grid;grid-template-columns:318px minmax(0,1fr);gap:14px;align-items:start;
-  width:var(--content-w);max-width:var(--content-max);margin:0 auto;padding:18px 0 26px;
+  padding:18px var(--app-pad) 26px;
 }
 /* מתחת לשתי השורות הדביקות ועוד נשימה. חושב מהטוקנים ולא ממספר קשיח, אחרת שינוי
    בגובה אחת מהן היה מחליק את העמודה מתחתיהן */
@@ -1067,7 +1090,7 @@ html{scroll-behavior:smooth}
 .repC .rep-side .core{padding:22px 20px}
 .repC .rep-main{display:flex;flex-direction:column;gap:14px;min-width:0}
 @media (max-width:1100px){
-  .repC{grid-template-columns:1fr;padding:16px 14px 22px;gap:12px}
+  .repC{grid-template-columns:1fr;padding:16px var(--app-pad) 22px;gap:12px}
   .repC .rep-side{position:static}
 }
 
@@ -1085,15 +1108,19 @@ html{scroll-behavior:smooth}
 .main-col:has(> .repC.iv) .page-head{margin-bottom:10px}
 .main-col:has(> .repC.iv) .page-head p{margin-top:5px;font-size:13px}
 .repC.iv{
-  /* רוחב הקריאה של עמודת השיחה. הוא עמודת הרשת עצמה ולא תקרה על התוכן בתוך עמודה רחבה:
-     תקרה כזו השאירה 220 פיקסלים מתים בין הכרטיס האמצעי לכל אחד משכניו (דיווח אלעד 26.8).
-     הרשת ברוחב התוכן שלה וממורכזת - מה שנשאר הופך לשוליים חיצוניים, לא לחורים בפנים */
+  /* המסך הזה על רוחב העמוד המשותף כמו כל השאר (בקשת אלעד 26.8) - קודם הוא היה ממורכז
+     ברוחב משלו וזה הקפיץ את התוכן בכל מעבר אליו וממנו.
+     השיחה עצמה עדיין חסומה ברוחב קריאה (--iv-read), אבל היא נצמדת לתחילת העמודה ולא
+     ממורכזת בתוכה: ממורכזת היא הייתה פותחת חור בינה לבין רשימת השאלות, וצמודה היא
+     משאירה את העודף בקצה השמאלי של הדף, שם הוא נקרא כשוליים */
   --iv-read:640px;
-  grid-template-columns:216px minmax(0,var(--iv-read));
-  justify-content:center;
+  grid-template-columns:216px minmax(0,1fr);
   /* stretch ולא start: העמודות חייבות למלא את גובה השורה כדי שהגלילה הפנימית תיקבע ממנו */
-  align-items:stretch;flex:1;min-height:0;padding:14px 0 16px;
+  align-items:stretch;flex:1;min-height:0;padding:14px var(--app-pad) 16px;
 }
+/* בלי margin אוטומטי: בעמודת flex עם align-items:stretch פריט חסום-רוחב נצמד לתחילת
+   הציר, כלומר לימין בעברית - צמוד לרשימת השאלות */
+.repC.iv .rep-main > *{max-width:var(--iv-read)}
 .repC.iv .iv-plan,
 .repC.iv .rep-main{position:static;top:auto;min-height:0}
 .repC.iv .iv-plan{display:flex;flex-direction:column}
@@ -1143,7 +1170,7 @@ html{scroll-behavior:smooth}
 
 @media (max-width:1440px){
   /* רשימת השאלות מצטמצמת לפני השיחה - היא העיקר כאן, הרשימה היא ההקשר */
-  .repC.iv{grid-template-columns:196px minmax(0,var(--iv-read));gap:11px}
+  .repC.iv{grid-template-columns:196px minmax(0,1fr);gap:11px}
 }
 @media (max-width:1100px){
   /* במובייל הדף נגלל ממילא, וכליאת השיחה בחלון בגובה קבוע בתוך מסך צר רק מקטינה אותה.
@@ -1152,6 +1179,8 @@ html{scroll-behavior:smooth}
   .repC.iv{grid-template-columns:1fr;align-items:start;min-height:0}
   .repC.iv .iv-plan,
   .repC.iv .rep-main{height:auto}
+  /* בעמודה אחת אין ממה להצטמצם - התוכן לוקח את רוחב המסך */
+  .repC.iv .rep-main > *{max-width:none}
   .repC.iv .rep-main > .rv{overflow:visible}
   .repC.iv .iv-list{max-height:210px}
   .iv-scroll{overflow:visible;min-height:0}
@@ -1830,9 +1859,7 @@ button.ans-row:not(:disabled):active{background:rgba(var(--acc-rgb),.16)}
 }
 /* עוטף כותרת העמוד בדוח: אותו רוחב ומרכוז של .repC, כדי שהכותרת תתיישר עם הכרטיסים
    ולא תיראה כאילו היא שייכת לסרגל שמעליה */
-.repC-head{
-  width:var(--content-w);max-width:var(--content-max);margin:0 auto;padding:20px 0 0;
-}
+.repC-head{padding:20px var(--app-pad) 0}
 /* אריח מונים שהוא קישור. הכרטיס עצמו לחיץ, ולכן הוא גם מרים מעט ומאיר את המסגרת -
    בלי החיווי הזה אין שום דבר שמרמז שאפשר ללחוץ */
 .tile-link{

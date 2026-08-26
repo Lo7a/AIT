@@ -209,6 +209,22 @@ export function AppShell({
 
   const brandLabel = section === "admin" ? "ניהול" : "מרכז העסק";
 
+  // הפנקס: מה חסר לאבחון, בכל מסך. מרונדר בשתי משבצות ומוצג באחת - הרצועה מוסתרת מתחת
+  // ל-880 פיקסלים (ראו globals), ובלי המשבצת השנייה הפנקס פשוט לא היה קיים בטלפון.
+  // אותה קריאה בדיוק בשתיהן, לא שני מימושים.
+  // הכפתור לראיון לא מוצג כשכבר נמצאים בו, ושורת "הדוח חי" רק שם - במסכים האחרים היא
+  // מתארת משהו שלא קורה מול העיניים
+  const ledgerBlock = section === "business" && ledger != null && ledger.length > 0 && diagnosisId != null
+    ? (
+      <CompletenessCard
+        ledger={ledger}
+        compact
+        live={active === "interview"}
+        cta={active === "interview" ? undefined : { href: `/interview/${diagnosisId}`, label: "לראיון הקצר" }}
+      />
+    )
+    : null;
+
   return (
     <div className="app">
       <aside className="side-nav">
@@ -248,20 +264,9 @@ export function AppShell({
           </Link>
         ))}
 
-        {/* הפנקס: מה חסר לאבחון, בכל מסך. מופרד מפריטי הניווט בקו - הוא לא עוד יעד
-            ניווט אלא מצב, ובלי ההפרדה הוא נקרא כעוד כפתור ברשימה (בקשת אלעד 26.8).
-            הכפתור לראיון לא מוצג כשכבר נמצאים בו, ושורת "הדוח חי" רק שם - במסכים
-            האחרים היא מתארת משהו שלא קורה מול העיניים */}
-        {section === "business" && ledger != null && ledger.length > 0 && diagnosisId != null && (
-          <CompletenessCard
-            ledger={ledger}
-            compact
-            live={activeKey === "interview"}
-            cta={activeKey === "interview"
-              ? undefined
-              : { href: `/interview/${diagnosisId}`, label: "לראיון הקצר" }}
-          />
-        )}
+        {/* מופרד מפריטי הניווט בקו - הוא לא עוד יעד ניווט אלא מצב, ובלי ההפרדה הוא
+            נקרא כעוד כפתור ברשימה (בקשת אלעד 26.8) */}
+        {ledgerBlock}
 
         {/* הכניסה לניהול, לאדמין בלבד. יושבת בתחתית ומופרדת בקו - היא לא עוד מסך של
             בעל העסק אלא מעבר למדור אחר, ואותו קו מסמן את זה בלי מילה נוספת */}
@@ -316,6 +321,9 @@ export function AppShell({
           {section === "admin" && <Link href="/hub" className="m-tab">{NAV_LABEL.home}</Link>}
         </nav>
         {children}
+        {/* משבצת המובייל. בסוף ולא בהתחלה: הפנקס הוא הצעד הבא, לא כותרת - ובראש כל
+            עמוד הוא היה דוחף את התוכן עצמו מתחת לקפל */}
+        {ledgerBlock && <div className="ledger-mobile app-w">{ledgerBlock}</div>}
       </div>
     </div>
   );
