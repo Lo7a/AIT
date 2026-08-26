@@ -110,6 +110,9 @@ function WaitingScreen({
 }) {
   return (
     <ScanFrame target={target} busy={true}>
+      <div className="scan-peek">
+        {/* גם כשמחכים לסריקה שרצה ברקע - הדמות באמצע בדיקה */}
+        <img src="/brand/inspecting.webp" alt="" aria-hidden="true" className="scan-buddy" />
       <section className="shell rv d1">
         <div className="core card-pad">
           <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">הסריקה כבר רצה ברקע</h1>
@@ -122,6 +125,7 @@ function WaitingScreen({
           )}
         </div>
       </section>
+      </div>
     </ScanFrame>
   );
 }

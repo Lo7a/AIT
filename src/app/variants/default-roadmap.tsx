@@ -344,6 +344,14 @@ export function DefaultRoadmap({
             {building && (
               <div className="shell rv">
                 <div className="core card-pad flex flex-col items-center gap-3 py-12 text-center">
+                  {/* הדמות מלווה את רגע הבנייה - הספינר נשאר, הוא המידע האמיתי */}
+                  <img
+                    src="/brand/pointing.webp"
+                    alt=""
+                    aria-hidden="true"
+                    width={96}
+                    style={{ pointerEvents: "none" }}
+                  />
                   <span
                     aria-hidden="true"
                     className="h-9 w-9 rounded-full border-[3px] border-[rgba(var(--acc-rgb),.25)]"

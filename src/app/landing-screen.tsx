@@ -295,7 +295,7 @@ function ScanTerminal() {
   return (
     <div className="scan-peek">
       {/* הדמות מציצה מעל חלון ההדגמה - אותו רגע בדיוק כמו במסך הסריקה האמיתי */}
-      <img src="/brand/inspecting.webp" alt="" aria-hidden="true" className="scan-buddy" />
+      <img src="/brand/inspecting.webp" alt="" aria-hidden="true" className="scan-buddy start" />
     <div className="shell term rv d4" ref={liveRef}>
       <div className="core">
         {/* בלי שלוש נקודות הצבע של חלון - קישוט טהור שרק מוסיף רעש לסרגל */}
@@ -1012,20 +1012,21 @@ function StageWalk() {
         ))}
       </div>
 
+      {/* שלושת הפאנלים חיים תמיד, ערומים זה על זה בגריד: הגובה הוא של הגבוה מביניהם
+          וקבוע, כך שמעבר שלב (אוטומטי או ידני) לא מקפיץ את העמוד (בקשת מייסד 26.8) */}
       <div className="stage-panel">
-        <div
-          className="shell stage-fade"
-          key={stage}
-          id="stage-panel"
-          role="tabpanel"
-          aria-labelledby={`stage-tab-${stage}`}
-        >
-          <div className="core" style={{ padding: "16px 16px 14px" }}>
-            {stage === 0 && <ReportPreview />}
-            {stage === 1 && <InterviewPreview />}
-            {stage === 2 && <PlanPreview />}
+        {[<ReportPreview key="r" />, <InterviewPreview key="i" />, <PlanPreview key="p" />].map((preview, i) => (
+          <div
+            key={i}
+            className={i === stage ? "shell stage-card on" : "shell stage-card"}
+            id={i === stage ? "stage-panel" : undefined}
+            role="tabpanel"
+            aria-labelledby={`stage-tab-${i}`}
+            aria-hidden={i !== stage}
+          >
+            <div className="core" style={{ padding: "16px 16px 14px" }}>{preview}</div>
           </div>
-        </div>
+        ))}
       </div>
     </div>
   );
@@ -1165,7 +1166,7 @@ export function LandingScreen() {
 
           {/* שלב הסריקה, רץ ומתואר. בלי כותרת מעליו - סרגל הכתובת ושורת הסיכום של המסוף
               כבר אומרים מה זה, וכותרת נוספת רק מוסיפה רעש */}
-          <div>
+          <div className="hero-demo">
             <Parallax strength={14}>
               <Tilt>
                 <ScanTerminal />

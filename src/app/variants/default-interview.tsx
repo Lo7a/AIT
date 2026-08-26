@@ -271,18 +271,29 @@ export function DefaultInterview({
             <div className="shell">
               <div className="core card-pad">
                 {questionsDone ? (
-                  <>
-                    <p className="text-[16.5px] font-bold leading-snug tracking-[-.01em]">עברנו על כל השאלות - תודה!</p>
-                    <p className="mt-1 text-[12.5px] leading-relaxed text-[color:var(--mut)]">
-                      כל תשובה כבר עדכנה את הדוח. אפשר להוסיף פרטים בכתיבה חופשית למטה, או לעבור אליו.
-                    </p>
-                    <div className="mt-4">
-                      <button type="button" className="btn sm" disabled={!canFinish} onClick={() => void finish()}>
-                        לדוח המעודכן
-                        <CapArrow />
-                      </button>
+                  <div className="flex items-center gap-5">
+                    {/* רגע ההצלחה מקבל את פוזת האגודל - הדמות חוגגת עם המשתמש */}
+                    <img
+                      src="/brand/thumbs-up.webp"
+                      alt=""
+                      aria-hidden="true"
+                      width={82}
+                      className="shrink-0 max-sm:hidden"
+                      style={{ pointerEvents: "none" }}
+                    />
+                    <div className="min-w-0">
+                      <p className="text-[16.5px] font-bold leading-snug tracking-[-.01em]">עברנו על כל השאלות - תודה!</p>
+                      <p className="mt-1 text-[12.5px] leading-relaxed text-[color:var(--mut)]">
+                        כל תשובה כבר עדכנה את הדוח. אפשר להוסיף פרטים בכתיבה חופשית למטה, או לעבור אליו.
+                      </p>
+                      <div className="mt-4">
+                        <button type="button" className="btn sm" disabled={!canFinish} onClick={() => void finish()}>
+                          לדוח המעודכן
+                          <CapArrow />
+                        </button>
+                      </div>
                     </div>
-                  </>
+                  </div>
                 ) : (
                   <>
                     <p className="text-[16.5px] font-bold leading-snug tracking-[-.01em]">ספרו לי על העסק במילים שלכם</p>

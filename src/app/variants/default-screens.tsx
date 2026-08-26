@@ -124,7 +124,9 @@ export function DefaultHome({
       </header>
 
       <main className="board">
-        <section className="shell rv d1 c12">
+        <section className="shell rv d1 c12" style={{ position: "relative" }}>
+          {/* הדמות יושבת על שפת הכרטיס ומנופפת - פוזה בגוף מלא, אין קו חיתוך להסתיר */}
+          <img src="/brand/sitting-waving.webp" alt="" aria-hidden="true" className="hub-buddy" />
           <div className="core card-pad" style={LOSS_WASH_STYLE}>
             <h1 className="max-w-[26ch] text-2xl font-extrabold leading-snug tracking-tight sm:text-3xl">
               כמה שווה <span className="hl-accent">הנוכחות הדיגיטלית</span> של העסק שלך?
@@ -816,8 +818,10 @@ export function DefaultReport({
               פתוחה כקישור משני, בלי המילה "דלג". אין כאן אף מספר מומצא: הנימוק מגיע
               מ-recommendNextStep שמסתכל על הקרדיטים בפועל */}
           {hasPlan && (
-            <section id="plan" data-anchor className="shell rv d6">
-              <div className="core card-pad" style={PLAN_WASH_STYLE}>
+            <section id="plan" data-anchor className="shell rv d6" style={{ position: "relative" }}>
+              {/* הדמות מציגה את הכרטיס עם הוי הירוק - מצביעה על הצעד הבא */}
+              <img src="/brand/showing-report.webp" alt="" aria-hidden="true" className="plan-buddy" />
+              <div className="core card-pad plan-core" style={PLAN_WASH_STYLE}>
                 <div className="text-[11px] font-bold tracking-[.18em]" style={{ color: "var(--acc-soft)" }}>
                   הצעד הבא
                 </div>

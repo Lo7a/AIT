@@ -270,7 +270,12 @@ html[data-mode="light"] .theme-tgl .ic-moon{display:none}
 }
 .brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:inherit}
 /* המותג בדק עסק (26.8): הפנים של הדמות במקום אריח אותיות, השם כטקסט בטוקנים */
-.brand-face{flex:none;object-fit:contain} /* הגודל מגיע ממאפייני הרוחב של התמונה */
+/* הגודל מגיע ממאפייני הרוחב של התמונה; הטבעת מצוירת כאן ולא בקובץ - חדה ומתהפכת בין מצבים */
+.brand-face{
+  flex:none;object-fit:cover;border-radius:50%;
+  border:2px solid rgba(var(--acc-rgb),.7);
+  background:radial-gradient(circle at 50% 38%, rgba(var(--acc-rgb),.16), rgba(var(--acc-rgb),.05));
+}
 .brand-name span{color:var(--acc)}
 .brand-dot{
   display:inline-block;width:5px;height:5px;border-radius:50%;
@@ -283,6 +288,23 @@ html[data-mode="light"] .theme-tgl .ic-moon{display:none}
 .scan-buddy{
   position:absolute;top:-104px;inset-inline-end:10px;width:146px;z-index:0;
   transform:scaleX(-1);pointer-events:none;user-select:none;
+}
+/* גרסת ההירו: בצד הפנימי, בלי היפוך - מביט שמאלה-מטה אל תוך החלון */
+.scan-buddy.start{inset-inline-end:auto;inset-inline-start:16px;transform:none}
+/* מרכז העסק: הדמות יושבת על שפת הכרטיס הראשי, הרגליים נשפכות פנימה */
+.hub-buddy{
+  position:absolute;top:-56px;inset-inline-end:36px;width:116px;z-index:1;
+  pointer-events:none;user-select:none;
+}
+/* דלת התוכנית בדוח: הדמות עומדת בקצה הכרטיס, והתוכן מפנה לה מקום */
+.plan-core{position:relative;padding-inline-end:128px}
+.plan-buddy{
+  position:absolute;bottom:0;inset-inline-end:16px;width:102px;z-index:1;
+  pointer-events:none;user-select:none;
+}
+@media (max-width:880px){
+  .hub-buddy,.plan-buddy{display:none}
+  .plan-core{padding-inline-end:0}
 }
 @media (max-width:760px){.scan-buddy{display:none}}
 .brand-txt small{display:block;font-size:10.5px;color:var(--dim);letter-spacing:.12em;font-weight:600}
@@ -668,8 +690,13 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
   width:min(var(--content-max), calc((100vw - var(--rail-w)) * .94));
 }
 @media (max-width:880px){.land-wrap{width:var(--content-w)}}
-.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:46px;align-items:center;padding:44px 0 48px}
-@media (max-width:920px){.hero-grid{grid-template-columns:1fr;gap:26px;padding:24px 0 30px}}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:46px;align-items:start;padding:44px 0 48px}
+/* עמודת ההדגמה יורדת מעט: הדמות שמעל החלון יושבת בגובה הכותרת ומגשרת בין העמודות */
+.hero-demo{padding-top:64px}
+@media (max-width:920px){
+  .hero-grid{grid-template-columns:1fr;gap:26px;padding:24px 0 30px}
+  .hero-demo{padding-top:0}
+}
 .hero-h1{
   font-size:clamp(29px,3.3vw,44px);font-weight:800;line-height:1.2;
   letter-spacing:-.014em;text-wrap:balance;
@@ -954,9 +981,14 @@ html{scroll-behavior:smooth}
 .stage-btn.on .tick{animation:stage-tick 6s linear both}
 .stage-wrap[data-paused="true"] .stage-btn.on .tick{animation-play-state:paused}
 @keyframes stage-tick{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-.stage-panel{position:relative;min-height:390px}
-.stage-fade{animation:stage-fade .55s var(--ease-out) both}
-@keyframes stage-fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+/* ערימת גריד: כל הפאנלים באותו תא, הגובה קבוע לפי הגבוה מביניהם - אפס קפיצות במעבר */
+.stage-panel{position:relative;display:grid}
+.stage-panel>.stage-card{grid-area:1/1}
+.stage-card{
+  opacity:0;transform:translateY(10px);pointer-events:none;
+  transition:opacity .55s var(--ease-out), transform .55s var(--ease-out);
+}
+.stage-card.on{opacity:1;transform:none;pointer-events:auto}
 .demo-note{
   display:flex;align-items:center;gap:8px;
   margin-top:11px;font-size:12px;color:var(--mut);
