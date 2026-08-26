@@ -964,8 +964,12 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
 .trust{display:flex;gap:14px;flex-wrap:wrap}
 .trust span{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--mut);font-weight:500}
 .trust svg{color:var(--acc2);flex:none}
-.how-head{display:flex;align-items:center;gap:16px;margin-bottom:34px}
-.how-head h2{font-size:13px;font-weight:700;letter-spacing:.2em;color:var(--mut);white-space:nowrap}
+/* כותרות הסקשנים - כותרות אמיתיות, לא כיתוב עפרון (מייסד 26.8: בקושי רואים) */
+.how-head{display:flex;align-items:center;gap:18px;margin-bottom:34px}
+.how-head h2{
+  font-size:clamp(20px,1.8vw,26px);font-weight:800;letter-spacing:-.012em;
+  color:var(--txt);white-space:nowrap;
+}
 .how-head::after{content:"";flex:1;height:1px;background:linear-gradient(-90deg,var(--hair),transparent)}
 /* כותרת רצועת הסגירה - הסקאלה שהייתה מוגדרת inline עברה הנה (ממצא סקירה 26.8) */
 .cta-h{
