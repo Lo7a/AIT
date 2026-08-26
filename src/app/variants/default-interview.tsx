@@ -5,6 +5,7 @@ import type { InterviewSnapshot, PlanItem } from "../../server/run-interview";
 import { useInterviewChat } from "../interview/use-interview-chat";
 import type { ChatMessage } from "../interview/chat-logic";
 import { AppShell } from "../ui/app-shell";
+import { BusinessFacts, type BusinessFactsProps } from "../ui/business-facts";
 import { ImpersonateSearch } from "../ui/impersonate-search";
 import { UserMenu } from "../ui/user-menu";
 import { AnswerOptions } from "../ui/answer-options";
@@ -173,11 +174,13 @@ function QuestionActions({
 }
 
 export function DefaultInterview({
-  diagnosisId, initial, businessName, isAdmin = false, userEmail = null,
+  diagnosisId, initial, businessName, facts, isAdmin = false, userEmail = null,
 }: {
   diagnosisId: string;
   initial: InterviewSnapshot;
   businessName?: string;
+  /** שורת העובדות בסרגל, אותה אחת כמו בדוח. נגזרת בעמוד (RSC) ומגיעה מוכנה */
+  facts?: BusinessFactsProps;
   isAdmin?: boolean;
   userEmail?: string | null;
 }) {
@@ -287,6 +290,7 @@ export function DefaultInterview({
         {businessName != null && businessName !== "" && (
           <span className="brand-txt"><small>הראיון</small><b>{businessName}</b></span>
         )}
+        {facts != null && <BusinessFacts {...facts} />}
         <div className="side">
           {isAdmin && <ImpersonateSearch />}
           <UserMenu email={userEmail} isAdmin={isAdmin} />

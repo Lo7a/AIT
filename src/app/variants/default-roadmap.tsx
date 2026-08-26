@@ -16,6 +16,7 @@ import { AppShell } from "../ui/app-shell";
 import { ImpersonateSearch } from "../ui/impersonate-search";
 import { UserMenu } from "../ui/user-menu";
 import { AnchorNav, type AnchorItem } from "../ui/anchor-nav";
+import { BusinessFacts, factsOf } from "../ui/business-facts";
 import { missingCount, type LedgerEntry } from "../../pipeline/model/ledger";
 
 // מסך ה-Roadmap בשפת העיצוב הנבחרת (הכרעת מייסד 18.8: כהה פרמיום, סגול וברקת, Rubik - ראו
@@ -290,6 +291,11 @@ export function DefaultRoadmap({
           אומרת מה זה, ולא למי - וכשיש כמה אבחונים זו בדיוק השאלה (דיווח מייסד 20.8) */}
       <header className="topbar">
         <span className="brand-txt"><small>תוכנית העבודה</small><b>{report.business.name}</b></span>
+        {/* אותה שורת עובדות כמו בדוח ובראיון (בקשת אלעד 26.8) - הסריקה יכולה להיות חסרה
+            רק באבחון שטרם נסרק, ואז אין תוכנית עבודה ממילא */}
+        {report.scan != null && (
+          <BusinessFacts {...factsOf(report.scan.findings, report.business, report.scan.createdAt)} />
+        )}
         <div className="side">
           {isAdmin && <ImpersonateSearch />}
           <UserMenu email={userEmail} isAdmin={isAdmin} />

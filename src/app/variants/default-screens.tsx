@@ -2,7 +2,7 @@ import Link from "next/link";
 import { SearchBox } from "../search-box";
 import { ScanRunner } from "../scan/scan-runner";
 import type { Target } from "../scan/use-scan-stream";
-import { DIAGNOSIS_STATUS_LABEL, initialsOf, hostOf } from "../../pipeline/report/presenter";
+import { DIAGNOSIS_STATUS_LABEL, initialsOf } from "../../pipeline/report/presenter";
 import type { DiagnosisListItem, ReportView } from "../../server/diagnosis-read";
 import {
   DATA_STATUS_LABEL, PARTIAL_FLAG_LABEL, ruleLabelHe, scoreTone, type ScoreToneKind,
@@ -19,7 +19,8 @@ import { AppShell } from "../ui/app-shell";
 import { AnchorNav, type AnchorItem } from "../ui/anchor-nav";
 import { ImpersonateSearch } from "../ui/impersonate-search";
 import { UserMenu } from "../ui/user-menu";
-import { ScoreDial, MiniRing, FillBar } from "../ui/motion";
+import { MiniRing, FillBar } from "../ui/motion";
+import { BusinessFacts, factsOf } from "../ui/business-facts";
 import { missingCount, type LedgerEntry } from "../../pipeline/model/ledger";
 
 // שלושת המסכים בשפת העיצוב הנבחרת (הכרעת מייסד 18.8): כהה פרמיום, סגול וברקת, Rubik.
@@ -51,41 +52,6 @@ const WARN_STRIP_STYLE = {
   borderBottom: "1px solid rgba(var(--warn-rgb),.4)",
   color: "var(--warn)",
 } as const;
-
-// תאריך הסריקה בשורת הזהות של הדוח. נבנה פעם אחת ברמת המודול - הפורמט זהה בכל קריאה,
-// והמסך הוא RSC (אין רינדור חוזר בדפדפן שיכול לייצר טקסט אחר מזה שנשלח)
-const SCAN_DATE_FMT = new Intl.DateTimeFormat("he-IL", { dateStyle: "long" });
-
-// גליפי העובדות בסרגל הדוח: קו אחד, אותו סגנון של NAV_ICONS במעטפת. אייקון לפני כל עובדה
-// הוא מה שמאפשר לסרוק שורה של חמישה פרטים בלי לקרוא אותה - העין תופסת "מיקום, תאריך, אתר,
-// דירוג, עמודים" מהצורות. הכוכב מלא ולא בקו, כי כוכב מלא הוא הסימן שכולם מכירים מגוגל
-const FACT_GLYPH = {
-  pin: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z" /><circle cx="12" cy="10" r="2.5" />
-    </svg>
-  ),
-  clock: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
-    </svg>
-  ),
-  globe: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a14 14 0 0 1 0 18" /><path d="M12 3a14 14 0 0 0 0 18" />
-    </svg>
-  ),
-  star: (
-    <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
-      <path d="m12 2.8 2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4L2.8 9.5l6.4-.8z" />
-    </svg>
-  ),
-  doc: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M6 3h8l4 4v14H6z" /><path d="M14 3v4h4" /><path d="M9 12h6M9 16h6" />
-    </svg>
-  ),
-};
 
 // חץ הגלולה (btn .cap) - מצביע שמאלה, כיוון ההתקדמות ב-RTL
 function CapArrow({ size = 13 }: { size?: number }) {
@@ -569,7 +535,6 @@ export function DefaultReport({
   const { business, model, nextStep } = report;
   const { findings, scores, narrative, apiCost, durationMs } = report.scan;
 
-  const overall = scores?.overall ?? null;
   const dimensions = scores?.dimensions ?? [];
   const topGaps = scores?.topGaps ?? [];
   const topStrengths = scores?.topStrengths ?? [];
@@ -587,9 +552,6 @@ export function DefaultReport({
   // "לא נבדק" שרק מעמיס
   const hasHealth = findings.health != null;
 
-  // צ'יפים: כל מספר כאן הוא ממצא שנאסף בפועל (findings.business מ-Places, pagesCrawled מהזחילה).
-  // שדה שלא הגיע פשוט לא מקבל צ'יפ - עדיף פחות צ'יפים מאשר מספר שלא נמדד
-  const pagesCrawled = findings.websiteSignals?.pagesCrawled ?? null;
 
   // מקטעי הניווט נבנים מאותם תנאים בדיוק שמרנדרים את הסקציות עצמן - קישור לעוגן שלא קיים
   // בעמוד הוא באג, ולכן אין כאן רשימה קבועה אלא דחיפה מותנית אחת לאחת
@@ -617,37 +579,7 @@ export function DefaultReport({
           גם בעומק הדוח. כל פרט הוא ממצא שנאסף בפועל - שדה שלא הגיע פשוט לא מוצג */}
       <header className="topbar">
         <span className="brand-txt"><small>הדוח המלא</small><b>{business.name}</b></span>
-        <div className="bar-facts">
-          {business.city && <span>{FACT_GLYPH.pin}{business.city}</span>}
-          <span>{FACT_GLYPH.clock}נסרק {SCAN_DATE_FMT.format(report.scan.createdAt)}</span>
-          {/* קישור אמיתי, ומציג את המארח בלבד כמו שדפדפן מציג. הכתובת המלאה עם הפרוטוקול
-              והלוכסן היא מה שהמכונה צריכה, לא מה שבעל העסק קורא */}
-          {/* dir=ltr על המארח בלבד ולא על הקישור כולו: הקישור נשאר בכיוון הסרגל, ולכן
-              הגלובוס יושב מימין לטקסט כמו כל שאר האייקונים בשורה */}
-          {business.website && (
-            <a href={business.website} target="_blank" rel="noopener noreferrer">
-              {FACT_GLYPH.globe}<span className="clip" dir="ltr">{hostOf(business.website)}</span>
-            </a>
-          )}
-          {/* דירוג וביקורות יחד, כמו שגוגל מציג אותם - זו צורה שכל בעל עסק מזהה מיד */}
-          {(findings.business.rating != null || findings.business.reviewCount != null) && (
-            <span>
-              {findings.business.rating != null && (
-                <><span className="star">{FACT_GLYPH.star}</span><b className="num">{findings.business.rating}</b></>
-              )}
-              {findings.business.rating != null && findings.business.reviewCount != null && (
-                <span className="sep" aria-hidden="true">·</span>
-              )}
-              {findings.business.reviewCount != null && (
-                <><b className="num">{findings.business.reviewCount.toLocaleString("he-IL")}</b> ביקורות</>
-              )}
-            </span>
-          )}
-          {/* "נסרקו" ולא "יש": זה מה שהזחילה עברה בפועל, לא מספר העמודים באתר */}
-          {pagesCrawled != null && pagesCrawled > 0 && (
-            <span>{FACT_GLYPH.doc}<b className="num">{pagesCrawled}</b> עמודים נסרקו</span>
-          )}
-        </div>
+        <BusinessFacts {...factsOf(findings, business, report.scan.createdAt)} />
         <div className="side">
           {/* התחזות מהסרגל העליון, לאדמין בלבד (בקשת מייסד 20.8) */}
           {isAdmin && <ImpersonateSearch />}
@@ -656,30 +588,13 @@ export function DefaultReport({
         </div>
       </header>
 
-      {/* ראש הדוח (בקשת אלעד 26.8): מי העסק, מה נמדד עליו והציון - למעלה, ולא ככרטיס
-          תקוע בעמודה הצדדית. כל פרט כאן הוא ממצא שנאסף בפועל, ושדה שלא הגיע פשוט לא
-          מקבל צ'יפ - עדיף פחות פרטים מאשר מספר שלא נמדד */}
+      {/* כותרת העמוד, כמו בשאר המסכים. חוגת הציון שישבה כאן לצדה הורדה (הכרעת אלעד 26.8)
+          אבל לא נמחקה: ScoreDial ב-ui/motion והאריח .rep-head-score ב-globals נשארו
+          בשביל שימוש עתידי - החזרה היא שורת JSX אחת. הציון עצמו נשאר במקטע "פירוט הציון" */}
       <div className="page-w">
-        <header className="page-head rep-head rv">
-          <div className="who">
-            <h1>הדוח המלא</h1>
-            <p>מה נמצא על הנוכחות הדיגיטלית של {business.name}, מה זה אומר, ומה כדאי לעשות עם זה.</p>
-          </div>
-
-          {/* הציון האמיתי בלבד. אין ציון (אין די מידע) - אומרים את זה ביושר, בלי חוגה
-              ריקה. הכיתוב נכון תמיד: כל תשובת ראיון מרעננת את scan.scores ("הדוח חי") */}
-          <div className="rep-head-score">
-            {overall == null ? (
-              <p className="text-2xl font-extrabold" style={{ color: "var(--mut)" }}>אין די מידע</p>
-            ) : (
-              <>
-                <ScoreDial score={overall} size={118} stroke={9} />
-                {/* אותה נקודה נושמת של "הדוח חי" בסרגל ובפנקס - השורה הזו אומרת את
-                    אותו דבר, ולכן היא נראית אותו דבר */}
-                <span className="dial-cap"><span className="live-dot" aria-hidden="true" />הציון מתעדכן עם כל תשובה</span>
-              </>
-            )}
-          </div>
+        <header className="page-head rv">
+          <h1>הדוח המלא</h1>
+          <p>מה נמצא על הנוכחות הדיגיטלית של {business.name}, מה זה אומר, ומה כדאי לעשות עם זה.</p>
         </header>
       </div>
 

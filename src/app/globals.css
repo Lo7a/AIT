@@ -393,8 +393,8 @@ html:not([data-mode="light"]) .only-light{display:none}
    בשורה אחת שקטה ליד שמו. קווים דקים ולא גלולות - חמש גלולות בסרגל דק נקראות כחמישה
    כפתורים, והן לא כפתורים אלא עובדות. המספרים לבד מודגשים, כי הם מה שהעין מחפשת */
 .bar-facts{
-  display:flex;align-items:center;flex-wrap:wrap;gap:6px;
-  min-width:0;font-size:12px;line-height:1.4;color:var(--mut);
+  display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;
+  flex:1;min-width:0;font-size:12px;line-height:1.4;color:var(--mut);
 }
 /* כל עובדה על אריח משלה (בקשת אלעד 26.8) - זו ההפרדה בין נתון לנתון, במקום קווים דקים.
    רדיוס קטן ולא גלולה: תא נתונים, לא כפתור. flex ולא inline: ה-preflight של Tailwind
@@ -1245,9 +1245,10 @@ html{scroll-behavior:smooth}
   .repC.iv .iv-list{max-height:210px}
   .iv-scroll{overflow:visible;min-height:0}
 }
-/* ===== ראש הדוח: זהות, פרטים וציון (בקשת אלעד 26.8) =====
-   היה כרטיס בעמודה הצדדית, ושם הוא היה תקוע לצד התוכן במקום להציג את העסק בראש העמוד.
-   עכשיו הוא הכותרת עצמה: מי העסק ומה נמדד עליו בצד הקריאה, והציון בקצה השני */
+/* ===== ראש דוח דו-עמודי עם חוגת ציון - מושהה (הכרעת אלעד 26.8) =====
+   הכללים כאן אינם בשימוש כרגע: החוגה הורדה מראש הדוח, אבל לא נמחקה - ייתכן שתחזור.
+   ההחזרה: header.page-head.rep-head עם div.who לכותרת ו-div.rep-head-score לחוגה
+   (ScoreDial מ-ui/motion). עד אז אין לגעת ואין לבנות גרסה שנייה של אותו דבר */
 .page-head.rep-head{
   display:flex;align-items:center;justify-content:space-between;gap:26px;flex-wrap:wrap;
 }

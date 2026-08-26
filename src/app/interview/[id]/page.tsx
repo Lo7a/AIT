@@ -9,6 +9,7 @@ import { userCanAccessDiagnosis } from "../../../server/auth/guard";
 import { viewAsAdmin } from "../../../server/auth/impersonation";
 import { THEME_COOKIE, parseTheme } from "../../theme";
 import { getVariant } from "../../variants/registry";
+import { factsOf } from "../../ui/business-facts";
 
 export const dynamic = "force-dynamic";
 
@@ -29,21 +30,39 @@ export default async function InterviewPage({ params }: { params: Promise<{ id: 
     if ((await userCanAccessDiagnosis(prisma, acting.user, id).catch(() => null)) !== true) notFound();
   }
 
-  // שם העסק נטען כאן ולא נגזר מהראיון: הראיון לא מחזיק אותו, ובלעדיו זה היה המסך היחיד
-  // במערכת שלא אומר על איזה עסק מדובר (דיווח מייסד 20.8). שאילתה צרה במכוון - שדה אחד,
-  // ובמקביל לשאר ולא אחריהן
+  // רשומת העסק נטענת כאן ולא נגזרת מהראיון: הראיון לא מחזיק אותה, ובלעדיה זה היה המסך
+  // היחיד במערכת שלא אומר על איזה עסק מדובר (דיווח מייסד 20.8). שאילתה צרה במכוון -
+  // שלושה שדות, ובמקביל לשאר ולא אחריהן. העיר והאתר נוספו לשם שורת העובדות בסרגל
+  // (בקשת אלעד 26.8) - אותה שאילתה, שני שדות נוספים, לא סיבוב נוסף למסד
   const [state, cookieStore, biz] = await Promise.all([
     getInterviewState(prisma, id).catch(() => null),
     cookies(),
     prisma.diagnosis
-      .findUnique({ where: { id }, select: { business: { select: { name: true } } } })
+      .findUnique({ where: { id }, select: { business: { select: { name: true, city: true, website: true } } } })
       .catch(() => null),
   ]);
   const businessName = biz?.business.name ?? null;
   if (!state || !INTERVIEWABLE.includes(state.status)) notFound();
 
+  // תאריך הסריקה מ-findings.meta שכבר טעון ב-state, ולא מרשומת הסריקה כמו בדוח - חוסך
+  // שאילתה, וההפרש ביניהם הוא שניות בעוד שהתצוגה היא יום. תאריך שאינו נפרס נופל ל-null
+  // ולא לתאריך שגוי, כי Intl זורק על Invalid Date
+  const scannedAt = new Date(state.findings.meta.startedAt);
+  const facts = biz != null
+    ? factsOf(state.findings, biz.business, Number.isNaN(scannedAt.getTime()) ? null : scannedAt)
+    : undefined;
+
   const snapshot = snapshotOf(state);
   const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
   const { Interview } = getVariant(theme);
-  return <Interview diagnosisId={id} initial={snapshot} businessName={businessName ?? undefined} isAdmin={viewAsAdmin(acting)} userEmail={acting?.actor.email ?? null} />;
+  return (
+    <Interview
+      diagnosisId={id}
+      initial={snapshot}
+      businessName={businessName ?? undefined}
+      facts={facts}
+      isAdmin={viewAsAdmin(acting)}
+      userEmail={acting?.actor.email ?? null}
+    />
+  );
 }
