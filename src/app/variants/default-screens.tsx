@@ -97,7 +97,7 @@ export function DefaultHome({
       {/* שורת הסשן: מחובר => אימייל + התנתקות (POST - ראו auth-handlers); אנונימי בסביבה
           מוגדרת => קישור כניסה. בסביבה בלי מפתחות אין כלום - המסך נשאר כפי שהיה */}
       <header className="topbar">
-        <span className="brand-txt"><small>יועץ דיגיטלי</small><b>מרכז העסק</b></span>
+        {/* בלי תווית מסך (בקשת אלעד 26.8) - כותרת העמוד מתחת אומרת "מרכז העסק" */}
         <div className="side">
           {session != null ? (
             <>
@@ -578,14 +578,15 @@ export function DefaultReport({
           כאן ולא בכותרת: הסרגל דביק, כך שהתשובה ל"על מי מדובר ומה נמדד" נשארת על המסך
           גם בעומק הדוח. כל פרט הוא ממצא שנאסף בפועל - שדה שלא הגיע פשוט לא מוצג */}
       <header className="topbar">
-        {/* שם המסך בקצה, שם העסק והעובדות במרכז (בקשת אלעד 26.8) */}
-        <span className="brand-txt"><small>הדוח המלא</small></span>
+        {/* שם העסק והעובדות במרכז, תפריט המשתמש בקצה השמאלי. תווית המסך ירדה (בקשת אלעד
+            26.8) - הסיידבר וכותרת העמוד כבר אומרים איפה נמצאים */}
         <BusinessFacts name={business.name} {...factsOf(findings, business, report.scan.createdAt)} />
         <div className="side">
           {/* התחזות מהסרגל העליון, לאדמין בלבד (בקשת מייסד 20.8) */}
           {isAdmin && <ImpersonateSearch />}
+          {/* תג "דוח חי" ירד (בקשת אלעד 26.8). העובדה עצמה עדיין נאמרת במקום שבו היא
+              קורית - בפנקס שברצועה, בזמן הראיון */}
           <UserMenu email={userEmail} isAdmin={isAdmin} />
-          <span className="chip live"><span className="dot" />דוח חי</span>
         </div>
       </header>
 

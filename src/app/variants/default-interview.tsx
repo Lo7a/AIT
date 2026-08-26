@@ -287,9 +287,8 @@ export function DefaultInterview({
       {/* השורה מרונדרת תמיד - בלי שם עסק המשתמש עדיין צריך את תפריט המשתמש ואת
           חיפוש ההתחזות; רק שורת הזהות עצמה מותנית (ממצא סקירה 26.8) */}
       <header className="topbar">
-        {/* שם המסך בקצה, שם העסק והעובדות במרכז - אותו בלוק כמו בדוח (בקשת אלעד 26.8).
+        {/* שם העסק והעובדות במרכז - אותו בלוק כמו בדוח, בלי תווית מסך (בקשת אלעד 26.8).
             בלי facts (רשומת העסק לא נטענה) נשאר לפחות השם, כשיש */}
-        <span className="brand-txt"><small>הראיון</small></span>
         {facts != null
           ? <BusinessFacts name={businessName} {...facts} />
           : businessName != null && businessName !== "" && (

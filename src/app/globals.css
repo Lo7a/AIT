@@ -402,6 +402,15 @@ html:not([data-mode="light"]) .only-light{display:none}
   max-width:100%;font-size:15px;font-weight:700;letter-spacing:-.01em;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
+/* סרגל שנושא את בלוק הזהות נפרס ברשת של שלוש עמודות ולא ב-flex: תווית המסך שישבה בקצה
+   ירדה (בקשת אלעד 26.8), וב-flex הבלוק היה ממורכז במה שנשאר מימין לתפריט המשתמש, כלומר
+   כ-45 פיקסלים ימינה ממרכז הסרגל. עמודה ריקה מימין באותו רוחב של התפריט משמאל מחזירה
+   אותו למרכז האמיתי. :has ולא מחלקה על הסרגל, מאותה סיבה כמו .main-col:has - סרגל אחד
+   משרת שבעה מסכים, ומחלקה לטובת שלושה מהם הייתה נכנסת לכולם */
+.topbar:has(> .bar-ident){display:grid;grid-template-columns:1fr auto 1fr;align-items:center}
+.topbar:has(> .bar-ident) > .bar-ident{grid-column:2}
+/* תפריט המשתמש תמיד בקצה השמאלי - זו העמודה השלישית, מיושרת לסופה */
+.topbar:has(> .bar-ident) > .side{grid-column:3;justify-self:end;margin-inline-start:0}
 /* העובדות בלי מסגרות. הגלגול הקודם שם כל עובדה על אריח, וחמישה אריחים בשורה נראו כמו
    סרגל כלים ולא כמו פרטי עסק (משוב אלעד 26.8). ההפרדה היא נקודה, כמו בשורת המטא של
    הדוח מאז ומתמיד. flex ולא inline: ה-preflight של Tailwind הופך כל svg ל-display:block,
@@ -430,10 +439,11 @@ html:not([data-mode="light"]) .only-light{display:none}
 }
 .bar-facts a:hover .clip{text-decoration-color:var(--acc)}
 @media (max-width:1180px){
-  /* בסרגל צר העובדות היו נדחסות על תפריט המשתמש. הן יורדות לשורה משלהן בתוך אותו סרגל
-     ולא נעלמות ולא משוכפלות במקום אחר */
-  .topbar{flex-wrap:wrap}
-  .bar-ident{order:3;flex-basis:100%;padding-top:2px}
+  /* בסרגל צר העובדות היו נדחסות על תפריט המשתמש. הבלוק יורד לשורה משלו בתוך אותו סרגל,
+     התפריט נשאר בשורה הראשונה בקצה השמאלי - לא נעלם ולא משוכפל במקום אחר */
+  .topbar:has(> .bar-ident){grid-template-columns:1fr;row-gap:8px}
+  .topbar:has(> .bar-ident) > .side{grid-column:1;grid-row:1}
+  .topbar:has(> .bar-ident) > .bar-ident{grid-column:1;grid-row:2}
 }
 .chip{
   font-size:12px;font-weight:600;color:var(--mut);
