@@ -392,7 +392,9 @@ html:not([data-mode="light"]) .only-light{display:none}
   /* הסקשן תופס עמוד מלא, והבלוק הקומפקטי ממורכז בתוכו (מייסד 26.8): שתי העמודות
      שוות גובה - החלון המוארך קובע אותו, הכותרת מתחילה בקו העליון שלו והטופס נגמר
      בקו התחתון. ריפוד עליון שמור לדמות שמציצה מעל הקו */
-  .hero-v4{min-height:calc(100dvh - 120px);align-content:center;padding-top:132px;padding-bottom:48px}
+  /* הקיזוז הוא גובה הניווט האמיתי (כ-56px) - קיזוז גדול מדי השאיר רצועה שבה
+     הסקשן הבא הציץ לתוך המסך הראשון (דיווח מייסד 26.8) */
+  .hero-v4{min-height:calc(100dvh - 58px);align-content:center;padding-top:132px;padding-bottom:48px}
   /* החלון עצמו מתארך משמעותית (מייסד 26.8, סבב שני): שורות גבוהות, סרגלים עבים */
   .hero-v4 .sl{padding-block:21px}
   .hero-v4 .term-bar{padding-block:17px}
@@ -400,7 +402,7 @@ html:not([data-mode="light"]) .only-light{display:none}
   .hero-v4 .term-body{padding:12px 20px 16px}
   .hero-v4 .term-foot{padding-block:15px}
   /* סקשן השלבים נשאר עמוד מלא, עם דמות ופאנל גבוהים יותר */
-  .stage-sec{min-height:calc(100dvh - 120px);display:flex;flex-direction:column;padding-bottom:0}
+  .stage-sec{min-height:calc(100dvh - 58px);display:flex;flex-direction:column;padding-bottom:0}
   .stage-sec > :last-child{flex:1;display:flex;flex-direction:column;min-height:0}
   .stage-sec .stage-wrap{flex:1;grid-template-rows:auto minmax(0,1fr)}
   .stage-guide{height:min(66vh,700px)}
