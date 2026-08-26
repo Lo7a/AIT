@@ -385,10 +385,16 @@ html:not([data-mode="light"]) .only-light{display:none}
    בקו שיער, ברוחב מלא - הקצה שלו הוא הקצה של העמודה */
 .diag-card{border-top:1px solid var(--hair-soft);padding-top:24px}
 .diag-t{font-size:17px;font-weight:700;margin-bottom:12px}
-.diag-card .field input{padding-block:17px;font-size:16.5px}
-/* מלבני ולא גלולה (מייסד 26.8) - מתיישב עם השדה המלבני שלצדו */
-.diag-card .btn.wide{min-height:56px;font-size:15.5px;border-radius:14px}
-.diag-card .btn.wide .cap{border-radius:10px}
+.diag-card .field input{padding-block:14px;font-size:15.5px}
+/* מלבני ולא גלולה (מייסד 26.8), והחץ הוא חלק מהשורה - בלי צ'יפ עגול שנשבר
+   מחוץ למלבן. הטקסט והחץ ממורכזים יחד */
+.diag-card .btn.wide{
+  min-height:52px;font-size:15.5px;border-radius:14px;
+  justify-content:center;gap:10px;padding-inline:18px;
+}
+.diag-card .btn.wide .cap{
+  width:auto;height:auto;background:none;border:none;border-radius:0;
+}
 .diag-card .ex-chip{font-size:12.5px}
 
 /* ===== הפוטר של הנחיתה: לוקאפ נייטיב, קישורים, והדמות המצביעה ===== */
