@@ -341,10 +341,10 @@ html:not([data-mode="light"]) .only-light{display:none}
 .proof-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
 /* הירו ואיך זה עובד תופסים עמוד מלא בדסקטופ (מייסד 26.8); במובייל גובה טבעי */
 @media (min-width:921px){
-  /* בלוק קומפקטי, לא עמוד מלא (תיקון מייסד 26.8): שתי העמודות שוות גובה - החלון
-     המוארך קובע אותו, הכותרת מתחילה בקו העליון שלו והטופס נגמר בקו התחתון.
-     היחידה שמציצה מעל הקו היא הדמות, לתוך ריפוד הסקשן */
-  .hero-v4{padding-top:132px}
+  /* הסקשן תופס עמוד מלא, והבלוק הקומפקטי ממורכז בתוכו (מייסד 26.8): שתי העמודות
+     שוות גובה - החלון המוארך קובע אותו, הכותרת מתחילה בקו העליון שלו והטופס נגמר
+     בקו התחתון. ריפוד עליון שמור לדמות שמציצה מעל הקו */
+  .hero-v4{min-height:calc(100dvh - 120px);align-content:center;padding-top:132px;padding-bottom:48px}
   /* החלון עצמו מתארך: שורות בדיקה גבוהות יותר וסרגל עבה יותר */
   .hero-v4 .sl{padding-block:16px}
   .hero-v4 .term-bar{padding-block:14px}
