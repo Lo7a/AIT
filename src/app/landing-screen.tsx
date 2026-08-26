@@ -744,30 +744,8 @@ function StageWalk() {
     >
       {/* כל טאב שולט בפאנל שלו עצמו דרך מזהה יציב - לא במזהה נודד של הפאנל הפעיל
           (ממצא סקירה 26.8: הקישור הקודם שייך כל טאב לפאנל של מישהו אחר) */}
-      {/* התצוגה: הדמות מימין מצביעה על הפאנל המוקטן; הכרטיסיות בעמודה השמאלית
-          (סידור מייסד 26.8) */}
-      <div className="stage-show">
-        <img src="/brand/pointing-full.webp" alt="" aria-hidden="true" className="stage-guide" />
-        {/* כל טאב שולט בפאנל שלו עצמו דרך מזהה יציב */}
-        <div className="stage-panel">
-          {[ReportPreview, InterviewPreview, PlanPreview].map((Preview, i) => (
-            <div
-              key={i}
-              className={i === stage ? "shell stage-card on" : "shell stage-card"}
-              id={`stage-panel-${i}`}
-              role="tabpanel"
-              aria-labelledby={`stage-tab-${i}`}
-              aria-hidden={i !== stage}
-              {...(i !== stage ? { inert: true } : {})}
-            >
-              <div className="core" style={{ padding: "16px 16px 14px" }}>
-                <Preview enabled={i === stage} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
+      {/* הכרטיסיות קודמות ב-DOM (סדר קריאה ומקלדת נכון במובייל, שם הן גם מעל);
+          הפריסה בדסקטופ נקבעת ב-grid-template-areas ולא בסדר האלמנטים */}
       <div className="stage-list" role="tablist" aria-label="שלבי התהליך" aria-orientation="vertical">
         {STEPS.map((step, i) => (
           <button
@@ -788,6 +766,29 @@ function StageWalk() {
             {auto && i === stage && <span className="tick" aria-hidden="true" />}
           </button>
         ))}
+      </div>
+
+      {/* התצוגה: הדמות מימין מצביעה על הפאנל. שלושת הפאנלים חיים תמיד בערימת גריד
+          (גובה קבוע, אפס קפיצות); inert חוסם פוקוס לפאנל שקוף, enabled עוצר טיימרים */}
+      <div className="stage-show">
+        <img src="/brand/pointing-full.webp" alt="" aria-hidden="true" className="stage-guide" />
+        <div className="stage-panel">
+          {[ReportPreview, InterviewPreview, PlanPreview].map((Preview, i) => (
+            <div
+              key={i}
+              className={i === stage ? "shell stage-card on" : "shell stage-card"}
+              id={`stage-panel-${i}`}
+              role="tabpanel"
+              aria-labelledby={`stage-tab-${i}`}
+              aria-hidden={i !== stage}
+              {...(i !== stage ? { inert: true } : {})}
+            >
+              <div className="core" style={{ padding: "16px 16px 14px" }}>
+                <Preview enabled={i === stage} />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
