@@ -931,9 +931,10 @@ html{scroll-behavior:smooth}
    שכבר ירד ל-38 פיקסלים. אותה סיבה בדיוק גורמת לשורת תשובה של שלוש מילים להימתח על 950
    פיקסלים. שוליים סימטריים משני הצדדים נקראים כשוליים; הצמדה לשני קצוות נקראת כחור */
 .repC.iv .rep-main > *{width:100%;max-width:var(--iv-read);margin-inline:auto}
-/* חוץ ממכל הגלילה: הוא נשאר ברוחב מלא כדי שפס הגלילה יישב בקצה העמודה ולא יחתוך לתוך
-   השיחה. את רוחב הקריאה נושא iv-thread שבתוכו, ולכן שניהם ממורכזים על אותו ציר */
-.repC.iv .rep-main > .iv-scroll{max-width:none}
+/* מכל הגלילה נושא את רוחב הקריאה כמו כל השאר, ולכן פס הגלילה צמוד לשיחה עצמה. ניסיון
+   קודם השאיר אותו ברוחב מלא כדי שהפס יישב בקצה העמודה, והתוצאה הייתה פס שמרחף 200
+   פיקסלים מהתוכן שהוא גולל (דיווח אלעד 26.8). דק, ועם נשימה קטנה מהבועות */
+.iv-scroll{scrollbar-width:thin;padding-inline-end:5px}
 /* כרטיס השאלה מרופד צפוף יותר משאר המוצר: card-pad הרגיל (22/24) נבנה לכרטיס בעמוד
    שנגלל, וכאן אין גלילה - מה שהוא לוקח נגרע מהשיחה ישירות (דיווח אלעד 26.8) */
 .repC.iv .rep-main > .rv .card-pad{padding:15px 18px}
@@ -942,7 +943,7 @@ html{scroll-behavior:smooth}
    בלעדיו, והפאנל היה נמתח והגלילה הייתה בורחת בחזרה לדף */
 /* המכל גולל, השיחה שבתוכו היא זו שמוגבלת ברוחב (ראו iv-thread ב-default-interview) */
 .iv-scroll{flex:1 1 0;min-height:120px;overflow-y:auto}
-.iv-thread{display:flex;flex-direction:column;gap:5px;max-width:var(--iv-read);margin-inline:auto}
+.iv-thread{display:flex;flex-direction:column;gap:5px}
 .iv-list{flex:1;min-height:0;overflow-y:auto;margin-inline:-6px;padding-inline:6px}
 /* כרטיס השאלה גולל בעצמו כשהוא לא נכנס (שאלה ארוכה עם ארבע אפשרויות במסך נמוך), במקום
    לרסק את השיחה מתחתיו לאפס - ה-min-height על .iv-scroll למעלה הוא הצד השני של אותו כלל */
