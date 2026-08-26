@@ -332,11 +332,34 @@ html:not([data-mode="light"]) .only-light{display:none}
     transparent);
 }
 /* אפקטי גלילה (מייסד 26.8): אנימציות מונעות-גלילה של הדפדפן עצמו - התקדמות
-   הגלילה מזיזה את האלמנט, בלי JS. דפדפן בלי תמיכה פשוט מציג הכל רגיל */
+   הגלילה מזיזה את האלמנט, בלי JS. דפדפן בלי תמיכה פשוט מציג הכל רגיל.
+   הטון: מקצועי ושקט - דהיות, מתיחות קווים וכיווצים עדינים. בלי קפיצות */
 @keyframes view-rise{from{opacity:0;translate:0 48px}to{opacity:1;translate:0 0}}
 @keyframes view-scale{from{opacity:0;scale:.86}to{opacity:1;scale:1}}
+@keyframes hero-exit{to{opacity:.22;scale:.965;translate:0 -26px}}
+@keyframes line-draw{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 @supports (animation-timeline: view()){
   @media (prefers-reduced-motion:no-preference){
+    /* ההירו נמסר החוצה: דהייה וכיווץ בקצב הגלילה כשעוזבים אותו */
+    .hero-v4{
+      animation:hero-exit linear both;
+      animation-timeline:view();
+      animation-range:exit 8% exit 85%;
+    }
+    /* קו הכותרת של כל סקשן נמתח מהטקסט החוצה עם הכניסה למסך */
+    .how-head::after{
+      animation:line-draw linear both;
+      animation-timeline:view();
+      animation-range:entry 0% entry 65%;
+      transform-origin:right;
+    }
+    /* קו החתימה של הלוקאפ בפוטר נמשך כמו חתימה */
+    .foot-rule{
+      animation:line-draw linear both;
+      animation-timeline:view();
+      animation-range:entry 0% entry 85%;
+      transform-origin:right;
+    }
     .proof-grid>.shell{
       animation:view-rise linear both;
       animation-timeline:view();
@@ -354,6 +377,8 @@ html:not([data-mode="light"]) .only-light{display:none}
     }
   }
 }
+/* גלילת עוגנים חלקה - מקצועי, וכבוי למבקשי פחות תנועה */
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 @media (max-width:920px){.stage-guide{display:none}}
 /* רצועת ההוכחות: כרטיסים בלי פסקאות, ומשפט המייסדים כפתיח */
 .proof-say{
@@ -1180,8 +1205,9 @@ html{scroll-behavior:smooth}
    flex:1 + min-width:0 משחזרים את ההתנהגות של עמודת ה-minmax הישנה בתוך שורת ה-flex */
 .stage-panel{position:relative;display:grid;flex:1 1 0;min-width:0}
 .stage-panel>.stage-card{grid-area:1/1}
+/* מעבר פאנלים עם עומק עדין: הנכנס עולה וגדל טיפה - תחושת שכבה, לא קפיצה */
 .stage-card{
-  opacity:0;transform:translateY(10px);pointer-events:none;
+  opacity:0;transform:translateY(12px) scale(.985);pointer-events:none;
   transition:opacity .55s var(--ease-out), transform .55s var(--ease-out);
 }
 .stage-card.on{opacity:1;transform:none;pointer-events:auto}
