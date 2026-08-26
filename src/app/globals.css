@@ -306,6 +306,26 @@ html[data-mode="light"] .theme-tgl .ic-moon{display:none}
   position:absolute;bottom:0;inset-inline-end:16px;width:102px;z-index:1;
   pointer-events:none;user-select:none;
 }
+/* נכס שקיים בשתי גרסאות מצב (לוקאפ כהה/בהיר): מציגים רק את המתאימה */
+html[data-mode="light"] .only-dark{display:none}
+html:not([data-mode="light"]) .only-light{display:none}
+/* הלוקאפ המלא מעל כרטיס מי-אנחנו - חתימת המותג */
+.about-brand{display:flex;justify-content:center;margin-bottom:26px}
+.about-brand img{width:min(380px,82%);pointer-events:none;user-select:none}
+/* הדמות המצביעה מתחת לכפתורי השלבים - מצביעה שמאלה אל הפאנל החי */
+.stage-guide{width:148px;margin:22px auto 0;display:block;pointer-events:none;user-select:none}
+@media (max-width:880px){.stage-guide{display:none}}
+/* כרטיס האבחון בהירו - עוצב מחדש (26.8): כותרת קצרה, שדה גדול, שטיפה סגולה עדינה */
+.diag-card{
+  padding:18px 18px 15px;
+  background:
+    radial-gradient(130% 120% at 85% -10%, rgba(var(--accd-rgb),.13), transparent 52%),
+    var(--core-bg);
+}
+.diag-t{font-size:15.5px;font-weight:700;margin-bottom:11px}
+.diag-card .field input{padding-block:16px;font-size:15.5px}
+.diag-card .btn.wide{min-height:52px;font-size:15px}
+
 /* ===== הפוטר של הנחיתה: לוקאפ נייטיב, קישורים, והדמות המצביעה ===== */
 .land-foot{position:relative;z-index:1;border-top:1px solid var(--hair-soft);margin-top:8px;padding-top:46px}
 .land-foot-in{

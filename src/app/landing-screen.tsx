@@ -900,6 +900,13 @@ function AboutSection() {
       <Reveal>
         <div className="how-head"><h2>מי אנחנו</h2></div>
       </Reveal>
+      {/* הלוקאפ המלא שנוצר ל-ChatGPT, אחרי ניקוי משבצות ממוקד (26.8) - גרסה לכל מצב */}
+      <Reveal delay={40}>
+        <div className="about-brand">
+          <img src="/brand/lockup-dark.webp" alt="בדק עסק" className="only-dark" />
+          <img src="/brand/lockup-light.webp" alt="בדק עסק" className="only-light" />
+        </div>
+      </Reveal>
       <Reveal delay={70}>
         <div className="shell">
           <div className="core card-pad about">
@@ -984,6 +991,8 @@ function StageWalk() {
             {auto && i === stage && <span className="tick" aria-hidden="true" />}
           </button>
         ))}
+        {/* הדמות המצביעה אל הפאנל החי (בקשת מייסד 26.8) - בכיוון המקורי, שמאלה */}
+        <img src="/brand/pointing-full.webp" alt="" aria-hidden="true" className="stage-guide" />
       </div>
 
       {/* שלושת הפאנלים חיים תמיד, ערומים זה על זה בגריד: הגובה הוא של הגבוה מביניהם
@@ -1103,9 +1112,10 @@ export function LandingScreen() {
           <div className="hero-form">
             <form onSubmit={(e) => { e.preventDefault(); startDiagnosis(); }}>
               <div className="shell rv d3">
-                <div className="core" style={{ padding: 11 }}>
-                  <label htmlFor="landing-query" className="field-lb">שם העסק או כתובת האתר</label>
-                  {/* נערם לשתי שורות במובייל (הכלל הקבוע: כל מסך מותאם טלפון) - .fieldrow מטפל בזה */}
+                <div className="core diag-card">
+                  {/* כותרת קצרה במקום תווית טופס - הפלייסהולדר אומר מה מקלידים,
+                      וה-aria-label שומר את השם הנגיש של השדה */}
+                  <p className="diag-t">בדוק את העסק שלך</p>
                   <div className="fieldrow">
                     <span className="field">
                       <svg
@@ -1118,6 +1128,7 @@ export function LandingScreen() {
                       <input
                         id="landing-query"
                         type="text"
+                        aria-label="שם העסק או כתובת האתר"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder="שם העסק והעיר, או כתובת האתר"
