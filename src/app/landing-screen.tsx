@@ -1098,12 +1098,14 @@ export function LandingScreen() {
           <div className="hero-main">
           <header className="hero-head">
             {/* בלי תג "אבחון דיגיטלי לעסקים" - הניווט כבר אומר את זה מילה במילה */}
-            {/* הכותרת שנבחרה מסבב האופציות (מייסד 26.8, אופציה 4): משחק על שם המותג */}
+            {/* הכותרת נושאת את שם המותג עצמו כפעולה (תיקון מייסד 26.8: השם הוא
+                בדק עסק, לא בדק בית); הביטוי המוכר עובר לסלוגן כגשר */}
             <h1 className="hero-h1 rv d1">
-              עשית פעם <span className="hl2">בדק בית</span> לעסק שלך?
+              עשית פעם <span className="hl2">בדק עסק</span>?
             </h1>
             <p className="hero-sub rv d2" style={{ marginTop: 10 }}>
-              תוך דקה תדע מה מצב הדיגיטל שלך, <b>ומה שווה לתקן קודם.</b>
+              כמו בדק בית, רק לעסק שלך: תוך דקה תדע מה מצב הדיגיטל,
+              <b> ומה שווה לתקן קודם.</b>
             </p>
           </header>
 
@@ -1220,7 +1222,7 @@ export function LandingScreen() {
               {/* הדמות מציגה את ההזמנה האחרונה בעמוד - כף יד פתוחה אל הכפתור */}
               <img src="/brand/presenting.webp" alt="" aria-hidden="true" className="cta-buddy" />
               <div className="core cta-core">
-                <h2 className="cta-h">עשית פעם בדק בית לעסק שלך?</h2>
+                <h2 className="cta-h">עשית פעם בדק עסק?</h2>
                 <button type="button" className="btn-invert" onClick={startDiagnosis}>
                   אבחן את העסק שלי
                   <CapArrow />
