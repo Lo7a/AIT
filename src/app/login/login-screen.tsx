@@ -5,16 +5,18 @@
 import type { ReactNode } from "react";
 import { useLogin } from "./use-login";
 import { linkErrorMessage } from "./login-logic";
+import { BrandFace, BrandName } from "../ui/brand";
+import { AlertIcon } from "../ui/icons";
 
 // ניווט עליון מינימלי: מותג שמחזיר לדף הבית
 function AuthNav() {
   return (
     <nav className="land-nav">
       <a className="brand" href="/">
-        <span className="brand-mark">AIT</span>
+        <BrandFace />
         <span className="brand-txt">
           <small>יועץ דיגיטלי לעסקים</small>
-          <b>AIT</b>
+          <BrandName />
         </span>
       </a>
     </nav>
@@ -28,12 +30,7 @@ function AuthCard({ children }: { children: ReactNode }) {
       <div className="auth-shell shell rv d1">
         <div className="core auth-core">
           <div className="flex justify-center">
-            <span
-              className="brand-mark"
-              style={{ width: 44, height: 44, borderRadius: 14, fontSize: 15 }}
-            >
-              AIT
-            </span>
+            <BrandFace size={56} />
           </div>
           {children}
         </div>
@@ -46,13 +43,7 @@ function AuthCard({ children }: { children: ReactNode }) {
 function SameBrowserHint() {
   return (
     <div className="auth-hint">
-      <svg
-        width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
-      >
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 8v4M12 16h.01" />
-      </svg>
+      <AlertIcon size={15} strokeWidth={1.7} />
       <span>חשוב לפתוח את הקישור באותו דפדפן שממנו ביקשתם אותו.</span>
     </div>
   );
@@ -90,14 +81,7 @@ export function LoginScreen({
         <AuthNav />
         <AuthCard>
           <h1>כניסה</h1>
-          {/* קופסת אזהרה כנה בגווני warn (ענבר) - אותו מבנה כמו form-error, בצבעי אזהרה */}
-          <p style={{
-            display: "flex", alignItems: "flex-start", gap: 9,
-            fontSize: 12.5, color: "var(--warn)",
-            background: "rgba(var(--warn-rgb),.08)",
-            border: "1px solid rgba(var(--warn-rgb),.3)",
-            borderRadius: 12, padding: "10px 14px",
-          }}>
+          <p className="form-error warn">
             ההתחברות עוד לא הוגדרה בסביבה הזו: חסרים מפתחות Supabase בקובץ ה-env. האפליקציה ממשיכה לעבוד בלי כניסה.
           </p>
         </AuthCard>
@@ -127,8 +111,9 @@ export function LoginScreen({
             לחיצה עליו מכניסה אתכם ישר למערכת.
           </p>
           <SameBrowserHint />
+          {/* הכפתור מחזיר לטופס ולא שולח בעצמו - התווית אומרת בדיוק את זה */}
           <button type="button" onClick={resetToForm} className="btn-quiet w-full">
-            לא הגיע? לשלוח שוב
+            לא הגיע? חזרה לטופס
           </button>
         </AuthCard>
       </>
@@ -172,14 +157,7 @@ export function LoginScreen({
 
           {(state.error ?? linkError) != null && (
             <p role="alert" className="form-error">
-              <svg
-                width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
-                style={{ flex: "none", marginTop: 2 }}
-              >
-                <circle cx="12" cy="12" r="9" />
-                <path d="M12 8v4M12 16h.01" />
-              </svg>
+              <AlertIcon size={14} strokeWidth={1.8} />
               {state.error ?? linkError}
             </p>
           )}

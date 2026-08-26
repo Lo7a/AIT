@@ -55,7 +55,7 @@ describe("crawlWebsite", () => {
     expect(signals.crawledUrls[1]).toContain("/contact");
     expect(signals.crawledUrls).toHaveLength(3);
     const init = fetchImpl.mock.calls[0][1] as RequestInit;
-    expect((init.headers as Record<string, string>)["User-Agent"]).toContain("AIT-Scanner");
+    expect((init.headers as Record<string, string>)["User-Agent"]).toContain("BedekEsek-Scanner");
     expect(init.signal).toBeInstanceOf(AbortSignal);
   });
 

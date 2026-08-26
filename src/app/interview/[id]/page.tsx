@@ -5,7 +5,8 @@ import { getInterviewState } from "../../../server/interview-repo";
 import { snapshotOf } from "../../../server/run-interview";
 import type { DiagnosisStatus } from "../../../server/status";
 import { currentActingUser, hasAuthConfig } from "../../../server/auth/supabase-server";
-import { userCanAccessDiagnosis, isAdmin } from "../../../server/auth/guard";
+import { userCanAccessDiagnosis } from "../../../server/auth/guard";
+import { viewAsAdmin } from "../../../server/auth/impersonation";
 import { THEME_COOKIE, parseTheme } from "../../theme";
 import { getVariant } from "../../variants/registry";
 
@@ -44,5 +45,5 @@ export default async function InterviewPage({ params }: { params: Promise<{ id: 
   const snapshot = snapshotOf(state);
   const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
   const { Interview } = getVariant(theme);
-  return <Interview diagnosisId={id} initial={snapshot} businessName={businessName ?? undefined} isAdmin={acting != null && isAdmin(acting.actor)} userEmail={acting?.actor.email ?? null} />;
+  return <Interview diagnosisId={id} initial={snapshot} businessName={businessName ?? undefined} isAdmin={viewAsAdmin(acting)} userEmail={acting?.actor.email ?? null} />;
 }

@@ -14,8 +14,9 @@ export interface PagerProps {
   total: number;
   /** הנתיב הבסיסי, למשל /admin/catalog */
   basePath: string;
-  /** הפרמטרים הנוכחיים, כדי שסינון וחיפוש ישרדו מעבר עמוד */
-  params?: Record<string, string | undefined>;
+  /** הפרמטרים הנוכחיים, כדי שסינון וחיפוש ישרדו מעבר עמוד. ערך-מערך = מפתח חוזר
+   *  ב-URL (כך צ'קבוקסים באותו שם מגישים טופס - לוח המשימות, 21.8) */
+  params?: Record<string, string | string[] | undefined>;
   /** מה נספר, בעברית: "פריטים", "משתמשים" */
   unit?: string;
 }
@@ -41,7 +42,8 @@ export function Pager({ page, pages, total, basePath, params = {}, unit = "תו�
   const href = (p: number) => {
     const qs = new URLSearchParams();
     for (const [k, v] of Object.entries(params)) {
-      if (v != null && v !== "") qs.set(k, v);
+      if (Array.isArray(v)) for (const item of v) qs.append(k, item);
+      else if (v != null && v !== "") qs.set(k, v);
     }
     if (p > 1) qs.set("page", String(p));
     else qs.delete("page");

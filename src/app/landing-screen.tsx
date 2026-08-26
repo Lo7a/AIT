@@ -18,19 +18,20 @@ import { useRouter } from "next/navigation";
 import { stashPendingSearch } from "./landing-logic";
 import { AnswerOptions } from "./ui/answer-options";
 import { CountUp } from "./ui/motion";
+import { BrandFace, BrandName } from "./ui/brand";
 
 const STEPS: { title: string; body: string }[] = [
   {
     title: "דוח אמת על הנוכחות הדיגיטלית",
-    body: "סורקים את האתר, הפרופיל העסקי בגוגל והביקורות. מקבלים תמונה כנה: מה עובד, מה חסר, ומה זה עולה לעסק - וכל מה שלא נבדק מסומן ככזה, בלי ניחושים.",
+    body: "סורקים את האתר, את הפרופיל בגוגל ואת הביקורות, ואומרים בכנות מה עובד, מה חסר ומה זה עולה לך. מה שלא נבדק - מסומן שלא נבדק.",
   },
   {
     title: "ראיון קצר שמדייק את התמונה",
-    body: "כמה שאלות ממוקדות על איך העסק באמת עובד - בקצב שלך, עם אפשרות לספר במילים שלך. הדוח מתעדכן אחרי כל תשובה.",
+    body: "כמה שאלות על איך העסק עובד באמת, בקצב שלך ובמילים שלך. הדוח מתעדכן אחרי כל תשובה.",
   },
   {
     title: "תוכנית עבודה לפי הצרכים של העסק",
-    body: "צעדים מדורגים לפי מה שמשפיע באמת על העסק שלך, עם טווחי מחיר ממקורות גלויים בשוק הישראלי - לא הערכות באוויר.",
+    body: "מה עושים קודם ומה אחר כך, עם טווחי מחיר אמיתיים מהשוק הישראלי - לא הערכות באוויר.",
   },
 ];
 
@@ -292,11 +293,14 @@ function ScanTerminal() {
   const pct = Math.round((done / total) * 100);
 
   return (
+    <div className="scan-peek">
+      {/* הדמות בפינה השמאלית-עליונה של החלון, מהופכת - פונה ימינה אל התוכן */}
+      <img src="/brand/inspecting.webp" alt="" aria-hidden="true" className="scan-buddy" />
     <div className="shell term rv d4" ref={liveRef}>
       <div className="core">
         {/* בלי שלוש נקודות הצבע של חלון - קישוט טהור שרק מוסיף רעש לסרגל */}
         <div className="term-bar">
-          <span className="addr" dir="ltr">ait.scan</span>
+          <span className="addr" dir="ltr">bedek-esek.scan</span>
           <span className="pct num">{pct}%</span>
         </div>
         <div className="pbar" aria-hidden="true">
@@ -342,34 +346,25 @@ function ScanTerminal() {
         </div>
       </div>
     </div>
-  );
-}
-
-// קו מציין מקום: מייצג טקסט שיתמלא מהסריקה של העסק. ניטרלי בכוונה - טקסט לדוגמה
-// בדוח לדוגמה הוא בדיוק המקום שבו נולדים מספרים מומצאים
-function Ph({ w }: { w: string }) {
-  return (
-    <span
-      className="mt-1.5 block rounded-full first:mt-0"
-      style={{ width: w, height: 5, background: "var(--surface-2)" }}
-      aria-hidden="true"
-    />
+    </div>
   );
 }
 
 // תצוגת הדוח: המבנה האמיתי (פריסה 3 - עמודת זהות דביקה + עמודת תוכן) עם שורת
 // ניווט העוגן שעוברת בין המקטעים. זו הדגמת מבנה וניווט, לכן אין בה נתונים
-function ReportPreview() {
+// enabled מגיע ממסלול השלבים: הפאנלים חיים תמיד בשביל הגובה הקבוע, אבל טיימר של
+// פאנל מוסתר לא רץ - בלי זה שלוש ההדגמות היו מתקתקות לנצח מאחורי opacity:0
+function ReportPreview({ enabled = true }: { enabled?: boolean }) {
   const [active, setActive] = useState(0);
   const [liveRef, live] = useInView<HTMLDivElement>(false);
 
   useEffect(() => {
-    if (prefersReducedMotion() || !live) return;
+    if (prefersReducedMotion() || !live || !enabled) return;
     const id = window.setInterval(() => {
       setActive((a) => (a + 1) % REPORT_SECTIONS.length);
     }, 1500);
     return () => window.clearInterval(id);
-  }, [live]);
+  }, [live, enabled]);
 
   return (
     <div ref={liveRef}>
@@ -434,12 +429,7 @@ function ReportPreview() {
         <div className="rep-main">
           {REPORT_SECTIONS.map((s, i) => (
             <div key={s.id} className="shell">
-              <div
-                className="core"
-                style={i === active
-                  ? { borderColor: "rgba(var(--acc-rgb),.45)", background: "rgba(var(--acc-rgb),.05)" }
-                  : undefined}
-              >
+              <div className={i === active ? "core on" : "core"}>
                 <div className="mini-h">
                   <span className={s.tone === "acc" ? "ic" : `ic ${s.tone}`} aria-hidden="true">
                     <CheckIcon size={10} />
@@ -491,7 +481,7 @@ const DEMO_QA: { q: string; chips: string[]; picked: number }[] = [
 
 // הראיון: הישות הזוהרת + חלון שיחה חי. מכונת פאזות פשוטה - הקלדה, שאלה, צ'יפים,
 // בחירה, תשובה, "הדוח התעדכן" - ואז השאלה הבאה, בלופ
-function InterviewPreview() {
+function InterviewPreview({ enabled = true }: { enabled?: boolean }) {
   const [tick, setTick] = useState(0);
   const [reduced, setReduced] = useState(false);
   const [liveRef, live] = useInView<HTMLDivElement>(false);
@@ -501,10 +491,10 @@ function InterviewPreview() {
       setReduced(true);
       return;
     }
-    if (!live) return;
+    if (!live || !enabled) return;
     const id = window.setInterval(() => setTick((t) => t + 1), 1000);
     return () => window.clearInterval(id);
-  }, [live]);
+  }, [live, enabled]);
 
   const CYCLE = 7; // פאזות 0-5 + פעימת החזקה לפני איפוס
   const qi = reduced ? 0 : Math.floor(tick / CYCLE) % DEMO_QA.length;
@@ -521,7 +511,7 @@ function InterviewPreview() {
           <span className="orb-core" style={{ inset: 14 }} />
         </div>
         <div>
-          <b className="block text-sm font-bold">היועץ הדיגיטלי של AIT</b>
+          <b className="block text-sm font-bold">היועץ הדיגיטלי של בדק עסק</b>
           <span className="text-xs" style={{ color: "var(--dim)" }}>
             הראיון הוא בחירה שלך, לא שלב חובה
           </span>
@@ -561,7 +551,8 @@ function InterviewPreview() {
 
 // תוכנית העבודה: מבנה הכרטיס כמו במסך האמיתי, עם פריטים מהקטלוג ובלי מחירים.
 // טווח מחיר נקוב שייך לתוכנית של עסק אמיתי, מתוך הקטלוג הנחקר
-function PlanPreview() {
+// enabled מתקבל לאחידות החתימה מול שני האחים; אין כאן טיימר שצריך לעצור
+function PlanPreview(_props: { enabled?: boolean }) {
   return (
     <>
       <div className="mini-h" style={{ fontSize: 10.5 }}>
@@ -591,10 +582,15 @@ function PlanPreview() {
 // המצב היום: הרגע שבו בעל העסק מזהה את עצמו, לפני שמראים לו מכונה. שלוש אמירות מצב
 // בלי מספרים ובלי הבטחות - אלה לא ציטוטים של לקוחות אמיתיים ולא מוצגים ככאלה.
 // המילה המודגשת בכל שורה היא הנקודה שהמוצר נוגע בה
+// דוגמאות החיפוש שבצ'יפים - סוג עסק ועיר, לא עסקים אמיתיים, כמו בפלייסהולדר המקורי
+const SEARCH_EXAMPLES = ["מסעדת השף חיפה", "מספרה ברמת גן", "מוסך בבאר שבע"];
+
+// נוסח מדובר (הנחיית מייסד 26.8): משפטים קצרים שבעל עסק היה אומר בעצמו,
+// לא עברית של מכונה. מקצועי אבל קליל
 const SITUATION: { before: string; hl: string; after: string }[] = [
-  { before: "פניות מגיעות בטלפון, בוואטסאפ ובאינסטגרם, ו", hl: "אין דרך לדעת כמה מהן נשכחו", after: "." },
-  { before: "כל כמה זמן מתקשר עוד ספק עם עוד הבטחה, ו", hl: "קשה לדעת מה מזה העסק באמת צריך", after: "." },
-  { before: "משקיעים באתר, בפרסום ובמערכות, ", hl: "בלי לדעת מה מהם מחזיר ומה רק עולה", after: "." },
+  { before: "פניות נכנסות מהטלפון, מוואטסאפ ומאינסטגרם - ", hl: "מה שלא נענה בזמן, הולך למתחרה", after: "." },
+  { before: "כל שבוע מוכרים לך משהו חדש. ", hl: "בלי בדיקה, איך תדע מה באמת חסר?", after: "" },
+  { before: "אתה משלם על אתר ועל פרסום, ", hl: "בלי לדעת מה מהם באמת מכניס", after: "." },
 ];
 
 // חוקי הניקוד האמיתיים של ממד "נגישות ללקוח" עם המשקלים שלהם (score/dimensions.ts).
@@ -623,25 +619,6 @@ const REPORT_TOC: { t: string; free?: boolean }[] = [
   { t: "מה אפשר לעשות כבר עכשיו", free: true },
   { t: "תוכנית עבודה עם טווחי מחיר ממקור" },
 ];
-
-function SituationSection() {
-  return (
-    <section className="pb-14">
-      <Reveal>
-        <div className="how-head"><h2>המצב היום</h2></div>
-      </Reveal>
-      <div>
-        {SITUATION.map((line, i) => (
-          <Reveal key={line.hl} delay={i * 90}>
-            <p className="sit-say">
-              {line.before}<em>{line.hl}</em>{line.after}
-            </p>
-          </Reveal>
-        ))}
-      </div>
-    </section>
-  );
-}
 
 function ReportTocSection() {
   return (
@@ -889,7 +866,7 @@ function DataSection() {
                   </span>
                 ))}
               </div>
-              <p className="src">משקלי הממדים במנוע הניקוד של AIT.</p>
+              <p className="src">משקלי הממדים במנוע הניקוד של בדק עסק.</p>
             </div>
           </div>
 
@@ -923,12 +900,19 @@ function AboutSection() {
       <Reveal>
         <div className="how-head"><h2>מי אנחנו</h2></div>
       </Reveal>
+      {/* הלוקאפ המלא שנוצר ל-ChatGPT, אחרי ניקוי משבצות ממוקד (26.8) - גרסה לכל מצב */}
+      <Reveal delay={40}>
+        <div className="about-brand">
+          <img src="/brand/lockup-dark.webp" alt="בדק עסק" className="only-dark" />
+          <img src="/brand/lockup-light.webp" alt="בדק עסק" className="only-light" />
+        </div>
+      </Reveal>
       <Reveal delay={70}>
         <div className="shell">
           <div className="core card-pad about">
             <div>
               <p className="say">
-                בנינו את AIT כי בעל עסק מקבל הצעות לפני שמישהו טרח לבדוק מה באמת חסר לו.
+                בנינו את בדק עסק כי בעל עסק מקבל הצעות לפני שמישהו טרח לבדוק מה באמת חסר לו.
                 אנחנו מתחילים מהאבחון, ורק אחר כך מדברים על מה שווה לעשות.
               </p>
             </div>
@@ -985,7 +969,9 @@ function StageWalk() {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <div className="stage-list" role="tablist" aria-label="שלבי התהליך">
+      {/* כל טאב שולט בפאנל שלו עצמו דרך מזהה יציב - לא במזהה נודד של הפאנל הפעיל
+          (ממצא סקירה 26.8: הקישור הקודם שייך כל טאב לפאנל של מישהו אחר) */}
+      <div className="stage-list" role="tablist" aria-label="שלבי התהליך" aria-orientation="vertical">
         {STEPS.map((step, i) => (
           <button
             key={step.title}
@@ -993,7 +979,7 @@ function StageWalk() {
             role="tab"
             id={`stage-tab-${i}`}
             aria-selected={i === stage}
-            aria-controls="stage-panel"
+            aria-controls={`stage-panel-${i}`}
             className={i === stage ? "stage-btn on" : "stage-btn"}
             onClick={() => pick(i)}
           >
@@ -1005,22 +991,29 @@ function StageWalk() {
             {auto && i === stage && <span className="tick" aria-hidden="true" />}
           </button>
         ))}
+        {/* הדמות המצביעה אל הפאנל החי (בקשת מייסד 26.8) - בכיוון המקורי, שמאלה */}
+        <img src="/brand/pointing-full.webp" alt="" aria-hidden="true" className="stage-guide" />
       </div>
 
+      {/* שלושת הפאנלים חיים תמיד, ערומים זה על זה בגריד: הגובה הוא של הגבוה מביניהם
+          וקבוע, כך שמעבר שלב (אוטומטי או ידני) לא מקפיץ את העמוד (בקשת מייסד 26.8).
+          inert חוסם פוקוס מקלדת לפאנל שקוף, ו-enabled עוצר את הטיימר של מי שמוסתר */}
       <div className="stage-panel">
-        <div
-          className="shell stage-fade"
-          key={stage}
-          id="stage-panel"
-          role="tabpanel"
-          aria-labelledby={`stage-tab-${stage}`}
-        >
-          <div className="core" style={{ padding: "16px 16px 14px" }}>
-            {stage === 0 && <ReportPreview />}
-            {stage === 1 && <InterviewPreview />}
-            {stage === 2 && <PlanPreview />}
+        {[ReportPreview, InterviewPreview, PlanPreview].map((Preview, i) => (
+          <div
+            key={i}
+            className={i === stage ? "shell stage-card on" : "shell stage-card"}
+            id={`stage-panel-${i}`}
+            role="tabpanel"
+            aria-labelledby={`stage-tab-${i}`}
+            aria-hidden={i !== stage}
+            {...(i !== stage ? { inert: true } : {})}
+          >
+            <div className="core" style={{ padding: "16px 16px 14px" }}>
+              <Preview enabled={i === stage} />
+            </div>
           </div>
-        </div>
+        ))}
       </div>
     </div>
   );
@@ -1081,10 +1074,10 @@ export function LandingScreen() {
       {/* ניווט דביק: מותג מימין, כניסה משמאל */}
       <nav className={scrolled ? "land-nav on" : "land-nav"}>
         <a className="brand" href="/">
-          <span className="brand-mark">AIT</span>
+          <BrandFace />
           <span className="brand-txt">
             <small>יועץ דיגיטלי לעסקים</small>
-            <b>AIT</b>
+            <BrandName />
           </span>
         </a>
         <div className="side">
@@ -1095,23 +1088,45 @@ export function LandingScreen() {
       </nav>
 
       <main className="land-wrap">
-        {/* הירו בשתי עמודות: הטופס הוא העוגן, לצדו הסריקה רצה */}
-        <section className="hero-grid">
-          <div>
+        {/* ההירו לפי הסקיצה של להב (26.8): כותרת וסלוגן מימין למעלה, מתחתם חלון
+            הסריקה עם הדמות, וטופס האבחון בעמודה השמאלית לצדו. שורת head משותפת
+            ושתי עמודות בגריד עם אזורים - במובייל הטופס קודם לחלון */}
+        {/* גרסה רביעית (משוב מייסד 26.8): כל הטקסט והטופס בעמודה הימנית - כותרת,
+            סלוגן, טופס עם דוגמאות לחיצות, והמצב היום. החלון בעמודה השמאלית עם
+            הדמות בפינה השמאלית-עליונה שלו, מהופכת כך שהיא פונה ימינה אל התוכן */}
+        <section className="hero-grid hero-v4">
+          <div className="hero-main">
+          <header className="hero-head">
             {/* בלי תג "אבחון דיגיטלי לעסקים" - הניווט כבר אומר את זה מילה במילה */}
+            {/* הכותרת נושאת את שם המותג עצמו כפעולה (תיקון מייסד 26.8: השם הוא
+                בדק עסק, לא בדק בית); הביטוי המוכר עובר לסלוגן כגשר */}
             <h1 className="hero-h1 rv d1">
-              כמה שווה <span className="hl2">הנוכחות הדיגיטלית</span> של העסק שלך?
+              עשית פעם <span className="hl2">בדק עסק</span>?
             </h1>
-            <p className="hero-sub rv d2" style={{ marginBottom: 16, marginTop: 10 }}>
-              יועץ דיגיטלי לעסקים: סריקה מקיפה, שיחה קצרה על העסק, ותוכנית עבודה
-              מסודרת - <b>הכול במקום אחד.</b>
+            <p className="hero-sub rv d2" style={{ marginTop: 10 }}>
+              כמו בדק בית, רק לעסק שלך: תוך דקה תדע מה מצב הדיגיטל,
+              <b> ומה שווה לתקן קודם.</b>
             </p>
+          </header>
 
+          {/* המצב היום עלה לכאן (מייסד 26.8): בין הסלוגן לכרטיס הבדיקה - קודם
+              מזדהים עם הבעיה, ואז הפתרון במרחק שדה אחד */}
+          <div className="hero-sit rv d3">
+            <p className="sit-k">המצב היום</p>
+            {SITUATION.map((line) => (
+              <p key={line.hl} className="sit-say">
+                {line.before}<em>{line.hl}</em>{line.after}
+              </p>
+            ))}
+          </div>
+
+          <div className="hero-form">
             <form onSubmit={(e) => { e.preventDefault(); startDiagnosis(); }}>
               <div className="shell rv d3">
-                <div className="core" style={{ padding: 11 }}>
-                  <label htmlFor="landing-query" className="field-lb">שם העסק או כתובת האתר</label>
-                  {/* נערם לשתי שורות במובייל (הכלל הקבוע: כל מסך מותאם טלפון) - .fieldrow מטפל בזה */}
+                <div className="core diag-card">
+                  {/* כותרת קצרה במקום תווית טופס - הפלייסהולדר אומר מה מקלידים,
+                      וה-aria-label שומר את השם הנגיש של השדה */}
+                  <p className="diag-t">בדוק את העסק שלך</p>
                   <div className="fieldrow">
                     <span className="field">
                       <svg
@@ -1124,15 +1139,26 @@ export function LandingScreen() {
                       <input
                         id="landing-query"
                         type="text"
+                        aria-label="שם העסק או כתובת האתר"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        placeholder="למשל: מסעדת השף חיפה, או www.example.co.il"
+                        placeholder="שם העסק והעיר, או כתובת האתר"
                       />
                     </span>
                     <button type="submit" className="btn wide">
                       אבחן את העסק שלי
                       <CapArrow />
                     </button>
+                  </div>
+                  {/* דוגמאות לחיצות (בקשת מייסד 26.8): נגיעה ממלאת את השדה - מראה
+                      בשנייה מה מקלידים, בלי לקרוא פלייסהולדר */}
+                  <div className="ex-chips" aria-label="דוגמאות לחיפוש">
+                    <span className="ex-lb">למשל:</span>
+                    {SEARCH_EXAMPLES.map((ex) => (
+                      <button key={ex} type="button" className="ex-chip" onClick={() => setQuery(ex)}>
+                        {ex}
+                      </button>
+                    ))}
                   </div>
                   {/* שורת האמון - הטענות מגובות במוצר: האבחון הראשוני לא עולה כסף,
                       אין התחייבות, והסריקה אורכת בערך דקה */}
@@ -1152,15 +1178,16 @@ export function LandingScreen() {
                   </div>
                 </div>
               </div>
-              <p className="rv d4" style={{ marginTop: 9, fontSize: 11.5, color: "var(--mut)" }}>
+              {/* אותה מחלקה כמו הערת ההדגמה שמתחת לחלון - שתי השורות נגמרות באותו גובה */}
+              <p className="demo-note rv d4">
                 האבחון דורש חשבון - נכניס אותך ברגע, בלי סיסמה, והחיפוש שהקלדת מחכה לך בפנים.
               </p>
             </form>
           </div>
 
-          {/* שלב הסריקה, רץ ומתואר. בלי כותרת מעליו - סרגל הכתובת ושורת הסיכום של המסוף
-              כבר אומרים מה זה, וכותרת נוספת רק מוסיפה רעש */}
-          <div>
+          </div>
+
+          <div className="hero-demo">
             <Parallax strength={14}>
               <Tilt>
                 <ScanTerminal />
@@ -1172,10 +1199,7 @@ export function LandingScreen() {
           </div>
         </section>
 
-        {/* לפני שמראים מכונה - הרגע שבו הוא מזהה את עצמו */}
-        <SituationSection />
-
-        {/* מסלול השלבים: כל שלב עם התצוגה החיה שלו */}
+        {/* מסלול השלבים: כל שלב עם התצוגה החיה שלו. "המצב היום" עבר לתוך ההירו */}
         <section id="stages" className="pb-14">
           <Reveal>
             <div className="how-head"><h2>איך זה עובד</h2></div>
@@ -1195,16 +1219,11 @@ export function LandingScreen() {
             בירו, וחזרה עליה כאן רק מעמיסה בלי להוסיף */}
         <section className="pb-16">
           <Reveal>
-            <div className="shell">
+            <div className="shell" style={{ position: "relative" }}>
+              {/* הדמות מציגה את ההזמנה האחרונה בעמוד - כף יד פתוחה אל הכפתור */}
+              <img src="/brand/presenting.webp" alt="" aria-hidden="true" className="cta-buddy" />
               <div className="core cta-core">
-                <h2 style={{
-                  flex: 1, minWidth: 220,
-                  fontSize: "clamp(16px,1.7vw,21px)", lineHeight: 1.4,
-                  letterSpacing: "-.01em", maxWidth: "26ch", fontWeight: 700,
-                  textWrap: "balance",
-                }}>
-                  כמה שווה הנוכחות הדיגיטלית של העסק שלך?
-                </h2>
+                <h2 className="cta-h">עשית פעם בדק עסק?</h2>
                 <button type="button" className="btn-invert" onClick={startDiagnosis}>
                   אבחן את העסק שלי
                   <CapArrow />
@@ -1214,6 +1233,28 @@ export function LandingScreen() {
           </Reveal>
         </section>
       </main>
+
+      {/* פוטר (בקשת מייסד 26.8): הלוקאפ המלא נבנה נייטיב - הדמות הנקייה לצד הוורדמארק
+          החי - כי לקובצי הלוקאפ שנוצרו יש שאריות רקע בתוך האותיות. הדמות המצביעה
+          בגוף מלא עומדת בקצה ומצביעה אל הקישורים */}
+      <footer className="land-foot">
+        <div className="land-wrap land-foot-in">
+          <div className="foot-brand">
+            <img src="/brand/inspecting.webp" alt="" aria-hidden="true" className="foot-face" />
+            <div>
+              <BrandName />
+              <span className="foot-rule" aria-hidden="true" />
+              <p className="foot-tag">יועץ דיגיטלי לעסקים קטנים בישראל</p>
+            </div>
+          </div>
+          <nav className="foot-nav" aria-label="קישורי תחתית">
+            <a href="#stages">איך זה עובד</a>
+            <a href="/login">כניסה</a>
+          </nav>
+          <img src="/brand/pointing-full.webp" alt="" aria-hidden="true" className="foot-point" />
+        </div>
+        <p className="foot-line">בדק עסק - נבנה בישראל, לעסקים בישראל</p>
+      </footer>
     </>
   );
 }

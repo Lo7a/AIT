@@ -9,6 +9,7 @@ import { ImpersonateSearch } from "../ui/impersonate-search";
 import { UserMenu } from "../ui/user-menu";
 import { AnswerOptions } from "../ui/answer-options";
 import { CompletenessCard } from "../ui/completeness-card";
+import { BrandFace } from "../ui/brand";
 import { missingCount } from "../../pipeline/model/ledger";
 
 // מסך הראיון בשפת העיצוב הנבחרת (הכרעת מייסד 18.8: כהה פרמיום, סגול וברקת, Rubik - ראו
@@ -40,20 +41,27 @@ function TypingDots() {
   return (
     // הטקסט "חושב" נשאר נגיש (לא aria-hidden) כדי שהוא ייקרא בתוך אזור ה-aria-live של
     // ההודעות - רק הנקודות המונפשות עצמן דקורטיביות
-    <div className="flex max-w-[85%] animate-fade-up items-center gap-2 self-end rounded-2xl border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-3.5 py-1.5 text-[14px] leading-snug text-[color:var(--mut)]">
-      <span>חושב</span>
-      <span className="flex items-end gap-0.5" aria-hidden="true">
-        <span className="h-1 w-1 animate-bounce rounded-full bg-[color:var(--acc)]" style={{ animationDelay: "0ms" }} />
-        <span className="h-1 w-1 animate-bounce rounded-full bg-[color:var(--acc)]" style={{ animationDelay: "150ms" }} />
-        <span className="h-1 w-1 animate-bounce rounded-full bg-[color:var(--acc)]" style={{ animationDelay: "300ms" }} />
-      </span>
+    <div className="flex max-w-[85%] items-end gap-2 self-end">
+      <div className="flex animate-fade-up items-center gap-2 rounded-[13px] border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-3.5 py-1.5 text-[14px] leading-snug text-[color:var(--mut)]">
+        <span>חושב</span>
+        <span className="flex items-end gap-0.5" aria-hidden="true">
+          <span className="h-1 w-1 animate-bounce rounded-full bg-[color:var(--acc)]" style={{ animationDelay: "0ms" }} />
+          <span className="h-1 w-1 animate-bounce rounded-full bg-[color:var(--acc)]" style={{ animationDelay: "150ms" }} />
+          <span className="h-1 w-1 animate-bounce rounded-full bg-[color:var(--acc)]" style={{ animationDelay: "300ms" }} />
+        </span>
+      </div>
+      <BrandFace size={22} />
     </div>
   );
 }
 
 // הצד נקבע לפי כיוון הכתיבה ולא לפי שמאל/ימין קשיחים: self-start הוא הקצה שממנו הטקסט
 // מתחיל, כלומר ימין בעברית. בעל העסק מימין, הסוכן משמאל - כמו בכל אפליקציית הודעות
-// בעברית (דיווח אלעד 26.8: הצדדים היו הפוכים, כי self-end בעמודה RTL הוא שמאל)
+// בעברית (דיווח אלעד 26.8: הצדדים היו הפוכים, כי self-end בעמודה RTL הוא שמאל).
+//
+// בועת היועץ נושאת את הפנים של הדמות (להב, 26.8) - שיחה עם מישהו, לא עם מערכת. הפנים
+// בתחתית הבועה כמו בכל ממשק צ'אט, ורק בצד היועץ - המשתמש נשאר בלי אווטאר. הן אחרונות
+// ב-DOM ולא ראשונות: בשורת flex ב-RTL האחרון הוא השמאלי, וזה הקצה החיצוני של הצד הזה
 function Bubble({ message }: { message: ChatMessage }) {
   if (message.role === "user") {
     return (
@@ -63,8 +71,11 @@ function Bubble({ message }: { message: ChatMessage }) {
     );
   }
   return (
-    <div className="max-w-[58ch] self-end whitespace-pre-wrap break-words rounded-[13px] border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-3.5 py-1.5 text-[14px] leading-snug">
-      {message.content}
+    <div className="flex max-w-[58ch] items-end gap-2 self-end">
+      <div className="min-w-0 whitespace-pre-wrap break-words rounded-[13px] border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-3.5 py-1.5 text-[14px] leading-snug">
+        {message.content}
+      </div>
+      <BrandFace size={22} />
     </div>
   );
 }
@@ -270,17 +281,17 @@ export function DefaultInterview({
     >
       {/* שורת הזהות: על איזה עסק הראיון הזה. היה חסר כאן בלבד, וכשיש כמה אבחונים אי אפשר
           היה לדעת עם מי מדברים (דיווח מייסד 20.8). אותו מבנה בדיוק כמו בדוח וב-Roadmap */}
-      {businessName != null && businessName !== "" && (
-        <header className="topbar">
-          {/* רק הזהות. "הדוח חי" כבר מוצג בכותרת המסך עצמו, ולהראות אותו פעמיים
-              על אותו מסך זה רעש ולא הדגשה */}
+      {/* השורה מרונדרת תמיד - בלי שם עסק המשתמש עדיין צריך את תפריט המשתמש ואת
+          חיפוש ההתחזות; רק שורת הזהות עצמה מותנית (ממצא סקירה 26.8) */}
+      <header className="topbar">
+        {businessName != null && businessName !== "" && (
           <span className="brand-txt"><small>הראיון</small><b>{businessName}</b></span>
-          <div className="side">
-            {isAdmin && <ImpersonateSearch />}
-            <UserMenu email={userEmail} isAdmin={isAdmin} />
-          </div>
-        </header>
-      )}
+        )}
+        <div className="side">
+          {isAdmin && <ImpersonateSearch />}
+          <UserMenu email={userEmail} isAdmin={isAdmin} />
+        </div>
+      </header>
       {/* הכותרת מעל הרשת ולא בתוך העמודה הראשית: העמודה הראשית היא השמאלית, ולכן
           כותרת בתוכה מתרחקת מהסיידבר. מעל הרשת היא מתחילה בקצה ההתחלה של התוכן -
           צמודה לסיידבר, כמו בתוכנית העבודה (הנחיית מייסד 20.8) */}
@@ -307,18 +318,30 @@ export function DefaultInterview({
               <div className="shell">
                 <div className="core card-pad">
                   {questionsDone ? (
-                    <>
-                      <p className="text-[16.5px] font-bold leading-snug tracking-[-.01em]">עברנו על כל השאלות - תודה!</p>
-                      <p className="mt-1 text-[12.5px] leading-relaxed text-[color:var(--mut)]">
-                        כל תשובה כבר עדכנה את הדוח. אפשר להוסיף פרטים בכתיבה חופשית למטה, או לעבור אליו.
-                      </p>
-                      <div className="mt-4">
-                        <button type="button" className="btn sm" disabled={!canFinish} onClick={() => void finish()}>
-                          לדוח המעודכן
-                          <CapArrow />
-                        </button>
+                    <div className="flex items-center gap-4">
+                      {/* רגע ההצלחה מקבל את פוזת האגודל (להב, 26.8) - הדמות חוגגת עם המשתמש.
+                          72 ולא 82: הכרטיס כאן מרופד צפוף יותר ואין גלילת דף שתבלע את ההפרש */}
+                      <img
+                        src="/brand/thumbs-up.webp"
+                        alt=""
+                        aria-hidden="true"
+                        width={72}
+                        className="shrink-0 max-sm:hidden"
+                        style={{ pointerEvents: "none" }}
+                      />
+                      <div className="min-w-0">
+                        <p className="text-[16.5px] font-bold leading-snug tracking-[-.01em]">עברנו על כל השאלות - תודה!</p>
+                        <p className="mt-1 text-[12.5px] leading-relaxed text-[color:var(--mut)]">
+                          כל תשובה כבר עדכנה את הדוח. אפשר להוסיף פרטים בכתיבה חופשית למטה, או לעבור אליו.
+                        </p>
+                        <div className="mt-3">
+                          <button type="button" className="btn sm" disabled={!canFinish} onClick={() => void finish()}>
+                            לדוח המעודכן
+                            <CapArrow />
+                          </button>
+                        </div>
                       </div>
-                    </>
+                    </div>
                   ) : (
                     <>
                       <p className="text-[16.5px] font-bold leading-snug tracking-[-.01em]">ספרו לי על העסק במילים שלכם</p>

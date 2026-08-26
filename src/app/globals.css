@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
-  מערכת העיצוב של AIT - הגרסה הנבחרת (הכרעת מייסד 18.8): כהה פרמיום, סגול וברקת, Rubik.
+  מערכת העיצוב של בדק עסק (לשעבר AIT) - הגרסה הנבחרת (הכרעת מייסד 18.8): כהה פרמיום, סגול וברקת, Rubik.
   ברירת המחדל כהה; html[data-mode="light"] הופך לתצוגה בהירה (מתג צף, עוגיית ait-mode).
   מערכת הגרסאות הישנה (modern/dark/vivid) כבר לא קובעת עיצוב - כל המסכים משתמשים
   בטוקנים האלה. רכיבי עזר: src/app/ui/ (מעטפת סיידבר, רקע, תנועה).
@@ -79,10 +79,12 @@ html[data-mode="light"]{
   --acc2:#0e8a60;
   --acc2-rgb:14,138,96;
   --acc2-soft:#0b6b4b;
-  --warn:#b3761f;
-  --warn-rgb:179,118,31;
-  --work:#c2601b;
-  --work-rgb:194,96,27;
+  /* הוכהו ב-26.8: הערכים הקודמים (#b3761f, #c2601b) נפלו מתחת ל-4.5:1 על הרקע
+     הבהיר בגדלים שבהם הם צובעים טקסט (אזהרת ההתחברות, תגי הסטטוס בלוח) */
+  --warn:#8a5a14;
+  --warn-rgb:138,90,20;
+  --work:#a04a12;
+  --work-rgb:160,74,18;
   --bad:#c94357;
   --bad-rgb:201,67,87;
   --surface-1:rgba(25,22,33,.045);
@@ -269,12 +271,102 @@ html[data-mode="light"] .theme-tgl .ic-moon{display:none}
   border-bottom:1px solid var(--hair-soft);
 }
 .brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:inherit}
-.brand-mark{
-  width:34px;height:34px;border-radius:11px;flex:none;
-  background:linear-gradient(135deg,var(--acc-deep1),var(--acc-deep2));
-  display:grid;place-items:center;color:#fff;font-size:12.5px;font-weight:800;
-  box-shadow:inset 0 1px 1px rgba(255,255,255,.3), 0 8px 20px rgba(var(--accd-rgb),.35);
+/* המותג בדק עסק (26.8): הפנים של הדמות במקום אריח אותיות, השם כטקסט בטוקנים */
+/* הגודל מגיע ממאפייני הרוחב של התמונה; הטבעת מצוירת כאן ולא בקובץ - חדה ומתהפכת בין מצבים */
+.brand-face{
+  flex:none;object-fit:cover;border-radius:50%;
+  border:2px solid rgba(var(--acc-rgb),.7);
+  background:radial-gradient(circle at 50% 38%, rgba(var(--acc-rgb),.16), rgba(var(--acc-rgb),.05));
 }
+.brand-name span{color:var(--acc)}
+.brand-dot{
+  display:inline-block;width:5px;height:5px;border-radius:50%;
+  background:var(--acc2);margin-inline-start:3px;vertical-align:2px;
+}
+/* הדמות שמציצה מעל חלון הסריקה - קישוט בלבד, נעלמת במסך צר. החלון מקבל שכבה
+   גבוהה ממנה כדי שקו החיתוך של חצי הגוף יוסתר מאחורי הסרגל העליון */
+.scan-peek{position:relative}
+.scan-peek>.shell{position:relative;z-index:1}
+.scan-buddy{
+  position:absolute;top:-104px;inset-inline-end:10px;width:146px;z-index:0;
+  transform:scaleX(-1);pointer-events:none;user-select:none;
+}
+/* גרסת ההירו: בצד הפנימי, בלי היפוך - מביט שמאלה-מטה אל תוך החלון */
+.scan-buddy.start{inset-inline-end:auto;inset-inline-start:16px;transform:none}
+/* מרכז העסק: הדמות יושבת על שפת הכרטיס הראשי, הרגליים נשפכות פנימה */
+.hub-buddy{
+  position:absolute;top:-56px;inset-inline-end:36px;width:116px;z-index:1;
+  pointer-events:none;user-select:none;
+}
+/* דלת התוכנית בדוח: הדמות עומדת בקצה הכרטיס, והתוכן מפנה לה מקום.
+   .core.plan-core ולא .plan-core: הריפוד חייב לגבור על ה-padding של .card-pad,
+   שמאוחר ממנו בקובץ ולכן מנצח בסדר המקור בספציפיות שווה (ממצא סקירה 26.8) */
+.core.plan-core{position:relative;padding-inline-end:128px}
+.plan-buddy{
+  position:absolute;bottom:0;inset-inline-end:16px;width:102px;z-index:1;
+  pointer-events:none;user-select:none;
+}
+/* נכס שקיים בשתי גרסאות מצב (לוקאפ כהה/בהיר): מציגים רק את המתאימה */
+html[data-mode="light"] .only-dark{display:none}
+html:not([data-mode="light"]) .only-light{display:none}
+/* הלוקאפ המלא מעל כרטיס מי-אנחנו - חתימת המותג */
+.about-brand{display:flex;justify-content:center;margin-bottom:26px}
+.about-brand img{width:min(380px,82%);pointer-events:none;user-select:none}
+/* הדמות המצביעה מתחת לכפתורי השלבים - מצביעה שמאלה אל הפאנל החי. הרצועה מעליה
+   בגובה קבוע (התיאורים פתוחים תמיד), אז היא לא זזה */
+.stage-guide{width:186px;margin:24px auto 0;display:block;pointer-events:none;user-select:none}
+@media (max-width:880px){.stage-guide{display:none}}
+/* כרטיס האבחון בהירו - עוצב מחדש (26.8): כותרת קצרה, שדה גדול, שטיפה סגולה עדינה */
+.diag-card{
+  padding:18px 18px 15px;
+  background:
+    radial-gradient(130% 120% at 85% -10%, rgba(var(--accd-rgb),.13), transparent 52%),
+    var(--core-bg);
+}
+.diag-t{font-size:15.5px;font-weight:700;margin-bottom:11px}
+.diag-card .field input{padding-block:16px;font-size:15.5px}
+.diag-card .btn.wide{min-height:52px;font-size:15px}
+
+/* ===== הפוטר של הנחיתה: לוקאפ נייטיב, קישורים, והדמות המצביעה ===== */
+.land-foot{position:relative;z-index:1;border-top:1px solid var(--hair-soft);margin-top:8px;padding-top:46px}
+.land-foot-in{
+  margin-inline:auto;
+  display:flex;align-items:flex-end;justify-content:space-between;gap:40px;flex-wrap:wrap;
+}
+.foot-brand{display:flex;align-items:center;gap:18px;padding-bottom:8px}
+.foot-face{width:104px;flex:none;pointer-events:none;user-select:none}
+.foot-brand .brand-name{display:block;font-size:38px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.foot-brand .brand-dot{width:8px;height:8px;margin-inline-start:5px;vertical-align:4px}
+/* קו החתימה של הוורדמארק - כמו בלוקאפ שנוצר: פס מלא אחרי הנקודה הירוקה */
+.foot-rule{display:block;height:5px;width:132px;border-radius:99px;background:var(--txt);opacity:.85;margin-top:10px}
+.foot-tag{margin-top:10px;font-size:12.5px;color:var(--mut)}
+.foot-nav{display:flex;gap:24px;padding-bottom:16px}
+.foot-nav a{font-size:13.5px;font-weight:600;color:var(--mut);text-decoration:none;transition:color .25s}
+.foot-nav a:hover{color:var(--txt)}
+/* הדמות בגוף מלא, מהופכת כדי להצביע פנימה אל הקישורים; נעלמת בטלפון */
+.foot-point{width:150px;flex:none;transform:scaleX(-1);pointer-events:none;user-select:none}
+.foot-line{
+  border-top:1px solid var(--hair-soft);margin-top:26px;padding:14px 0 18px;
+  text-align:center;font-size:12px;color:var(--dim);
+}
+@media (max-width:760px){
+  .land-foot-in{flex-direction:column;align-items:center;text-align:center}
+  .foot-brand{flex-direction:column;padding-bottom:0}
+  .foot-rule{margin-inline:auto}
+  .foot-nav{padding-bottom:0}
+  .foot-point{display:none}
+}
+
+/* רצועת הסגירה בנחיתה: הדמות המציגה מציצה מעל הפס, קו החיתוך מוסתר מאחורי הליבה */
+.cta-buddy{
+  position:absolute;top:-58px;inset-inline-end:26px;width:112px;
+  pointer-events:none;user-select:none;
+}
+@media (max-width:880px){
+  .hub-buddy,.plan-buddy,.cta-buddy{display:none}
+  .core.plan-core{padding-inline-end:0}
+}
+@media (max-width:760px){.scan-buddy{display:none}}
 .brand-txt small{display:block;font-size:10.5px;color:var(--dim);letter-spacing:.12em;font-weight:600}
 .brand-txt{min-width:0}
 /* שם עסק ארוך היה מגדיל את גובה הכותרת ומזיז את כל מה שנערם מתחתיה. חיתוך במקום גלישה */
@@ -294,6 +386,8 @@ html[data-mode="light"] .theme-tgl .ic-moon{display:none}
 }
 .chip.live .dot{width:7px;height:7px;border-radius:50%;background:var(--acc2);
   box-shadow:0 0 10px rgba(var(--acc2-rgb),.9);animation:breathe 2.4s var(--ease) infinite}
+/* צ'יפ שנושא טקסט באורך לא ידוע (שם עסק, כתובת) - חיתוך במקום גלישה */
+.chip.clip{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @keyframes breathe{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.72)}}
 .avatar{
   width:38px;height:38px;border-radius:50%;flex:none;
@@ -305,7 +399,9 @@ html[data-mode="light"] .theme-tgl .ic-moon{display:none}
 .field{position:relative;display:block}
 .field > svg{position:absolute;top:50%;inset-inline-end:16px;transform:translateY(-50%);opacity:.4;pointer-events:none}
 .field input{
-  width:100%;padding:15px 46px 15px 16px;
+  /* המרזב לאייקון בריפוד לוגי, כמו העוגן של האייקון עצמו (inset-inline-end) -
+     כך השדה מיושר נכון גם ב-RTL וגם בעטיפת ה-ltr של שדה האימייל (ממצא סקירה 26.8) */
+  width:100%;padding-block:15px;padding-inline-start:16px;padding-inline-end:46px;
   background:var(--surface-1);border:1px solid var(--hair-soft);border-radius:14px;
   font-size:15px;font-weight:500;outline:none;color:var(--txt);
   transition:border-color .3s,background .3s,box-shadow .3s;
@@ -333,6 +429,12 @@ html[data-mode="light"] .theme-tgl .ic-moon{display:none}
   font-size:12.5px;color:var(--bad);
   background:rgba(var(--bad-rgb),.07);border:1px solid rgba(var(--bad-rgb),.3);
   border-radius:12px;padding:10px 14px;
+}
+.form-error>svg{flex:none;margin-top:2px}
+/* אותה קופסה בגווני אזהרה - למצבים כנים שאינם שגיאה (התחברות לא מוגדרת) */
+.form-error.warn{
+  color:var(--warn);
+  background:rgba(var(--warn-rgb),.08);border-color:rgba(var(--warn-rgb),.3);
 }
 
 /* ===== לוח (גריד 12) ===== */
@@ -502,6 +604,11 @@ html[data-mode="light"] .gap-no{text-shadow:none}
 .sl .res{display:block;font-size:12px;color:var(--acc2-soft);font-weight:600;
   max-height:0;overflow:hidden;opacity:0;transition:max-height .5s var(--ease-out),opacity .5s}
 .sl.done .res{max-height:24px;opacity:1;margin-top:1px}
+/* שלב שנכשל בסריקה החיה: וי אדום ושורת תוצאה מעומעמת - מודיפייר, לא סגנון ידני */
+.sl.fail .chk span{
+  background:rgba(var(--bad-rgb),.12);border-color:rgba(var(--bad-rgb),.4);color:var(--bad);
+}
+.sl.fail .res{color:var(--mut)}
 
 /* ===== מעטפת המערכת: סיידבר מתקפל (ui/app-shell.tsx) ===== */
 .app{position:relative;z-index:1;min-height:100dvh;display:flex}
@@ -685,8 +792,44 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
   width:min(var(--content-max), calc((100vw - var(--rail-w)) * .94));
 }
 @media (max-width:880px){.land-wrap{width:var(--content-w)}}
-.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:46px;align-items:center;padding:44px 0 48px}
-@media (max-width:920px){.hero-grid{grid-template-columns:1fr;gap:26px;padding:24px 0 30px}}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:46px;align-items:start;padding:44px 0 48px}
+/* מבנה רביעי (משוב מייסד 26.8): עמודה ימנית מלאה - כותרת, סלוגן, טופס, המצב היום.
+   עמודה שמאלית - החלון, עם הדמות בפינה השמאלית-עליונה שלו פונה ימינה (ברירת
+   המחדל של .scan-buddy: מעוגנת ל-inline-end ומהופכת) */
+/* stretch ולא start הבסיסי: בלי זה העמודה הנמוכה לא נמתחת, והיישור של שתי
+   שורות ההערה החזיק רק ברוחבים שבהם העמודה הימנית במקרה גבוהה יותר (באג 26.8) */
+.hero-v4{grid-template-columns:1.02fr .98fr;column-gap:52px;align-items:stretch}
+/* שתי העמודות: flex עמודה, ההערה האחרונה מעוגנת לתחתית - נגמרות באותו קו בכל רוחב */
+.hero-v4 .hero-main{min-width:0;display:flex;flex-direction:column}
+.hero-v4 .hero-demo{display:flex;flex-direction:column}
+.hero-v4 .hero-demo .demo-note{margin-top:auto;padding-top:11px}
+.hero-v4 .hero-demo{padding-top:104px}
+/* הטופס בעמודה: שדה וכפתור באותה שורה, בערך 70/30 (משוב מייסד 26.8).
+   מתחת ל-560px החוק הבסיסי של .fieldrow כבר עורם אותם */
+.hero-v4 .hero-form{margin-top:auto;padding-top:20px}
+.hero-v4 .hero-form .fieldrow{grid-template-columns:2.2fr 1fr}
+/* המצב היום יושב בין הסלוגן לכרטיס הבדיקה - בלי קו מפריד, זה רצף של טיעון */
+.hero-v4 .hero-sit{margin-top:24px}
+/* דוגמאות לחיצות בתוך כרטיס הטופס */
+.ex-chips{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:10px}
+.ex-lb{font-size:11.5px;font-weight:600;color:var(--dim)}
+.ex-chip{
+  font:inherit;font-size:12px;font-weight:600;color:var(--mut);cursor:pointer;
+  border:1px solid var(--hair-soft);border-radius:999px;padding:4px 12px;
+  background:var(--surface-1);transition:color .25s,border-color .25s,background .25s;
+}
+.ex-chip:hover{color:var(--acc-soft);border-color:rgba(var(--acc-rgb),.4);background:rgba(var(--acc-rgb),.07)}
+.hero-sit .sit-k{
+  font-size:11px;font-weight:700;letter-spacing:.2em;color:var(--dim);margin-bottom:12px;
+}
+.hero-sit .sit-say{font-size:16px;line-height:1.65;max-width:none}
+.hero-sit .sit-say + .sit-say{margin-top:12px}
+@media (max-width:920px){
+  .hero-grid{grid-template-columns:1fr;gap:26px;padding:24px 0 30px}
+  .hero-v4 .hero-form{margin-top:0}
+  .hero-v4 .hero-demo{padding-top:0}
+  .hero-v4 .scan-buddy{display:none}
+}
 .hero-h1{
   font-size:clamp(29px,3.3vw,44px);font-weight:800;line-height:1.2;
   letter-spacing:-.014em;text-wrap:balance;
@@ -700,6 +843,12 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
 .how-head{display:flex;align-items:center;gap:16px;margin-bottom:22px}
 .how-head h2{font-size:12px;font-weight:700;letter-spacing:.2em;color:var(--mut);white-space:nowrap}
 .how-head::after{content:"";flex:1;height:1px;background:linear-gradient(-90deg,var(--hair),transparent)}
+/* כותרת רצועת הסגירה - הסקאלה שהייתה מוגדרת inline עברה הנה (ממצא סקירה 26.8) */
+.cta-h{
+  flex:1;min-width:220px;
+  font-size:clamp(16px,1.7vw,21px);line-height:1.4;
+  letter-spacing:-.01em;max-width:26ch;font-weight:700;text-wrap:balance;
+}
 .cta-core{
   padding:34px 34px;
   display:flex;align-items:center;gap:30px;flex-wrap:wrap;
@@ -825,7 +974,7 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
   background:var(--surface-1);border:1px solid var(--hair-soft);border-radius:8px;padding:4px 11px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.term-bar .pct{font-size:12px;font-weight:700;color:var(--acc-soft);min-width:36px;text-align:left;flex:none}
+.term-bar .pct{font-size:12px;font-weight:700;color:var(--acc-soft);min-width:36px;text-align:end;flex:none}
 .pbar{height:2px;background:var(--rail);position:relative;overflow:hidden}
 .pbar i{
   position:absolute;inset-block:0;inset-inline-start:0;width:100%;display:block;
@@ -1048,12 +1197,13 @@ html{scroll-behavior:smooth}
 }
 .stage-btn.on .n{color:#fff;background:linear-gradient(135deg,var(--acc-deep1),var(--acc-deep2));border-color:transparent}
 .stage-btn b{display:block;font-size:14.5px;font-weight:700;line-height:1.4}
+/* התיאור פתוח תמיד (משוב מייסד 26.8): הקיפול גרם לכל הרצועה לקפוץ בכל מעבר שלב,
+   והדמות שמתחת זזה איתה. גובה קבוע = שקט; ההבחנה בין פעיל לרדום נשארת בצבע */
 .stage-btn .sd{
   display:block;font-size:12.5px;color:var(--mut);margin-top:4px;line-height:1.6;
-  max-height:0;opacity:0;overflow:hidden;
-  transition:opacity .4s var(--ease-out);
+  opacity:.62;transition:opacity .4s var(--ease-out);
 }
-.stage-btn.on .sd{max-height:110px;opacity:1}
+.stage-btn.on .sd{opacity:1}
 .stage-btn .tick{
   position:absolute;inset-block-end:0;inset-inline:0;height:2px;
   background:linear-gradient(90deg,var(--acc),var(--acc2));
@@ -1062,9 +1212,14 @@ html{scroll-behavior:smooth}
 .stage-btn.on .tick{animation:stage-tick 6s linear both}
 .stage-wrap[data-paused="true"] .stage-btn.on .tick{animation-play-state:paused}
 @keyframes stage-tick{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-.stage-panel{position:relative;min-height:390px}
-.stage-fade{animation:stage-fade .55s var(--ease-out) both}
-@keyframes stage-fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+/* ערימת גריד: כל הפאנלים באותו תא, הגובה קבוע לפי הגבוה מביניהם - אפס קפיצות במעבר */
+.stage-panel{position:relative;display:grid}
+.stage-panel>.stage-card{grid-area:1/1}
+.stage-card{
+  opacity:0;transform:translateY(10px);pointer-events:none;
+  transition:opacity .55s var(--ease-out), transform .55s var(--ease-out);
+}
+.stage-card.on{opacity:1;transform:none;pointer-events:auto}
 .demo-note{
   display:flex;align-items:center;gap:8px;
   margin-top:11px;font-size:12px;color:var(--mut);
@@ -1073,6 +1228,11 @@ html{scroll-behavior:smooth}
 
 /* תצוגה מוקטנת של הדוח בתוך דף הנחיתה - אותן מחלקות, בקנה מידה קטן */
 .repC.mini{padding:0;gap:12px;grid-template-columns:172px minmax(0,1fr);max-width:none}
+/* הכרטיס הפעיל בהדגמה - אותו מנגנון on של שאר המערכת, עם מעבר רך כמו ניווט העוגן */
+.repC.mini .core.on{
+  border-color:rgba(var(--acc-rgb),.45);background:rgba(var(--acc-rgb),.05);
+  transition:border-color .3s,background .3s;
+}
 .repC.mini .rep-side{position:static;gap:9px}
 .repC.mini .rep-main{gap:9px}
 .repC.mini .shell{border-radius:16px;padding:5px}
@@ -1668,7 +1828,7 @@ button.ans-row:not(:disabled):active{background:rgba(var(--acc-rgb),.16)}
    וכל שורה נשברה אחרת) - אותה תבנית משמשת גם את שורת הכותרות, כדי שלא יזוזו זו מזו */
 .acc-grid{
   display:grid;align-items:center;gap:10px;
-  grid-template-columns:18px 40px minmax(0,1fr) 64px 74px 84px 118px;
+  grid-template-columns:18px 30px 40px minmax(0,1fr) 64px 74px 84px 118px 108px 84px;
 }
 .acc-head{
   padding:8px 6px 6px;font-size:10.5px;font-weight:700;letter-spacing:.12em;
@@ -1694,3 +1854,27 @@ button.ans-row:not(:disabled):active{background:rgba(var(--acc-rgb),.16)}
   .acc-grid{display:flex;flex-wrap:wrap;gap:8px}
   .acc-row .acc-body{padding-inline:10px}
 }
+
+/* --- צ'יפ-סינון (לוח המשימות, 21.8): צ'קבוקס שנראה כמו גלולה, בלי JS.
+   ה-input מוסתר חזותית אבל נשאר נגיש - מקלדת מקבלת את טבעת המיקוד על הגלולה --- */
+.fchips{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.fchip{position:relative;display:inline-flex}
+.fchip input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.fchip span{
+  display:inline-flex;align-items:center;border-radius:999px;cursor:pointer;
+  padding:4px 12px;font-size:12px;font-weight:600;
+  color:var(--mut);background:var(--surface-1);border:1px solid var(--hair);
+  transition:color .2s,background .2s,border-color .2s;
+}
+.fchip:hover span{color:var(--txt)}
+.fchip input:checked+span{
+  color:var(--acc-soft);background:rgba(var(--acc-rgb),.12);
+  border-color:rgba(var(--acc-rgb),.4);
+}
+.fchip input:focus-visible+span{outline:2px solid var(--acc);outline-offset:2px}
+.fchips .fchips-cap{
+  font-size:12.5px;font-weight:800;letter-spacing:.06em;color:var(--txt);
+  margin-inline-end:2px;
+}
+/* קטגוריה שאינה הראשונה מקבלת אוויר מהקבוצה שלפניה - הכל שורה זורמת אחת */
+.fchips .fchips-cap:not(:first-child){margin-inline-start:16px}

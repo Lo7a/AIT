@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveActingUser, isImpersonating, IMPERSONATE_COOKIE } from "../src/server/auth/impersonation";
+import { resolveActingUser, isImpersonating, viewAsAdmin, IMPERSONATE_COOKIE } from "../src/server/auth/impersonation";
 import { makeImpersonateHandler } from "../src/server/api/admin-handlers";
 import type { SessionUser } from "../src/server/auth/session";
 import type { UsageEventInput } from "../src/server/usage-events";
@@ -105,3 +105,25 @@ describe("makeImpersonateHandler", () => {
     expect(events).toHaveLength(0);
   });
 });
+
+describe("viewAsAdmin - הדמיה מלאה (הכרעת מייסד 24.8)", () => {
+  const adminU = { id: "a", authId: "aa", email: null, role: "admin" };
+  const ownerU = { id: "o", authId: "oo", email: null, role: "owner" };
+
+  it("אדמין רגיל (בלי התחזות) רואה ניהול", () => {
+    expect(viewAsAdmin({ user: adminU, actor: adminU })).toBe(true);
+  });
+
+  it("אדמין שמתחזה לבעל עסק לא רואה ניהול - בדיוק כמו בעל העסק", () => {
+    expect(viewAsAdmin({ user: ownerU, actor: adminU })).toBe(false);
+  });
+
+  it("אדמין שמתחזה לאדמין אחר כן רואה ניהול - זו ההדמיה הנכונה", () => {
+    expect(viewAsAdmin({ user: { ...adminU, id: "b" }, actor: adminU })).toBe(true);
+  });
+
+  it("לא מחובר - לא רואה", () => {
+    expect(viewAsAdmin(null)).toBe(false);
+  });
+});
+

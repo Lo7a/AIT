@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useAttachWait, useBlockedWait, useScanStream, type StepLine, type Target } from "./use-scan-stream";
+import { BrandFace, BrandName } from "../ui/brand";
 
 export type ScanAttach = { diagnosisId: string; status: string };
 
@@ -46,16 +47,12 @@ function ScanFrame({ target, busy, children }: { target: Target; busy: boolean; 
     <div className="above-ambient flex min-h-dvh flex-col">
       <header className="topbar">
         <span className="brand">
-          <span className="brand-mark">AIT</span>
-          <span className="brand-txt"><small>יועץ דיגיטלי</small><b>אבחון דיגיטלי</b></span>
+          <BrandFace />
+          <span className="brand-txt"><small>אבחון דיגיטלי</small><BrandName /></span>
         </span>
         <div className="side">
           {chip != null && (
-            <span
-              className="chip"
-              dir={target.name ? undefined : "ltr"}
-              style={{ maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-            >
+            <span className="chip clip" dir={target.name ? undefined : "ltr"}>
               {chip}
             </span>
           )}
@@ -73,24 +70,18 @@ function ScanFrame({ target, busy, children }: { target: Target; busy: boolean; 
 function StepRow({ step }: { step: StepLine }) {
   const failed = step.done && step.ok === false;
   return (
-    <li className={step.done ? "sl done" : "sl act"}>
+    <li className={step.done ? (failed ? "sl done fail" : "sl done") : "sl act"}>
       <span className="st" aria-hidden="true">
         <span className="idle" />
         <span className="spin"><i /></span>
         <span className="chk">
-          <span
-            style={failed
-              ? { background: "rgba(var(--bad-rgb),.12)", borderColor: "rgba(var(--bad-rgb),.4)", color: "var(--bad)" }
-              : undefined}
-          >
-            {failed ? <FailIcon /> : <CheckIcon />}
-          </span>
+          <span>{failed ? <FailIcon /> : <CheckIcon />}</span>
         </span>
       </span>
       <div className="tx">
         <span className="main-lb">{step.label}</span>
         {step.done && step.detail && (
-          <span className="res num" style={failed ? { color: "var(--mut)" } : undefined}>{step.detail}</span>
+          <span className="res num">{step.detail}</span>
         )}
       </div>
     </li>
@@ -109,6 +100,9 @@ function WaitingScreen({
 }) {
   return (
     <ScanFrame target={target} busy={true}>
+      <div className="scan-peek">
+        {/* גם כשמחכים לסריקה שרצה ברקע - הדמות באמצע בדיקה */}
+        <img src="/brand/inspecting.webp" alt="" aria-hidden="true" className="scan-buddy" />
       <section className="shell rv d1">
         <div className="core card-pad">
           <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">הסריקה כבר רצה ברקע</h1>
@@ -121,6 +115,7 @@ function WaitingScreen({
           )}
         </div>
       </section>
+      </div>
     </ScanFrame>
   );
 }
@@ -174,7 +169,7 @@ function LiveScan({ target }: { target: Target }) {
         <div role="alert" className="form-error mb-6">
           <div>
             <p>{error}</p>
-            <a href="/hub" className="mt-2 inline-block font-bold underline underline-offset-4" style={{ color: "var(--txt)" }}>
+            <a href="/hub" className="btn-quiet mt-2 inline-flex">
               חזרה למרכז העסק
             </a>
           </div>
@@ -186,27 +181,35 @@ function LiveScan({ target }: { target: Target }) {
           מה שלא הועתק מההדגמה במכוון: פס ההתקדמות. שם הוא נשען על מספר שלבים ידוע מראש,
           וכאן השלבים מגיעים בזרם - הפס היה מטפס ל-100 ונופל ל-50 בכל שלב חדש שנכנס */}
       {steps.length > 0 && (
+        <div className="scan-peek">
+          {/* הדמות מציצה מעל החלון עם הזכוכית מגדלת - היא באמת בודקת עכשיו. קו החיתוך
+              של חצי הגוף מוסתר מאחורי הסרגל העליון (z-index על ה-shell) */}
+          <img src="/brand/inspecting.webp" alt="" aria-hidden="true" className="scan-buddy" />
         <div className="shell term rv d2">
           <div className="core">
             <div className="term-bar">
-              <span className="addr" dir="ltr" title={website ?? target.url ?? undefined}>
+              {/* dir=ltr רק לכתובת אמיתית - שני מצבי הנפילה הם משפטים בעברית */}
+              <span className="addr" dir={known ? "ltr" : undefined} title={website ?? target.url ?? undefined}>
                 {known ? address : <span style={{ color: "var(--dim)" }}>{address}</span>}
               </span>
               <span className="pct num">{doneCount}/{steps.length}</span>
             </div>
 
             <div className="term-body">
-              <ul role="status" aria-live="polite">
+              <ul>
                 {steps.map((s) => (
                   <StepRow key={s.key} step={s} />
                 ))}
               </ul>
             </div>
 
-            <div className="term-foot">
+            {/* ההכרזה לקורא מסך יושבת על שורת הסיכום הקומפקטית, לא על כל הרשימה -
+                אחרת כל שלב חדש בזרם מקריא מחדש את כל המסך (ממצא סקירה 26.8) */}
+            <div className="term-foot" role="status">
               <span>{doneCount} מתוך {steps.length} שלבים הושלמו</span>
             </div>
           </div>
+        </div>
         </div>
       )}
     </ScanFrame>
