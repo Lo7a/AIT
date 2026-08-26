@@ -939,7 +939,10 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
 }
 .hero-h1 .hl2{color:var(--acc-soft)}
 .hero-sub{color:var(--mut);font-size:17px;line-height:1.65;max-width:46ch;text-wrap:pretty}
-.hero-sub b{color:var(--txt);font-weight:600}
+/* כלל מייסד (26.8): קטע מודגש לא נשבר באמצע - או שהוא נכנס בשורה או שהוא יורד
+   כיחידה שלמה לשורה הבאה. inline-block עוטף אותו כגוש */
+.hero-sub b{color:var(--txt);font-weight:600;display:inline-block}
+.sit-say em,.proof-say em{display:inline-block}
 .trust{display:flex;gap:14px;flex-wrap:wrap}
 .trust span{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--mut);font-weight:500}
 .trust svg{color:var(--acc2);flex:none}
