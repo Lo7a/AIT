@@ -758,19 +758,15 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
 
 /* ===== נחיתה והתחברות ===== */
 /* הניווט מתחיל שקוף ומקבל זכוכית וקו רק אחרי גלילה - בראש העמוד הוא לא מתחרה בכותרת */
+/* הניווט אטום וקבוע תמיד (משוב מייסד 26.8) - כמו שורת המערכת אחרי התחברות,
+   בלי מצב שקוף בראש העמוד. ה-on נשאר רק בשביל קו ההתקדמות */
 .land-nav{
   position:sticky;top:0;z-index:50;
   display:flex;align-items:center;gap:14px;
-  padding:11px 20px;
-  background:transparent;
-  border-bottom:1px solid transparent;
-  transition:background .4s var(--ease-out),border-color .4s var(--ease-out),padding .4s var(--ease-out);
-}
-.land-nav.on{
+  padding:10px 20px;
   background:var(--nav-glass);
-  border-bottom-color:var(--hair-soft);
+  border-bottom:1px solid var(--hair-soft);
   backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  padding-block:8px;
 }
 /* קו התקדמות הקריאה. transform-origin ימין - זה הכיוון שבו עברית מתקדמת */
 .nav-prog{
