@@ -318,11 +318,11 @@ html:not([data-mode="light"]) .only-light{display:none}
   justify-self:center;width:auto;height:min(56vh,580px);max-width:100%;
   pointer-events:none;user-select:none;
 }
-/* נשימה איטית לדמויות: תזוזה אנכית דרך המאפיין translate - לא נוגעת ב-transform
-   של ההיפוך. כבויה למי שביקש פחות תנועה */
+/* נשימה איטית לדמות ההירו בלבד (בשלבים היא סטטית - מייסד 26.8): תזוזה אנכית דרך
+   המאפיין translate - לא נוגעת ב-transform של ההיפוך. כבויה למי שביקש פחות תנועה */
 @keyframes buddy-float{0%,100%{translate:0 0}50%{translate:0 -9px}}
-.scan-buddy,.stage-guide{animation:buddy-float 6.5s var(--ease) infinite}
-@media (prefers-reduced-motion:reduce){.scan-buddy,.stage-guide{animation:none}}
+.scan-buddy{animation:buddy-float 6.5s var(--ease) infinite}
+@media (prefers-reduced-motion:reduce){.scan-buddy{animation:none}}
 /* מעבר הצבעים בין הסקשנים: שטיפה סגולה-ברקת עדינה שנכנסת ויוצאת בקצוות */
 .stage-sec{
   background:linear-gradient(180deg,
