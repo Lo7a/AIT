@@ -409,11 +409,16 @@ export function DefaultInterview({
             )}
           </div>
 
+          {/* iv-thread ולא ישירות על iv-scroll: המכל חייב להיות ברוחב מלא כדי שפס הגלילה
+              יישב בקצה העמודה, אבל השיחה עצמה יושבת ברוחב קריאה. בלי ההפרדה הזו הבועות
+              נצמדות לשני קצוות של עמודה ברוחב אלף פיקסלים */}
           <section aria-live="polite" className="iv-scroll" ref={scrollRef}>
-            {messages.map((m) => (
-              <Bubble key={m.id} message={m} />
-            ))}
-            {(busy || starting) && <TypingDots />}
+            <div className="iv-thread">
+              {messages.map((m) => (
+                <Bubble key={m.id} message={m} />
+              ))}
+              {(busy || starting) && <TypingDots />}
+            </div>
           </section>
 
           {error && (
