@@ -389,6 +389,23 @@ html:not([data-mode="light"]) .only-light{display:none}
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .topbar .side{margin-inline-start:auto;display:flex;align-items:center;gap:10px}
+/* שורת העובדות בסרגל העליון של הדוח (בקשת אלעד 26.8): כל מה שידוע על העסק ועל הסריקה,
+   בשורה אחת שקטה ליד שמו. קווים דקים ולא גלולות - חמש גלולות בסרגל דק נקראות כחמישה
+   כפתורים, והן לא כפתורים אלא עובדות. המספרים לבד מודגשים, כי הם מה שהעין מחפשת */
+.bar-facts{
+  display:flex;align-items:center;flex-wrap:wrap;gap:5px 15px;
+  min-width:0;font-size:12px;line-height:1.5;color:var(--dim);
+}
+.bar-facts > * + *{border-inline-start:1px solid var(--hair-soft);padding-inline-start:15px}
+.bar-facts b{color:var(--mut);font-weight:700}
+.bar-facts .clip{max-width:26ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:1180px){
+  /* בסרגל צר העובדות היו נדחסות על תפריט המשתמש. הן יורדות לשורה משלהן בתוך אותו סרגל
+     ולא נעלמות ולא משוכפלות במקום אחר */
+  .topbar{flex-wrap:wrap}
+  .bar-facts{order:3;flex-basis:100%;padding-top:2px}
+  .bar-facts > :first-child{border-inline-start:none;padding-inline-start:0}
+}
 .chip{
   font-size:12px;font-weight:600;color:var(--mut);
   border:1px solid var(--hair-soft);border-radius:999px;padding:4px 13px;
@@ -1215,13 +1232,6 @@ html{scroll-behavior:smooth}
   display:flex;align-items:center;justify-content:space-between;gap:26px;flex-wrap:wrap;
 }
 .rep-head .who{min-width:0;flex:1 1 420px}
-/* שם העסק והמטא יורשים את גודל הפסקה של page-head, ולכן נקבעים כאן במפורש */
-.rep-head-biz{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin-top:7px}
-.rep-head-biz b{font-size:16px;font-weight:800;letter-spacing:-.012em;color:var(--txt)}
-.rep-head-biz i{font-style:normal;font-size:12.5px;color:var(--dim)}
-/* הצ'יפים מתחילים מצד הקריאה ולא ממורכזים כמו בגרסת העמודה הצרה */
-.rep-head .mini-meta{justify-content:flex-start;margin-top:11px}
-.rep-head .mini-meta .clip{max-width:34ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rep-head-score{display:flex;flex-direction:column;align-items:center;gap:7px;flex:none}
 @media (max-width:760px){
   /* בטלפון החוגה עוברת מתחת לזהות ולא לצדה, והראש נקרא כטור אחד */

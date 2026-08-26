@@ -585,8 +585,25 @@ export function DefaultReport({
       business={{ name: business.name, missing: missingCount(ledger) }}
       ledger={ledger}
     >
+      {/* הסרגל נושא את הזהות ואת כל מה שידוע על העסק ועל הסריקה הזו (בקשת אלעד 26.8).
+          כאן ולא בכותרת: הסרגל דביק, כך שהתשובה ל"על מי מדובר ומה נמדד" נשארת על המסך
+          גם בעומק הדוח. כל פרט הוא ממצא שנאסף בפועל - שדה שלא הגיע פשוט לא מוצג */}
       <header className="topbar">
         <span className="brand-txt"><small>הדוח המלא</small><b>{business.name}</b></span>
+        <div className="bar-facts">
+          {identityMeta !== "" && <span>{identityMeta}</span>}
+          {business.website && <span className="clip" dir="ltr">{business.website}</span>}
+          {findings.business.reviewCount != null && (
+            <span><b className="num">{findings.business.reviewCount}</b> ביקורות</span>
+          )}
+          {findings.business.rating != null && (
+            <span>דירוג <b className="num">{findings.business.rating}</b></span>
+          )}
+          {/* "נסרקו" ולא "יש": זה מה שהזחילה עברה בפועל, לא מספר העמודים באתר */}
+          {pagesCrawled != null && pagesCrawled > 0 && (
+            <span><b className="num">{pagesCrawled}</b> עמודים נסרקו</span>
+          )}
+        </div>
         <div className="side">
           {/* התחזות מהסרגל העליון, לאדמין בלבד (בקשת מייסד 20.8) */}
           {isAdmin && <ImpersonateSearch />}
@@ -602,25 +619,7 @@ export function DefaultReport({
         <header className="page-head rep-head rv">
           <div className="who">
             <h1>הדוח המלא</h1>
-            <p className="rep-head-biz">
-              <b>{business.name}</b>
-              {identityMeta !== "" && <i>{identityMeta}</i>}
-            </p>
-            <div className="mini-meta">
-              {business.website && (
-                <span className="clip" dir="ltr">{business.website}</span>
-              )}
-              {findings.business.reviewCount != null && (
-                <span><b className="num">{findings.business.reviewCount}</b> ביקורות</span>
-              )}
-              {findings.business.rating != null && (
-                <span>דירוג <b className="num">{findings.business.rating}</b></span>
-              )}
-              {/* "נסרקו" ולא "יש": זה מה שהזחילה עברה בפועל, לא מספר העמודים באתר */}
-              {pagesCrawled != null && pagesCrawled > 0 && (
-                <span><b className="num">{pagesCrawled}</b> עמודים נסרקו</span>
-              )}
-            </div>
+            <p>מה נמצא על הנוכחות הדיגיטלית של {business.name}, מה זה אומר, ומה כדאי לעשות עם זה.</p>
           </div>
 
           {/* הציון האמיתי בלבד. אין ציון (אין די מידע) - אומרים את זה ביושר, בלי חוגה
