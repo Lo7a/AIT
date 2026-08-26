@@ -753,6 +753,9 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
 }
 .hero-head{grid-area:head}
 .hero-v3 .hero-demo{grid-area:demo;padding-top:116px}
+/* החלון לא נמתח על כל הרוחב (משוב מייסד 26.8) - חצי עמוד, ממורכז, הדמות על קצהו */
+.hero-v3 .hero-demo .scan-peek{max-width:720px;margin-inline:auto}
+.hero-v3 .demo-note{justify-content:center}
 .hero-form{grid-area:form}
 .hero-v3 .hero-sit{grid-area:sit}
 /* בחלון ברוחב מלא הדמות מקבלת נוכחות גדולה יותר */

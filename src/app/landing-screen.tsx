@@ -1082,8 +1082,10 @@ export function LandingScreen() {
         <section className="hero-grid hero-v3">
           <header className="hero-head">
             {/* בלי תג "אבחון דיגיטלי לעסקים" - הניווט כבר אומר את זה מילה במילה */}
+            {/* הכותרת הוחלפה (הנחיית מייסד 26.8): מ"כמה שווה הנוכחות הדיגיטלית" המופשט
+                לשאלה שבעל עסק מרגיש בבטן - והיא בדיוק מה שהסריקה באמת בודקת */}
             <h1 className="hero-h1 rv d1">
-              כמה שווה <span className="hl2">הנוכחות הדיגיטלית</span> של העסק שלך?
+              כמה לקוחות <span className="hl2">מחפשים אותך עכשיו</span> - ולא מוצאים?
             </h1>
             <p className="hero-sub rv d2" style={{ marginTop: 10 }}>
               סורקים את העסק, שואלים כמה שאלות, ובונים תוכנית עבודה
@@ -1191,7 +1193,7 @@ export function LandingScreen() {
               {/* הדמות מציגה את ההזמנה האחרונה בעמוד - כף יד פתוחה אל הכפתור */}
               <img src="/brand/presenting.webp" alt="" aria-hidden="true" className="cta-buddy" />
               <div className="core cta-core">
-                <h2 className="cta-h">כמה שווה הנוכחות הדיגיטלית של העסק שלך?</h2>
+                <h2 className="cta-h">כמה לקוחות מחפשים אותך עכשיו - ולא מוצאים?</h2>
                 <button type="button" className="btn-invert" onClick={startDiagnosis}>
                   אבחן את העסק שלי
                   <CapArrow />
