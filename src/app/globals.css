@@ -312,10 +312,21 @@ html:not([data-mode="light"]) .only-light{display:none}
 /* הלוקאפ המלא מעל כרטיס מי-אנחנו - חתימת המותג */
 .about-brand{display:flex;justify-content:center;margin-bottom:26px}
 .about-brand img{width:min(380px,82%);pointer-events:none;user-select:none}
-/* הדמות המצביעה מתחת לכפתורי השלבים - מצביעה שמאלה אל הפאנל החי. הרצועה מעליה
-   בגובה קבוע (התיאורים פתוחים תמיד), אז היא לא זזה */
-.stage-guide{width:186px;margin:24px auto 0;display:block;pointer-events:none;user-select:none}
+/* הדמות המצביעה עומדת מימין לפאנל ומצביעה עליו (הכיוון הטבעי שלה - שמאלה) */
+.stage-guide{width:172px;flex:none;pointer-events:none;user-select:none}
 @media (max-width:880px){.stage-guide{display:none}}
+/* רצועת ההוכחות: כרטיסים בלי פסקאות, ומשפט המייסדים כפתיח */
+.proof-say{
+  font-size:clamp(16px,1.6vw,20px);line-height:1.6;font-weight:600;
+  letter-spacing:-.01em;max-width:52ch;text-wrap:pretty;margin-bottom:24px;
+}
+.proof-say em{font-style:normal;color:var(--acc-soft)}
+.proof-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+/* הירו ואיך זה עובד תופסים עמוד מלא בדסקטופ (מייסד 26.8); במובייל גובה טבעי */
+@media (min-width:921px){
+  .hero-v4{min-height:calc(100dvh - 120px);align-content:center}
+  .stage-sec{min-height:100dvh;display:flex;flex-direction:column;justify-content:center;padding-bottom:0}
+}
 /* כרטיס האבחון בהירו - עוצב מחדש (26.8): כותרת קצרה, שדה גדול, שטיפה סגולה עדינה */
 .diag-card{
   padding:18px 18px 15px;
@@ -1053,13 +1064,20 @@ html{scroll-behavior:smooth}
 .dim-row:not(:has(.fill-bar)){grid-template-areas:"lb sc";gap:0 10px}
 
 /* ===== דף הנחיתה: מסלול השלבים עם תצוגה חיה לכל שלב ===== */
-.stage-wrap{display:grid;grid-template-columns:290px minmax(0,1fr);gap:22px;align-items:start}
-@media (max-width:880px){.stage-wrap{grid-template-columns:1fr;gap:12px}}
+/* סידור מייסד 26.8: התצוגה (דמות + פאנל מוקטן) בעמודה הימנית, הכרטיסיות בשמאלית.
+   ב-RTL העמודה הראשונה היא הימנית */
+.stage-wrap{display:grid;grid-template-columns:minmax(0,1fr) 290px;grid-template-areas:"show list";gap:26px;align-items:start}
+.stage-show{grid-area:show;display:flex;align-items:center;gap:18px;min-width:0}
+.stage-list{grid-area:list}
+@media (max-width:880px){
+  .stage-wrap{grid-template-columns:1fr;grid-template-areas:"list" "show";gap:12px}
+}
 .stage-list{display:flex;flex-direction:column;gap:9px}
 @media (max-width:880px){
   .stage-list{flex-direction:row;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
   .stage-list::-webkit-scrollbar{display:none}
   .stage-btn{flex:0 0 78%}
+  .stage-show{gap:0}
 }
 .stage-btn{
   position:relative;overflow:hidden;text-align:start;cursor:pointer;
