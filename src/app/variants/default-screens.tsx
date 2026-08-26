@@ -622,9 +622,11 @@ export function DefaultReport({
           <span>{FACT_GLYPH.clock}נסרק {SCAN_DATE_FMT.format(report.scan.createdAt)}</span>
           {/* קישור אמיתי, ומציג את המארח בלבד כמו שדפדפן מציג. הכתובת המלאה עם הפרוטוקול
               והלוכסן היא מה שהמכונה צריכה, לא מה שבעל העסק קורא */}
+          {/* dir=ltr על המארח בלבד ולא על הקישור כולו: הקישור נשאר בכיוון הסרגל, ולכן
+              הגלובוס יושב מימין לטקסט כמו כל שאר האייקונים בשורה */}
           {business.website && (
-            <a href={business.website} target="_blank" rel="noopener noreferrer" dir="ltr">
-              {FACT_GLYPH.globe}<span className="clip">{hostOf(business.website)}</span>
+            <a href={business.website} target="_blank" rel="noopener noreferrer">
+              {FACT_GLYPH.globe}<span className="clip" dir="ltr">{hostOf(business.website)}</span>
             </a>
           )}
           {/* דירוג וביקורות יחד, כמו שגוגל מציג אותם - זו צורה שכל בעל עסק מזהה מיד */}

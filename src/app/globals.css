@@ -393,28 +393,38 @@ html:not([data-mode="light"]) .only-light{display:none}
    בשורה אחת שקטה ליד שמו. קווים דקים ולא גלולות - חמש גלולות בסרגל דק נקראות כחמישה
    כפתורים, והן לא כפתורים אלא עובדות. המספרים לבד מודגשים, כי הם מה שהעין מחפשת */
 .bar-facts{
-  display:flex;align-items:center;flex-wrap:wrap;gap:5px 14px;
-  min-width:0;font-size:12px;line-height:1.5;color:var(--mut);
+  display:flex;align-items:center;flex-wrap:wrap;gap:6px;
+  min-width:0;font-size:12px;line-height:1.4;color:var(--mut);
 }
-.bar-facts > *{white-space:nowrap}
-.bar-facts > * + *{border-inline-start:1px solid var(--hair-soft);padding-inline-start:14px}
-/* האייקון לפני הטקסט, נמוך מעט מקו הבסיס כדי לשבת מול אמצע האות ולא מול הכתר שלה */
-.bar-facts svg{width:13px;height:13px;vertical-align:-2.5px;margin-inline-end:6px;color:var(--dim)}
+/* כל עובדה על אריח משלה (בקשת אלעד 26.8) - זו ההפרדה בין נתון לנתון, במקום קווים דקים.
+   רדיוס קטן ולא גלולה: תא נתונים, לא כפתור. flex ולא inline: ה-preflight של Tailwind
+   הופך כל svg ל-display:block, ובתוך שורה אינליין האייקון נערם מעל הטקסט במקום לצדו.
+   בשורת flex הסדר הוא סדר ה-DOM בכיוון הכתיבה, כלומר האייקון (הראשון) מימין לטקסט */
+.bar-facts > *{
+  display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+  padding:4px 9px;border-radius:9px;
+  background:var(--surface-1);border:1px solid var(--hair-soft);
+}
+.bar-facts svg{width:13px;height:13px;flex:none;color:var(--dim)}
 .bar-facts b{color:var(--txt);font-weight:700}
 /* הכוכב בצבע הכוכב: ענבר. זה הצבע היחיד בשורה, ולכן העין מוצאת את הדירוג ראשון */
 .bar-facts .star svg{color:var(--warn)}
 .bar-facts .sep{margin-inline:6px;color:var(--dim)}
 /* קישור שקט: אותו צבע כמו השכנים, וקו רק בריחוף - בסרגל של עובדות קישור צבעוני היה
    צועק. הקו התחתון הקבוע הוא של האתר בלבד, כי הוא היחיד כאן שאפשר ללחוץ עליו */
-.bar-facts a{color:inherit;text-decoration:none;border-bottom:1px solid var(--hair);transition:color .2s,border-color .2s}
-.bar-facts a:hover{color:var(--txt);border-bottom-color:var(--acc)}
-.bar-facts .clip{display:inline-block;max-width:26ch;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
+.bar-facts a{color:inherit;text-decoration:none;transition:color .2s,border-color .2s,background .2s}
+.bar-facts a:hover{color:var(--txt);border-color:rgba(var(--acc-rgb),.45);background:rgba(var(--acc-rgb),.08)}
+/* המארח: הטקסט עצמו מקבל קו תחתון דק, כי הוא היחיד בשורה שאפשר ללחוץ עליו */
+.bar-facts .clip{
+  min-width:0;max-width:26ch;overflow:hidden;text-overflow:ellipsis;
+  text-decoration:underline;text-decoration-color:var(--hair);text-underline-offset:3px;
+}
+.bar-facts a:hover .clip{text-decoration-color:var(--acc)}
 @media (max-width:1180px){
   /* בסרגל צר העובדות היו נדחסות על תפריט המשתמש. הן יורדות לשורה משלהן בתוך אותו סרגל
      ולא נעלמות ולא משוכפלות במקום אחר */
   .topbar{flex-wrap:wrap}
   .bar-facts{order:3;flex-basis:100%;padding-top:2px}
-  .bar-facts > :first-child{border-inline-start:none;padding-inline-start:0}
 }
 .chip{
   font-size:12px;font-weight:600;color:var(--mut);
