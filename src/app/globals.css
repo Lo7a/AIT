@@ -312,9 +312,12 @@ html:not([data-mode="light"]) .only-light{display:none}
 /* הלוקאפ המלא מעל כרטיס מי-אנחנו - חתימת המותג */
 .about-brand{display:flex;justify-content:center;margin-bottom:26px}
 .about-brand img{width:min(380px,82%);pointer-events:none;user-select:none}
-/* הדמות המצביעה עומדת מימין לפאנל ומצביעה עליו (הכיוון הטבעי שלה - שמאלה).
-   הוגדלה משמעותית - היא חלק מהקומפוזיציה, לא קישוט (משוב מייסד 26.8) */
-.stage-guide{width:236px;flex:none;pointer-events:none;user-select:none}
+/* הדמות תופסת את החצי שלה (משוב מייסד 26.8): ממורכזת בעמודה, מוגבלת בגובה כדי
+   להישאר בתוך העמוד, ומצביעה שמאלה אל הפאנל */
+.stage-guide{
+  justify-self:center;width:auto;height:min(56vh,580px);max-width:100%;
+  pointer-events:none;user-select:none;
+}
 @media (max-width:920px){.stage-guide{display:none}}
 /* רצועת ההוכחות: כרטיסים בלי פסקאות, ומשפט המייסדים כפתיח */
 .proof-say{
@@ -1073,18 +1076,19 @@ html{scroll-behavior:smooth}
 .dim-row:not(:has(.fill-bar)){grid-template-areas:"lb sc";gap:0 10px}
 
 /* ===== דף הנחיתה: מסלול השלבים עם תצוגה חיה לכל שלב ===== */
-/* סידור מייסד 26.8: התצוגה (דמות + פאנל מוקטן) בעמודה הימנית, הכרטיסיות בשמאלית.
-   ב-RTL העמודה הראשונה היא הימנית. נקודת השבירה 920 - אחת עם ההירו, בלי רצועת
-   ביניים היברידית (ממצא סקירה) */
-.stage-wrap{display:grid;grid-template-columns:minmax(0,1fr) 330px;grid-template-areas:"show list";gap:30px;align-items:center}
-.stage-show{grid-area:show;display:flex;align-items:center;gap:22px;min-width:0}
+/* סידור מייסד 26.8, גרסה שנייה: הכרטיסיות בשורה אופקית מעל, ומתחתן הדמות בחצי
+   הימני מצביעה על הפאנל בחצי השמאלי. אותו מבנה בכל הרוחבים - רק הצפיפות משתנה */
+.stage-wrap{display:grid;grid-template-columns:1fr;grid-template-areas:"list" "show";row-gap:30px}
+.stage-show{grid-area:show;display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:center;min-width:0}
 .stage-list{grid-area:list}
 @media (max-width:920px){
-  .stage-wrap{grid-template-columns:1fr;grid-template-areas:"list" "show";gap:12px}
+  .stage-wrap{row-gap:12px}
+  .stage-show{grid-template-columns:1fr;gap:0}
 }
-.stage-list{display:flex;flex-direction:column;gap:9px}
+/* שלוש הכרטיסיות בשורה שווה; במסך צר - גלילה אופקית */
+.stage-list{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 @media (max-width:920px){
-  .stage-list{flex-direction:row;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .stage-list{display:flex;flex-direction:row;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
   .stage-btn{flex:0 0 78%}
 }
 @media (max-width:920px){.stage-list::-webkit-scrollbar{display:none}}

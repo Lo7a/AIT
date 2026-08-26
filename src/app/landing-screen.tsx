@@ -746,7 +746,7 @@ function StageWalk() {
           (ממצא סקירה 26.8: הקישור הקודם שייך כל טאב לפאנל של מישהו אחר) */}
       {/* הכרטיסיות קודמות ב-DOM (סדר קריאה ומקלדת נכון במובייל, שם הן גם מעל);
           הפריסה בדסקטופ נקבעת ב-grid-template-areas ולא בסדר האלמנטים */}
-      <div className="stage-list" role="tablist" aria-label="שלבי התהליך" aria-orientation="vertical">
+      <div className="stage-list" role="tablist" aria-label="שלבי התהליך" aria-orientation="horizontal">
         {STEPS.map((step, i) => (
           <button
             key={step.title}
