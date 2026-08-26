@@ -715,34 +715,30 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
 }
 @media (max-width:880px){.land-wrap{width:var(--content-w)}}
 .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:46px;align-items:start;padding:44px 0 48px}
-/* מבנה הסקיצה (26.8): שורת כותרת על כל הרוחב, מתחתיה החלון מימין והטופס משמאל.
-   כיס של 104px מעל שתי העמודות: בדיוק גובה הדמות שמעל החלון - היא לא נחתכת
-   ולא נוגעת בניווט, וקצה הטופס מיושר לקצה החלון */
-.hero-v2{
-  grid-template-areas:"head head" "demo form";
-  row-gap:18px;column-gap:46px;
+/* מבנה הסקיצה, גרסה שלישית (26.8): הכותרת מעל, חלון הסריקה על כל הרוחב עם הדמות
+   על הקצה, ומתחתיו הטופס והמצב היום זה לצד זה. הכיס מעל החלון בגובה הדמות בדיוק */
+.hero-v3{
+  grid-template-areas:"head head" "demo demo" "form sit";
+  row-gap:26px;column-gap:52px;
 }
 .hero-head{grid-area:head}
-.hero-v2 .hero-demo{grid-area:demo;padding-top:104px}
-.hero-form{grid-area:form;padding-top:104px}
-/* בעמודה הצרה הטופס נערם אנכית: שדה מעל, כפתור ברוחב מלא מתחתיו.
-   .fieldrow הוא גריד, לכן ההערמה נעשית בקריסת העמודות - לא ב-flex (ממצא סקירה 26.8) */
-.hero-form .fieldrow{grid-template-columns:1fr}
-.hero-form .btn.wide{width:100%;justify-content:center}
-/* המצב היום בתוך עמודת הטופס: אותה טיפוגרפיה שקטה, סקאלה של עמודה צרה */
-.hero-sit{margin-top:30px;border-top:1px solid var(--hair-soft);padding-top:20px}
+.hero-v3 .hero-demo{grid-area:demo;padding-top:116px}
+.hero-form{grid-area:form}
+.hero-v3 .hero-sit{grid-area:sit}
+/* בחלון ברוחב מלא הדמות מקבלת נוכחות גדולה יותר */
+.hero-v3 .scan-buddy{width:168px;top:-116px}
 .hero-sit .sit-k{
   font-size:11px;font-weight:700;letter-spacing:.2em;color:var(--dim);margin-bottom:12px;
 }
-.hero-sit .sit-say{font-size:16px;line-height:1.65;max-width:none}
+.hero-sit .sit-say{font-size:16.5px;line-height:1.65;max-width:none}
 .hero-sit .sit-say + .sit-say{margin-top:12px}
 @media (max-width:920px){
   .hero-grid{grid-template-columns:1fr;gap:26px;padding:24px 0 30px}
-  /* במובייל: כותרת, טופס (ההמרה קודם), ואז ההדגמה - בלי כיסי הדמות.
-     הדמות נעלמת כאן יחד עם הכיס, לא ב-760 - אחרת היא דורסת את תחתית הטופס */
-  .hero-v2{grid-template-areas:"head" "form" "demo";row-gap:22px}
-  .hero-v2 .hero-demo,.hero-form{padding-top:0}
-  .hero-v2 .scan-buddy{display:none}
+  /* במובייל הכול נערם; הדמות נעלמת יחד עם הכיס שלה, והמצב היום מקבל קו מפריד */
+  .hero-v3{grid-template-areas:"head" "demo" "form" "sit";row-gap:22px}
+  .hero-v3 .hero-demo{padding-top:0}
+  .hero-v3 .scan-buddy{display:none}
+  .hero-v3 .hero-sit{border-top:1px solid var(--hair-soft);padding-top:18px}
 }
 .hero-h1{
   font-size:clamp(29px,3.3vw,44px);font-weight:800;line-height:1.2;
