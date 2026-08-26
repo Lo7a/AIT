@@ -294,18 +294,8 @@ export function DefaultInterview({
           <CompletenessCard ledger={ledger} live className="rv d1" />
         </aside>
 
-        {plan.length > 0 && (
-          <PlanList
-            plan={plan}
-            currentKey={visible?.key ?? null}
-            revisitKey={revisitKey}
-            skippedKeys={skippedKeys}
-            locked={!canAnswer}
-            onPick={revisit}
-          />
-        )}
-
-        {/* הפאנל: שאלה נעוצה למעלה, שיחה נגללת באמצע, תיבת כתיבה נעוצה למטה */}
+        {/* הפאנל: שאלה נעוצה למעלה, שיחה נגללת באמצע, תיבת כתיבה נעוצה למטה.
+            באמצע ולא בקצה (הכרעת אלעד 26.8) - זה מה שעובדים בו, ושתי הרצועות משרתות אותו */}
         <div className="rep-main">
           {/* העטיפה כאן סטטית (תמיד מרונדרת) - רק התוכן הפנימי מתחלף בין המצבים, כך שהחלפת
               פאנל לא מריצה שוב את אנימציית הכניסה */}
@@ -448,6 +438,18 @@ export function DefaultInterview({
             </div>
           )}
         </div>
+
+        {/* אחרונה בסדר ה-DOM ולכן השמאלית ביותר בממשק עברי - סדר הקריאה זהה לסדר שרואים */}
+        {plan.length > 0 && (
+          <PlanList
+            plan={plan}
+            currentKey={visible?.key ?? null}
+            revisitKey={revisitKey}
+            skippedKeys={skippedKeys}
+            locked={!canAnswer}
+            onPick={revisit}
+          />
+        )}
       </main>
     </AppShell>
   );

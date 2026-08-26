@@ -899,26 +899,39 @@ html{scroll-behavior:smooth}
   .repC .rep-side{position:static}
 }
 
-/* ===== מסך הראיון: שלוש עמודות וחלון עם גלילה פנימית (הכרעת אלעד 26.8) =====
+/* ===== מסך הראיון: מסך אחד, בלי גלילת דף (הכרעת אלעד 26.8) =====
    הצ'אט גדל עם כל הודעה, ובגלילת דף רגילה זה הזיז את כל המסך מתחת לעכבר בכל תשובה.
-   הפאנל הראשי מקבל גובה קבוע: השאלה נעוצה למעלה, תיבת הכתיבה נעוצה למטה, והשיחה נגללת
-   ביניהן בלבד. שום דבר במסך לא זז כשמגיעה הודעה חדשה.
-   שלוש העמודות דביקות על אותו קו עליון, והוא כאן topbar בלבד: במסך הזה אין anch (רצועת
-   העוגנים של הדוח), אז ההיסט המשותף היה מוריד את שלושתן ב-49 פיקסלים לחינם - ובפאנל
-   בגובה קבוע זה 49 פיקסלים של שיחה שנחתכים */
-.repC.iv{grid-template-columns:318px 232px minmax(0,1fr)}
+   הפתרון הוא שהדף עצמו לא נגלל בכלל: העמודה הראשית נקבעת בדיוק לגובה החלון, הרשת לוקחת
+   את מה שנשאר אחרי הכותרות, וכל עמודה גוללת בתוך עצמה.
+   הסדר (מימין לשמאל): הפנקס, השיחה, רשימת השאלות. השיחה באמצע כי היא מה שעובדים בו,
+   ושתי הרצועות משרתות אותה משני הצדדים.
+   :has ולא פרופ חדש ב-AppShell: המעטפת משרתת שבעה מסכים, ופרופ פריסה לטובת אחד מהם היה
+   נכנס לחוזה של כולם. התקדים ל-:has כבר בקובץ (ראו .dim-row למטה) */
+.main-col:has(> .repC.iv){height:100dvh;overflow:hidden}
+/* הכותרת מתכווצת כאן: כל פיקסל שהיא לוקחת הוא פיקסל שנגרע מהשיחה, וזה מסך עבודה */
+.main-col:has(> .repC.iv) .repC-head{padding-top:14px}
+.main-col:has(> .repC.iv) .page-head{margin-bottom:10px}
+.main-col:has(> .repC.iv) .page-head p{margin-top:5px;font-size:13px}
+.repC.iv{
+  grid-template-columns:318px minmax(0,1fr) 232px;
+  /* stretch ולא start: העמודות חייבות למלא את גובה השורה כדי שהגלילה הפנימית תיקבע ממנו */
+  align-items:stretch;flex:1;min-height:0;padding:14px 0 16px;
+}
 .repC.iv .rep-side,
 .repC.iv .iv-plan,
-.repC.iv .rep-main{top:calc(var(--topbar-h) + 14px)}
-.repC.iv .iv-plan,
-.repC.iv .rep-main{position:sticky;height:calc(100vh - var(--topbar-h) - 30px)}
+.repC.iv .rep-main{position:static;top:auto;min-height:0}
+/* גם הפנקס גולל בתוך עצמו - במסך נמוך הוא היה נחתך, כי אין לאן לגלול מחוצה לו */
+.repC.iv .rep-side{overflow-y:auto}
 .repC.iv .iv-plan{display:flex;flex-direction:column}
 .repC.iv .iv-plan .core{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
 .repC.iv .rep-main{gap:12px}
-/* min-height:0 על שני אלה הוא מה שמאפשר את הגלילה בכלל: פריט flex לא מתכווץ מתחת לגובה
-   התוכן שלו בלי זה, והפאנל היה נמתח והגלילה הייתה בורחת בחזרה לדף */
-.iv-scroll{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+/* min-height:0 הוא מה שמאפשר את הגלילה בכלל: פריט flex לא מתכווץ מתחת לגובה התוכן שלו
+   בלעדיו, והפאנל היה נמתח והגלילה הייתה בורחת בחזרה לדף */
+.iv-scroll{flex:1 1 0;min-height:120px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
 .iv-list{flex:1;min-height:0;overflow-y:auto;margin-inline:-6px;padding-inline:6px}
+/* כרטיס השאלה גולל בעצמו כשהוא לא נכנס (שאלה ארוכה עם ארבע אפשרויות במסך נמוך), במקום
+   לרסק את השיחה מתחתיו לאפס - ה-min-height על .iv-scroll למעלה הוא הצד השני של אותו כלל */
+.repC.iv .rep-main > .rv{flex:0 1 auto;min-height:0;overflow-y:auto}
 
 /* שורת שאלה ברשימה הממוספרת. .scan-row הקיימת נבנתה לשורת אבחון בגובה 58 פיקסלים עם
    אווטאר של 36 - שש-עשרה כאלה הן עמודה של 900 פיקסלים שאי אפשר לראות בבת אחת, ולכן שורה
@@ -946,14 +959,21 @@ html{scroll-behavior:smooth}
 .q-step.is-skip .lb{text-decoration:line-through}
 .q-step.is-edit{background:rgba(var(--acc-rgb),.17);box-shadow:inset 0 0 0 1px rgba(var(--acc-rgb),.4)}
 
+@media (max-width:1440px){
+  .repC.iv{grid-template-columns:280px minmax(0,1fr) 202px;gap:11px}
+}
 @media (max-width:1100px){
-  /* במובייל הדף נגלל ממילא והפאנל בגובה קבוע רק היה כולא את השיחה בחלון קטן */
-  .repC.iv{grid-template-columns:1fr}
+  /* במובייל הדף נגלל ממילא, וכליאת השיחה בחלון בגובה קבוע בתוך מסך צר רק מקטינה אותה.
+     כאן חוזרים לגלילת דף רגילה, והרשימה מקבלת תקרה משלה כדי שלא תדחוף את השיחה מהמסך */
+  .main-col:has(> .repC.iv){height:auto;overflow:visible}
+  .repC.iv{grid-template-columns:1fr;align-items:start;min-height:0}
   .repC.iv .rep-side,
   .repC.iv .iv-plan,
-  .repC.iv .rep-main{position:static;height:auto}
+  .repC.iv .rep-main{height:auto}
+  .repC.iv .rep-side{overflow:visible}
+  .repC.iv .rep-main > .rv{overflow:visible}
   .repC.iv .iv-list{max-height:210px}
-  .iv-scroll{overflow:visible}
+  .iv-scroll{overflow:visible;min-height:0}
 }
 .who-h{text-align:center;margin-bottom:14px}
 .who-h b{display:block;font-size:17px;font-weight:800;letter-spacing:-.012em}
