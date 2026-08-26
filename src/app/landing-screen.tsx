@@ -1178,7 +1178,8 @@ export function LandingScreen() {
                   </div>
                 </div>
               </div>
-              <p className="rv d4" style={{ marginTop: 9, fontSize: 11.5, color: "var(--mut)" }}>
+              {/* אותה מחלקה כמו הערת ההדגמה שמתחת לחלון - שתי השורות נגמרות באותו גובה */}
+              <p className="demo-note rv d4">
                 האבחון דורש חשבון - נכניס אותך ברגע, בלי סיסמה, והחיפוש שהקלדת מחכה לך בפנים.
               </p>
             </form>
