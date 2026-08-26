@@ -448,8 +448,6 @@ body{overflow-x:clip}
 .foot-col a:hover{color:var(--txt)}
 .foot-cta-line{font-size:12.5px;color:var(--mut)}
 .foot-col .btn.sm{align-self:flex-start;margin-top:4px}
-/* הלוקאפ שפותח את העמוד, מעל הכותרת הראשית */
-.hero-lockup{width:min(300px,64%);margin-bottom:16px;pointer-events:none;user-select:none}
 .foot-line{
   border-top:1px solid var(--hair-soft);margin-top:34px;padding:14px 0 18px;
   text-align:center;font-size:12px;color:var(--dim);
@@ -956,10 +954,10 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
   font-size:clamp(16px,1.7vw,21px);line-height:1.4;
   letter-spacing:-.01em;max-width:26ch;font-weight:700;text-wrap:balance;
 }
-/* רצועת הסגירה (נבנתה מחדש 26.8): טקסט וכפתור מול היועץ היושב, שטיפה סגולה חזקה */
+/* רצועת הסגירה: היועץ מימין והטקסט משמאל, ממורכזים וקרובים - לא בקצוות */
 .cta-core{
   padding:40px 46px 0;
-  display:flex;align-items:flex-end;justify-content:space-between;gap:36px;
+  display:flex;align-items:flex-end;justify-content:center;gap:58px;
   background:
     linear-gradient(135deg,rgba(var(--accd-rgb),.17),rgba(var(--acc2-rgb),.05) 62%),
     var(--core-bg);

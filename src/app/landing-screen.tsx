@@ -869,9 +869,6 @@ export function LandingScreen() {
         <section className="hero-grid hero-v4">
           <div className="hero-main">
           <header className="hero-head">
-            {/* הלוקאפ המלא (החיתוך של להב) פותח את העמוד - המותג לפני הכול (26.8) */}
-            <img src="/brand/lockup-dark.webp" alt="בדק עסק" className="hero-lockup only-dark rv" />
-            <img src="/brand/lockup-light.webp" alt="בדק עסק" className="hero-lockup only-light rv" />
             {/* בלי תג "אבחון דיגיטלי לעסקים" - הניווט כבר אומר את זה מילה במילה */}
             {/* הכותרת נושאת את שם המותג עצמו כפעולה (תיקון מייסד 26.8: השם הוא
                 בדק עסק, לא בדק בית); הביטוי המוכר עובר לסלוגן כגשר */}
@@ -988,20 +985,27 @@ export function LandingScreen() {
         {/* רצועת סגירה: הכותרת המאושרת בלבד. תת-הכותרת ירדה - היא מופיעה מילה במילה
             בירו, וחזרה עליה כאן רק מעמיסה בלי להוסיף */}
         <section className="pb-16">
+          {/* הלוקאפ חוזר למטה (מייסד 26.8) - רגע המותג לפני הקריאה האחרונה */}
+          <Reveal>
+            <div className="about-brand">
+              <img src="/brand/lockup-dark.webp" alt="בדק עסק" className="only-dark" />
+              <img src="/brand/lockup-light.webp" alt="בדק עסק" className="only-light" />
+            </div>
+          </Reveal>
           <Reveal delay={60}>
             <div className="shell">
-              {/* רצועת הסגירה נבנתה מחדש (מייסד 26.8): טקסט וכפתור מימין, והיועץ
-                  עם הלפטופ (הפוזה החדשה של להב) יושב בתוך הכרטיס משמאל */}
+              {/* רצועת הסגירה: היועץ היושב מימין, הטקסט והכפתור משמאל, קרובים
+                  במרכז; הכפתור בצבע המותג (סידור מייסד 26.8) */}
               <div className="core cta-core">
+                <img src="/brand/consulting.webp" alt="" aria-hidden="true" className="cta-guy" />
                 <div className="cta-txt">
                   <h2 className="cta-h">עשית פעם בדק עסק?</h2>
                   <p className="cta-sub">תוך דקה תדע מה מצב הדיגיטל שלך, ומה שווה לתקן קודם.</p>
-                  <button type="button" className="btn-invert" onClick={startDiagnosis}>
+                  <button type="button" className="btn" onClick={startDiagnosis}>
                     אבחן את העסק שלי
                     <CapArrow />
                   </button>
                 </div>
-                <img src="/brand/consulting.webp" alt="" aria-hidden="true" className="cta-guy" />
               </div>
             </div>
           </Reveal>
