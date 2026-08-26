@@ -419,8 +419,8 @@ body{overflow-x:clip}
      בקו התחתון. ריפוד עליון שמור לדמות שמציצה מעל הקו */
   /* הקיזוז הוא גובה הניווט האמיתי (כ-56px) - קיזוז גדול מדי השאיר רצועה שבה
      הסקשן הבא הציץ לתוך המסך הראשון (דיווח מייסד 26.8) */
-  /* שורת הלוקאפ שמעל העמודות היא גם הכיס שאליו מציצה הדמות - אין צורך בריפוד ענק */
-  .hero-v4{min-height:calc(100dvh - 58px);align-content:center;padding-top:44px;padding-bottom:48px}
+  /* מעוגן לראש (מייסד 26.8: הלוגו גבוה יותר) - הלוקאפ צמוד לניווט והבלוק אחריו */
+  .hero-v4{min-height:calc(100dvh - 58px);align-content:start;padding-top:18px;padding-bottom:40px}
   /* החלון עצמו מתארך משמעותית (מייסד 26.8, סבב שני): שורות גבוהות, סרגלים עבים */
   .hero-v4 .sl{padding-block:21px}
   .hero-v4 .term-bar{padding-block:17px}
