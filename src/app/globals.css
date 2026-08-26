@@ -323,14 +323,34 @@ html:not([data-mode="light"]) .only-light{display:none}
 @keyframes buddy-float{0%,100%{translate:0 0}50%{translate:0 -9px}}
 .scan-buddy{animation:buddy-float 6.5s var(--ease) infinite}
 @media (prefers-reduced-motion:reduce){.scan-buddy{animation:none}}
-/* מעבר הצבעים בין הסקשנים: שטיפה סגולה-ברקת עדינה שנכנסת ויוצאת בקצוות */
-.stage-sec{
+/* מעבר הצבעים של סקשן השלבים - חיצוני, לרוחב המסך המלא (מייסד 26.8: לא קופסה
+   פנימית). הרקע חי על פסאודו-אלמנט שנשבר מרוחב התוכן החוצה, דוהה רך בשני
+   הקצוות, ונסחף לאט בגלילה - פרלקס רקע */
+.stage-sec{position:relative}
+.stage-sec::before{
+  content:"";position:absolute;inset-block:-6%;left:50%;z-index:-1;
+  width:100vw;transform:translateX(-50%);pointer-events:none;
   background:linear-gradient(180deg,
     transparent,
-    rgba(var(--acc-rgb),.05) 22%,
-    rgba(var(--acc2-rgb),.045) 78%,
+    rgba(var(--acc-rgb),.05) 28%,
+    rgba(var(--acc2-rgb),.045) 72%,
     transparent);
 }
+@keyframes wash-drift{
+  from{transform:translateX(-50%) translateY(-3.5%)}
+  to{transform:translateX(-50%) translateY(3.5%)}
+}
+@supports (animation-timeline: view()){
+  @media (prefers-reduced-motion:no-preference){
+    .stage-sec::before{
+      animation:wash-drift linear both;
+      animation-timeline:view();
+      animation-range:cover 0% cover 100%;
+    }
+  }
+}
+/* הרקע רחב מהתוכן במתכוון - שלא ייצור פס גלילה אופקי */
+body{overflow-x:clip}
 /* אפקטי גלילה (מייסד 26.8): אנימציות מונעות-גלילה של הדפדפן עצמו - התקדמות
    הגלילה מזיזה את האלמנט, בלי JS. דפדפן בלי תמיכה פשוט מציג הכל רגיל.
    הטון: מקצועי ושקט - דהיות, מתיחות קווים וכיווצים עדינים. בלי קפיצות */
