@@ -894,10 +894,9 @@ export function LandingScreen() {
 
           <div className="hero-form">
             <form onSubmit={(e) => { e.preventDefault(); startDiagnosis(); }}>
-              <div className="shell rv d3">
-                <div className="core diag-card">
-                  {/* כותרת קצרה במקום תווית טופס - הפלייסהולדר אומר מה מקלידים,
-                      וה-aria-label שומר את השם הנגיש של השדה */}
+              {/* בלי קופסה (עיצוב מחדש 26.8): הטופס יושב ישירות בעמודה כמו הכותרת
+                  והמצב היום מעליו, ברוחב מלא - שני הצדדים נגמרים באותו קו */}
+              <div className="diag-card rv d3">
                   <p className="diag-t">בדוק את העסק שלך</p>
                   <div className="fieldrow">
                     <span className="field">
@@ -948,7 +947,6 @@ export function LandingScreen() {
                       תוך דקה
                     </span>
                   </div>
-                </div>
               </div>
               {/* אותה מחלקה כמו הערת ההדגמה שמתחת לחלון - שתי השורות נגמרות באותו גובה */}
               <p className="demo-note rv d4">

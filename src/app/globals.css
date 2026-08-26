@@ -331,6 +331,29 @@ html:not([data-mode="light"]) .only-light{display:none}
     rgba(var(--acc2-rgb),.045) 78%,
     transparent);
 }
+/* אפקטי גלילה (מייסד 26.8): אנימציות מונעות-גלילה של הדפדפן עצמו - התקדמות
+   הגלילה מזיזה את האלמנט, בלי JS. דפדפן בלי תמיכה פשוט מציג הכל רגיל */
+@keyframes view-rise{from{opacity:0;translate:0 48px}to{opacity:1;translate:0 0}}
+@keyframes view-scale{from{opacity:0;scale:.86}to{opacity:1;scale:1}}
+@supports (animation-timeline: view()){
+  @media (prefers-reduced-motion:no-preference){
+    .proof-grid>.shell{
+      animation:view-rise linear both;
+      animation-timeline:view();
+      animation-range:entry 0% entry 75%;
+    }
+    .about-brand img{
+      animation:view-scale linear both;
+      animation-timeline:view();
+      animation-range:entry 0% entry 85%;
+    }
+    .foot-point{
+      animation:view-rise linear both;
+      animation-timeline:view();
+      animation-range:entry 0% entry 90%;
+    }
+  }
+}
 @media (max-width:920px){.stage-guide{display:none}}
 /* רצועת ההוכחות: כרטיסים בלי פסקאות, ומשפט המייסדים כפתיח */
 .proof-say{
@@ -358,13 +381,9 @@ html:not([data-mode="light"]) .only-light{display:none}
   .stage-guide{height:min(66vh,700px)}
   .stage-sec .stage-panel{min-height:min(58vh,600px)}
 }
-/* כרטיס האבחון בהירו - עוצב מחדש (26.8): כותרת קצרה, שדה גדול, שטיפה סגולה עדינה */
-.diag-card{
-  padding:18px 18px 15px;
-  background:
-    radial-gradient(130% 120% at 85% -10%, rgba(var(--accd-rgb),.13), transparent 52%),
-    var(--core-bg);
-}
+/* בלוק האבחון בהירו - בלי קופסה (עיצוב מחדש 26.8): יושב ישירות בעמודה, מופרד
+   בקו שיער, ברוחב מלא - הקצה שלו הוא הקצה של העמודה */
+.diag-card{border-top:1px solid var(--hair-soft);padding-top:24px}
 .diag-t{font-size:17px;font-weight:700;margin-bottom:12px}
 .diag-card .field input{padding-block:17px;font-size:16.5px}
 /* מלבני ולא גלולה (מייסד 26.8) - מתיישב עם השדה המלבני שלצדו */
@@ -780,15 +799,14 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
 
 /* ===== נחיתה והתחברות ===== */
 /* הניווט מתחיל שקוף ומקבל זכוכית וקו רק אחרי גלילה - בראש העמוד הוא לא מתחרה בכותרת */
-/* הניווט אטום וקבוע תמיד (משוב מייסד 26.8) - כמו שורת המערכת אחרי התחברות,
-   בלי מצב שקוף בראש העמוד. ה-on נשאר רק בשביל קו ההתקדמות */
+/* הניווט אטום לחלוטין (תיקון שני 26.8: nav-glass היה חצי-שקוף) - רקע מלא כמו
+   שורת המערכת אחרי התחברות. ה-on נשאר רק בשביל קו ההתקדמות */
 .land-nav{
   position:sticky;top:0;z-index:50;
   display:flex;align-items:center;gap:14px;
   padding:10px 20px;
-  background:var(--nav-glass);
+  background:var(--bar-bg);
   border-bottom:1px solid var(--hair-soft);
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
 }
 /* קו התקדמות הקריאה. transform-origin ימין - זה הכיוון שבו עברית מתקדמת */
 .nav-prog{
@@ -824,8 +842,7 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
 .hero-v4 .trust span{font-size:13.5px}
 /* הטופס בעמודה: שדה וכפתור באותה שורה, בערך 70/30 (משוב מייסד 26.8).
    מתחת ל-560px החוק הבסיסי של .fieldrow כבר עורם אותם */
-/* רוחב מוגבל (שיקול דעת שאושר 26.8): שדה ברוחב ריצה מאבד פרופורציה במסך רחב */
-.hero-v4 .hero-form{margin-top:auto;padding-top:30px;max-width:620px}
+.hero-v4 .hero-form{margin-top:auto;padding-top:30px}
 .hero-v4 .hero-form .fieldrow{grid-template-columns:2.2fr 1fr}
 /* המצב היום יושב בין הסלוגן לכרטיס הבדיקה - בלי קו מפריד, זה רצף של טיעון.
    המרווחים הפנימיים נדיבים - הסקשן ממלא עמוד ונושם (משוב מייסד 26.8) */
