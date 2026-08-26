@@ -767,7 +767,10 @@ function StageWalk() {
       {/* התצוגה: הדמות מימין מצביעה על הפאנל. שלושת הפאנלים חיים תמיד בערימת גריד
           (גובה קבוע, אפס קפיצות); inert חוסם פוקוס לפאנל שקוף, enabled עוצר טיימרים */}
       <div className="stage-show">
-        <img src="/brand/pointing-full.webp" alt="" aria-hidden="true" className="stage-guide" />
+        {/* פרלקס עדין על הדמות - אותו רכיב שכבר משמש את חלון ההירו */}
+        <Parallax strength={10}>
+          <img src="/brand/pointing-full.webp" alt="" aria-hidden="true" className="stage-guide" />
+        </Parallax>
         <div className="stage-panel">
           {[ReportPreview, InterviewPreview, PlanPreview].map((Preview, i) => (
             <div

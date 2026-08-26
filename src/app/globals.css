@@ -318,6 +318,19 @@ html:not([data-mode="light"]) .only-light{display:none}
   justify-self:center;width:auto;height:min(56vh,580px);max-width:100%;
   pointer-events:none;user-select:none;
 }
+/* נשימה איטית לדמויות: תזוזה אנכית דרך המאפיין translate - לא נוגעת ב-transform
+   של ההיפוך. כבויה למי שביקש פחות תנועה */
+@keyframes buddy-float{0%,100%{translate:0 0}50%{translate:0 -9px}}
+.scan-buddy,.stage-guide{animation:buddy-float 6.5s var(--ease) infinite}
+@media (prefers-reduced-motion:reduce){.scan-buddy,.stage-guide{animation:none}}
+/* מעבר הצבעים בין הסקשנים: שטיפה סגולה-ברקת עדינה שנכנסת ויוצאת בקצוות */
+.stage-sec{
+  background:linear-gradient(180deg,
+    transparent,
+    rgba(var(--acc-rgb),.05) 22%,
+    rgba(var(--acc2-rgb),.045) 78%,
+    transparent);
+}
 @media (max-width:920px){.stage-guide{display:none}}
 /* רצועת ההוכחות: כרטיסים בלי פסקאות, ומשפט המייסדים כפתיח */
 .proof-say{
@@ -328,15 +341,20 @@ html:not([data-mode="light"]) .only-light{display:none}
 .proof-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
 /* הירו ואיך זה עובד תופסים עמוד מלא בדסקטופ (מייסד 26.8); במובייל גובה טבעי */
 @media (min-width:921px){
-  /* התוכן נמתח על כל גובה העמוד במקום לרחף באמצע (משוב מייסד 26.8): שורת הגריד
-     של ההירו ממלאת את הגובה, החלון מתמרכז בחצי שלו, והכותרת והטופס בקצוות */
-  .hero-v4{min-height:calc(100dvh - 120px)}
-  .hero-v4 .hero-demo .scan-peek{margin-block:auto}
-  /* אותו עיקרון בסקשן השלבים: שורת התצוגה תופסת את כל הגובה שנשאר אחרי הכרטיסיות */
+  /* בלוק קומפקטי, לא עמוד מלא (תיקון מייסד 26.8): שתי העמודות שוות גובה - החלון
+     המוארך קובע אותו, הכותרת מתחילה בקו העליון שלו והטופס נגמר בקו התחתון.
+     היחידה שמציצה מעל הקו היא הדמות, לתוך ריפוד הסקשן */
+  .hero-v4{padding-top:132px}
+  /* החלון עצמו מתארך: שורות בדיקה גבוהות יותר וסרגל עבה יותר */
+  .hero-v4 .sl{padding-block:16px}
+  .hero-v4 .term-bar{padding-block:14px}
+  .hero-v4 .term-body{padding:10px 18px 14px}
+  /* סקשן השלבים נשאר עמוד מלא, עם דמות ופאנל גבוהים יותר */
   .stage-sec{min-height:calc(100dvh - 120px);display:flex;flex-direction:column;padding-bottom:0}
   .stage-sec > :last-child{flex:1;display:flex;flex-direction:column;min-height:0}
   .stage-sec .stage-wrap{flex:1;grid-template-rows:auto minmax(0,1fr)}
-  .stage-guide{height:min(64vh,660px)}
+  .stage-guide{height:min(66vh,700px)}
+  .stage-sec .stage-panel{min-height:min(58vh,600px)}
 }
 /* כרטיס האבחון בהירו - עוצב מחדש (26.8): כותרת קצרה, שדה גדול, שטיפה סגולה עדינה */
 .diag-card{
@@ -795,7 +813,6 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
 .hero-v4 .hero-main{min-width:0;display:flex;flex-direction:column}
 .hero-v4 .hero-demo{display:flex;flex-direction:column}
 .hero-v4 .hero-demo .demo-note{margin-top:auto;padding-top:11px}
-.hero-v4 .hero-demo{padding-top:120px}
 .hero-v4 .scan-buddy{width:170px;top:-120px}
 /* שורות הסריקה בחלון ההירו גדולות יותר - החלון ממלא את חצי העמוד שלו */
 .hero-v4 .sl .main-lb{font-size:15.5px}
@@ -824,8 +841,8 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
 .hero-sit .sit-say + .sit-say{margin-top:13px}
 @media (max-width:920px){
   .hero-grid{grid-template-columns:1fr;gap:26px;padding:24px 0 30px}
+  .hero-v4{padding-top:24px}
   .hero-v4 .hero-form{margin-top:0}
-  .hero-v4 .hero-demo{padding-top:0}
   .hero-v4 .scan-buddy{display:none}
 }
 /* הוגדל (משוב מייסד 26.8): הסקשן תופס עמוד מלא, אז התוכן ממלא אותו במקום אוויר */
@@ -1084,6 +1101,8 @@ html{scroll-behavior:smooth}
 .stage-wrap{display:grid;grid-template-columns:1fr;grid-template-areas:"list" "show";row-gap:42px}
 /* הדמות בערך שליש, הפאנל בערך שני שלישים (משוב מייסד 26.8) */
 .stage-show{grid-area:show;display:grid;grid-template-columns:3fr 7fr;gap:30px;align-items:center;min-width:0}
+/* עטיפת הפרלקס של הדמות מתמרכזת בעמודה שלה */
+.stage-show>:first-child{justify-self:center;min-width:0}
 .stage-list{grid-area:list}
 @media (max-width:920px){
   .stage-wrap{row-gap:12px}
