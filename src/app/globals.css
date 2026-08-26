@@ -345,10 +345,12 @@ html:not([data-mode="light"]) .only-light{display:none}
      שוות גובה - החלון המוארך קובע אותו, הכותרת מתחילה בקו העליון שלו והטופס נגמר
      בקו התחתון. ריפוד עליון שמור לדמות שמציצה מעל הקו */
   .hero-v4{min-height:calc(100dvh - 120px);align-content:center;padding-top:132px;padding-bottom:48px}
-  /* החלון עצמו מתארך: שורות בדיקה גבוהות יותר וסרגל עבה יותר */
-  .hero-v4 .sl{padding-block:16px}
-  .hero-v4 .term-bar{padding-block:14px}
-  .hero-v4 .term-body{padding:10px 18px 14px}
+  /* החלון עצמו מתארך משמעותית (מייסד 26.8, סבב שני): שורות גבוהות, סרגלים עבים */
+  .hero-v4 .sl{padding-block:21px}
+  .hero-v4 .term-bar{padding-block:17px}
+  .hero-v4 .term-bar .addr{font-size:12.5px;padding-block:6px}
+  .hero-v4 .term-body{padding:12px 20px 16px}
+  .hero-v4 .term-foot{padding-block:15px}
   /* סקשן השלבים נשאר עמוד מלא, עם דמות ופאנל גבוהים יותר */
   .stage-sec{min-height:calc(100dvh - 120px);display:flex;flex-direction:column;padding-bottom:0}
   .stage-sec > :last-child{flex:1;display:flex;flex-direction:column;min-height:0}
@@ -365,7 +367,9 @@ html:not([data-mode="light"]) .only-light{display:none}
 }
 .diag-t{font-size:17px;font-weight:700;margin-bottom:12px}
 .diag-card .field input{padding-block:17px;font-size:16.5px}
-.diag-card .btn.wide{min-height:56px;font-size:15.5px}
+/* מלבני ולא גלולה (מייסד 26.8) - מתיישב עם השדה המלבני שלצדו */
+.diag-card .btn.wide{min-height:56px;font-size:15.5px;border-radius:14px}
+.diag-card .btn.wide .cap{border-radius:10px}
 .diag-card .ex-chip{font-size:12.5px}
 
 /* ===== הפוטר של הנחיתה: לוקאפ נייטיב, קישורים, והדמות המצביעה ===== */
