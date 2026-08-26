@@ -434,34 +434,31 @@ body{overflow-x:clip}
 }
 .diag-card .ex-chip{font-size:12.5px}
 
-/* ===== הפוטר של הנחיתה: לוקאפ נייטיב, קישורים, והדמות המצביעה ===== */
-.land-foot{position:relative;z-index:1;border-top:1px solid var(--hair-soft);margin-top:8px;padding-top:46px}
+/* ===== פוטר מקצועי (נבנה מחדש 26.8): רקע אטום, שלוש עמודות מסודרות ===== */
+.land-foot{position:relative;z-index:1;background:var(--bar-bg);border-top:1px solid var(--hair-soft);margin-top:8px;padding-top:44px}
 .land-foot-in{
   margin-inline:auto;
-  display:flex;align-items:flex-end;justify-content:space-between;gap:40px;flex-wrap:wrap;
+  display:grid;grid-template-columns:1.2fr .8fr .9fr;gap:44px;align-items:start;
 }
-.foot-brand{display:flex;align-items:center;gap:18px;padding-bottom:8px}
-.foot-face{width:104px;flex:none;pointer-events:none;user-select:none}
-.foot-brand .brand-name{display:block;font-size:38px;font-weight:800;letter-spacing:-.02em;line-height:1}
-.foot-brand .brand-dot{width:8px;height:8px;margin-inline-start:5px;vertical-align:4px}
-/* קו החתימה של הוורדמארק - כמו בלוקאפ שנוצר: פס מלא אחרי הנקודה הירוקה */
-.foot-rule{display:block;height:5px;width:132px;border-radius:99px;background:var(--txt);opacity:.85;margin-top:10px}
-.foot-tag{margin-top:10px;font-size:12.5px;color:var(--mut)}
-.foot-nav{display:flex;gap:24px;padding-bottom:16px}
-.foot-nav a{font-size:13.5px;font-weight:600;color:var(--mut);text-decoration:none;transition:color .25s}
-.foot-nav a:hover{color:var(--txt)}
-/* הדמות בגוף מלא, מהופכת כדי להצביע פנימה אל הקישורים; נעלמת בטלפון */
-.foot-point{width:150px;flex:none;transform:scaleX(-1);pointer-events:none;user-select:none}
+.foot-lockup{width:min(230px,80%);pointer-events:none;user-select:none}
+.foot-tag{margin-top:12px;font-size:12.5px;color:var(--mut)}
+.foot-col{display:flex;flex-direction:column;gap:10px;padding-top:6px}
+.foot-h{font-size:11px;font-weight:700;letter-spacing:.16em;color:var(--dim);margin-bottom:4px}
+.foot-col a{font-size:13.5px;font-weight:600;color:var(--mut);text-decoration:none;transition:color .25s;width:fit-content}
+.foot-col a:hover{color:var(--txt)}
+.foot-cta-line{font-size:12.5px;color:var(--mut)}
+.foot-col .btn.sm{align-self:flex-start;margin-top:4px}
+/* הלוקאפ שפותח את העמוד, מעל הכותרת הראשית */
+.hero-lockup{width:min(300px,64%);margin-bottom:16px;pointer-events:none;user-select:none}
 .foot-line{
-  border-top:1px solid var(--hair-soft);margin-top:26px;padding:14px 0 18px;
+  border-top:1px solid var(--hair-soft);margin-top:34px;padding:14px 0 18px;
   text-align:center;font-size:12px;color:var(--dim);
 }
 @media (max-width:760px){
-  .land-foot-in{flex-direction:column;align-items:center;text-align:center}
-  .foot-brand{flex-direction:column;padding-bottom:0}
-  .foot-rule{margin-inline:auto}
-  .foot-nav{padding-bottom:0}
-  .foot-point{display:none}
+  .land-foot-in{grid-template-columns:1fr;gap:26px;text-align:center}
+  .foot-lockup{margin-inline:auto}
+  .foot-col a,.foot-col .btn.sm{margin-inline:auto}
+  .foot-col{align-items:center}
 }
 
 @media (max-width:880px){

@@ -639,7 +639,7 @@ function SearchShare() {
 // פסקאות. ירשה ארבעה סקשנים טקסטואליים: מה יש בדוח, איך אנחנו עובדים, נתונים ומי אנחנו
 function ProofSection() {
   return (
-    <section className="pb-14">
+    <section id="proof" className="pb-14">
       <Reveal>
         <div className="how-head"><h2>למה אפשר לסמוך על זה</h2></div>
       </Reveal>
@@ -869,6 +869,9 @@ export function LandingScreen() {
         <section className="hero-grid hero-v4">
           <div className="hero-main">
           <header className="hero-head">
+            {/* הלוקאפ המלא (החיתוך של להב) פותח את העמוד - המותג לפני הכול (26.8) */}
+            <img src="/brand/lockup-dark.webp" alt="בדק עסק" className="hero-lockup only-dark rv" />
+            <img src="/brand/lockup-light.webp" alt="בדק עסק" className="hero-lockup only-light rv" />
             {/* בלי תג "אבחון דיגיטלי לעסקים" - הניווט כבר אומר את זה מילה במילה */}
             {/* הכותרת נושאת את שם המותג עצמו כפעולה (תיקון מייסד 26.8: השם הוא
                 בדק עסק, לא בדק בית); הביטוי המוכר עובר לסלוגן כגשר */}
@@ -985,13 +988,6 @@ export function LandingScreen() {
         {/* רצועת סגירה: הכותרת המאושרת בלבד. תת-הכותרת ירדה - היא מופיעה מילה במילה
             בירו, וחזרה עליה כאן רק מעמיסה בלי להוסיף */}
         <section className="pb-16">
-          {/* הלוקאפ המלא (אחרי ניקוי המשבצות) סוגר את העמוד כרגע מותג, לפני הקריאה האחרונה */}
-          <Reveal>
-            <div className="about-brand">
-              <img src="/brand/lockup-dark.webp" alt="בדק עסק" className="only-dark" />
-              <img src="/brand/lockup-light.webp" alt="בדק עסק" className="only-light" />
-            </div>
-          </Reveal>
           <Reveal delay={60}>
             <div className="shell">
               {/* רצועת הסגירה נבנתה מחדש (מייסד 26.8): טקסט וכפתור מימין, והיועץ
@@ -1012,24 +1008,29 @@ export function LandingScreen() {
         </section>
       </main>
 
-      {/* פוטר (בקשת מייסד 26.8): הלוקאפ המלא נבנה נייטיב - הדמות הנקייה לצד הוורדמארק
-          החי - כי לקובצי הלוקאפ שנוצרו יש שאריות רקע בתוך האותיות. הדמות המצביעה
-          בגוף מלא עומדת בקצה ומצביעה אל הקישורים */}
+      {/* פוטר מקצועי (נבנה מחדש 26.8): רקע אטום, שלוש עמודות - מותג, ניווט, פעולה.
+          בלי דמויות ובלי פרטי קשר מומצאים */}
       <footer className="land-foot">
         <div className="land-wrap land-foot-in">
           <div className="foot-brand">
-            <img src="/brand/inspecting.webp" alt="" aria-hidden="true" className="foot-face" />
-            <div>
-              <BrandName />
-              <span className="foot-rule" aria-hidden="true" />
-              <p className="foot-tag">יועץ דיגיטלי לעסקים קטנים בישראל</p>
-            </div>
+            <img src="/brand/lockup-dark.webp" alt="בדק עסק" className="foot-lockup only-dark" />
+            <img src="/brand/lockup-light.webp" alt="בדק עסק" className="foot-lockup only-light" />
+            <p className="foot-tag">יועץ דיגיטלי לעסקים קטנים בישראל</p>
           </div>
-          <nav className="foot-nav" aria-label="קישורי תחתית">
+          <nav className="foot-col" aria-label="ניווט תחתית">
+            <p className="foot-h">ניווט</p>
             <a href="#stages">איך זה עובד</a>
+            <a href="#proof">למה אפשר לסמוך על זה</a>
             <a href="/login">כניסה</a>
           </nav>
-          <img src="/brand/pointing-full.webp" alt="" aria-hidden="true" className="foot-point" />
+          <div className="foot-col">
+            <p className="foot-h">מתחילים</p>
+            <p className="foot-cta-line">הבדיקה הראשונה חינם ולוקחת דקה.</p>
+            <button type="button" className="btn sm" onClick={startDiagnosis}>
+              בדוק את העסק שלך
+              <CapArrow />
+            </button>
+          </div>
         </div>
         <p className="foot-line">בדק עסק - שני שותפים, נבנה בישראל לעסקים בישראל, מאז אוגוסט 2026</p>
       </footer>
