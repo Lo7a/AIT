@@ -294,8 +294,8 @@ function ScanTerminal() {
 
   return (
     <div className="scan-peek">
-      {/* הדמות מציצה מעל חלון ההדגמה - אותו רגע בדיוק כמו במסך הסריקה האמיתי */}
-      <img src="/brand/inspecting.webp" alt="" aria-hidden="true" className="scan-buddy start" />
+      {/* הדמות בפינה השמאלית-עליונה של החלון, מהופכת - פונה ימינה אל התוכן */}
+      <img src="/brand/inspecting.webp" alt="" aria-hidden="true" className="scan-buddy" />
     <div className="shell term rv d4" ref={liveRef}>
       <div className="core">
         {/* בלי שלוש נקודות הצבע של חלון - קישוט טהור שרק מוסיף רעש לסרגל */}
@@ -582,6 +582,9 @@ function PlanPreview(_props: { enabled?: boolean }) {
 // המצב היום: הרגע שבו בעל העסק מזהה את עצמו, לפני שמראים לו מכונה. שלוש אמירות מצב
 // בלי מספרים ובלי הבטחות - אלה לא ציטוטים של לקוחות אמיתיים ולא מוצגים ככאלה.
 // המילה המודגשת בכל שורה היא הנקודה שהמוצר נוגע בה
+// דוגמאות החיפוש שבצ'יפים - סוג עסק ועיר, לא עסקים אמיתיים, כמו בפלייסהולדר המקורי
+const SEARCH_EXAMPLES = ["מסעדת השף חיפה", "מספרה ברמת גן", "מוסך בבאר שבע"];
+
 // נוסח מדובר (הנחיית מייסד 26.8): משפטים קצרים שבעל עסק היה אומר בעצמו,
 // לא עברית של מכונה. מקצועי אבל קליל
 const SITUATION: { before: string; hl: string; after: string }[] = [
@@ -1079,7 +1082,11 @@ export function LandingScreen() {
         {/* ההירו לפי הסקיצה של להב (26.8): כותרת וסלוגן מימין למעלה, מתחתם חלון
             הסריקה עם הדמות, וטופס האבחון בעמודה השמאלית לצדו. שורת head משותפת
             ושתי עמודות בגריד עם אזורים - במובייל הטופס קודם לחלון */}
-        <section className="hero-grid hero-v3">
+        {/* גרסה רביעית (משוב מייסד 26.8): כל הטקסט והטופס בעמודה הימנית - כותרת,
+            סלוגן, טופס עם דוגמאות לחיצות, והמצב היום. החלון בעמודה השמאלית עם
+            הדמות בפינה השמאלית-עליונה שלו, מהופכת כך שהיא פונה ימינה אל התוכן */}
+        <section className="hero-grid hero-v4">
+          <div className="hero-main">
           <header className="hero-head">
             {/* בלי תג "אבחון דיגיטלי לעסקים" - הניווט כבר אומר את זה מילה במילה */}
             {/* הכותרת הוחלפה (הנחיית מייסד 26.8): מ"כמה שווה הנוכחות הדיגיטלית" המופשט
@@ -1092,19 +1099,6 @@ export function LandingScreen() {
               מסודרת - <b>הכול במקום אחד.</b>
             </p>
           </header>
-
-          {/* חלון הסריקה על כל רוחב המסך (סקיצת מייסד 26.8, גרסה שלישית): הכותרת
-              מעליו, הדמות על הקצה, וכל השאר מתחת */}
-          <div className="hero-demo">
-            <Parallax strength={14}>
-              <Tilt>
-                <ScanTerminal />
-              </Tilt>
-            </Parallax>
-            <p className="demo-note rv d5">
-              הדגמה - זה מה שרץ אחרי שמזינים שם עסק, ולוקח פחות מדקה
-            </p>
-          </div>
 
           <div className="hero-form">
             <form onSubmit={(e) => { e.preventDefault(); startDiagnosis(); }}>
@@ -1126,13 +1120,23 @@ export function LandingScreen() {
                         type="text"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        placeholder="למשל: מסעדת השף חיפה, או www.example.co.il"
+                        placeholder="שם העסק והעיר, או כתובת האתר"
                       />
                     </span>
                     <button type="submit" className="btn wide">
                       אבחן את העסק שלי
                       <CapArrow />
                     </button>
+                  </div>
+                  {/* דוגמאות לחיצות (בקשת מייסד 26.8): נגיעה ממלאת את השדה - מראה
+                      בשנייה מה מקלידים, בלי לקרוא פלייסהולדר */}
+                  <div className="ex-chips" aria-label="דוגמאות לחיפוש">
+                    <span className="ex-lb">למשל:</span>
+                    {SEARCH_EXAMPLES.map((ex) => (
+                      <button key={ex} type="button" className="ex-chip" onClick={() => setQuery(ex)}>
+                        {ex}
+                      </button>
+                    ))}
                   </div>
                   {/* שורת האמון - הטענות מגובות במוצר: האבחון הראשוני לא עולה כסף,
                       אין התחייבות, והסריקה אורכת בערך דקה */}
@@ -1158,7 +1162,7 @@ export function LandingScreen() {
             </form>
           </div>
 
-          {/* המצב היום לצד הטופס, מתחת לחלון: שורות קצרות בעברית מדוברת */}
+          {/* המצב היום מתחת לטופס: שורות קצרות בעברית מדוברת */}
           <div className="hero-sit rv d5">
             <p className="sit-k">המצב היום</p>
             {SITUATION.map((line) => (
@@ -1166,6 +1170,18 @@ export function LandingScreen() {
                 {line.before}<em>{line.hl}</em>{line.after}
               </p>
             ))}
+          </div>
+          </div>
+
+          <div className="hero-demo">
+            <Parallax strength={14}>
+              <Tilt>
+                <ScanTerminal />
+              </Tilt>
+            </Parallax>
+            <p className="demo-note rv d5">
+              הדגמה - זה מה שרץ אחרי שמזינים שם עסק, ולוקח פחות מדקה
+            </p>
           </div>
         </section>
 
