@@ -769,10 +769,13 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
 /* מבנה רביעי (משוב מייסד 26.8): עמודה ימנית מלאה - כותרת, סלוגן, טופס, המצב היום.
    עמודה שמאלית - החלון, עם הדמות בפינה השמאלית-עליונה שלו פונה ימינה (ברירת
    המחדל של .scan-buddy: מעוגנת ל-inline-end ומהופכת) */
-.hero-v4{grid-template-columns:1.02fr .98fr;column-gap:52px}
-/* העמודה נמתחת לגובה השורה והטופס נדחף לתחתיתה. שתי העמודות מסתיימות בשורת
-   demo-note זהה, ולכן ההערה של הטופס וההערה של החלון נגמרות באותו גובה בדיוק */
+/* stretch ולא start הבסיסי: בלי זה העמודה הנמוכה לא נמתחת, והיישור של שתי
+   שורות ההערה החזיק רק ברוחבים שבהם העמודה הימנית במקרה גבוהה יותר (באג 26.8) */
+.hero-v4{grid-template-columns:1.02fr .98fr;column-gap:52px;align-items:stretch}
+/* שתי העמודות: flex עמודה, ההערה האחרונה מעוגנת לתחתית - נגמרות באותו קו בכל רוחב */
 .hero-v4 .hero-main{min-width:0;display:flex;flex-direction:column}
+.hero-v4 .hero-demo{display:flex;flex-direction:column}
+.hero-v4 .hero-demo .demo-note{margin-top:auto;padding-top:11px}
 .hero-v4 .hero-demo{padding-top:104px}
 /* הטופס בעמודה: שדה וכפתור באותה שורה, בערך 70/30 (משוב מייסד 26.8).
    מתחת ל-560px החוק הבסיסי של .fieldrow כבר עורם אותם */
