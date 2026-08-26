@@ -312,8 +312,9 @@ html:not([data-mode="light"]) .only-light{display:none}
 /* הלוקאפ המלא מעל כרטיס מי-אנחנו - חתימת המותג */
 .about-brand{display:flex;justify-content:center;margin-bottom:26px}
 .about-brand img{width:min(380px,82%);pointer-events:none;user-select:none}
-/* הדמות המצביעה עומדת מימין לפאנל ומצביעה עליו (הכיוון הטבעי שלה - שמאלה) */
-.stage-guide{width:172px;flex:none;pointer-events:none;user-select:none}
+/* הדמות המצביעה עומדת מימין לפאנל ומצביעה עליו (הכיוון הטבעי שלה - שמאלה).
+   הוגדלה משמעותית - היא חלק מהקומפוזיציה, לא קישוט (משוב מייסד 26.8) */
+.stage-guide{width:236px;flex:none;pointer-events:none;user-select:none}
 @media (max-width:920px){.stage-guide{display:none}}
 /* רצועת ההוכחות: כרטיסים בלי פסקאות, ומשפט המייסדים כפתיח */
 .proof-say{
@@ -335,9 +336,10 @@ html:not([data-mode="light"]) .only-light{display:none}
     radial-gradient(130% 120% at 85% -10%, rgba(var(--accd-rgb),.13), transparent 52%),
     var(--core-bg);
 }
-.diag-t{font-size:15.5px;font-weight:700;margin-bottom:11px}
-.diag-card .field input{padding-block:16px;font-size:15.5px}
-.diag-card .btn.wide{min-height:52px;font-size:15px}
+.diag-t{font-size:17px;font-weight:700;margin-bottom:12px}
+.diag-card .field input{padding-block:17px;font-size:16.5px}
+.diag-card .btn.wide{min-height:56px;font-size:15.5px}
+.diag-card .ex-chip{font-size:12.5px}
 
 /* ===== הפוטר של הנחיתה: לוקאפ נייטיב, קישורים, והדמות המצביעה ===== */
 .land-foot{position:relative;z-index:1;border-top:1px solid var(--hair-soft);margin-top:8px;padding-top:46px}
@@ -788,7 +790,12 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
 .hero-v4 .hero-main{min-width:0;display:flex;flex-direction:column}
 .hero-v4 .hero-demo{display:flex;flex-direction:column}
 .hero-v4 .hero-demo .demo-note{margin-top:auto;padding-top:11px}
-.hero-v4 .hero-demo{padding-top:104px}
+.hero-v4 .hero-demo{padding-top:120px}
+.hero-v4 .scan-buddy{width:170px;top:-120px}
+/* שורות הסריקה בחלון ההירו גדולות יותר - החלון ממלא את חצי העמוד שלו */
+.hero-v4 .sl .main-lb{font-size:15.5px}
+.hero-v4 .sl .res{font-size:13px}
+.hero-v4 .trust span{font-size:13.5px}
 /* הטופס בעמודה: שדה וכפתור באותה שורה, בערך 70/30 (משוב מייסד 26.8).
    מתחת ל-560px החוק הבסיסי של .fieldrow כבר עורם אותם */
 .hero-v4 .hero-form{margin-top:auto;padding-top:20px}
@@ -807,26 +814,27 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
 .hero-sit .sit-k{
   font-size:11px;font-weight:700;letter-spacing:.2em;color:var(--dim);margin-bottom:12px;
 }
-.hero-sit .sit-say{font-size:16px;line-height:1.65;max-width:none}
-.hero-sit .sit-say + .sit-say{margin-top:12px}
+.hero-sit .sit-say{font-size:17.5px;line-height:1.65;max-width:none}
+.hero-sit .sit-say + .sit-say{margin-top:13px}
 @media (max-width:920px){
   .hero-grid{grid-template-columns:1fr;gap:26px;padding:24px 0 30px}
   .hero-v4 .hero-form{margin-top:0}
   .hero-v4 .hero-demo{padding-top:0}
   .hero-v4 .scan-buddy{display:none}
 }
+/* הוגדל (משוב מייסד 26.8): הסקשן תופס עמוד מלא, אז התוכן ממלא אותו במקום אוויר */
 .hero-h1{
-  font-size:clamp(29px,3.3vw,44px);font-weight:800;line-height:1.2;
-  letter-spacing:-.014em;text-wrap:balance;
+  font-size:clamp(31px,3.9vw,54px);font-weight:800;line-height:1.18;
+  letter-spacing:-.016em;text-wrap:balance;
 }
 .hero-h1 .hl2{color:var(--acc-soft)}
-.hero-sub{color:var(--mut);font-size:15.5px;line-height:1.65;max-width:46ch;text-wrap:pretty}
+.hero-sub{color:var(--mut);font-size:17px;line-height:1.65;max-width:46ch;text-wrap:pretty}
 .hero-sub b{color:var(--txt);font-weight:600}
 .trust{display:flex;gap:14px;flex-wrap:wrap}
 .trust span{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--mut);font-weight:500}
 .trust svg{color:var(--acc2);flex:none}
-.how-head{display:flex;align-items:center;gap:16px;margin-bottom:22px}
-.how-head h2{font-size:12px;font-weight:700;letter-spacing:.2em;color:var(--mut);white-space:nowrap}
+.how-head{display:flex;align-items:center;gap:16px;margin-bottom:26px}
+.how-head h2{font-size:13px;font-weight:700;letter-spacing:.2em;color:var(--mut);white-space:nowrap}
 .how-head::after{content:"";flex:1;height:1px;background:linear-gradient(-90deg,var(--hair),transparent)}
 /* כותרת רצועת הסגירה - הסקאלה שהייתה מוגדרת inline עברה הנה (ממצא סקירה 26.8) */
 .cta-h{
@@ -1068,8 +1076,8 @@ html{scroll-behavior:smooth}
 /* סידור מייסד 26.8: התצוגה (דמות + פאנל מוקטן) בעמודה הימנית, הכרטיסיות בשמאלית.
    ב-RTL העמודה הראשונה היא הימנית. נקודת השבירה 920 - אחת עם ההירו, בלי רצועת
    ביניים היברידית (ממצא סקירה) */
-.stage-wrap{display:grid;grid-template-columns:minmax(0,1fr) 290px;grid-template-areas:"show list";gap:26px;align-items:start}
-.stage-show{grid-area:show;display:flex;align-items:center;gap:18px;min-width:0}
+.stage-wrap{display:grid;grid-template-columns:minmax(0,1fr) 330px;grid-template-areas:"show list";gap:30px;align-items:center}
+.stage-show{grid-area:show;display:flex;align-items:center;gap:22px;min-width:0}
 .stage-list{grid-area:list}
 @media (max-width:920px){
   .stage-wrap{grid-template-columns:1fr;grid-template-areas:"list" "show";gap:12px}
@@ -1082,8 +1090,8 @@ html{scroll-behavior:smooth}
 @media (max-width:920px){.stage-list::-webkit-scrollbar{display:none}}
 .stage-btn{
   position:relative;overflow:hidden;text-align:start;cursor:pointer;
-  display:flex;gap:11px;align-items:flex-start;
-  padding:14px 15px;border-radius:16px;
+  display:flex;gap:12px;align-items:flex-start;
+  padding:17px 17px;border-radius:16px;
   background:var(--surface-1);border:1px solid var(--hair-soft);color:inherit;
   transition:background .35s var(--ease-out),border-color .35s,transform .2s var(--ease-out);
 }
@@ -1097,11 +1105,11 @@ html{scroll-behavior:smooth}
   transition:color .35s,background .35s,border-color .35s;
 }
 .stage-btn.on .n{color:#fff;background:linear-gradient(135deg,var(--acc-deep1),var(--acc-deep2));border-color:transparent}
-.stage-btn b{display:block;font-size:14.5px;font-weight:700;line-height:1.4}
+.stage-btn b{display:block;font-size:16px;font-weight:700;line-height:1.4}
 /* התיאור פתוח תמיד (משוב מייסד 26.8): הקיפול גרם לכל הרצועה לקפוץ בכל מעבר שלב,
    והדמות שמתחת זזה איתה. גובה קבוע = שקט; ההבחנה בין פעיל לרדום נשארת בצבע */
 .stage-btn .sd{
-  display:block;font-size:12.5px;color:var(--mut);margin-top:4px;line-height:1.6;
+  display:block;font-size:13.5px;color:var(--mut);margin-top:5px;line-height:1.65;
   opacity:.62;transition:opacity .4s var(--ease-out);
 }
 .stage-btn.on .sd{opacity:1}

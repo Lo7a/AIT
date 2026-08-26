@@ -783,7 +783,7 @@ function StageWalk() {
               aria-hidden={i !== stage}
               {...(i !== stage ? { inert: true } : {})}
             >
-              <div className="core" style={{ padding: "16px 16px 14px" }}>
+              <div className="core" style={{ padding: "20px 20px 17px" }}>
                 <Preview enabled={i === stage} />
               </div>
             </div>
