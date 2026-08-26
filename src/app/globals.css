@@ -346,6 +346,19 @@ html:not([data-mode="light"]) .only-light{display:none}
     radial-gradient(40% 32% at 22% 74%, rgba(var(--acc2-rgb),.17), transparent 68%);
   opacity:.5;
 }
+/* על רקע בהיר אותם אחוזי שקיפות נבלעים - המצב הבהיר מקבל עוצמה כפולה (26.8) */
+html[data-mode="light"] .stage-sec::before{
+  background:linear-gradient(180deg,
+    transparent,
+    rgba(var(--acc-rgb),.12) 28%,
+    rgba(var(--acc2-rgb),.10) 72%,
+    transparent);
+}
+html[data-mode="light"] .stage-sec::after{
+  background:
+    radial-gradient(42% 34% at 76% 26%, rgba(var(--acc-rgb),.36), transparent 68%),
+    radial-gradient(40% 32% at 22% 74%, rgba(var(--acc2-rgb),.28), transparent 68%);
+}
 @keyframes wash-drift{
   from{transform:translateX(-50%) translateY(-3.5%)}
   to{transform:translateX(-50%) translateY(3.5%)}
