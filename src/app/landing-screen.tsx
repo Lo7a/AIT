@@ -588,9 +588,9 @@ const SEARCH_EXAMPLES = ["מסעדת השף חיפה", "מספרה ברמת גן
 // נוסח מדובר (הנחיית מייסד 26.8): משפטים קצרים שבעל עסק היה אומר בעצמו,
 // לא עברית של מכונה. מקצועי אבל קליל
 const SITUATION: { before: string; hl: string; after: string }[] = [
-  { before: "לקוחות פונים בטלפון, בוואטסאפ ובאינסטגרם, ", hl: "וחלק מהפניות פשוט הולכות לאיבוד", after: "." },
-  { before: "כל שבוע מציעים לך עוד אתר ועוד קידום. ", hl: "מה העסק באמת צריך?", after: " את זה אף אחד לא בדק." },
-  { before: "משלמים על פרסום ועל מערכות, ", hl: "בלי לדעת מה עובד ומה סתם עולה כסף", after: "." },
+  { before: "פניות נכנסות מהטלפון, מוואטסאפ ומאינסטגרם - ", hl: "מה שלא נענה בזמן, הולך למתחרה", after: "." },
+  { before: "כל שבוע מוכרים לך משהו חדש. ", hl: "בלי בדיקה, איך תדע מה באמת חסר?", after: "" },
+  { before: "אתה משלם על אתר ועל פרסום, ", hl: "בלי לדעת מה מהם באמת מכניס", after: "." },
 ];
 
 // חוקי הניקוד האמיתיים של ממד "נגישות ללקוח" עם המשקלים שלהם (score/dimensions.ts).
@@ -1098,16 +1098,25 @@ export function LandingScreen() {
           <div className="hero-main">
           <header className="hero-head">
             {/* בלי תג "אבחון דיגיטלי לעסקים" - הניווט כבר אומר את זה מילה במילה */}
-            {/* הכותרת הוחלפה (הנחיית מייסד 26.8): מ"כמה שווה הנוכחות הדיגיטלית" המופשט
-                לשאלה שבעל עסק מרגיש בבטן - והיא בדיוק מה שהסריקה באמת בודקת */}
+            {/* הכותרת שנבחרה מסבב האופציות (מייסד 26.8, אופציה 4): משחק על שם המותג */}
             <h1 className="hero-h1 rv d1">
-              כמה לקוחות <span className="hl2">מחפשים אותך עכשיו</span> - ולא מוצאים?
+              עשית פעם <span className="hl2">בדק בית</span> לעסק שלך?
             </h1>
             <p className="hero-sub rv d2" style={{ marginTop: 10 }}>
-              סורקים את העסק, שואלים כמה שאלות, ובונים תוכנית עבודה
-              מסודרת - <b>הכול במקום אחד.</b>
+              תוך דקה תדע מה מצב הדיגיטל שלך, <b>ומה שווה לתקן קודם.</b>
             </p>
           </header>
+
+          {/* המצב היום עלה לכאן (מייסד 26.8): בין הסלוגן לכרטיס הבדיקה - קודם
+              מזדהים עם הבעיה, ואז הפתרון במרחק שדה אחד */}
+          <div className="hero-sit rv d3">
+            <p className="sit-k">המצב היום</p>
+            {SITUATION.map((line) => (
+              <p key={line.hl} className="sit-say">
+                {line.before}<em>{line.hl}</em>{line.after}
+              </p>
+            ))}
+          </div>
 
           <div className="hero-form">
             <form onSubmit={(e) => { e.preventDefault(); startDiagnosis(); }}>
@@ -1173,15 +1182,6 @@ export function LandingScreen() {
             </form>
           </div>
 
-          {/* המצב היום מתחת לטופס: שורות קצרות בעברית מדוברת */}
-          <div className="hero-sit rv d5">
-            <p className="sit-k">המצב היום</p>
-            {SITUATION.map((line) => (
-              <p key={line.hl} className="sit-say">
-                {line.before}<em>{line.hl}</em>{line.after}
-              </p>
-            ))}
-          </div>
           </div>
 
           <div className="hero-demo">
@@ -1220,7 +1220,7 @@ export function LandingScreen() {
               {/* הדמות מציגה את ההזמנה האחרונה בעמוד - כף יד פתוחה אל הכפתור */}
               <img src="/brand/presenting.webp" alt="" aria-hidden="true" className="cta-buddy" />
               <div className="core cta-core">
-                <h2 className="cta-h">כמה לקוחות מחפשים אותך עכשיו - ולא מוצאים?</h2>
+                <h2 className="cta-h">עשית פעם בדק בית לעסק שלך?</h2>
                 <button type="button" className="btn-invert" onClick={startDiagnosis}>
                   אבחן את העסק שלי
                   <CapArrow />

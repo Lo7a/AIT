@@ -776,7 +776,8 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
    מתחת ל-560px החוק הבסיסי של .fieldrow כבר עורם אותם */
 .hero-v4 .hero-form{margin-top:20px}
 .hero-v4 .hero-form .fieldrow{grid-template-columns:2.2fr 1fr}
-.hero-v4 .hero-sit{margin-top:28px;border-top:1px solid var(--hair-soft);padding-top:18px}
+/* המצב היום יושב בין הסלוגן לכרטיס הבדיקה - בלי קו מפריד, זה רצף של טיעון */
+.hero-v4 .hero-sit{margin-top:24px}
 /* דוגמאות לחיצות בתוך כרטיס הטופס */
 .ex-chips{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:10px}
 .ex-lb{font-size:11.5px;font-weight:600;color:var(--dim)}
