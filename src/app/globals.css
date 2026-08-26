@@ -339,18 +339,6 @@ html:not([data-mode="light"]) .only-light{display:none}
     rgba(var(--acc2-rgb),.06) 72%,
     transparent);
 }
-/* אלומת האור (עידון 26.8): פס אור אלכסוני רך אחד, סגול שנמהל בברקת, שחולף דרך
-   הסקשן עם הגלילה - כמו אור מחלון. רך ורחב, בלי קצוות קשים */
-.stage-sec::after{
-  content:"";position:absolute;inset-block:-18%;left:50%;z-index:-1;
-  width:120vw;transform:translateX(-50%) rotate(-9deg);pointer-events:none;
-  background:linear-gradient(105deg,
-    transparent 28%,
-    rgba(var(--acc-rgb),.10) 44%,
-    rgba(var(--acc2-rgb),.08) 58%,
-    transparent 74%);
-  opacity:.8;
-}
 /* על רקע בהיר אותם אחוזי שקיפות נבלעים - המצב הבהיר מקבל עוצמה כפולה (26.8) */
 html[data-mode="light"] .stage-sec::before{
   background:linear-gradient(180deg,
@@ -359,37 +347,6 @@ html[data-mode="light"] .stage-sec::before{
     rgba(var(--acc2-rgb),.075) 72%,
     transparent);
 }
-html[data-mode="light"] .stage-sec::after{
-  background:linear-gradient(105deg,
-    transparent 28%,
-    rgba(var(--acc-rgb),.17) 44%,
-    rgba(var(--acc2-rgb),.13) 58%,
-    transparent 74%);
-}
-@keyframes wash-drift{
-  from{transform:translateX(-50%) translateY(-3.5%)}
-  to{transform:translateX(-50%) translateY(3.5%)}
-}
-/* האלומה מחליקה הצידה בעדינות עם הגלילה - תנועה קטנה, בלי שינויי גודל */
-@keyframes aurora-pass{
-  0%{opacity:0;transform:translateX(-46%) rotate(-9deg)}
-  45%{opacity:1}
-  100%{opacity:0;transform:translateX(-54%) rotate(-9deg)}
-}
-@supports (animation-timeline: view()){
-  @media (prefers-reduced-motion:no-preference){
-    .stage-sec::before{
-      animation:wash-drift linear both;
-      animation-timeline:view();
-      animation-range:cover 0% cover 100%;
-    }
-    .stage-sec::after{
-      animation:aurora-pass linear both;
-      animation-timeline:view();
-      animation-range:cover 0% cover 100%;
-    }
-  }
-}
 /* הרקע רחב מהתוכן במתכוון - שלא ייצור פס גלילה אופקי */
 body{overflow-x:clip}
 /* אפקטי גלילה (מייסד 26.8): אנימציות מונעות-גלילה של הדפדפן עצמו - התקדמות
@@ -397,17 +354,9 @@ body{overflow-x:clip}
    הטון: מקצועי ושקט - דהיות, מתיחות קווים וכיווצים עדינים. בלי קפיצות */
 @keyframes view-rise{from{opacity:0;translate:0 48px}to{opacity:1;translate:0 0}}
 @keyframes view-scale{from{opacity:0;scale:.86}to{opacity:1;scale:1}}
-/* דהייה בלבד - הכיווץ והתזוזה הרגישו כקפיצה בגלילה (מייסד 26.8) */
-@keyframes hero-exit{to{opacity:.3}}
 @keyframes line-draw{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 @supports (animation-timeline: view()){
   @media (prefers-reduced-motion:no-preference){
-    /* ההירו נמסר החוצה: דהייה וכיווץ בקצב הגלילה כשעוזבים אותו */
-    .hero-v4{
-      animation:hero-exit linear both;
-      animation-timeline:view();
-      animation-range:exit 8% exit 85%;
-    }
     /* קו הכותרת של כל סקשן נמתח מהטקסט החוצה עם הכניסה למסך */
     .how-head::after{
       animation:line-draw linear both;
