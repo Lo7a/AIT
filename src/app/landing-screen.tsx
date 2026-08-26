@@ -993,15 +993,19 @@ export function LandingScreen() {
             </div>
           </Reveal>
           <Reveal delay={60}>
-            <div className="shell" style={{ position: "relative" }}>
-              {/* הדמות מציגה את ההזמנה האחרונה בעמוד - כף יד פתוחה אל הכפתור */}
-              <img src="/brand/presenting.webp" alt="" aria-hidden="true" className="cta-buddy" />
+            <div className="shell">
+              {/* רצועת הסגירה נבנתה מחדש (מייסד 26.8): טקסט וכפתור מימין, והיועץ
+                  עם הלפטופ (הפוזה החדשה של להב) יושב בתוך הכרטיס משמאל */}
               <div className="core cta-core">
-                <h2 className="cta-h">עשית פעם בדק עסק?</h2>
-                <button type="button" className="btn-invert" onClick={startDiagnosis}>
-                  אבחן את העסק שלי
-                  <CapArrow />
-                </button>
+                <div className="cta-txt">
+                  <h2 className="cta-h">עשית פעם בדק עסק?</h2>
+                  <p className="cta-sub">תוך דקה תדע מה מצב הדיגיטל שלך, ומה שווה לתקן קודם.</p>
+                  <button type="button" className="btn-invert" onClick={startDiagnosis}>
+                    אבחן את העסק שלי
+                    <CapArrow />
+                  </button>
+                </div>
+                <img src="/brand/consulting.webp" alt="" aria-hidden="true" className="cta-guy" />
               </div>
             </div>
           </Reveal>

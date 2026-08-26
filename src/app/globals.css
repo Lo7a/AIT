@@ -464,13 +464,8 @@ body{overflow-x:clip}
   .foot-point{display:none}
 }
 
-/* רצועת הסגירה בנחיתה: הדמות המציגה מציצה מעל הפס, קו החיתוך מוסתר מאחורי הליבה */
-.cta-buddy{
-  position:absolute;top:-58px;inset-inline-end:26px;width:112px;
-  pointer-events:none;user-select:none;
-}
 @media (max-width:880px){
-  .hub-buddy,.plan-buddy,.cta-buddy{display:none}
+  .hub-buddy,.plan-buddy{display:none}
   .core.plan-core{padding-inline-end:0}
 }
 @media (max-width:760px){.scan-buddy{display:none}}
@@ -961,13 +956,23 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
   font-size:clamp(16px,1.7vw,21px);line-height:1.4;
   letter-spacing:-.01em;max-width:26ch;font-weight:700;text-wrap:balance;
 }
+/* רצועת הסגירה (נבנתה מחדש 26.8): טקסט וכפתור מול היועץ היושב, שטיפה סגולה חזקה */
 .cta-core{
-  padding:34px 34px;
-  display:flex;align-items:center;gap:30px;flex-wrap:wrap;
+  padding:40px 46px 0;
+  display:flex;align-items:flex-end;justify-content:space-between;gap:36px;
   background:
-    linear-gradient(135deg,rgba(var(--accd-rgb),.11),rgba(var(--acc2-rgb),.04) 62%),
+    linear-gradient(135deg,rgba(var(--accd-rgb),.17),rgba(var(--acc2-rgb),.05) 62%),
     var(--core-bg);
-  border-color:rgba(var(--acc-rgb),.16);
+  border-color:rgba(var(--acc-rgb),.2);
+}
+.cta-txt{padding-bottom:40px}
+.cta-sub{margin:10px 0 20px;font-size:15px;color:var(--mut);max-width:44ch;line-height:1.6}
+/* היועץ יושב על תחתית הכרטיס - הגלגלים נוגעים בקצה */
+.cta-guy{width:min(228px,26vw);flex:none;pointer-events:none;user-select:none}
+@media (max-width:760px){
+  .cta-guy{display:none}
+  .cta-core{padding:30px 26px 0}
+  .cta-txt{padding-bottom:30px}
 }
 .auth{
   position:relative;z-index:1;
