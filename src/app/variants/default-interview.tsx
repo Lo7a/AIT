@@ -18,9 +18,10 @@ import { missingCount } from "../../pipeline/model/ledger";
 // כללי החלקים המונפשים: מחלקות .rv יושבות רק על עטיפות סטטיות שנטענות פעם אחת עם המסך -
 // אף פעם לא על הודעות/פאנלים שמתחלפים עם ה-state, כדי ששינוי state לא יריץ כניסה מחדש.
 //
-// **הפריסה (הכרעת אלעד 26.8):** שלוש עמודות - הפנקס, רשימת השאלות הממוספרת, והשיחה. העמודה
-// השלישית היא חלון בגובה קבוע: השאלה נעוצה למעלה, תיבת הכתיבה נעוצה למטה, והשיחה נגללת
-// ביניהן בלבד. קודם הצ'אט גדל למטה והדף כולו זז מתחת לעכבר בכל הודעה חדשה.
+// **הפריסה (הכרעת אלעד 26.8):** שלושה פאנלים בגובה המסך, מימין לשמאל - רשימת השאלות
+// הממוספרת (עם התשובה מתחת לכל שאלה שנענתה), השאלה הנוכחית עם האפשרויות שלה, והשיחה עם
+// תיבת הכתיבה נעוצה בתחתיתה. כל פאנל גולל בתוך עצמו; הדף לא נגלל. קודם הצ'אט ישב מתחת
+// לשאלה וגדל למטה, והדף כולו זז מתחת לעכבר בכל הודעה חדשה. הפנקס ברצועת הניווט.
 
 // כפתור-קו שקט (סיום הראיון): ghost-act מ-globals בלי מצב disabled משלו, אז מוסיפים כאן
 const GHOST_BTN = "ghost-act disabled:cursor-not-allowed disabled:opacity-40";
@@ -87,9 +88,11 @@ function Bubble({ message }: { message: ChatMessage }) {
 // אלעד 26.8. השומר האמיתי יושב ב-reducer (case "revisit") ולא רק ב-disabled כאן, כדי שיהיה
 // מקור אמת אחד למי שמותר לפתוח.
 function PlanList({
-  plan, currentKey, revisitKey, skippedKeys, locked, onPick,
+  plan, answers, currentKey, revisitKey, skippedKeys, locked, onPick,
 }: {
   plan: PlanItem[];
+  /** התשובה השמורה לכל פריט, באותו סדר (answersOf); null למי שלא נענה */
+  answers: (string | null)[];
   currentKey: string | null;
   revisitKey: string | null;
   skippedKeys: string[];
@@ -109,6 +112,7 @@ function PlanList({
             const now = revisitKey == null && item.key === currentKey;
             const skipped = !item.answered && skippedKeys.includes(item.key);
             const mark = editing ? "is-edit" : now ? "is-now" : item.answered ? "is-done" : skipped ? "is-skip" : "";
+            const ans = answers[i] ?? null;
             return (
               <li key={item.key}>
                 <button
@@ -122,7 +126,12 @@ function PlanList({
                   title={item.text}
                 >
                   <span className="sc-avatar mini" aria-hidden="true">{i + 1}</span>
-                  <span className="lb">{item.label}</span>
+                  <span className="lb">
+                    {item.label}
+                    {/* התשובה כלשונה מתחת לתווית - הרשימה היא סיכום של מה שנאמר, לא רק
+                        תוכן עניינים. שורה אחת עם קיצור, והמלא בריחוף */}
+                    {ans != null && <small className="ans" title={ans}>{ans}</small>}
+                  </span>
                 </button>
               </li>
             );
@@ -186,7 +195,7 @@ export function DefaultInterview({
 }) {
   const {
     messages, busy, starting, finishing, input, freeText, freeTextIntent, visible,
-    askedCount, maxQuestions, ledger, plan, revisitKey, skippedKeys, previousAnswer,
+    askedCount, maxQuestions, ledger, plan, answers, revisitKey, skippedKeys, previousAnswer,
     error, closed, canSend, canFinish, canSkip, canAnswer, canConfirmOptions,
     selectedOptions, customInputOpen,
     send, skip, revisit, cancelRevisit, finish, selectOption, confirmOptions, toggleOption,
@@ -315,6 +324,7 @@ export function DefaultInterview({
         {plan.length > 0 && (
           <PlanList
             plan={plan}
+            answers={answers}
             currentKey={visible?.key ?? null}
             revisitKey={revisitKey}
             skippedKeys={skippedKeys}
@@ -323,7 +333,7 @@ export function DefaultInterview({
           />
         )}
 
-        {/* הפאנל: שאלה נעוצה למעלה, שיחה נגללת באמצע, תיבת כתיבה נעוצה למטה */}
+        {/* הפאנל האמצעי: השאלה הנוכחית לבדה, נמתחת לגובה השכנים; שורת הפעולות נעוצה לתחתיתו */}
         <div className="rep-main">
           {/* העטיפה כאן סטטית (תמיד מרונדרת) - רק התוכן הפנימי מתחלף בין המצבים, כך שהחלפת
               פאנל לא מריצה שוב את אנימציית הכניסה */}
@@ -346,7 +356,7 @@ export function DefaultInterview({
                       <div className="min-w-0">
                         <p className="text-[16.5px] font-bold leading-snug tracking-[-.01em]">עברנו על כל השאלות - תודה!</p>
                         <p className="mt-1 text-[12.5px] leading-relaxed text-[color:var(--mut)]">
-                          כל תשובה כבר עדכנה את הדוח. אפשר להוסיף פרטים בכתיבה חופשית למטה, או לעבור אליו.
+                          כל תשובה כבר עדכנה את הדוח. אפשר להוסיף פרטים בתיבת השיחה, או לעבור אליו.
                         </p>
                         <div className="mt-3">
                           <button type="button" className="btn sm" disabled={!canFinish} onClick={() => void finish()}>
@@ -392,7 +402,7 @@ export function DefaultInterview({
                       </p>
                     )}
                     {visible.options != null && customInputOpen && (
-                      <p className="mt-1 text-[12.5px] text-[color:var(--mut)]">אפשר לכתוב את התשובה למטה</p>
+                      <p className="mt-1 text-[12.5px] text-[color:var(--mut)]">אפשר לכתוב את התשובה בתיבת השיחה</p>
                     )}
                     {showChips && visible.options && (
                       <>
@@ -438,53 +448,60 @@ export function DefaultInterview({
                       onFreeText={() => handleSetFreeText(true)}
                       onCancelRevisit={handleCancelRevisit}
                       onFinish={() => void finish()}
-                      className={showChips ? "mt-3 border-t border-dashed border-[color:var(--hair)] pt-3" : "mt-3"}
+                      className={showChips ? "iv-acts border-t border-dashed border-[color:var(--hair)] pt-3" : "iv-acts"}
                     />
                   </div>
                 </div>
               )
             )}
           </div>
-
-          {/* iv-thread נושא את פריסת הבועות; המכל שסביבו אחראי רק לגלילה. שניהם ברוחב
-              הקריאה של העמודה, כך שפס הגלילה צמוד לשיחה ולא בקצה המסך */}
-          <section aria-live="polite" className="iv-scroll" ref={scrollRef}>
-            <div className="iv-thread">
-              {messages.map((m) => (
-                <Bubble key={m.id} message={m} />
-              ))}
-              {(busy || starting) && <TypingDots />}
-            </div>
-          </section>
-
-          {error && (
-            <p className="form-error" role="alert">
-              {error}
-            </p>
-          )}
-
-          {showTextInput && (
-            <div className="flex items-end gap-3">
-              {/* .field שב-globals מעצב input בלבד - התיבה כאן היא textarea (שורות + Enter לשליחה),
-                  אז אותו מראה מיושם ב-utilities בלי לגעת ב-CSS המשותף */}
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                disabled={inputDisabled}
-                rows={2}
-                placeholder="כתבו כאן"
-                aria-label="הודעה לראיון"
-                className="min-h-[3.2rem] flex-1 resize-none rounded-[14px] border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-4 py-3 text-[15px] outline-none transition placeholder:text-[color:var(--dim)] focus:border-[rgba(var(--acc-rgb),.55)] focus:bg-[rgba(var(--acc-rgb),.06)] focus:shadow-[0_0_0_4px_rgba(var(--acc-rgb),.12)] disabled:cursor-not-allowed disabled:opacity-60"
-              />
-              <button type="button" className="btn sm shrink-0" onClick={() => void send()} disabled={!canSend}>
-                שליחה
-                <CapArrow />
-              </button>
-            </div>
-          )}
         </div>
+
+        {/* השיחה בפאנל משלה, השמאלי: היסטוריה למעלה ותיבת כתיבה נעוצה למטה, כמו בכל
+            אפליקציית הודעות (הכרעת אלעד 26.8). התיבה כאן ולא מתחת לשאלה: מי שכותב חופשי
+            כותב לתוך השיחה, והשאלה באמצע נשארת מה שעונים עליו */}
+        <section className="iv-chat shell rv d3" aria-label="השיחה">
+          <div className="core card-pad">
+            <h2 className="side-h4">השיחה</h2>
+            {/* iv-thread נושא את פריסת הבועות; המכל שסביבו אחראי רק לגלילה */}
+            <div aria-live="polite" className="iv-scroll" ref={scrollRef}>
+              <div className="iv-thread">
+                {messages.map((m) => (
+                  <Bubble key={m.id} message={m} />
+                ))}
+                {(busy || starting) && <TypingDots />}
+              </div>
+            </div>
+
+            {error && (
+              <p className="form-error mt-2" role="alert">
+                {error}
+              </p>
+            )}
+
+            {showTextInput && (
+              <div className="mt-2 flex items-end gap-3">
+                {/* .field שב-globals מעצב input בלבד - התיבה כאן היא textarea (שורות + Enter לשליחה),
+                    אז אותו מראה מיושם ב-utilities בלי לגעת ב-CSS המשותף */}
+                <textarea
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  disabled={inputDisabled}
+                  rows={2}
+                  placeholder="כתבו כאן"
+                  aria-label="הודעה לראיון"
+                  className="min-h-[3.2rem] flex-1 resize-none rounded-[14px] border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-4 py-3 text-[15px] outline-none transition placeholder:text-[color:var(--dim)] focus:border-[rgba(var(--acc-rgb),.55)] focus:bg-[rgba(var(--acc-rgb),.06)] focus:shadow-[0_0_0_4px_rgba(var(--acc-rgb),.12)] disabled:cursor-not-allowed disabled:opacity-60"
+                />
+                <button type="button" className="btn sm shrink-0" onClick={() => void send()} disabled={!canSend}>
+                  שליחה
+                  <CapArrow />
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
       </main>
     </AppShell>
   );

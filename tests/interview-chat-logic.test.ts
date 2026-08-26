@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  chatReducer, initialChatState, visibleNext, sectionProgress, answerFor, type NextQuestion,
+  chatReducer, initialChatState, visibleNext, sectionProgress, answerFor, answersOf, type NextQuestion,
 } from "../src/app/interview/chat-logic";
 import { INTERVIEW_SECTIONS } from "../src/pipeline/interview/questions";
 import type { InterviewSnapshot, TurnResult, PlanItem } from "../src/server/run-interview";
@@ -515,6 +515,18 @@ describe("answerFor", () => {
   it("null כשאין תשובה לשאלה, וכשאין שאלה בכלל", () => {
     expect(answerFor([{ id: "a", role: "user", content: "משהו", questionKey: null }], "lead_flow_volume")).toBeNull();
     expect(answerFor([], null)).toBeNull();
+  });
+});
+
+// שורת התשובה שמתחת לכל שאלה שנענתה ברשימה (הכרעת אלעד 26.8)
+describe("answersOf", () => {
+  it("תשובה לכל שאלה שנענתה, null לשאר - באותו סדר של הרשימה", () => {
+    const state = answeredState();
+    expect(answersOf(state.messages, state.plan)).toEqual(["בעיקר טלפון, וואטסאפ", null]);
+  });
+
+  it("שאלה שסומנה כנענתה בלי הודעה תואמת - null, לא שגיאה", () => {
+    expect(answersOf([], PLAN)).toEqual([null, null]);
   });
 });
 

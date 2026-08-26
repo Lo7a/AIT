@@ -78,6 +78,12 @@ export function answerFor(messages: ChatMessage[], key: string | null): string |
   return null;
 }
 
+/** התשובה השמורה לכל פריט ברשימת השאלות, באותו סדר; null למי שלא נענה. לשורת התשובה
+    שמתחת לתווית ברשימה (הכרעת אלעד 26.8): הרשימה היא סיכום של מה שנאמר, לא רק תוכן עניינים */
+export function answersOf(messages: ChatMessage[], plan: PlanItem[]): (string | null)[] {
+  return plan.map((p) => (p.answered ? answerFor(messages, p.key) : null));
+}
+
 // המצב ה"מחושב" (לא הדביק) של חופשי/מונחה - אותו חוק תמיד: אין שאלה גלויה (או שהשרת ממליץ
 // חופשי) => חופשי. משמש הן לאתחול (עם recommendFreeText) והן לכל תור/snapshot (בלעדיו)
 function computedFreeText(next: NextQuestion | null, skippedKeys: string[], recommend = false): boolean {

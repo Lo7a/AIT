@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { InterviewSnapshot, TurnResult } from "../../server/run-interview";
 import { NOT_ACTIVE_MESSAGE } from "../../pipeline/interview/contract";
 import {
-  chatReducer, initialChatState, visibleNext, sectionProgress, answerFor,
+  chatReducer, initialChatState, visibleNext, sectionProgress, answerFor, answersOf,
 } from "./chat-logic";
 
 const GENERIC_ERROR = "משהו השתבש, נסו שוב בעוד רגע";
@@ -86,6 +86,8 @@ export function useInterviewChat(diagnosisId: string, initial: InterviewSnapshot
   const visible = revisited ?? visibleNext(state.next, state.skippedKeys);
   // התשובה השמורה לשאלה שנערכת, כדי שהתצוגה תוכל להראות אותה. null כשלא עורכים
   const previousAnswer = answerFor(state.messages, state.revisitKey);
+  // התשובה השמורה לכל שאלה ברשימה, לשורת התשובה שמתחת לתווית (הכרעת אלעד 26.8)
+  const answers = answersOf(state.messages, state.plan);
   // הערה (משימה 19): צ'יפי הסקציות ירדו מהמסך יחד עם אחוז השלמות, והכרטיס מציג עכשיו את
   // פנקס החוסרים. sectionProgress עצמו נשאר מיוצא ונבדק ב-chat-logic - הוא פונקציה טהורה
   // שעשויה לשמש מסך ניהול - אבל אין לו יותר צרכן בנתיב הריצה, ולכן הוא לא מחושב כאן לחינם
@@ -229,6 +231,7 @@ export function useInterviewChat(diagnosisId: string, initial: InterviewSnapshot
     ...state,
     visible,
     previousAnswer,
+    answers,
     canSend,
     canFinish,
     canSkip,
