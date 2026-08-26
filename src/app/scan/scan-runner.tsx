@@ -100,7 +100,7 @@ function WaitingScreen({
 }) {
   return (
     <ScanFrame target={target} busy={true}>
-      <div className="scan-peek">
+      <div className="scan-peek pad">
         {/* גם כשמחכים לסריקה שרצה ברקע - הדמות באמצע בדיקה */}
         <img src="/brand/inspecting.webp" alt="" aria-hidden="true" className="scan-buddy" />
       <section className="shell rv d1">
@@ -181,7 +181,7 @@ function LiveScan({ target }: { target: Target }) {
           מה שלא הועתק מההדגמה במכוון: פס ההתקדמות. שם הוא נשען על מספר שלבים ידוע מראש,
           וכאן השלבים מגיעים בזרם - הפס היה מטפס ל-100 ונופל ל-50 בכל שלב חדש שנכנס */}
       {steps.length > 0 && (
-        <div className="scan-peek">
+        <div className="scan-peek pad">
           {/* הדמות מציצה מעל החלון עם הזכוכית מגדלת - היא באמת בודקת עכשיו. קו החיתוך
               של חצי הגוף מוסתר מאחורי הסרגל העליון (z-index על ה-shell) */}
           <img src="/brand/inspecting.webp" alt="" aria-hidden="true" className="scan-buddy" />

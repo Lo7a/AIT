@@ -504,12 +504,8 @@ function InterviewPreview({ enabled = true }: { enabled?: boolean }) {
   return (
     <div ref={liveRef}>
       <div className="flex items-center gap-4">
-        <div className="orb-being" style={{ width: 74, height: 74, margin: 0 }} aria-hidden="true">
-          <span className="orb-halo" />
-          <span className="orb-ring" />
-          <span className="orb-ring b" />
-          <span className="orb-core" style={{ inset: 14 }} />
-        </div>
+        {/* הפנים של הדמות במקום האורב הגנרי (מייסד 26.8) - היועץ הוא מישהו */}
+        <BrandFace size={64} />
         <div>
           <b className="block text-sm font-bold">היועץ הדיגיטלי של בדק עסק</b>
           <span className="text-xs" style={{ color: "var(--dim)" }}>
@@ -593,56 +589,12 @@ const SITUATION: { before: string; hl: string; after: string }[] = [
   { before: "אתה משלם על אתר ועל פרסום, ", hl: "בלי לדעת מה מהם באמת מכניס", after: "." },
 ];
 
-// חוקי הניקוד האמיתיים של ממד "נגישות ללקוח" עם המשקלים שלהם (score/dimensions.ts).
-// פרסום הרובריקה עצמה הוא ההוכחה החזקה ביותר לכך שהציון לא נשלף מהאוויר
-const RUBRIC = [
-  { t: "קביעת תור אונליין", w: 30 },
-  { t: "וואטסאפ באתר", w: 25 },
-  { t: "טופס יצירת קשר", w: 15 },
-  { t: "טלפון נגיש ללקוח", w: 15 },
-];
-
 // שלושת המצבים שממצא יכול להיות בהם. המצב השלישי הוא כל ההבדל: "לא נבדק" הוא לא פער
 const FINDING_STATES: { t: string; s: "ok" | "no" | "un" }[] = [
   { t: "וואטסאפ זמין באתר", s: "ok" },
   { t: "אין קישור וואטסאפ באתר", s: "no" },
   { t: "האתר בנוי בצד הלקוח, לא הצלחנו לקרוא את הסימנים", s: "un" },
 ];
-
-// מקטעי הדוח האמיתיים, בשמות שהמסך באמת מציג - לא רשימת הבטחות
-const REPORT_TOC: { t: string; free?: boolean }[] = [
-  { t: "מה הבנתי על העסק שלך" },
-  { t: "עיקרי הדוח" },
-  { t: "פירוט הציון לפי חמישה תחומים" },
-  { t: "הפערים המובילים" },
-  { t: "מה כבר עובד טוב" },
-  { t: "מה אפשר לעשות כבר עכשיו", free: true },
-  { t: "תוכנית עבודה עם טווחי מחיר ממקור" },
-];
-
-function ReportTocSection() {
-  return (
-    <section className="pb-14">
-      <Reveal>
-        <div className="how-head"><h2>מה יש בדוח</h2></div>
-      </Reveal>
-      <Reveal delay={70}>
-        <div className="shell">
-          <div className="core card-pad">
-            {REPORT_TOC.map((row, i) => (
-              <div key={row.t} className="toc-row">
-                <span className="t">{row.t}</span>
-                {row.free && <span className="free-tag">בלי תשלום</span>}
-                <span className="lead" aria-hidden="true" />
-                <span className="n num" aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Reveal>
-    </section>
-  );
-}
 
 // סימוני המצב בתוך חתיכות המוצר
 function StateDot({ s }: { s: "ok" | "no" | "un" }) {
@@ -663,51 +615,47 @@ function StateDot({ s }: { s: "ok" | "no" | "un" }) {
   );
 }
 
-// כללי העבודה: כל טענה מוצגת לצד חתיכה אמיתית מהמוצר שמקיימת אותה. אין כאן אייקון,
-// כותרת ופסקה - יש טענה והוכחה, והצדדים מתחלפים כדי שזה לא ייקרא כרשימה
-function RulesSection() {
+// משקלי הממדים במנוע הניקוד (score/dimensions.ts) - סכום 100 אחוז
+const WEIGHTS = [
+  { t: "נגישות ללקוח", w: 25, c: "var(--acc-rgb)", a: 1 },
+  { t: "נראות דיגיטלית", w: 20, c: "var(--acc-rgb)", a: 0.72 },
+  { t: "מוניטין וביקורות", w: 20, c: "var(--acc2-rgb)", a: 0.62 },
+  { t: "בשלות תהליכים", w: 20, c: "var(--acc2-rgb)", a: 0.9 },
+  { t: "תשתית דיגיטלית", w: 15, c: "var(--acc-rgb)", a: 0.42 },
+];
+
+// המספר נספר כשהוא מגיע למסך. CountUp הקיים (ui/motion.tsx) הורחב לתמוך בשבר עשרוני
+function SearchShare() {
+  const [ref, inView] = useInView<HTMLParagraphElement>();
+  return (
+    <p ref={ref} className="bigstat num" style={{ marginTop: 18 }}>
+      {inView ? <CountUp to={98.17} decimals={2} duration={1600} /> : "0.00"}
+      <small>%</small>
+    </p>
+  );
+}
+
+// רצועת ההוכחות (קיצור מייסד 26.8): טענה אחת + חתיכת מוצר אמיתית בכל כרטיס, בלי
+// פסקאות. ירשה ארבעה סקשנים טקסטואליים: מה יש בדוח, איך אנחנו עובדים, נתונים ומי אנחנו
+function ProofSection() {
   return (
     <section className="pb-14">
       <Reveal>
-        <div className="how-head"><h2>איך אנחנו עובדים</h2></div>
+        <div className="how-head"><h2>למה אפשר לסמוך על זה</h2></div>
       </Reveal>
-      <Reveal delay={70}>
-        <div className="shell">
-          <div className="core card-pad">
+      <Reveal delay={50}>
+        <p className="proof-say">
+          בנינו את בדק עסק כי בעל עסק מקבל הצעות לפני שמישהו בדק מה באמת חסר לו.
+          אז קודם בודקים - <em>ובשקיפות מלאה:</em>
+        </p>
+      </Reveal>
+      <Reveal delay={110}>
+        <div className="proof-grid">
 
-            <div className="zig-row">
-              <div className="say">
-                <span className="k">הרובריקה גלויה</span>
-                <b>הציון לא נשלף מהאוויר</b>
-                <p>
-                  לכל חוק יש משקל קבוע וידוע מראש, וכל דוח מראה בדיוק אילו חוקים נבדקו
-                  ומה כל אחד תרם. אפשר לחלוק עלינו, ואי אפשר להאשים אותנו בהמצאה.
-                </p>
-              </div>
-              <div className="art">
-                <div className="art-h">
-                  <span>נגישות ללקוח</span>
-                  <span>משקל</span>
-                </div>
-                {RUBRIC.map((r) => (
-                  <div key={r.t} className="art-row">
-                    <span className="g">{r.t}</span>
-                    <span className="wt num">{r.w}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="zig-row">
-              <div className="say">
-                <span className="k">שלושה מצבים, לא שניים</span>
-                <b>מה שלא נבדק כתוב שלא נבדק</b>
-                <p>
-                  לממצא יש שלושה מצבים אפשריים ולא שניים. אתר שלא הצלחנו לקרוא לא הופך
-                  לרשימת בעיות. דוח שמנפח בעיות קל למכור, ואי אפשר לסמוך עליו.
-                </p>
-              </div>
-              <div className="art">
+          <div className="shell">
+            <div className="core card-pad">
+              <p className="data-t">מה שלא נבדק - כתוב שלא נבדק</p>
+              <div className="art" style={{ marginTop: 12 }}>
                 <div className="art-h">
                   <span>ממצא באתר</span>
                   <span>מצב</span>
@@ -721,137 +669,11 @@ function RulesSection() {
                 ))}
               </div>
             </div>
-
-            <div className="zig-row">
-              <div className="say">
-                <span className="k">סדר הצעדים</span>
-                <b>מה שאפשר לתקן לבד מגיע קודם</b>
-                <p>
-                  הדוח פותח בצעדים שאפשר לעשות היום בלי לשלם לאף אחד. התוכנית בתשלום
-                  מגיעה אחריהם, ורק על מה שבאמת נחוץ.
-                </p>
-              </div>
-              <div className="art">
-                <div className="art-h">
-                  <span>סדר בדוח</span>
-                  <span className="free-tag">בלי תשלום</span>
-                </div>
-                <div className="art-row">
-                  <span className="g">להוסיף כפתור וואטסאפ לאתר</span>
-                </div>
-                <div className="art-row">
-                  <span className="g">לבקש ביקורות מלקוחות מרוצים</span>
-                </div>
-                <div className="art-div" aria-hidden="true" />
-                <div className="art-row off">
-                  <span className="g">תוכנית עבודה בתשלום</span>
-                  <span className="wt">אחרי</span>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </Reveal>
-    </section>
-  );
-}
-
-// מדידה אמיתית שלנו (18.8.2026): שלושה אתרים ישראליים שבהם בדיקת המהירות המדומה
-// האשימה באיטיות בזמן שמדידת גוגל על גולשים אמיתיים באותם אתרים אמרה את ההפך.
-// זו הסיבה שהמוצר מפסיק להציג ציון מדומה כפער כשיש מדידת שדה שסותרת אותו
-const SPEED_CHECK = [
-  { who: "אתר ישראלי א", lab: 8.0, real: 1.28 },
-  { who: "אתר ישראלי ב", lab: 15.9, real: 1.58 },
-  { who: "אתר ישראלי ג", lab: 53.4, real: 1.9 },
-];
-
-// משקלי הממדים במנוע הניקוד (score/dimensions.ts) - סכום 100 אחוז
-const WEIGHTS = [
-  { t: "נגישות ללקוח", w: 25, c: "var(--acc-rgb)", a: 1 },
-  { t: "נראות דיגיטלית", w: 20, c: "var(--acc-rgb)", a: 0.72 },
-  { t: "מוניטין וביקורות", w: 20, c: "var(--acc2-rgb)", a: 0.62 },
-  { t: "בשלות תהליכים", w: 20, c: "var(--acc2-rgb)", a: 0.9 },
-  { t: "תשתית דיגיטלית", w: 15, c: "var(--acc-rgb)", a: 0.42 },
-];
-
-// הפסים נמתחים כשהם נכנסים למסך, כך שההשוואה נבנית מול העין במקום להופיע גמורה
-function SpeedBars() {
-  const [ref, inView] = useInView<HTMLDivElement>();
-  return (
-    <div ref={ref} style={{ marginTop: 14 }}>
-      {SPEED_CHECK.map((row) => (
-        <div key={row.who} className="cmp-row">
-          <span className="who">{row.who}</span>
-          <div className="cmp-bar lab">
-            <span className="t">בדיקה מדומה</span>
-            <span className="track">
-              <i style={{ width: "100%", transform: `scaleX(${inView ? 1 : 0})` }} />
-            </span>
-            <span className="v num">{row.lab.toFixed(1)} שניות</span>
-          </div>
-          <div className="cmp-bar real">
-            <span className="t">גולשים אמיתיים</span>
-            <span className="track">
-              <i
-                style={{
-                  width: `${Math.max((row.real / row.lab) * 100, 3)}%`,
-                  transform: `scaleX(${inView ? 1 : 0})`,
-                  transitionDelay: ".25s",
-                }}
-              />
-            </span>
-            <span className="v num">{row.real.toFixed(2)} שניות</span>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// המספר נספר כשהוא מגיע למסך. CountUp הקיים (ui/motion.tsx) הורחב לתמוך בשבר עשרוני
-function SearchShare() {
-  const [ref, inView] = useInView<HTMLParagraphElement>();
-  return (
-    <p ref={ref} className="bigstat num" style={{ marginTop: 18 }}>
-      {inView ? <CountUp to={98.17} decimals={2} duration={1600} /> : "0.00"}
-      <small>%</small>
-    </p>
-  );
-}
-
-function DataSection() {
-  return (
-    <section className="pb-14">
-      <Reveal>
-        <div className="how-head"><h2>נתונים</h2></div>
-      </Reveal>
-      <Reveal delay={70}>
-        <div className="data-grid">
-
-          <div className="shell data-wide">
-            <div className="core card-pad">
-              <p className="data-t">בדיקת מהירות מדומה מול מה שהגולשים באמת חווים</p>
-              <p className="data-p">
-                בדקנו שלושה אתרים ישראליים בשתי הדרכים. הבדיקה המדומה, זו שכל כלי מציג,
-                האשימה את שלושתם באיטיות. מדידת גוגל על הגולשים האמיתיים של אותם אתרים
-                אמרה את ההפך. לכן דוח שמציג רק את הבדיקה המדומה מאשים עסקים בטעות.
-              </p>
-              <SpeedBars />
-              <p className="src">
-                נמדד ב-18 באוגוסט 2026 מול Google PageSpeed Insights ו-Chrome UX Report.
-                אורך הפס יחסי לשורה שלו, והמספר המדויק מופיע לצדו.
-              </p>
-            </div>
           </div>
 
           <div className="shell">
             <div className="core card-pad">
-              <p className="data-t">כך מחולק הציון</p>
-              <p className="data-p">
-                חמישה ממדים במשקלים קבועים. ממד שאין עליו מספיק מידע לא מקבל ציון ולא
-                נכנס לחישוב, במקום לקבל אפס.
-              </p>
+              <p className="data-t">הציון בנוי ממשקלים גלויים</p>
               {/* הצבעים הם דרגות של שני צבעי המותג, לא חמישה צבעים חדשים */}
               <div className="wstack" style={{ marginTop: 16 }} aria-hidden="true">
                 {WEIGHTS.map((w) => (
@@ -872,65 +694,12 @@ function DataSection() {
 
           <div className="shell">
             <div className="core card-pad">
-              <p className="data-t">איפה מחפשים אותך</p>
-              <p className="data-p">
-                כמעט כל חיפוש בישראל עובר דרך גוגל. לכן הפרופיל העסקי בגוגל הוא הדבר
-                הראשון שהסריקה בודקת.
-              </p>
+              <p className="data-t">כמעט כל חיפוש בישראל עובר בגוגל</p>
               <SearchShare />
-              <p style={{ fontSize: 12, color: "var(--mut)", marginTop: 7 }}>
-                מנתח החיפושים בישראל שמגיע לגוגל
-              </p>
-              <p className="src">Statcounter, יולי 2026.</p>
+              <p className="src">Statcounter, יולי 2026. לכן הפרופיל בגוגל הוא הדבר הראשון שהסריקה בודקת.</p>
             </div>
           </div>
 
-        </div>
-      </Reveal>
-    </section>
-  );
-}
-
-// מי אנחנו: רק מה שנכון ואפשר לעמוד מאחוריו. הסימוני "למילוי" הכתומים הוסרו אחרי
-// שהתגלו חיים בפרודקשן - שלט "טיוטה" בדף שיווקי גרוע משורה אחת פחות.
-// השמות והתפקידים ייכנסו כשהמייסד ייתן אותם; עד אז "שני שותפים" נכון ומספיק
-function AboutSection() {
-  return (
-    <section className="pb-14">
-      <Reveal>
-        <div className="how-head"><h2>מי אנחנו</h2></div>
-      </Reveal>
-      {/* הלוקאפ המלא שנוצר ל-ChatGPT, אחרי ניקוי משבצות ממוקד (26.8) - גרסה לכל מצב */}
-      <Reveal delay={40}>
-        <div className="about-brand">
-          <img src="/brand/lockup-dark.webp" alt="בדק עסק" className="only-dark" />
-          <img src="/brand/lockup-light.webp" alt="בדק עסק" className="only-light" />
-        </div>
-      </Reveal>
-      <Reveal delay={70}>
-        <div className="shell">
-          <div className="core card-pad about">
-            <div>
-              <p className="say">
-                בנינו את בדק עסק כי בעל עסק מקבל הצעות לפני שמישהו טרח לבדוק מה באמת חסר לו.
-                אנחנו מתחילים מהאבחון, ורק אחר כך מדברים על מה שווה לעשות.
-              </p>
-            </div>
-            <div className="facts">
-              <div className="f">
-                <span className="k">איפה</span>
-                <span className="v">נבנה בישראל, לעסקים בישראל</span>
-              </div>
-              <div className="f">
-                <span className="k">מי</span>
-                <span className="v">שני שותפים</span>
-              </div>
-              <div className="f">
-                <span className="k">מאז</span>
-                <span className="v">אוגוסט 2026</span>
-              </div>
-            </div>
-          </div>
         </div>
       </Reveal>
     </section>
@@ -971,7 +740,9 @@ function StageWalk() {
     >
       {/* כל טאב שולט בפאנל שלו עצמו דרך מזהה יציב - לא במזהה נודד של הפאנל הפעיל
           (ממצא סקירה 26.8: הקישור הקודם שייך כל טאב לפאנל של מישהו אחר) */}
-      <div className="stage-list" role="tablist" aria-label="שלבי התהליך" aria-orientation="vertical">
+      {/* הכרטיסיות קודמות ב-DOM (סדר קריאה ומקלדת נכון במובייל, שם הן גם מעל);
+          הפריסה בדסקטופ נקבעת ב-grid-template-areas ולא בסדר האלמנטים */}
+      <div className="stage-list" role="tablist" aria-label="שלבי התהליך" aria-orientation="horizontal">
         {STEPS.map((step, i) => (
           <button
             key={step.title}
@@ -991,29 +762,30 @@ function StageWalk() {
             {auto && i === stage && <span className="tick" aria-hidden="true" />}
           </button>
         ))}
-        {/* הדמות המצביעה אל הפאנל החי (בקשת מייסד 26.8) - בכיוון המקורי, שמאלה */}
-        <img src="/brand/pointing-full.webp" alt="" aria-hidden="true" className="stage-guide" />
       </div>
 
-      {/* שלושת הפאנלים חיים תמיד, ערומים זה על זה בגריד: הגובה הוא של הגבוה מביניהם
-          וקבוע, כך שמעבר שלב (אוטומטי או ידני) לא מקפיץ את העמוד (בקשת מייסד 26.8).
-          inert חוסם פוקוס מקלדת לפאנל שקוף, ו-enabled עוצר את הטיימר של מי שמוסתר */}
-      <div className="stage-panel">
-        {[ReportPreview, InterviewPreview, PlanPreview].map((Preview, i) => (
-          <div
-            key={i}
-            className={i === stage ? "shell stage-card on" : "shell stage-card"}
-            id={`stage-panel-${i}`}
-            role="tabpanel"
-            aria-labelledby={`stage-tab-${i}`}
-            aria-hidden={i !== stage}
-            {...(i !== stage ? { inert: true } : {})}
-          >
-            <div className="core" style={{ padding: "16px 16px 14px" }}>
-              <Preview enabled={i === stage} />
+      {/* התצוגה: הדמות מימין מצביעה על הפאנל. שלושת הפאנלים חיים תמיד בערימת גריד
+          (גובה קבוע, אפס קפיצות); inert חוסם פוקוס לפאנל שקוף, enabled עוצר טיימרים */}
+      <div className="stage-show">
+        {/* בלי תנועה על הדמות כאן - מייסד 26.8: "זה סתם מציק" */}
+        <img src="/brand/pointing-full.webp" alt="" aria-hidden="true" className="stage-guide" />
+        <div className="stage-panel">
+          {[ReportPreview, InterviewPreview, PlanPreview].map((Preview, i) => (
+            <div
+              key={i}
+              className={i === stage ? "shell stage-card on" : "shell stage-card"}
+              id={`stage-panel-${i}`}
+              role="tabpanel"
+              aria-labelledby={`stage-tab-${i}`}
+              aria-hidden={i !== stage}
+              {...(i !== stage ? { inert: true } : {})}
+            >
+              <div className="core" style={{ padding: "20px 20px 17px" }}>
+                <Preview enabled={i === stage} />
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -1122,10 +894,9 @@ export function LandingScreen() {
 
           <div className="hero-form">
             <form onSubmit={(e) => { e.preventDefault(); startDiagnosis(); }}>
-              <div className="shell rv d3">
-                <div className="core diag-card">
-                  {/* כותרת קצרה במקום תווית טופס - הפלייסהולדר אומר מה מקלידים,
-                      וה-aria-label שומר את השם הנגיש של השדה */}
+              {/* בלי קופסה (עיצוב מחדש 26.8): הטופס יושב ישירות בעמודה כמו הכותרת
+                  והמצב היום מעליו, ברוחב מלא - שני הצדדים נגמרים באותו קו */}
+              <div className="diag-card rv d3">
                   <p className="diag-t">בדוק את העסק שלך</p>
                   <div className="fieldrow">
                     <span className="field">
@@ -1176,7 +947,6 @@ export function LandingScreen() {
                       תוך דקה
                     </span>
                   </div>
-                </div>
               </div>
               {/* אותה מחלקה כמו הערת ההדגמה שמתחת לחלון - שתי השורות נגמרות באותו גובה */}
               <p className="demo-note rv d4">
@@ -1199,8 +969,8 @@ export function LandingScreen() {
           </div>
         </section>
 
-        {/* מסלול השלבים: כל שלב עם התצוגה החיה שלו. "המצב היום" עבר לתוך ההירו */}
-        <section id="stages" className="pb-14">
+        {/* מסלול השלבים: כל שלב עם התצוגה החיה שלו. תופס עמוד מלא בדסקטופ */}
+        <section id="stages" className="stage-sec pb-14">
           <Reveal>
             <div className="how-head"><h2>איך זה עובד</h2></div>
           </Reveal>
@@ -1209,16 +979,20 @@ export function LandingScreen() {
           </Reveal>
         </section>
 
-        {/* מה מקבלים בפועל, ואז למה לסמוך על זה, ואז מי עומד מאחורי זה */}
-        <ReportTocSection />
-        <RulesSection />
-        <DataSection />
-        <AboutSection />
+        {/* רצועת הוכחות אחת במקום ארבעה סקשנים של טקסט (קיצור מייסד 26.8) */}
+        <ProofSection />
 
         {/* רצועת סגירה: הכותרת המאושרת בלבד. תת-הכותרת ירדה - היא מופיעה מילה במילה
             בירו, וחזרה עליה כאן רק מעמיסה בלי להוסיף */}
         <section className="pb-16">
+          {/* הלוקאפ המלא (אחרי ניקוי המשבצות) סוגר את העמוד כרגע מותג, לפני הקריאה האחרונה */}
           <Reveal>
+            <div className="about-brand">
+              <img src="/brand/lockup-dark.webp" alt="בדק עסק" className="only-dark" />
+              <img src="/brand/lockup-light.webp" alt="בדק עסק" className="only-light" />
+            </div>
+          </Reveal>
+          <Reveal delay={60}>
             <div className="shell" style={{ position: "relative" }}>
               {/* הדמות מציגה את ההזמנה האחרונה בעמוד - כף יד פתוחה אל הכפתור */}
               <img src="/brand/presenting.webp" alt="" aria-hidden="true" className="cta-buddy" />
@@ -1253,7 +1027,7 @@ export function LandingScreen() {
           </nav>
           <img src="/brand/pointing-full.webp" alt="" aria-hidden="true" className="foot-point" />
         </div>
-        <p className="foot-line">בדק עסק - נבנה בישראל, לעסקים בישראל</p>
+        <p className="foot-line">בדק עסק - שני שותפים, נבנה בישראל לעסקים בישראל, מאז אוגוסט 2026</p>
       </footer>
     </>
   );
