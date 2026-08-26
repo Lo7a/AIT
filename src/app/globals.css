@@ -286,6 +286,9 @@ html[data-mode="light"] .theme-tgl .ic-moon{display:none}
 /* הדמות שמציצה מעל חלון הסריקה - קישוט בלבד, נעלמת במסך צר. החלון מקבל שכבה
    גבוהה ממנה כדי שקו החיתוך של חצי הגוף יוסתר מאחורי הסרגל העליון */
 .scan-peek{position:relative}
+/* במסכי הסריקה האמיתיים: כיס עליון שמונע מהדמות לשבת על הכותרת (מייסד 26.8) */
+.scan-peek.pad{padding-top:104px}
+@media (max-width:760px){.scan-peek.pad{padding-top:0}}
 .scan-peek>.shell{position:relative;z-index:1}
 .scan-buddy{
   position:absolute;top:-104px;inset-inline-end:10px;width:146px;z-index:0;
