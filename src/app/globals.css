@@ -1043,7 +1043,7 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
 @keyframes cd-dot{0%,100%{opacity:.25;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
 /* עטיפת החשיפה של תיבת התשובות בהדגמה (ירשה את המעבר מ-.cd-chips שנמחק איתה) */
 .cd-ans{
-  align-self:stretch;
+  align-self:stretch;margin-top:16px; /* אוויר מבועת השאלה - היה צמוד מדי (26.8) */
   opacity:0;transform:translateY(8px);
   transition:opacity .5s var(--ease-out),transform .5s var(--ease-out);
 }
