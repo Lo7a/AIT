@@ -16,7 +16,6 @@ import { AppShell } from "../ui/app-shell";
 import { ImpersonateSearch } from "../ui/impersonate-search";
 import { UserMenu } from "../ui/user-menu";
 import { AnchorNav, type AnchorItem } from "../ui/anchor-nav";
-import { CompletenessCard } from "../ui/completeness-card";
 import { missingCount, type LedgerEntry } from "../../pipeline/model/ledger";
 
 // מסך ה-Roadmap בשפת העיצוב הנבחרת (הכרעת מייסד 18.8: כהה פרמיום, סגול וברקת, Rubik - ראו
@@ -91,17 +90,6 @@ function BusinessMap({ scores, model }: { scores: ScoreReport; model: ReportView
         </ol>
       </section>
     </div>
-  );
-}
-
-function CompletenessMeter({ diagnosisId, ledger }: { diagnosisId: string; ledger: LedgerEntry[] }) {
-  return (
-    <CompletenessCard
-      ledger={ledger}
-      cta={{ href: `/interview/${diagnosisId}`, label: "שפר את הדיוק - ראיון קצר" }}
-      ctaIcon={<CapArrow />}
-      className="c12 rv d2"
-    />
   );
 }
 
@@ -296,6 +284,7 @@ export function DefaultRoadmap({
       userLabel={userEmail}
       isAdmin={isAdmin}
       business={{ name: report.business.name, missing: missingCount(ledger) }}
+      ledger={ledger}
     >
       {/* שורת הזהות, זהה לדוח ולראיון: על איזה עסק מדובר. הכותרת "תוכנית העבודה" למטה
           אומרת מה זה, ולא למי - וכשיש כמה אבחונים זו בדיוק השאלה (דיווח מייסד 20.8) */}
@@ -328,8 +317,6 @@ export function DefaultRoadmap({
           </header>
 
           <BusinessMap scores={scores} model={report.model} />
-
-          <CompletenessMeter diagnosisId={report.id} ledger={ledger} />
 
           <section aria-live="polite" className="c12 mt-2">
             {building && (

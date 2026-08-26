@@ -20,7 +20,6 @@ import { AnchorNav, type AnchorItem } from "../ui/anchor-nav";
 import { ImpersonateSearch } from "../ui/impersonate-search";
 import { UserMenu } from "../ui/user-menu";
 import { ScoreDial, MiniRing, FillBar } from "../ui/motion";
-import { CompletenessCard } from "../ui/completeness-card";
 import { missingCount, type LedgerEntry } from "../../pipeline/model/ledger";
 
 // שלושת המסכים בשפת העיצוב הנבחרת (הכרעת מייסד 18.8): כהה פרמיום, סגול וברקת, Rubik.
@@ -576,6 +575,7 @@ export function DefaultReport({
       userLabel={userEmail}
       isAdmin={isAdmin}
       business={{ name: business.name, missing: missingCount(ledger) }}
+      ledger={ledger}
     >
       <header className="topbar">
         <span className="brand-txt"><small>הדוח המלא</small><b>{business.name}</b></span>
@@ -651,14 +651,6 @@ export function DefaultReport({
               שני הבלוקים נערמו ברצף ונראו כמו באג. הכפל ירד (מסמך ההמרה 20.8 + ספירת 21.8);
               העותק שנשאר הוא "פירוט הציון", שנושא גם את מצב הנתונים ואת ההסברים */}
 
-          {hasPlan && (
-            <CompletenessCard
-              ledger={ledger}
-              cta={{ href: `/interview/${report.id}`, label: "רוצה דיוק גבוה יותר? ראיון של 5 דקות" }}
-              ctaIcon={<span className="cap"><CapArrow /></span>}
-              className="rv d2"
-            />
-          )}
         </aside>
 
         <div className="rep-main">

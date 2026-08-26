@@ -27,6 +27,10 @@ export interface CompletenessCardProps {
   live?: boolean;
   /** מחלקות העטיפה, כולל תזמון האנימציה (rv d1/d2) שנקבע במסך הקורא */
   className?: string;
+  /** גרסת הרצועה (הכרעת אלעד 26.8): הפנקס עבר לסיידבר, ושם הוא נראה בכל המסכים במקום
+      להיות משוכפל בשלושה כרטיסים. אותו תוכן ואותה לוגיקה - רק בלי מסגרת הכרטיס, כי
+      shell/core הם רדיוס 26 וצל סביב 200 פיקסלים של תוכן, וזה קורא ככרטיס תלוש בתוך תפריט */
+  compact?: boolean;
 }
 
 function LedgerRow({ item }: { item: LedgerEntry }) {
@@ -53,16 +57,19 @@ function LedgerRow({ item }: { item: LedgerEntry }) {
   );
 }
 
-export function CompletenessCard({ ledger, cta, ctaIcon, live, className = "" }: CompletenessCardProps) {
+export function CompletenessCard({
+  ledger, cta, ctaIcon, live, className = "", compact = false,
+}: CompletenessCardProps) {
   // מה שנותר קודם: העין נופלת על מה שאפשר לעשות, ומה שהושלם מתפקד כהוכחת התקדמות מתחתיו.
   // מיון יציב (מפריד לשתי רשימות ולא sort) - הסדר בתוך כל קבוצה נשאר סדר buildLedger
   const missing = ledger.filter((e) => !e.known);
   const done = ledger.filter((e) => e.known);
 
-  return (
-    <section className={`shell ${className}`.trim()}>
-      <div className="core card-pad flex flex-col gap-3">
-        <h2 className="card-title flush">{missing.length > 0 ? "מה חסר לאבחון" : "האבחון מלא"}</h2>
+  const body = (
+    <>
+        <h2 className={compact ? "side-h4" : "card-title flush"}>
+          {missing.length > 0 ? "מה חסר לאבחון" : "האבחון מלא"}
+        </h2>
 
         {missing.length > 0 ? (
           <p className="text-[12.5px] leading-relaxed" style={{ color: "var(--mut)" }}>
@@ -98,7 +105,17 @@ export function CompletenessCard({ ledger, cta, ctaIcon, live, className = "" }:
             כל תשובה מעדכנת את הדוח מיד. אפשר לעצור באמצע ולחזור.
           </p>
         )}
-      </div>
+    </>
+  );
+
+  // אותו גוף בדיוק בשתי העטיפות - מה שמשתנה הוא המסגרת בלבד. הגדלים בתוך גרסת הרצועה
+  // נקבעים ב-globals (.rail-ledger), כמו התקדים של repC.mini ו-ansbox.compact
+  if (compact) {
+    return <section className={`rail-ledger ${className}`.trim()}>{body}</section>;
+  }
+  return (
+    <section className={`shell ${className}`.trim()}>
+      <div className="core card-pad flex flex-col gap-3">{body}</div>
     </section>
   );
 }

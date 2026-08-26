@@ -7,6 +7,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { RAIL_COOKIE } from "../rail";
 import { BrandFace, BrandName } from "./brand";
 import { initialsOf } from "../../pipeline/report/presenter";
+import { CompletenessCard } from "./completeness-card";
+import type { LedgerEntry } from "../../pipeline/model/ledger";
 
 // מעטפת המערכת למשתמש מחובר: סיידבר בסגנון CRM שנפתח ונסגר. במצב סגור נשארים
 // האייקונים (רוחב 74px) - אף פעם לא נעלם לגמרי. הבחירה נשמרת בדפדפן. במובייל
@@ -140,7 +142,7 @@ function missingLabel(missing: number | undefined): string {
 }
 
 export function AppShell({
-  active, diagnosisId, userLabel, badge, business, section = "business", isAdmin = false, children,
+  active, diagnosisId, userLabel, badge, business, ledger, section = "business", isAdmin = false, children,
 }: {
   // במדור הניהול הפריט הפעיל נגזר מהנתיב, ולכן אין צורך להעביר אותו מכל עמוד
   active?: ShellNavKey;
@@ -154,6 +156,10 @@ export function AppShell({
   // בלי ציון - הוא כבר מוצג בטבעת בראש הדוח (משוב 24.8). מה שכן מוצג כאן הוא מונה החוסרים
   // מפנקס האבחון: מידע שלא מופיע בשום מקום אחר בכל המסכים, ולכן מצדיק את המקום שהעוגן תופס
   business?: { name: string; missing?: number };
+  // פנקס החוסרים (הכרעת אלעד 26.8): עבר מכרטיס בתוך כל מסך אל הרצועה. שם הוא נראה בכל
+  // המסכים באותו מקום, במקום שלושה עותקים בשלוש פריסות שונות - וזה גם מה שפינה את
+  // העמודה שהוא תפס. מסך שלא מעביר אותו פשוט לא מציג אותו
+  ledger?: LedgerEntry[];
   section?: ShellSection;
   // מציג את הכניסה ל"ניהול" בתחתית הסיידבר. רק אדמין - למשתמש רגיל הקישור לא קיים כלל
   // ולא רק מוסתר, כי הסיידבר מרונדר בצד השרת עם הערך הזה
@@ -241,6 +247,21 @@ export function AppShell({
             )}
           </Link>
         ))}
+
+        {/* הפנקס: מה חסר לאבחון, בכל מסך. מופרד מפריטי הניווט בקו - הוא לא עוד יעד
+            ניווט אלא מצב, ובלי ההפרדה הוא נקרא כעוד כפתור ברשימה (בקשת אלעד 26.8).
+            הכפתור לראיון לא מוצג כשכבר נמצאים בו, ושורת "הדוח חי" רק שם - במסכים
+            האחרים היא מתארת משהו שלא קורה מול העיניים */}
+        {section === "business" && ledger != null && ledger.length > 0 && diagnosisId != null && (
+          <CompletenessCard
+            ledger={ledger}
+            compact
+            live={activeKey === "interview"}
+            cta={activeKey === "interview"
+              ? undefined
+              : { href: `/interview/${diagnosisId}`, label: "לראיון הקצר" }}
+          />
+        )}
 
         {/* הכניסה לניהול, לאדמין בלבד. יושבת בתחתית ומופרדת בקו - היא לא עוד מסך של
             בעל העסק אלא מעבר למדור אחר, ואותו קו מסמן את זה בלי מילה נוספת */}

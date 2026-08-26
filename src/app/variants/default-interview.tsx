@@ -8,7 +8,6 @@ import { AppShell } from "../ui/app-shell";
 import { ImpersonateSearch } from "../ui/impersonate-search";
 import { UserMenu } from "../ui/user-menu";
 import { AnswerOptions } from "../ui/answer-options";
-import { CompletenessCard } from "../ui/completeness-card";
 import { BrandFace } from "../ui/brand";
 import { missingCount } from "../../pipeline/model/ledger";
 
@@ -278,6 +277,7 @@ export function DefaultInterview({
       userLabel={userEmail}
       isAdmin={isAdmin}
       business={businessName ? { name: businessName, missing: missingCount(ledger) } : undefined}
+      ledger={ledger}
     >
       {/* שורת הזהות: על איזה עסק הראיון הזה. היה חסר כאן בלבד, וכשיש כמה אבחונים אי אפשר
           היה לדעת עם מי מדברים (דיווח מייסד 20.8). אותו מבנה בדיוק כמו בדוח וב-Roadmap */}
@@ -303,13 +303,20 @@ export function DefaultInterview({
       </div>
 
       <main className="repC iv" aria-busy={starting || busy || finishing}>
-        <aside className="rep-side">
-          {/* הכרטיס המשותף מ-ui/completeness-card - אותו כרטיס בדיוק בדוח ובתוכנית העבודה */}
-          <CompletenessCard ledger={ledger} live className="rv d1" />
-        </aside>
+        {/* רשימת השאלות ראשונה ב-DOM, כלומר הימנית - צמודה לניווט, במקום שהפנקס פינה
+            כשעבר לרצועה (הכרעת אלעד 26.8). סדר הקריאה זהה לסדר שרואים */}
+        {plan.length > 0 && (
+          <PlanList
+            plan={plan}
+            currentKey={visible?.key ?? null}
+            revisitKey={revisitKey}
+            skippedKeys={skippedKeys}
+            locked={!canAnswer}
+            onPick={revisit}
+          />
+        )}
 
-        {/* הפאנל: שאלה נעוצה למעלה, שיחה נגללת באמצע, תיבת כתיבה נעוצה למטה.
-            באמצע ולא בקצה (הכרעת אלעד 26.8) - זה מה שעובדים בו, ושתי הרצועות משרתות אותו */}
+        {/* הפאנל: שאלה נעוצה למעלה, שיחה נגללת באמצע, תיבת כתיבה נעוצה למטה */}
         <div className="rep-main">
           {/* העטיפה כאן סטטית (תמיד מרונדרת) - רק התוכן הפנימי מתחלף בין המצבים, כך שהחלפת
               פאנל לא מריצה שוב את אנימציית הכניסה */}
@@ -471,18 +478,6 @@ export function DefaultInterview({
             </div>
           )}
         </div>
-
-        {/* אחרונה בסדר ה-DOM ולכן השמאלית ביותר בממשק עברי - סדר הקריאה זהה לסדר שרואים */}
-        {plan.length > 0 && (
-          <PlanList
-            plan={plan}
-            currentKey={visible?.key ?? null}
-            revisitKey={revisitKey}
-            skippedKeys={skippedKeys}
-            locked={!canAnswer}
-            onPick={revisit}
-          />
-        )}
       </main>
     </AppShell>
   );
