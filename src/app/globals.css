@@ -312,8 +312,9 @@ html:not([data-mode="light"]) .only-light{display:none}
 /* הלוקאפ המלא מעל כרטיס מי-אנחנו - חתימת המותג */
 .about-brand{display:flex;justify-content:center;margin-bottom:26px}
 .about-brand img{width:min(380px,82%);pointer-events:none;user-select:none}
-/* הדמות המצביעה מתחת לכפתורי השלבים - מצביעה שמאלה אל הפאנל החי */
-.stage-guide{width:148px;margin:22px auto 0;display:block;pointer-events:none;user-select:none}
+/* הדמות המצביעה מתחת לכפתורי השלבים - מצביעה שמאלה אל הפאנל החי. הרצועה מעליה
+   בגובה קבוע (התיאורים פתוחים תמיד), אז היא לא זזה */
+.stage-guide{width:186px;margin:24px auto 0;display:block;pointer-events:none;user-select:none}
 @media (max-width:880px){.stage-guide{display:none}}
 /* כרטיס האבחון בהירו - עוצב מחדש (26.8): כותרת קצרה, שדה גדול, שטיפה סגולה עדינה */
 .diag-card{
@@ -771,10 +772,10 @@ html[data-rail="mini"] .side-nav .foot{justify-content:center;padding-inline:0}
 .hero-v4{grid-template-columns:1.02fr .98fr;column-gap:52px}
 .hero-v4 .hero-main{min-width:0}
 .hero-v4 .hero-demo{padding-top:104px}
-/* הטופס בעמודה: שדה מעל, כפתור ברוחב מלא. .fieldrow הוא גריד - קריסת עמודות */
+/* הטופס בעמודה: שדה וכפתור באותה שורה, בערך 70/30 (משוב מייסד 26.8).
+   מתחת ל-560px החוק הבסיסי של .fieldrow כבר עורם אותם */
 .hero-v4 .hero-form{margin-top:20px}
-.hero-v4 .hero-form .fieldrow{grid-template-columns:1fr}
-.hero-v4 .hero-form .btn.wide{width:100%;justify-content:center}
+.hero-v4 .hero-form .fieldrow{grid-template-columns:2.2fr 1fr}
 .hero-v4 .hero-sit{margin-top:28px;border-top:1px solid var(--hair-soft);padding-top:18px}
 /* דוגמאות לחיצות בתוך כרטיס הטופס */
 .ex-chips{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:10px}
@@ -1071,12 +1072,13 @@ html{scroll-behavior:smooth}
 }
 .stage-btn.on .n{color:#fff;background:linear-gradient(135deg,var(--acc-deep1),var(--acc-deep2));border-color:transparent}
 .stage-btn b{display:block;font-size:14.5px;font-weight:700;line-height:1.4}
+/* התיאור פתוח תמיד (משוב מייסד 26.8): הקיפול גרם לכל הרצועה לקפוץ בכל מעבר שלב,
+   והדמות שמתחת זזה איתה. גובה קבוע = שקט; ההבחנה בין פעיל לרדום נשארת בצבע */
 .stage-btn .sd{
   display:block;font-size:12.5px;color:var(--mut);margin-top:4px;line-height:1.6;
-  max-height:0;opacity:0;overflow:hidden;
-  transition:opacity .4s var(--ease-out);
+  opacity:.62;transition:opacity .4s var(--ease-out);
 }
-.stage-btn.on .sd{max-height:110px;opacity:1}
+.stage-btn.on .sd{opacity:1}
 .stage-btn .tick{
   position:absolute;inset-block-end:0;inset-inline:0;height:2px;
   background:linear-gradient(90deg,var(--acc),var(--acc2));
