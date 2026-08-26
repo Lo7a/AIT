@@ -913,7 +913,12 @@ html{scroll-behavior:smooth}
 .main-col:has(> .repC.iv) .page-head{margin-bottom:10px}
 .main-col:has(> .repC.iv) .page-head p{margin-top:5px;font-size:13px}
 .repC.iv{
-  grid-template-columns:318px minmax(0,1fr) 232px;
+  /* רוחב הקריאה של עמודת השיחה. הוא עמודת הרשת עצמה ולא תקרה על התוכן בתוך עמודה רחבה:
+     תקרה כזו השאירה 220 פיקסלים מתים בין הכרטיס האמצעי לכל אחד משכניו (דיווח אלעד 26.8).
+     הרשת ברוחב התוכן שלה וממורכזת - מה שנשאר הופך לשוליים חיצוניים, לא לחורים בפנים */
+  --iv-read:600px;
+  grid-template-columns:300px minmax(0,var(--iv-read)) 216px;
+  justify-content:center;
   /* stretch ולא start: העמודות חייבות למלא את גובה השורה כדי שהגלילה הפנימית תיקבע ממנו */
   align-items:stretch;flex:1;min-height:0;padding:14px 0 16px;
 }
@@ -924,25 +929,17 @@ html{scroll-behavior:smooth}
 .repC.iv .rep-side{overflow-y:auto}
 .repC.iv .iv-plan{display:flex;flex-direction:column}
 .repC.iv .iv-plan .core{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
-.repC.iv .rep-main{gap:10px;--iv-read:560px}
-/* רוחב קריאה אחד לכל מה שיושב בעמודה: השאלה, האפשרויות, השיחה ותיבת הכתיבה.
-   בלעדיו "עד 10" יושבת בקצה הימני של עמודה ברוחב אלף פיקסלים ו"רשמתי." בקצה השמאלי,
-   והרווח ביניהן הוא כמעט כל רוחב המסך - זה מה שנקרא כ"רווחים ענקיים", לא המרווח האנכי
-   שכבר ירד ל-38 פיקסלים. אותה סיבה בדיוק גורמת לשורת תשובה של שלוש מילים להימתח על 950
-   פיקסלים. שוליים סימטריים משני הצדדים נקראים כשוליים; הצמדה לשני קצוות נקראת כחור */
-.repC.iv .rep-main > *{width:100%;max-width:var(--iv-read);margin-inline:auto}
-/* מכל הגלילה נושא את רוחב הקריאה כמו כל השאר, ולכן פס הגלילה צמוד לשיחה עצמה. ניסיון
-   קודם השאיר אותו ברוחב מלא כדי שהפס יישב בקצה העמודה, והתוצאה הייתה פס שמרחף 200
-   פיקסלים מהתוכן שהוא גולל (דיווח אלעד 26.8). דק, ועם נשימה קטנה מהבועות */
-.iv-scroll{scrollbar-width:thin;padding-inline-end:5px}
+.repC.iv .rep-main{gap:10px}
 /* כרטיס השאלה מרופד צפוף יותר משאר המוצר: card-pad הרגיל (22/24) נבנה לכרטיס בעמוד
    שנגלל, וכאן אין גלילה - מה שהוא לוקח נגרע מהשיחה ישירות (דיווח אלעד 26.8) */
 .repC.iv .rep-main > .rv .card-pad{padding:15px 18px}
 .repC.iv .rep-main > .rv .ans-hint{margin-bottom:7px;font-size:11.5px}
 /* min-height:0 הוא מה שמאפשר את הגלילה בכלל: פריט flex לא מתכווץ מתחת לגובה התוכן שלו
-   בלעדיו, והפאנל היה נמתח והגלילה הייתה בורחת בחזרה לדף */
-/* המכל גולל, השיחה שבתוכו היא זו שמוגבלת ברוחב (ראו iv-thread ב-default-interview) */
-.iv-scroll{flex:1 1 0;min-height:120px;overflow-y:auto}
+   בלעדיו, והפאנל היה נמתח והגלילה הייתה בורחת בחזרה לדף.
+   פס הגלילה דק ועם נשימה מהבועות. הוא צמוד לשיחה בלי שום טיפול מיוחד, כי העמודה עצמה
+   היא רוחב הקריאה - ניסיון קודם למרכז תוכן צר בתוך עמודה רחבה השאיר אותו מרחף בקצה */
+.iv-scroll{flex:1 1 0;min-height:120px;overflow-y:auto;scrollbar-width:thin;padding-inline-end:5px}
+/* iv-thread נושא רק את פריסת הבועות; המכל שסביבו אחראי רק לגלילה */
 .iv-thread{display:flex;flex-direction:column;gap:5px}
 .iv-list{flex:1;min-height:0;overflow-y:auto;margin-inline:-6px;padding-inline:6px}
 /* כרטיס השאלה גולל בעצמו כשהוא לא נכנס (שאלה ארוכה עם ארבע אפשרויות במסך נמוך), במקום
@@ -976,7 +973,8 @@ html{scroll-behavior:smooth}
 .q-step.is-edit{background:rgba(var(--acc-rgb),.17);box-shadow:inset 0 0 0 1px rgba(var(--acc-rgb),.4)}
 
 @media (max-width:1440px){
-  .repC.iv{grid-template-columns:280px minmax(0,1fr) 202px;gap:11px}
+  /* הרצועות מצטמצמות לפני השיחה - היא העיקר כאן, הן ההקשר */
+  .repC.iv{grid-template-columns:262px minmax(0,var(--iv-read)) 194px;gap:11px}
 }
 @media (max-width:1100px){
   /* במובייל הדף נגלל ממילא, וכליאת השיחה בחלון בגובה קבוע בתוך מסך צר רק מקטינה אותה.
@@ -989,7 +987,6 @@ html{scroll-behavior:smooth}
   .repC.iv .rep-side{overflow:visible}
   .repC.iv .rep-main > .rv{overflow:visible}
   .repC.iv .iv-list{max-height:210px}
-  .repC.iv .rep-main > *{max-width:none}
   .iv-scroll{overflow:visible;min-height:0}
 }
 .who-h{text-align:center;margin-bottom:14px}
