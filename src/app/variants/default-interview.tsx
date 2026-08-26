@@ -100,7 +100,7 @@ function PlanList({
     <div className="iv-plan shell rv d1">
       <div className="core card-pad">
         <h2 className="side-h4">שאלות הראיון</h2>
-        <ol className="iv-list">
+        <ol className="iv-list step-list">
           {plan.map((item, i) => {
             const editing = item.key === revisitKey;
             // "הנוכחית" מושהית בזמן עריכה: שתי שאלות מודגשות בו זמנית היו אומרות למשתמש
@@ -112,7 +112,7 @@ function PlanList({
               <li key={item.key}>
                 <button
                   type="button"
-                  className={`q-step ${mark}`.trim()}
+                  className={`step-row ${mark}`.trim()}
                   // השאלה הנוכחית גם היא מנוטרלת - כבר נמצאים עליה, ולחיצה עליה לא עושה כלום
                   disabled={!item.answered || locked}
                   onClick={() => onPick(item.key)}

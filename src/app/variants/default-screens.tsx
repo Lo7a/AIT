@@ -563,9 +563,6 @@ export function DefaultReport({
   // צ'יפים: כל מספר כאן הוא ממצא שנאסף בפועל (findings.business מ-Places, pagesCrawled מהזחילה).
   // שדה שלא הגיע פשוט לא מקבל צ'יפ - עדיף פחות צ'יפים מאשר מספר שלא נמדד
   const pagesCrawled = findings.websiteSignals?.pagesCrawled ?? null;
-  const hasMetaChips =
-    findings.business.reviewCount != null || findings.business.rating != null ||
-    (pagesCrawled != null && pagesCrawled > 0);
 
   // מקטעי הניווט נבנים מאותם תנאים בדיוק שמרנדרים את הסקציות עצמן - קישור לעוגן שלא קיים
   // בעמוד הוא באג, ולכן אין כאן רשימה קבועה אלא דחיפה מותנית אחת לאחת
@@ -594,83 +591,61 @@ export function DefaultReport({
           {/* התחזות מהסרגל העליון, לאדמין בלבד (בקשת מייסד 20.8) */}
           {isAdmin && <ImpersonateSearch />}
           <UserMenu email={userEmail} isAdmin={isAdmin} />
-          {business.website && (
-            <span className="chip clip hidden md:inline-block" dir="ltr">
-              {business.website}
-            </span>
-          )}
           <span className="chip live"><span className="dot" />דוח חי</span>
         </div>
       </header>
 
-      {/* שורת המעבר המהיר יושבת מתחת לסרגל העליון ונדבקת בגלילה - הדוח ארוך, והמייסד
-          ביקש שאפשר יהיה לקפוץ בין המקטעים בלי לגלול חזרה */}
-      <AnchorNav items={anchors} label="מקטעי הדוח" />
-
-      {/* כותרת העמוד, גדולה ובראש התוכן - כמו בשאר המסכים (הנחיית מייסד 20.8).
-          יושבת מעל הרשת ולא בתוכה, כדי שתתפרס על שתי העמודות; אותו רוחב ומרכוז של
-          .repC עצמו, כדי שהיא תתיישר עם הכרטיסים שמתחתיה */}
+      {/* ראש הדוח (בקשת אלעד 26.8): מי העסק, מה נמדד עליו והציון - למעלה, ולא ככרטיס
+          תקוע בעמודה הצדדית. כל פרט כאן הוא ממצא שנאסף בפועל, ושדה שלא הגיע פשוט לא
+          מקבל צ'יפ - עדיף פחות פרטים מאשר מספר שלא נמדד */}
       <div className="page-w">
-        <header className="page-head rv">
-          <h1>הדוח המלא</h1>
-          <p>מה נמצא על הנוכחות הדיגיטלית של {business.name}, מה זה אומר, ומה כדאי לעשות עם זה.</p>
+        <header className="page-head rep-head rv">
+          <div className="who">
+            <h1>הדוח המלא</h1>
+            <p className="rep-head-biz">
+              <b>{business.name}</b>
+              {identityMeta !== "" && <i>{identityMeta}</i>}
+            </p>
+            <div className="mini-meta">
+              {business.website && (
+                <span className="clip" dir="ltr">{business.website}</span>
+              )}
+              {findings.business.reviewCount != null && (
+                <span><b className="num">{findings.business.reviewCount}</b> ביקורות</span>
+              )}
+              {findings.business.rating != null && (
+                <span>דירוג <b className="num">{findings.business.rating}</b></span>
+              )}
+              {/* "נסרקו" ולא "יש": זה מה שהזחילה עברה בפועל, לא מספר העמודים באתר */}
+              {pagesCrawled != null && pagesCrawled > 0 && (
+                <span><b className="num">{pagesCrawled}</b> עמודים נסרקו</span>
+              )}
+            </div>
+          </div>
+
+          {/* הציון האמיתי בלבד. אין ציון (אין די מידע) - אומרים את זה ביושר, בלי חוגה
+              ריקה. הכיתוב נכון תמיד: כל תשובת ראיון מרעננת את scan.scores ("הדוח חי") */}
+          <div className="rep-head-score">
+            {overall == null ? (
+              <p className="text-2xl font-extrabold" style={{ color: "var(--mut)" }}>אין די מידע</p>
+            ) : (
+              <>
+                <ScoreDial score={overall} size={126} />
+                <span className="dial-cap">הציון מתעדכן עם כל תשובה</span>
+              </>
+            )}
+          </div>
         </header>
       </div>
 
       <main className="repC">
-        {/* עמודת הזהות: מי העסק, איפה הוא עומד ומה עוד חסר. דביקה בגלילה כדי שהתשובה
-            "על מי מדובר ומה הציון" תישאר על המסך גם כשקוראים מקטע בעומק הדוח */}
+        {/* עמודת הניווט. שמונה מקטעים בשורה דביקה אחת נדחסו לגלולות שאי אפשר לקרוא,
+            ובעמודה יש להם שם מלא ומספר. דביקה בגלילה, כי זו בדיוק המטרה של ניווט מקטעים */}
         <aside className="rep-side">
-          <section className="shell rv d1">
-            <div className="core">
-              <div className="who-h">
-                <b>{business.name}</b>
-                {identityMeta !== "" && <i>{identityMeta}</i>}
-              </div>
-              {/* הציון האמיתי בלבד. אין ציון (אין די מידע) - אומרים את זה ביושר, בלי חוגה
-                  ריקה. הכיתוב נכון תמיד: כל תשובת ראיון מרעננת את scan.scores ("הדוח חי") */}
-              <div className="score-core">
-                {overall == null ? (
-                  <p className="py-6 text-3xl font-extrabold" style={{ color: "var(--mut)" }}>אין די מידע</p>
-                ) : (
-                  <>
-                    {/* הכיתוב יושב כאח של החוגה ולא כ-caption בתוכה: בתוך החוגה הוא גולש
-                        מחוץ לריבוע הקבוע שלה ובעמודה הצרה היה נופל על שורת הצ'יפים */}
-                    <ScoreDial score={overall} size={150} />
-                    <span className="dial-cap">הציון מתעדכן עם כל תשובה</span>
-                  </>
-                )}
-              </div>
-              {hasMetaChips && (
-                <div className="mini-meta">
-                  {findings.business.reviewCount != null && (
-                    <span><b className="num">{findings.business.reviewCount}</b> ביקורות</span>
-                  )}
-                  {findings.business.rating != null && (
-                    <span>דירוג <b className="num">{findings.business.rating}</b></span>
-                  )}
-                  {/* "נסרקו" ולא "יש": זה מה שהזחילה עברה בפועל, לא מספר העמודים באתר */}
-                  {pagesCrawled != null && pagesCrawled > 0 && (
-                    <span><b className="num">{pagesCrawled}</b> עמודים נסרקו</span>
-                  )}
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* חמשת הממדים הוצגו כאן פעם שנייה, זהים לפירוט הציון בעמודה הראשית - במובייל
-              שני הבלוקים נערמו ברצף ונראו כמו באג. הכפל ירד (מסמך ההמרה 20.8 + ספירת 21.8);
-              העותק שנשאר הוא "פירוט הציון", שנושא גם את מצב הנתונים ואת ההסברים */}
-
+          <AnchorNav items={anchors} label="מקטעי הדוח" vertical />
         </aside>
 
         <div className="rep-main">
-          {/* האתר מוצג במובייל בגוף הדוח - הצ'יפ העליון מוסתר שם מקוצר מקום */}
-          {business.website && (
-            <p className="text-xs md:hidden" dir="ltr" style={{ color: "var(--dim)", textAlign: "right" }}>
-              {business.website}
-            </p>
-          )}
 
           {/* פתיחת הדוח: מה שהבנו על העסק. יושב לפני ההפסד כי זו התשובה לשאלה
               "מה אתם באמת מבינים עליי" - הממצאים הבודדים כבר מוצגים בהמשך הדוח.

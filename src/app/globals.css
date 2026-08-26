@@ -746,6 +746,13 @@ html[data-rail="mini"] .rail-ledger{display:none}
   .ledger-mobile{display:block;padding-inline:var(--app-pad);padding-bottom:22px}
 }
 
+/* ניווט הדוח כרשימה אנכית בעמודה הצדדית (בקשת אלעד 26.8): שמונה מקטעים בשורה אחת
+   נדחסו לגלולות זעירות, ובעמודה יש להם מקום לשם מלא. אותו כרטיס ואותה שורה של רשימת
+   שאלות הראיון - זה אותו תפקיד בדיוק, ואין סיבה שהוא ייראה אחרת */
+.anch-side{display:block}
+.anch-side .step-row{text-decoration:none}
+.anch-side .core{padding:16px 14px}
+
 .nav-item.admin-gate{
   margin-top:auto;margin-bottom:2px;
   padding-top:14px;border-top:1px solid var(--hair-soft);border-radius:0;
@@ -1091,12 +1098,13 @@ html{scroll-behavior:smooth}
 /* ===== הדוח: פריסה 3 מהמפרט - עמודת זהות דביקה + עמודת תוכן ===== */
 .repC{
   position:relative;z-index:1;
-  display:grid;grid-template-columns:318px minmax(0,1fr);gap:14px;align-items:start;
+  display:grid;grid-template-columns:244px minmax(0,1fr);gap:14px;align-items:start;
   padding:18px var(--app-pad) 26px;
 }
-/* מתחת לשתי השורות הדביקות ועוד נשימה. חושב מהטוקנים ולא ממספר קשיח, אחרת שינוי
-   בגובה אחת מהן היה מחליק את העמודה מתחתיהן */
-.repC .rep-side{position:sticky;top:calc(var(--topbar-h) + var(--anch-h) + 14px);display:flex;flex-direction:column;gap:14px}
+/* מתחת לסרגל העליון ועוד נשימה. חושב מהטוקן ולא ממספר קשיח, אחרת שינוי בגובהו היה
+   מחליק את העמודה מתחתיו. --anch-h ירד מהחישוב יחד עם שורת העוגנים הדביקה, שהוחלפה
+   ברשימה האנכית בעמודה הזו עצמה (בקשת אלעד 26.8) */
+.repC .rep-side{position:sticky;top:calc(var(--topbar-h) + 14px);display:flex;flex-direction:column;gap:14px}
 .repC .rep-side .core{padding:22px 20px}
 .repC .rep-main{display:flex;flex-direction:column;gap:14px;min-width:0}
 @media (max-width:1100px){
@@ -1147,36 +1155,41 @@ html{scroll-behavior:smooth}
 .iv-scroll{flex:1 1 0;min-height:120px;overflow-y:auto;scrollbar-width:thin;padding-inline-end:5px}
 /* iv-thread נושא רק את פריסת הבועות; המכל שסביבו אחראי רק לגלילה */
 .iv-thread{display:flex;flex-direction:column;gap:5px}
-.iv-list{flex:1;min-height:0;overflow-y:auto;margin-inline:-6px;padding-inline:6px}
+/* הרשימה עצמה: מרווח שלילי כדי שרקע הריחוף של השורה יגלוש אל שולי הכרטיס */
+.step-list{margin-inline:-6px}
+/* בראיון היא גם גוללת בתוך פאנל בגובה קבוע; הריפוד מחזיר את מה שהמרווח השלילי לקח,
+   אחרת רקע הריחוף נחתך בקצה מכל הגלילה */
+.iv-list{flex:1;min-height:0;overflow-y:auto;padding-inline:6px}
 /* כרטיס השאלה גולל בעצמו כשהוא לא נכנס (שאלה ארוכה עם ארבע אפשרויות במסך נמוך), במקום
    לרסק את השיחה מתחתיו לאפס - ה-min-height על .iv-scroll למעלה הוא הצד השני של אותו כלל */
 .repC.iv .rep-main > .rv{flex:0 1 auto;min-height:0;overflow-y:auto}
 
-/* שורת שאלה ברשימה הממוספרת. .scan-row הקיימת נבנתה לשורת אבחון בגובה 58 פיקסלים עם
+/* שורת שלב ממוספרת: שאלה ברשימת הראיון, ומקטע ברשימת הדוח - אותו תפקיד, אותה שורה.
+   .scan-row הקיימת נבנתה לשורת אבחון בגובה 58 פיקסלים עם
    אווטאר של 36 - שש-עשרה כאלה הן עמודה של 900 פיקסלים שאי אפשר לראות בבת אחת, ולכן שורה
    משלה. הבאדג' עצמו הוא .sc-avatar הקיים במודיפייר mini (תקדים repC.mini/anch.mini),
    ולא ריבוע שני שנראה כמעט אותו דבר */
-.q-step{
+.step-row{
   display:flex;align-items:center;gap:9px;width:100%;
   padding:6px;border:0;border-radius:9px;background:none;
   font:inherit;color:inherit;text-align:start;cursor:pointer;
   transition:background .25s var(--ease-out);
 }
-.q-step + .q-step{margin-top:1px}
-.q-step .lb{flex:1;min-width:0;font-size:12px;font-weight:600;line-height:1.35}
+.step-row + .step-row{margin-top:1px}
+.step-row .lb{flex:1;min-width:0;font-size:12px;font-weight:600;line-height:1.35}
 .sc-avatar.mini{width:22px;height:22px;border-radius:7px;font-size:10.5px}
-.q-step:not(:disabled):hover{background:var(--surface-1)}
+.step-row:not(:disabled):hover{background:var(--surface-1)}
 /* שאלה שטרם נשאלה: מוצגת כדי שיהיה ברור מה עוד בא, אבל מתה ללחיצה - קדימה קופצים רק
    בתשובה או בדילוג, לא מהרשימה */
-.q-step:disabled{cursor:default}
-.q-step:disabled .lb{color:var(--dim);font-weight:500}
-.q-step:disabled .sc-avatar{color:var(--dim);background:var(--surface-1);border-color:var(--hair-soft)}
-.q-step.is-done .sc-avatar{color:var(--acc2-soft);background:rgba(var(--acc2-rgb),.13);border-color:rgba(var(--acc2-rgb),.32)}
-.q-step.is-now{background:rgba(var(--acc-rgb),.1)}
-.q-step.is-now .lb{font-weight:700;color:var(--txt)}
-.q-step.is-now .sc-avatar{color:var(--bg);background:var(--acc);border-color:transparent}
-.q-step.is-skip .lb{text-decoration:line-through}
-.q-step.is-edit{background:rgba(var(--acc-rgb),.17);box-shadow:inset 0 0 0 1px rgba(var(--acc-rgb),.4)}
+.step-row:disabled{cursor:default}
+.step-row:disabled .lb{color:var(--dim);font-weight:500}
+.step-row:disabled .sc-avatar{color:var(--dim);background:var(--surface-1);border-color:var(--hair-soft)}
+.step-row.is-done .sc-avatar{color:var(--acc2-soft);background:rgba(var(--acc2-rgb),.13);border-color:rgba(var(--acc2-rgb),.32)}
+.step-row.is-now{background:rgba(var(--acc-rgb),.1)}
+.step-row.is-now .lb{font-weight:700;color:var(--txt)}
+.step-row.is-now .sc-avatar{color:var(--bg);background:var(--acc);border-color:transparent}
+.step-row.is-skip .lb{text-decoration:line-through}
+.step-row.is-edit{background:rgba(var(--acc-rgb),.17);box-shadow:inset 0 0 0 1px rgba(var(--acc-rgb),.4)}
 
 @media (max-width:1440px){
   /* רשימת השאלות מצטמצמת לפני השיחה - היא העיקר כאן, הרשימה היא ההקשר */
@@ -1195,6 +1208,28 @@ html{scroll-behavior:smooth}
   .repC.iv .iv-list{max-height:210px}
   .iv-scroll{overflow:visible;min-height:0}
 }
+/* ===== ראש הדוח: זהות, פרטים וציון (בקשת אלעד 26.8) =====
+   היה כרטיס בעמודה הצדדית, ושם הוא היה תקוע לצד התוכן במקום להציג את העסק בראש העמוד.
+   עכשיו הוא הכותרת עצמה: מי העסק ומה נמדד עליו בצד הקריאה, והציון בקצה השני */
+.page-head.rep-head{
+  display:flex;align-items:center;justify-content:space-between;gap:26px;flex-wrap:wrap;
+}
+.rep-head .who{min-width:0;flex:1 1 420px}
+/* שם העסק והמטא יורשים את גודל הפסקה של page-head, ולכן נקבעים כאן במפורש */
+.rep-head-biz{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin-top:7px}
+.rep-head-biz b{font-size:16px;font-weight:800;letter-spacing:-.012em;color:var(--txt)}
+.rep-head-biz i{font-style:normal;font-size:12.5px;color:var(--dim)}
+/* הצ'יפים מתחילים מצד הקריאה ולא ממורכזים כמו בגרסת העמודה הצרה */
+.rep-head .mini-meta{justify-content:flex-start;margin-top:11px}
+.rep-head .mini-meta .clip{max-width:34ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rep-head-score{display:flex;flex-direction:column;align-items:center;gap:7px;flex:none}
+@media (max-width:760px){
+  /* בטלפון החוגה עוברת מתחת לזהות ולא לצדה, והראש נקרא כטור אחד */
+  .page-head.rep-head{gap:16px}
+  .rep-head .who{flex-basis:100%}
+  .rep-head-score{margin-inline:auto}
+}
+
 .who-h{text-align:center;margin-bottom:14px}
 .who-h b{display:block;font-size:17px;font-weight:800;letter-spacing:-.012em}
 .who-h i{font-style:normal;font-size:11.5px;color:var(--dim)}
