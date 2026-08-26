@@ -1,5 +1,5 @@
-import type { InterviewSnapshot, TurnResult } from "../../server/run-interview";
-import { INTERVIEW_SECTIONS } from "../../pipeline/interview/questions";
+import type { InterviewSnapshot, TurnResult, QuestionView, PlanItem } from "../../server/run-interview";
+import { INTERVIEW_SECTIONS, answerLabels } from "../../pipeline/interview/questions";
 import type { LedgerEntry } from "../../pipeline/model/ledger";
 
 // לוגיקה טהורה של מסך הראיון (משימה 11): בלי React ובלי fetch, כך שגרסת עיצוב עתידית תחליף
@@ -13,17 +13,14 @@ export interface ChatMessage {
   id: string;
   role: ChatRole;
   content: string;
+  // מפתח השאלה שההודעה עונה עליה (null בהודעות הסוכן ובכתיבה חופשית). דרוש כדי שחזרה לשאלה
+  // שנענתה תוכל להציג את התשובה הקודמת מסומנת - הוא כבר נשמר על ההודעה במסד (interview-repo)
+  questionKey: string | null;
 }
 
-export interface NextQuestion {
-  key: string;
-  section: string;
-  text: string;
-  // אפיון מחדש-ראיון, החלטה C: options/multiSelect מגיעים מהשרת רק כשהשאלה מגדירה אפשרויות
-  // בחירה מרובה (questions.ts) - undefined = בלי אפשרויות, נופלים לטקסט חופשי (כמו שאלת הסיכום)
-  options?: string[];
-  multiSelect?: boolean;
-}
+// השם נשמר כי הוא מדויק בהקשר של "השאלה הבאה", אבל ההגדרה היא זו של השרת ולא עותק שני שלה:
+// זה בדיוק הטיפוס ש-nextQuestion ופריטי התוכנית נושאים, ושתי הגדרות היו יכולות להתפצל
+export type NextQuestion = QuestionView;
 
 // דילוג הוא מצב לקוח בלבד ואף פעם לא נשמר בשרת (ראו cli-interview.ts - אותו דפוס בדיוק):
 // השרת ממשיך לחשב את אותה השאלה הבאה הדטרמיניסטית כי הוא לא יודע על הדילוג, אז כל מקום
@@ -52,6 +49,11 @@ export interface ChatState {
   selectedOptions: string[];
   customInputOpen: boolean;
   completenessPct: number;
+  // תוכנית הראיון (עיצוב הראיון 26.8): הרשימה הממוספרת. מגיעה מהשרת בכל snapshot ובכל תור
+  plan: PlanItem[];
+  // השאלה שנענתה שהמשתמש חזר אליה לעריכה, אם יש. כשהיא מוגדרת היא גוברת על השאלה הבאה
+  // בתצוגה ובשליחה. נפתחת בלחיצה ברשימה, ונסגרת מעצמה ברגע שנשלחה תשובה (turnOk)
+  revisitKey: string | null;
   // פנקס החוסרים (משימה 19): מגיע מכל snapshot ומכל תור, ולכן הכרטיס מתעדכן חי בזמן הראיון
   ledger: LedgerEntry[];
   credits: Record<string, number>;
@@ -61,8 +63,19 @@ export interface ChatState {
   closed: boolean; // הראיון הסתיים בהצלחה וממתינים לניווט לדוח
 }
 
-function toChatMessage(m: { id: string; role: ChatRole; content: string }): ChatMessage {
-  return { id: m.id, role: m.role, content: m.content };
+function toChatMessage(m: { id: string; role: ChatRole; content: string; questionKey?: string | null }): ChatMessage {
+  return { id: m.id, role: m.role, content: m.content, questionKey: m.questionKey ?? null };
+}
+
+/** התשובה האחרונה שנשמרה לשאלה מסוימת. "האחרונה" ולא "הראשונה": חזרה לשאלה ועריכה שלה
+    מוסיפה הודעה חדשה עם אותו מפתח, והרלוונטית היא זו שגוברת גם במודל */
+export function answerFor(messages: ChatMessage[], key: string | null): string | null {
+  if (key == null) return null;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m.role === "user" && m.questionKey === key) return m.content;
+  }
+  return null;
 }
 
 // המצב ה"מחושב" (לא הדביק) של חופשי/מונחה - אותו חוק תמיד: אין שאלה גלויה (או שהשרת ממליץ
@@ -88,6 +101,8 @@ export function initialChatState(initial: InterviewSnapshot): ChatState {
     selectedOptions: [],
     customInputOpen: false,
     completenessPct: initial.completenessPct,
+    plan: initial.plan,
+    revisitKey: null,
     ledger: initial.ledger,
     credits: initial.credits,
     askedCount: initial.askedCount,
@@ -105,10 +120,12 @@ export type ChatAction =
   // תוויות מרובות מחוברות) בלי לעבור דרך state.input - נמנעים מבעיית ה-state סגור-ישן
   // (setInput ואז send מיד היה עדיין קורא state.input הישן מהרינדור הנוכחי). בלי content -
   // בדיוק ההתנהגות הישנה (state.input כמו תמיד)
-  | { type: "send"; content?: string }
+  | { type: "send"; content?: string; questionKey?: string }
   | { type: "turnOk"; payload: TurnResult }
   | { type: "turnFail"; error: string }
   | { type: "skip" }
+  | { type: "revisit"; key: string }
+  | { type: "cancelRevisit" }
   | { type: "setFreeText"; value: boolean }
   | { type: "setInput"; value: string }
   | { type: "toggleOption"; label: string }
@@ -128,6 +145,9 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...state,
         messages: action.payload.messages.map(toChatMessage),
         completenessPct: action.payload.completenessPct,
+        plan: action.payload.plan,
+        // מצב השרת הרענן גובר על עריכה פתוחה: הראיון כבר במקום אחר ממה שהעריכה הניחה
+        revisitKey: null,
         ledger: action.payload.ledger,
         credits: action.payload.credits,
         askedCount: action.payload.askedCount,
@@ -154,7 +174,10 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       // content מפורש (שליחת צ'יפ) עוקף את state.input; בלעדיו - בדיוק ההתנהגות הישנה
       const content = (action.content ?? state.input).trim();
       if (state.busy || content.length === 0) return state;
-      const message: ChatMessage = { id: `local-${state.messages.length}`, role: "user", content };
+      const message: ChatMessage = {
+        id: `local-${state.messages.length}`, role: "user", content,
+        questionKey: action.questionKey ?? null,
+      };
       return {
         ...state, messages: [...state.messages, message], input: "", busy: true, error: null,
         selectedOptions: [], customInputOpen: false,
@@ -164,11 +187,16 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
     // freeText מחושב מחדש לפי אותו חוק בכל תור (מראה את דפוס ה-CLI המאושר), אלא אם המשתמש
     // בעצמו נעל כוונה מפורשת (freeTextIntent) - במקרה כזה נשארים בחופשי גם כשיש שאלה זמינה
     case "turnOk": {
-      const reply: ChatMessage = { id: `local-${state.messages.length}`, role: "assistant", content: action.payload.reply };
+      const reply: ChatMessage = {
+        id: `local-${state.messages.length}`, role: "assistant", content: action.payload.reply, questionKey: null,
+      };
       return {
         ...state,
         messages: [...state.messages, reply],
         completenessPct: action.payload.completenessPct,
+        plan: action.payload.plan,
+        // התשובה נשלחה - העריכה נסגרה מעצמה והתצוגה חוזרת לשאלה הנוכחית
+        revisitKey: null,
         ledger: action.payload.ledger,
         credits: action.payload.credits,
         askedCount: action.payload.askedCount,
@@ -200,6 +228,9 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
     // זה חופשי "מחושב" זמני (השאלה שדולגה כרגע היא בהכרח היחידה שהייתה גלויה), לא בחירה של
     // המשתמש, אז ברגע שהשרת יציע שאלה אחרת לא-דולגה חוזרים אוטומטית למונחה (turnOk למעלה)
     case "skip": {
+      // בזמן עריכה של שאלה שנענתה אין מה לדלג: הכפתור מוחלף ב"חזרה לשאלה הנוכחית", וללא
+      // השומר הזה דילוג היה מסמן דווקא את השאלה הנוכחית - זו שלא מוצגת כרגע
+      if (state.revisitKey != null) return state;
       const visible = visibleNext(state.next, state.skippedKeys);
       if (!visible) return state; // אין שאלה גלויה לדלג עליה כרגע
       return {
@@ -219,6 +250,35 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         selectedOptions: [], customInputOpen: false,
       };
     }
+
+    // חזרה לשאלה שכבר נענתה (הכרעת אלעד 26.8). רק שאלה שנענתה - קדימה אי אפשר לקפוץ, וזו
+    // בדיוק הסיבה שהשומר כאן ולא רק ב-disabled של הכפתור: מקור אמת אחד למי שמותר לפתוח.
+    // הבחירה הקודמת נטענת מסומנת, כדי שהמשתמש יראה מה הוא ענה ולא יתחיל מדף ריק
+    case "revisit": {
+      if (state.busy) return state;
+      const item = state.plan.find((p) => p.key === action.key);
+      if (item == null || !item.answered) return state;
+      const previous = answerFor(state.messages, action.key) ?? "";
+      return {
+        ...state,
+        revisitKey: action.key,
+        // עריכת שאלה מונחית היא מונחה בהגדרה, גם אם המשתמש היה בכתיבה חופשית לפני הלחיצה.
+        // freeTextIntent לא נמחק בכוונה - "חזרה לשאלה הנוכחית" תחזיר אותו לחופשי כפי שביקש
+        freeText: false,
+        selectedOptions: item.options ? answerLabels(item.options, previous, item.multiSelect === true) : [],
+        customInputOpen: false,
+        error: null,
+      };
+    }
+
+    case "cancelRevisit":
+      return {
+        ...state,
+        revisitKey: null,
+        freeText: state.freeTextIntent || computedFreeText(state.next, state.skippedKeys),
+        selectedOptions: [],
+        customInputOpen: false,
+      };
 
     case "setInput":
       return { ...state, input: action.value };

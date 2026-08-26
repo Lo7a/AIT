@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   QUESTION_BANK, MAX_GUIDED_QUESTIONS, CLOSING_QUESTION_KEY, REQUIRED_QUESTION_KEYS,
-  pickNextQuestion, staticUpdateFor,
+  pickNextQuestion, staticUpdateFor, interviewPlan, answerLabels,
 } from "../src/pipeline/interview/questions";
 import { applyInterviewUpdates } from "../src/pipeline/interview/merge";
 import { normalizeTypography } from "../src/pipeline/interview/extract";
@@ -340,5 +340,84 @@ describe("סשן ראיון שלם", () => {
     expect(asked).toHaveLength(MAX_GUIDED_QUESTIONS);
     expect(asked.slice(0, -1).sort()).toEqual([...REGULAR_KEYS].sort());
     expect(asked[asked.length - 1]).toBe(CLOSING_QUESTION_KEY);
+  });
+});
+
+describe("interviewPlan - הרשימה הממוספרת במסך הראיון", () => {
+  const baseModel = deriveBusinessModel(richFindings);
+  const keysOf = (asked: string[]) => interviewPlan(baseModel, richFindings, asked).map((p) => p.question.key);
+
+  it("מכסה את כל הבנק בדיוק פעם אחת כשעוד לא נשאל כלום", () => {
+    const keys = keysOf([]);
+    expect(keys).toHaveLength(MAX_GUIDED_QUESTIONS);
+    expect([...keys].sort()).toEqual(QUESTION_BANK.map((q) => q.key).sort());
+  });
+
+  // הבדיקה שמונעת את הדריפט. התוכנית מדמה את pickNextQuestion עצמה, ואם מישהו יחליף אותה
+  // אי פעם בהעתק של הכללים - הסדר שהמשתמש רואה ברשימה יפסיק להיות הסדר שבו הוא באמת יישאל,
+  // כלומר הרשימה תמספר שקר
+  it("הסדר זהה לסדר שבו השאלות באמת נשאלות בסשן מלא", () => {
+    const realized: string[] = [];
+    let model: BusinessModel = deriveBusinessModel(richFindings);
+    for (let i = 0; i <= MAX_GUIDED_QUESTIONS; i++) {
+      const q = pickNextQuestion(model, richFindings, realized);
+      if (q == null) break;
+      const update = staticUpdateFor(q, q.options?.[0]?.label ?? "אין לי מה להוסיף");
+      model = applyInterviewUpdates(model, update ? [update] : [], "interview");
+      realized.push(q.key);
+    }
+    expect(keysOf([])).toEqual(realized);
+  });
+
+  it("מה שנענה מופיע ראשון, בסדר שבו נענה, ומסומן answered", () => {
+    const asked = ["lead_flow_deal_value", "lead_flow_intake"];
+    const plan = interviewPlan(baseModel, richFindings, asked);
+    expect(plan.slice(0, 2).map((p) => p.question.key)).toEqual(asked);
+    expect(plan.slice(0, 2).every((p) => p.answered)).toBe(true);
+    expect(plan.slice(2).some((p) => p.answered)).toBe(false);
+  });
+
+  // מפתח זר לא אמור להגיע לכאן בפועל (runInterviewTurn דוחה questionKey שאינו בבנק), אבל
+  // אם הגיע - הרשימה מציגה רק שאלות אמיתיות. הערה: מפתח כזה כן מנפח את askedKeys.length
+  // ולכן מרעיב שאלה אחת בסוף הסבב, וזו התנהגות של pickNextQuestion עצמה ולא של הרשימה
+  it("מפתח שאינו בבנק לא מייצר שורה ברשימה", () => {
+    const keys = keysOf(["not_a_real_key"]);
+    const bank = new Set(QUESTION_BANK.map((q) => q.key));
+    expect(keys).not.toContain("not_a_real_key");
+    expect(keys.every((k) => bank.has(k))).toBe(true);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it("אחרי שאלת הסיכום אין המשך - הרשימה היא בדיוק מה שכבר נשאל", () => {
+    const all = keysOf([]);
+    expect(keysOf(all)).toEqual(all);
+  });
+
+  it("לכל שאלה תווית קצרה וייחודית - שורה ריקה או כפולה ברשימה היא באג", () => {
+    const labels = QUESTION_BANK.map((q) => q.label);
+    expect(labels.every((l) => l.trim().length > 0)).toBe(true);
+    expect(new Set(labels).size).toBe(MAX_GUIDED_QUESTIONS);
+    // התווית היא הנושא ולא השאלה עצמה - היא חייבת להיכנס לעמודה של 232 פיקסלים
+    expect(labels.filter((l) => l.length > 24)).toEqual([]);
+  });
+});
+
+describe("answerLabels - סימון התשובה הקודמת בחזרה לשאלה שנענתה", () => {
+  const intake = QUESTION_BANK.find((q) => q.key === "lead_flow_intake")!;
+  const options = intake.options!.map((o) => o.label);
+
+  it("מחזיר את התוויות שנבחרו בבחירה מרובה", () => {
+    expect(answerLabels(options, options[0] + ", " + options[1], true)).toEqual([options[0], options[1]]);
+  });
+
+  it("בחירה בודדת: תווית אחת מוחזרת כמו שהיא", () => {
+    expect(answerLabels(options, options[2], false)).toEqual([options[2]]);
+  });
+
+  // הרגרסיה שקל להחמיץ: תשובת "אחר" היא טקסט חופשי שאינו אף אפשרות. סימון מדומה היה אומר
+  // למשתמש שהוא בחר משהו שהוא לא בחר
+  it("תשובת אחר (טקסט חופשי) לא מייצרת סימון מדומה", () => {
+    expect(answerLabels(options, "בעיקר דרך המלצות של שכנים", true)).toEqual([]);
+    expect(answerLabels(options, "", true)).toEqual([]);
   });
 });

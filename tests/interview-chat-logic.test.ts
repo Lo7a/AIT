@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
-  chatReducer, initialChatState, visibleNext, sectionProgress, type NextQuestion,
+  chatReducer, initialChatState, visibleNext, sectionProgress, answerFor, type NextQuestion,
 } from "../src/app/interview/chat-logic";
 import { INTERVIEW_SECTIONS } from "../src/pipeline/interview/questions";
-import type { InterviewSnapshot, TurnResult } from "../src/server/run-interview";
+import type { InterviewSnapshot, TurnResult, PlanItem } from "../src/server/run-interview";
 
 // כל המבחנים כאן אופליין לגמרי - אין fetch, אין React, אין DB. chat-logic.ts טהור בכוונה
 // (ראו הערת המודול שם) כדי שאפשר יהיה לבדוק את כל מכונת המצבים של הראיון בלי תשתית כבדה.
 
-const Q1: NextQuestion = { key: "lead_flow_intake", section: "lead_flow", text: "איך מגיעות אליכם פניות חדשות?" };
-const Q2: NextQuestion = { key: "service_repeat", section: "service", text: "אילו שאלות חוזרות אתם עונים עליהן?" };
+const Q1: NextQuestion = { key: "lead_flow_intake", label: "איך מגיעות פניות", section: "lead_flow", text: "איך מגיעות אליכם פניות חדשות?" };
+const Q2: NextQuestion = { key: "service_repeat", label: "שאלות חוזרות", section: "service", text: "אילו שאלות חוזרות אתם עונים עליהן?" };
 
 function emptyCredits(overrides: Record<string, number> = {}): Record<string, number> {
   const base: Record<string, number> = { pains: 0 };
@@ -27,7 +27,7 @@ function makeSnapshot(overrides: Partial<InterviewSnapshot> = {}): InterviewSnap
     credits: emptyCredits(),
     nextQuestion: Q1,
     recommendFreeText: false,
-    ledger: [],
+    plan: [], ledger: [],
     ...overrides,
   };
 }
@@ -77,7 +77,7 @@ describe("initialChatState - גזירת מצב חופשי/מונחה התחלת�
     expect(state.customInputOpen).toBe(false);
   });
 
-  it("היסטוריית resume מתורגמת ל-ChatMessage בלי createdAt/questionKey", () => {
+  it("היסטוריית resume מתורגמת ל-ChatMessage בלי createdAt (questionKey כן נשמר - חזרה לשאלה נשענת עליו)", () => {
     const state = initialChatState(makeSnapshot({
       messages: [
         { id: "m1", role: "user", content: "שלום", questionKey: Q1.key, isFreeText: false, createdAt: new Date() },
@@ -85,8 +85,8 @@ describe("initialChatState - גזירת מצב חופשי/מונחה התחלת�
       ],
     }));
     expect(state.messages).toEqual([
-      { id: "m1", role: "user", content: "שלום" },
-      { id: "m2", role: "assistant", content: "תודה" },
+      { id: "m1", role: "user", content: "שלום", questionKey: Q1.key },
+      { id: "m2", role: "assistant", content: "תודה", questionKey: null },
     ]);
   });
 });
@@ -180,7 +180,7 @@ describe("chatReducer - איפוס מצב צ'יפים במעברי הקשר", ()
     const sent = chatReducer(withChips, { type: "send" });
     const turn: TurnResult = {
       reply: "טוב", usedFallback: false, nextQuestion: Q2, completenessPct: 25,
-      credits: emptyCredits(), askedCount: 1, done: false, ledger: [],
+      credits: emptyCredits(), askedCount: 1, done: false, plan: [], ledger: [],
     };
     const next = chatReducer(sent, { type: "turnOk", payload: turn });
     expect(next.selectedOptions).toEqual([]);
@@ -229,7 +229,7 @@ describe("chatReducer - turnOk", () => {
       credits: emptyCredits({ lead_flow: 1 }),
       askedCount: 1,
       done: false,
-      ledger: [],
+      plan: [], ledger: [],
     };
     const next = chatReducer(sent, { type: "turnOk", payload: turn });
     expect(next.busy).toBe(false);
@@ -252,7 +252,7 @@ describe("chatReducer - turnOk", () => {
       credits: emptyCredits(),
       askedCount: 1,
       done: true,
-      ledger: [],
+      plan: [], ledger: [],
     };
     const next = chatReducer(sent, { type: "turnOk", payload: turn });
     expect(next.messages[1].content).toBe("תשובת ברירת מחדל בלי חילוץ");
@@ -266,7 +266,7 @@ describe("chatReducer - turnOk", () => {
     );
     const turn: TurnResult = {
       reply: "טוב", usedFallback: false, nextQuestion: Q2, completenessPct: 30,
-      credits: emptyCredits(), askedCount: 1, done: false, ledger: [],
+      credits: emptyCredits(), askedCount: 1, done: false, plan: [], ledger: [],
     };
     expect(chatReducer(sent, { type: "turnOk", payload: turn }).freeText).toBe(false);
   });
@@ -276,7 +276,7 @@ describe("chatReducer - turnOk", () => {
     const sent = chatReducer(withSkip, { type: "send" });
     const turn: TurnResult = {
       reply: "עוד תודה", usedFallback: false, nextQuestion: Q2, completenessPct: 25,
-      credits: emptyCredits(), askedCount: 1, done: false, ledger: [],
+      credits: emptyCredits(), askedCount: 1, done: false, plan: [], ledger: [],
     };
     const next = chatReducer(sent, { type: "turnOk", payload: turn });
     expect(next.freeText).toBe(true);
@@ -293,7 +293,7 @@ describe("chatReducer - setFreeText וכוונה דביקה (freeTextIntent)", (
     const sent = chatReducer({ ...state, input: "תשובה" }, { type: "send" });
     const turn: TurnResult = {
       reply: "טוב", usedFallback: false, nextQuestion: Q2, completenessPct: 25,
-      credits: emptyCredits(), askedCount: 1, done: false, ledger: [],
+      credits: emptyCredits(), askedCount: 1, done: false, plan: [], ledger: [],
     };
     const next = chatReducer(sent, { type: "turnOk", payload: turn });
     expect(next.freeText).toBe(true);
@@ -309,7 +309,7 @@ describe("chatReducer - setFreeText וכוונה דביקה (freeTextIntent)", (
     const sent = chatReducer({ ...state, input: "תשובה" }, { type: "send" });
     const turn: TurnResult = {
       reply: "טוב", usedFallback: false, nextQuestion: Q2, completenessPct: 25,
-      credits: emptyCredits(), askedCount: 1, done: false, ledger: [],
+      credits: emptyCredits(), askedCount: 1, done: false, plan: [], ledger: [],
     };
     const next = chatReducer(sent, { type: "turnOk", payload: turn });
     expect(next.freeText).toBe(false);
@@ -323,7 +323,7 @@ describe("chatReducer - setFreeText וכוונה דביקה (freeTextIntent)", (
     const sent = chatReducer({ ...skipped, input: "תשובה" }, { type: "send" });
     const turn: TurnResult = {
       reply: "טוב", usedFallback: false, nextQuestion: Q2, completenessPct: 25,
-      credits: emptyCredits(), askedCount: 1, done: false, ledger: [],
+      credits: emptyCredits(), askedCount: 1, done: false, plan: [], ledger: [],
     };
     const next = chatReducer(sent, { type: "turnOk", payload: turn });
     expect(next.freeText).toBe(false);
@@ -376,8 +376,8 @@ describe("chatReducer - snapshot (נתיב פישור 409 / רענון אחרי 
     });
     const next = chatReducer(sent, { type: "snapshot", payload: serverSnapshot });
     expect(next.messages).toEqual([
-      { id: "srv1", role: "user", content: "משהו" },
-      { id: "srv2", role: "assistant", content: "תודה" },
+      { id: "srv1", role: "user", content: "משהו", questionKey: Q1.key },
+      { id: "srv2", role: "assistant", content: "תודה", questionKey: null },
     ]);
     expect(next.completenessPct).toBe(25);
     expect(next.askedCount).toBe(1);
@@ -470,5 +470,110 @@ describe("chatReducer - closed נגזר מ-snapshot.status", () => {
     const next = chatReducer(state, { type: "startFail", error: "שגיאה כלשהי" });
     expect(next.closed).toBe(true);
     expect(next.starting).toBe(false);
+  });
+});
+
+// ===== חזרה לשאלה שנענתה (הכרעת אלעד 26.8) =====
+// הרשימה הממוספרת מאפשרת ללחוץ על שאלה שכבר נענתה ולשנות את התשובה. קדימה אי אפשר לקפוץ -
+// זו הכרעה מוצרית, והשומר שלה יושב כאן ב-reducer ולא רק ב-disabled של הכפתור בתצוגה.
+const PLAN: PlanItem[] = [
+  {
+    key: "lead_flow_intake", label: "איך מגיעות פניות", section: "lead_flow",
+    text: "איך מגיעות אליכם פניות חדשות?",
+    options: ["בעיקר טלפון", "וואטסאפ", "טופס באתר"], multiSelect: true, answered: true,
+  },
+  {
+    key: "service_repeat", label: "שאלות חוזרות", section: "service",
+    text: "אילו שאלות חוזרות אתם עונים עליהן?",
+    options: ["מחיר ותנאים", "זמינות ותורים"], answered: false,
+  },
+];
+
+function answeredState() {
+  return initialChatState(makeSnapshot({
+    plan: PLAN,
+    nextQuestion: PLAN[1],
+    messages: [
+      {
+        id: "m1", role: "user", content: "בעיקר טלפון, וואטסאפ",
+        questionKey: "lead_flow_intake", isFreeText: false, createdAt: new Date(),
+      },
+      { id: "m2", role: "assistant", content: "רשמתי.", questionKey: null, isFreeText: false, createdAt: new Date() },
+    ],
+  }));
+}
+
+describe("answerFor", () => {
+  it("מחזיר את התשובה האחרונה לאותה שאלה, לא את הראשונה", () => {
+    const messages = [
+      { id: "a", role: "user" as const, content: "עד 10", questionKey: "lead_flow_volume" },
+      { id: "b", role: "user" as const, content: "10-30", questionKey: "lead_flow_volume" },
+    ];
+    expect(answerFor(messages, "lead_flow_volume")).toBe("10-30");
+  });
+
+  it("null כשאין תשובה לשאלה, וכשאין שאלה בכלל", () => {
+    expect(answerFor([{ id: "a", role: "user", content: "משהו", questionKey: null }], "lead_flow_volume")).toBeNull();
+    expect(answerFor([], null)).toBeNull();
+  });
+});
+
+describe("chatReducer - חזרה לשאלה שנענתה", () => {
+  it("פותחת את השאלה ומסמנת את התשובה הקודמת", () => {
+    const next = chatReducer(answeredState(), { type: "revisit", key: "lead_flow_intake" });
+    expect(next.revisitKey).toBe("lead_flow_intake");
+    expect(next.selectedOptions).toEqual(["בעיקר טלפון", "וואטסאפ"]);
+    expect(next.freeText).toBe(false);
+  });
+
+  // הכלל המוצרי: קדימה קופצים רק בתשובה או בדילוג, אף פעם לא מהרשימה
+  it("שאלה שטרם נענתה - no-op, אי אפשר לקפוץ קדימה", () => {
+    const state = answeredState();
+    expect(chatReducer(state, { type: "revisit", key: "service_repeat" })).toBe(state);
+  });
+
+  it("מפתח שאינו בתוכנית - no-op", () => {
+    const state = answeredState();
+    expect(chatReducer(state, { type: "revisit", key: "not_in_plan" })).toBe(state);
+  });
+
+  it("בזמן תור באוויר - no-op, כמו כל שאר הפעולות", () => {
+    const busy = { ...answeredState(), busy: true };
+    expect(chatReducer(busy, { type: "revisit", key: "lead_flow_intake" })).toBe(busy);
+  });
+
+  // בלי השומר הזה דילוג בזמן עריכה היה מסמן את השאלה הנוכחית - זו שלא מוצגת כרגע
+  it("דילוג בזמן עריכה - no-op", () => {
+    const editing = chatReducer(answeredState(), { type: "revisit", key: "lead_flow_intake" });
+    expect(chatReducer(editing, { type: "skip" })).toBe(editing);
+  });
+
+  it("כתיבה חופשית שהמשתמש בחר בה חוזרת אחרי ביטול העריכה", () => {
+    const free = chatReducer(answeredState(), { type: "setFreeText", value: true });
+    const editing = chatReducer(free, { type: "revisit", key: "lead_flow_intake" });
+    expect(editing.freeText).toBe(false);
+    expect(editing.freeTextIntent).toBe(true); // הכוונה נשמרה, רק המצב המוצג השתנה
+    const back = chatReducer(editing, { type: "cancelRevisit" });
+    expect(back.revisitKey).toBeNull();
+    expect(back.freeText).toBe(true);
+  });
+
+  it("תשובה שנשלחה סוגרת את העריכה מעצמה", () => {
+    const editing = chatReducer(answeredState(), { type: "revisit", key: "lead_flow_intake" });
+    const turn: TurnResult = {
+      reply: "רשמתי", usedFallback: false, nextQuestion: PLAN[1], completenessPct: 30,
+      credits: emptyCredits(), askedCount: 2, done: false, plan: PLAN, ledger: [],
+    };
+    expect(chatReducer(editing, { type: "turnOk", payload: turn }).revisitKey).toBeNull();
+  });
+
+  it("snapshot טרי מהשרת גובר על עריכה פתוחה", () => {
+    const editing = chatReducer(answeredState(), { type: "revisit", key: "lead_flow_intake" });
+    expect(chatReducer(editing, { type: "snapshot", payload: makeSnapshot({ plan: PLAN }) }).revisitKey).toBeNull();
+  });
+
+  it("ההודעה האופטימית נושאת את מפתח השאלה, כדי שהתשובה תימצא מיד גם לפני רענון", () => {
+    const sent = chatReducer(answeredState(), { type: "send", content: "טופס באתר", questionKey: "lead_flow_intake" });
+    expect(answerFor(sent.messages, "lead_flow_intake")).toBe("טופס באתר");
   });
 });

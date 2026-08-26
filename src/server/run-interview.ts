@@ -1,5 +1,10 @@
 import type { PrismaClient } from "@prisma/client";
-import { pickNextQuestion, QUESTION_BANK, MAX_GUIDED_QUESTIONS, staticUpdateFor } from "../pipeline/interview/questions";
+import {
+  pickNextQuestion, interviewPlan, QUESTION_BANK, MAX_GUIDED_QUESTIONS, staticUpdateFor,
+  type GuidedQuestion,
+} from "../pipeline/interview/questions";
+import type { BusinessModel } from "../pipeline/model/business-model";
+import type { ScanFindings } from "../pipeline/types";
 import { extractAnswer, type ExtractOptions } from "../pipeline/interview/extract";
 import { applyInterviewUpdates } from "../pipeline/interview/merge";
 import { InterviewError, NOT_ACTIVE_MESSAGE } from "../pipeline/interview/contract";
@@ -15,6 +20,23 @@ import type { DiagnosisStatus } from "./status";
 // אורקסטרטור הראיון: הראיון לא חוסם כלום, ניתן לעצירה בכל רגע, וכל תור נשמר אטומית.
 // השאלה הבאה תמיד מחושבת מחדש מהמודל וההיסטוריה - resume בלי מצב נסתר.
 
+// תצוגת שאלה כפי שהיא נשלחת ללקוח: options כמערך תוויות (string[]) ולא QuestionOption[] המלא -
+// זה כל מה שהתצוגה צריכה כדי לצייר צ'יפים, בלי לגרור טיפוס פנימי של הבנק אל חוזה ה-API
+export interface QuestionView {
+  key: string; label: string; section: string; text: string;
+  options?: string[]; multiSelect?: boolean;
+}
+
+function questionView(q: GuidedQuestion, findings: ScanFindings, model: BusinessModel): QuestionView {
+  return {
+    key: q.key, label: q.label, section: q.section, text: q.text(findings, model),
+    options: q.options?.map((o) => o.label), multiSelect: q.multiSelect,
+  };
+}
+
+/** פריט בתוכנית הראיון: השאלה עצמה + האם כבר נענתה. answered פותח לחיצה לעריכה בתצוגה */
+export interface PlanItem extends QuestionView { answered: boolean }
+
 export interface InterviewSnapshot {
   status: InterviewState["status"];
   messages: InterviewState["messages"];
@@ -23,10 +45,13 @@ export interface InterviewSnapshot {
   completenessPct: number;
   credits: Record<string, number>; // קרדיטים לפי סקציה - כדי שה-UI יציג התקדמות פר-סקציה, לא רק אחוז כולל
   // options/multiSelect (אפיון מחדש-ראיון, החלטה C): מוצגים רק כשהשאלה מגדירה אפשרויות בבנק
-  // (questions.ts) - undefined אומר "בלי בחירה מרובה, טקסט חופשי" (כמו שאלת הסיכום היום).
-  // options הוא מערך תוויות (string[]) ולא QuestionOption[] המלא - זה כל מה שהתצוגה צריכה כדי
-  // לצייר צ'יפים, בלי לגרור טיפוס פנימי של הבנק אל חוזה ה-API.
-  nextQuestion: { key: string; section: string; text: string; options?: string[]; multiSelect?: boolean } | null;
+  // (questions.ts) - undefined אומר "בלי בחירה מרובה, טקסט חופשי" (כמו שאלת הסיכום היום)
+  nextQuestion: QuestionView | null;
+  // תוכנית הראיון המלאה (עיצוב הראיון 26.8): הרשימה הממוספרת במסך. נשלחת שלמה - כולל טקסט
+  // ואפשרויות של כל שאלה - כי לחיצה על שאלה שנענתה פותחת אותה מחדש לעריכה, והלקוח צריך את
+  // הניסוח המדויק שלה. שש-עשרה שאלות הן מטען זניח, ואין סיבוב נוסף למסד: הכל מ-findings/model
+  // שכבר בזיכרון. נבנית מחדש בכל תור, כמו הפנקס, ולכן הרשימה מתעדכנת חי
+  plan: PlanItem[];
   recommendFreeText: boolean; // שלמות נמוכה - עדיף לפתוח בסיפור חופשי (recommendNextStep)
   // פנקס החוסרים (משימה 19): מה חסר לאבחון ומה כל חוסר פותח. נבנה מחדש בכל תור, ולכן הוא
   // מתעדכן חי בזמן הראיון בדיוק כמו scan.scores - זו הדרישה "כל שינוי מתעדכן בלייב"
@@ -42,6 +67,7 @@ export interface TurnResult {
   reply: string;
   usedFallback: boolean;
   nextQuestion: InterviewSnapshot["nextQuestion"];
+  plan: PlanItem[]; // ראו InterviewSnapshot.plan - מוחזר בכל תור כדי שהרשימה תתעדכן מיד
   completenessPct: number;
   credits: Record<string, number>; // ראו InterviewSnapshot.credits
   askedCount: number;
@@ -58,12 +84,9 @@ export function snapshotOf(state: InterviewState): InterviewSnapshot {
     maxQuestions: MAX_GUIDED_QUESTIONS,
     completenessPct: state.model.completenessPct,
     credits: state.model.credits,
-    nextQuestion: q
-      ? {
-        key: q.key, section: q.section, text: q.text(state.findings, state.model),
-        options: q.options?.map((o) => o.label), multiSelect: q.multiSelect,
-      }
-      : null,
+    nextQuestion: q ? questionView(q, state.findings, state.model) : null,
+    plan: interviewPlan(state.model, state.findings, state.askedKeys)
+      .map((p) => ({ ...questionView(p.question, state.findings, state.model), answered: p.answered })),
     recommendFreeText: recommendNextStep(state.model).action === "free_text",
     // תשובות הכמות נגזרות מההודעות שכבר טעונות ב-state, בלי סיבוב נוסף למסד
     ledger: buildLedger(state.findings, state.model, quantityAnswersFrom(state.messages)),
@@ -179,12 +202,9 @@ export async function runInterviewTurn(
   return {
     reply: result.reply,
     usedFallback: result.usedFallback,
-    nextQuestion: next
-      ? {
-        key: next.key, section: next.section, text: next.text(state.findings, updated),
-        options: next.options?.map((o) => o.label), multiSelect: next.multiSelect,
-      }
-      : null,
+    nextQuestion: next ? questionView(next, state.findings, updated) : null,
+    plan: interviewPlan(updated, state.findings, askedKeys)
+      .map((p) => ({ ...questionView(p.question, state.findings, updated), answered: p.answered })),
     completenessPct: updated.completenessPct,
     credits: updated.credits,
     askedCount: askedKeys.length,

@@ -898,6 +898,63 @@ html{scroll-behavior:smooth}
   .repC{grid-template-columns:1fr;padding:16px 14px 22px;gap:12px}
   .repC .rep-side{position:static}
 }
+
+/* ===== מסך הראיון: שלוש עמודות וחלון עם גלילה פנימית (הכרעת אלעד 26.8) =====
+   הצ'אט גדל עם כל הודעה, ובגלילת דף רגילה זה הזיז את כל המסך מתחת לעכבר בכל תשובה.
+   הפאנל הראשי מקבל גובה קבוע: השאלה נעוצה למעלה, תיבת הכתיבה נעוצה למטה, והשיחה נגללת
+   ביניהן בלבד. שום דבר במסך לא זז כשמגיעה הודעה חדשה.
+   שלוש העמודות דביקות על אותו קו עליון, והוא כאן topbar בלבד: במסך הזה אין anch (רצועת
+   העוגנים של הדוח), אז ההיסט המשותף היה מוריד את שלושתן ב-49 פיקסלים לחינם - ובפאנל
+   בגובה קבוע זה 49 פיקסלים של שיחה שנחתכים */
+.repC.iv{grid-template-columns:318px 232px minmax(0,1fr)}
+.repC.iv .rep-side,
+.repC.iv .iv-plan,
+.repC.iv .rep-main{top:calc(var(--topbar-h) + 14px)}
+.repC.iv .iv-plan,
+.repC.iv .rep-main{position:sticky;height:calc(100vh - var(--topbar-h) - 30px)}
+.repC.iv .iv-plan{display:flex;flex-direction:column}
+.repC.iv .iv-plan .core{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+.repC.iv .rep-main{gap:12px}
+/* min-height:0 על שני אלה הוא מה שמאפשר את הגלילה בכלל: פריט flex לא מתכווץ מתחת לגובה
+   התוכן שלו בלי זה, והפאנל היה נמתח והגלילה הייתה בורחת בחזרה לדף */
+.iv-scroll{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.iv-list{flex:1;min-height:0;overflow-y:auto;margin-inline:-6px;padding-inline:6px}
+
+/* שורת שאלה ברשימה הממוספרת. .scan-row הקיימת נבנתה לשורת אבחון בגובה 58 פיקסלים עם
+   אווטאר של 36 - שש-עשרה כאלה הן עמודה של 900 פיקסלים שאי אפשר לראות בבת אחת, ולכן שורה
+   משלה. הבאדג' עצמו הוא .sc-avatar הקיים במודיפייר mini (תקדים repC.mini/anch.mini),
+   ולא ריבוע שני שנראה כמעט אותו דבר */
+.q-step{
+  display:flex;align-items:center;gap:9px;width:100%;
+  padding:6px;border:0;border-radius:9px;background:none;
+  font:inherit;color:inherit;text-align:start;cursor:pointer;
+  transition:background .25s var(--ease-out);
+}
+.q-step + .q-step{margin-top:1px}
+.q-step .lb{flex:1;min-width:0;font-size:12px;font-weight:600;line-height:1.35}
+.sc-avatar.mini{width:22px;height:22px;border-radius:7px;font-size:10.5px}
+.q-step:not(:disabled):hover{background:var(--surface-1)}
+/* שאלה שטרם נשאלה: מוצגת כדי שיהיה ברור מה עוד בא, אבל מתה ללחיצה - קדימה קופצים רק
+   בתשובה או בדילוג, לא מהרשימה */
+.q-step:disabled{cursor:default}
+.q-step:disabled .lb{color:var(--dim);font-weight:500}
+.q-step:disabled .sc-avatar{color:var(--dim);background:var(--surface-1);border-color:var(--hair-soft)}
+.q-step.is-done .sc-avatar{color:var(--acc2-soft);background:rgba(var(--acc2-rgb),.13);border-color:rgba(var(--acc2-rgb),.32)}
+.q-step.is-now{background:rgba(var(--acc-rgb),.1)}
+.q-step.is-now .lb{font-weight:700;color:var(--txt)}
+.q-step.is-now .sc-avatar{color:var(--bg);background:var(--acc);border-color:transparent}
+.q-step.is-skip .lb{text-decoration:line-through}
+.q-step.is-edit{background:rgba(var(--acc-rgb),.17);box-shadow:inset 0 0 0 1px rgba(var(--acc-rgb),.4)}
+
+@media (max-width:1100px){
+  /* במובייל הדף נגלל ממילא והפאנל בגובה קבוע רק היה כולא את השיחה בחלון קטן */
+  .repC.iv{grid-template-columns:1fr}
+  .repC.iv .rep-side,
+  .repC.iv .iv-plan,
+  .repC.iv .rep-main{position:static;height:auto}
+  .repC.iv .iv-list{max-height:210px}
+  .iv-scroll{overflow:visible}
+}
 .who-h{text-align:center;margin-bottom:14px}
 .who-h b{display:block;font-size:17px;font-weight:800;letter-spacing:-.012em}
 .who-h i{font-style:normal;font-size:11.5px;color:var(--dim)}

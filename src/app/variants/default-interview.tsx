@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef } from "react";
-import type { InterviewSnapshot } from "../../server/run-interview";
+import type { InterviewSnapshot, PlanItem } from "../../server/run-interview";
 import { useInterviewChat } from "../interview/use-interview-chat";
 import type { ChatMessage } from "../interview/chat-logic";
 import { AppShell } from "../ui/app-shell";
@@ -16,6 +16,10 @@ import { missingCount } from "../../pipeline/model/ledger";
 // כן חי כאן (ולא בהוק): הוא תלוי-DOM/תזמון-רינדור, לא כלל עסקי - ראו ההערות ליד ה-effect למטה.
 // כללי החלקים המונפשים: מחלקות .rv יושבות רק על עטיפות סטטיות שנטענות פעם אחת עם המסך -
 // אף פעם לא על הודעות/פאנלים שמתחלפים עם ה-state, כדי ששינוי state לא יריץ כניסה מחדש.
+//
+// **הפריסה (הכרעת אלעד 26.8):** שלוש עמודות - הפנקס, רשימת השאלות הממוספרת, והשיחה. העמודה
+// השלישית היא חלון בגובה קבוע: השאלה נעוצה למעלה, תיבת הכתיבה נעוצה למטה, והשיחה נגללת
+// ביניהן בלבד. קודם הצ'אט גדל למטה והדף כולו זז מתחת לעכבר בכל הודעה חדשה.
 
 // כפתור-קו שקט (סיום הראיון): ghost-act מ-globals בלי מצב disabled משלו, אז מוסיפים כאן
 const GHOST_BTN = "ghost-act disabled:cursor-not-allowed disabled:opacity-40";
@@ -62,6 +66,99 @@ function Bubble({ message }: { message: ChatMessage }) {
   );
 }
 
+// רשימת השאלות הממוספרת. הסדר מגיע מהשרת (interviewPlan) ולא מסדר הבנק - הוא סימולציה של
+// pickNextQuestion עצמה, ולכן המספרים אומרים את האמת על מה יישאל ומתי.
+//
+// מי שאפשר ללחוץ עליו: שאלות שנענו בלבד. קדימה קופצים רק בתשובה או בכפתור "דלג" - הכרעת
+// אלעד 26.8. השומר האמיתי יושב ב-reducer (case "revisit") ולא רק ב-disabled כאן, כדי שיהיה
+// מקור אמת אחד למי שמותר לפתוח.
+function PlanList({
+  plan, currentKey, revisitKey, skippedKeys, locked, onPick,
+}: {
+  plan: PlanItem[];
+  currentKey: string | null;
+  revisitKey: string | null;
+  skippedKeys: string[];
+  locked: boolean;
+  onPick: (key: string) => void;
+}) {
+  const answered = plan.filter((p) => p.answered).length;
+  return (
+    <div className="iv-plan shell rv d1">
+      <div className="core card-pad">
+        <h2 className="side-h4">שאלות הראיון</h2>
+        <ol className="iv-list">
+          {plan.map((item, i) => {
+            const editing = item.key === revisitKey;
+            // "הנוכחית" מושהית בזמן עריכה: שתי שאלות מודגשות בו זמנית היו אומרות למשתמש
+            // שהוא נמצא בשתיהן
+            const now = revisitKey == null && item.key === currentKey;
+            const skipped = !item.answered && skippedKeys.includes(item.key);
+            const mark = editing ? "is-edit" : now ? "is-now" : item.answered ? "is-done" : skipped ? "is-skip" : "";
+            return (
+              <li key={item.key}>
+                <button
+                  type="button"
+                  className={`q-step ${mark}`.trim()}
+                  // השאלה הנוכחית גם היא מנוטרלת - כבר נמצאים עליה, ולחיצה עליה לא עושה כלום
+                  disabled={!item.answered || locked}
+                  onClick={() => onPick(item.key)}
+                  aria-current={now ? "step" : undefined}
+                  // הניסוח המלא זמין בריחוף. התווית היא הנושא, לא השאלה עצמה
+                  title={item.text}
+                >
+                  <span className="sc-avatar mini" aria-hidden="true">{i + 1}</span>
+                  <span className="lb">{item.label}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+        <p className="mt-3 border-t pt-3 text-[11px] leading-relaxed" style={{ borderColor: "var(--row-line)", color: "var(--dim)" }}>
+          {answered > 0 ? "אפשר ללחוץ על שאלה שנענתה ולשנות את התשובה." : "השאלות נפתחות אחת אחרי השנייה."}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// שורת הפעולות מתחת לשאלה. הייתה משוכפלת בפאנל הצ'יפים ובפאנל השאלה הפשוטה, ומצב העריכה
+// היה מוסיף לה ענף שלישי - שלושה עותקים של אותה שורה זה בדיוק מה שנוטה להתפצל
+function QuestionActions({
+  revisiting, canSkip, canFinish, onSkip, onFreeText, onCancelRevisit, onFinish, className = "",
+}: {
+  revisiting: boolean;
+  canSkip: boolean;
+  canFinish: boolean;
+  onSkip: () => void;
+  onFreeText: () => void;
+  onCancelRevisit: () => void;
+  onFinish: () => void;
+  className?: string;
+}) {
+  return (
+    <div className={`flex flex-wrap items-center gap-3 ${className}`.trim()}>
+      {revisiting ? (
+        <button type="button" className="btn-quiet" onClick={onCancelRevisit}>
+          חזרה לשאלה הנוכחית
+        </button>
+      ) : (
+        <>
+          <button type="button" className="btn-quiet" disabled={!canSkip} onClick={onSkip}>
+            דלג
+          </button>
+          <button type="button" className="btn-quiet" disabled={!canSkip} onClick={onFreeText}>
+            כתיבה חופשית
+          </button>
+        </>
+      )}
+      <button type="button" className={GHOST_BTN} disabled={!canFinish} onClick={onFinish}>
+        סיום הראיון
+      </button>
+    </div>
+  );
+}
+
 export function DefaultInterview({
   diagnosisId, initial, businessName, isAdmin = false, userEmail = null,
 }: {
@@ -73,22 +170,28 @@ export function DefaultInterview({
 }) {
   const {
     messages, busy, starting, finishing, input, freeText, freeTextIntent, visible,
-    askedCount, maxQuestions, ledger,
+    askedCount, maxQuestions, ledger, plan, revisitKey, skippedKeys, previousAnswer,
     error, closed, canSend, canFinish, canSkip, canAnswer, canConfirmOptions,
     selectedOptions, customInputOpen,
-    send, skip, finish, selectOption, confirmOptions, toggleOption, openCustomInput, setInput, setFreeText,
+    send, skip, revisit, cancelRevisit, finish, selectOption, confirmOptions, toggleOption,
+    openCustomInput, setInput, setFreeText,
   } = useInterviewChat(diagnosisId, initial);
 
+  const revisiting = revisitKey != null;
+  // המספר של השאלה המוצגת, מתוך אותה רשימה עצמה - כדי שהכותרת והרשימה לא יסתרו זו את זו
+  const stepNo = visible != null ? plan.findIndex((p) => p.key === visible.key) + 1 : 0;
   // המונה מוצג רק על שאלה חיה. askedCount סופר את מה שכבר נשאל, ולכן הנוכחית היא הבאה
   // בתור; "לכל היותר" כי ראיון יכול להסתיים מוקדם כשכל הסקציות כוסו - הבטחת מספר מדויק
   // הייתה נשברת בדיוק אצל מי שענה הכי טוב
-  const counterLine = `שאלה ${askedCount + 1} מתוך ${maxQuestions} לכל היותר`;
+  const counterLine = revisiting
+    ? `חוזרים לשאלה ${stepNo}`
+    : `שאלה ${askedCount + 1} מתוך ${maxQuestions} לכל היותר`;
   // כל השאלות מוצו בלי שהמשתמש בחר בעצמו כתיבה חופשית - זה סיום, לא עוד תיבת טקסט
   // (דיווח מסמך ההמרה 20.8: מי שסיים 13 תשובות קיבל תיבה ריקה בלי הסבר)
   const questionsDone = visible == null && !freeTextIntent && askedCount > 0;
 
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
-  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   // קבוצת התשובות נקראת בשם השאלה עצמה ולא בתווית גנרית
   const promptId = useId();
   const inputDisabled = busy || starting || finishing || closed;
@@ -98,9 +201,11 @@ export function DefaultInterview({
   const showTextInput = !showChips;
 
   useEffect(() => {
-    // גלילה אוטומטית היא אפקט ויזואלי גרידא, לכן חי כאן ולא ב-hook (ראו use-scan-stream.ts
-    // להערת ה-scroll המקבילה במסך הסריקה)
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    // גלילה אוטומטית היא אפקט ויזואלי גרידא, לכן חיה כאן ולא ב-hook (ראו use-scan-stream.ts
+    // להערת ה-scroll המקבילה במסך הסריקה). scrollTop על המכל עצמו ולא scrollIntoView: האחרון
+    // גולל גם את הדף כשהוא צריך, וזו בדיוק התזוזה שהפריסה הזו באה לבטל
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [messages.length, busy]);
 
   // ניהול פוקוס: focus() על תיבת טקסט מנוטרלת (disabled) הוא no-op בדפדפן, ובזמן ש-inputDisabled
@@ -126,6 +231,10 @@ export function DefaultInterview({
   }
   function handleSetFreeText(value: boolean) {
     setFreeText(value);
+    inputRef.current?.focus();
+  }
+  function handleCancelRevisit() {
+    cancelRevisit();
     inputRef.current?.focus();
   }
 
@@ -169,11 +278,6 @@ export function DefaultInterview({
           </div>
         </header>
       )}
-      {/* אותה פריסת שתי-עמודות של הדוח (.repC) ולא רוחב משלו. עד 20.8 המסך הזה ישב על
-          760 פיקסלים בזמן שכל שאר המערכת על 94 אחוז - הוא נראה כמו מסך של מוצר אחר.
-          העמודה הצדדית נושאת את "איפה אני עומד" והראשית את השיחה עצמה.
-          הרוחב הקריא נשמר בתוך התוכן ולא במכל: הבועות חסומות ב-62ch ותיבת התשובה
-          ב-72ch, כי שורת טקסט ברוחב 900 פיקסלים היא שורה שאי אפשר לעקוב אחריה */}
       {/* הכותרת מעל הרשת ולא בתוך העמודה הראשית: העמודה הראשית היא השמאלית, ולכן
           כותרת בתוכה מתרחקת מהסיידבר. מעל הרשת היא מתחילה בקצה ההתחלה של התוכן -
           צמודה לסיידבר, כמו בתוכנית העבודה (הנחיית מייסד 20.8) */}
@@ -184,181 +288,165 @@ export function DefaultInterview({
         </header>
       </div>
 
-      <main className="repC" aria-busy={starting || busy || finishing}>
-        {/* העמודה הצדדית נושאת "איפה אני עומד" בלבד. הכותרת והתיאור עברו לעמודה
-            הראשית: כותרת של 32 פיקסלים ופסקה של 52 תווים בתוך רצועה של 318 פיקסלים
-            נשברות לשבע שורות, וגם ככה מקומה של כותרת העמוד הוא בראש התוכן */}
+      <main className="repC iv" aria-busy={starting || busy || finishing}>
         <aside className="rep-side">
-        {/* הכרטיס נבנה מחדש (דיווח מייסד 20.8: "הדוח חי" לא התחבר לשאר), ומאז משימה 19
-            הוא הרכיב המשותף ב-ui/completeness-card - אותו כרטיס בדיוק בדוח ובתוכנית
-            העבודה. הסדר שנקבע כאן נשמר בתוכו: מה המספר, מה הפס אומר, מה כבר נאסף,
-            ובסוף מה שהתג הירוק המרחף באמת התכוון לומר - כמשפט ולא כסיסמה */}
-        <CompletenessCard
-          ledger={ledger}
-          live
-          className="rv d1"
-        />
+          {/* הכרטיס המשותף מ-ui/completeness-card - אותו כרטיס בדיוק בדוח ובתוכנית העבודה */}
+          <CompletenessCard ledger={ledger} live className="rv d1" />
         </aside>
 
-        <div className="rep-main">
-        <section aria-live="polite" className="rv d2 flex flex-col gap-3">
-          {messages.map((m) => (
-            <Bubble key={m.id} message={m} />
-          ))}
-          {(busy || starting) && <TypingDots />}
-          <div ref={bottomRef} />
-        </section>
+        {plan.length > 0 && (
+          <PlanList
+            plan={plan}
+            currentKey={visible?.key ?? null}
+            revisitKey={revisitKey}
+            skippedKeys={skippedKeys}
+            locked={!canAnswer}
+            onPick={revisit}
+          />
+        )}
 
-        {/* העטיפה כאן סטטית (תמיד מרונדרת) - רק התוכן הפנימי מתחלף בין המצבים, כך שהחלפת
-            פאנל לא מריצה שוב את אנימציית הכניסה */}
-        <div className="rv d3 mt-6">
-          {freeText ? (
-            <div className="shell">
-              <div className="core card-pad">
-                {questionsDone ? (
-                  <>
-                    <p className="text-[16.5px] font-bold leading-snug tracking-[-.01em]">עברנו על כל השאלות - תודה!</p>
-                    <p className="mt-1 text-[12.5px] leading-relaxed text-[color:var(--mut)]">
-                      כל תשובה כבר עדכנה את הדוח. אפשר להוסיף פרטים בכתיבה חופשית למטה, או לעבור אליו.
-                    </p>
-                    <div className="mt-4">
-                      <button type="button" className="btn sm" disabled={!canFinish} onClick={() => void finish()}>
-                        לדוח המעודכן
-                        <CapArrow />
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-[16.5px] font-bold leading-snug tracking-[-.01em]">ספרו לי על העסק במילים שלכם</p>
-                    <div className="mt-4 flex flex-wrap items-center gap-3">
-                      {visible != null && (
-                        <button
-                          type="button"
-                          className="btn-quiet"
-                          disabled={!canSkip}
-                          onClick={() => handleSetFreeText(false)}
-                        >
-                          חזרה לשאלות
-                        </button>
-                      )}
-                      <button type="button" className={GHOST_BTN} disabled={!canFinish} onClick={() => void finish()}>
-                        סיום הראיון
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          ) : showChips && visible?.options ? (
-            <div className="shell">
-              <div className="core card-pad">
-                <p className="text-[10.5px] font-bold tracking-[.14em] text-[color:var(--dim)]">{counterLine}</p>
-                <p id={promptId} className="mt-1.5 text-[16.5px] font-bold leading-snug tracking-[-.01em]">{visible.text}</p>
-                {/* תיבת התשובות המשותפת (ui/answer-options.tsx) - אותה תיבה משרתת גם את
-                    ההדגמה בדף הנחיתה. key על מפתח השאלה: תיבה חדשה לכל שאלה, אחרת סימון
-                    ה"נבחר" של התשובה הקודמת נגרר לשאלה הבאה */}
-                <div className="mt-4">
-                  <AnswerOptions
-                    key={visible.key}
-                    options={visible.options}
-                    selected={visible.multiSelect ? selectedOptions : []}
-                    multiSelect={visible.multiSelect}
-                    disabled={!canAnswer}
-                    onPick={(label) => (visible.multiSelect ? toggleOption(label) : selectOption(label))}
-                    onOther={openCustomInput}
-                    labelledBy={promptId}
-                  />
-                </div>
-                {visible.multiSelect && (
-                  <div className="mt-4">
-                    <button
-                      type="button"
-                      className="btn sm"
-                      disabled={!canConfirmOptions}
-                      onClick={() => void confirmOptions()}
-                    >
-                      שליחה
-                      <CapArrow />
-                    </button>
-                  </div>
-                )}
-                <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-dashed border-[color:var(--hair)] pt-4">
-                  <button type="button" className="btn-quiet" disabled={!canSkip} onClick={handleSkip}>
-                    דלג
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-quiet"
-                    disabled={!canSkip}
-                    onClick={() => handleSetFreeText(true)}
-                  >
-                    כתיבה חופשית
-                  </button>
-                  <button type="button" className={GHOST_BTN} disabled={!canFinish} onClick={() => void finish()}>
-                    סיום הראיון
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            visible && (
+        {/* הפאנל: שאלה נעוצה למעלה, שיחה נגללת באמצע, תיבת כתיבה נעוצה למטה */}
+        <div className="rep-main">
+          {/* העטיפה כאן סטטית (תמיד מרונדרת) - רק התוכן הפנימי מתחלף בין המצבים, כך שהחלפת
+              פאנל לא מריצה שוב את אנימציית הכניסה */}
+          <div className="rv d2">
+            {freeText ? (
               <div className="shell">
                 <div className="core card-pad">
-                  <p className="text-[10.5px] font-bold tracking-[.14em] text-[color:var(--dim)]">{counterLine}</p>
-                  <p className="mt-1.5 text-[16.5px] font-bold leading-snug tracking-[-.01em]">{visible.text}</p>
-                  {visible.options != null && customInputOpen && (
-                    <p className="mt-1 text-[12.5px] text-[color:var(--mut)]">אפשר לכתוב את התשובה למטה</p>
+                  {questionsDone ? (
+                    <>
+                      <p className="text-[16.5px] font-bold leading-snug tracking-[-.01em]">עברנו על כל השאלות - תודה!</p>
+                      <p className="mt-1 text-[12.5px] leading-relaxed text-[color:var(--mut)]">
+                        כל תשובה כבר עדכנה את הדוח. אפשר להוסיף פרטים בכתיבה חופשית למטה, או לעבור אליו.
+                      </p>
+                      <div className="mt-4">
+                        <button type="button" className="btn sm" disabled={!canFinish} onClick={() => void finish()}>
+                          לדוח המעודכן
+                          <CapArrow />
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[16.5px] font-bold leading-snug tracking-[-.01em]">ספרו לי על העסק במילים שלכם</p>
+                      <div className="mt-4 flex flex-wrap items-center gap-3">
+                        {visible != null && (
+                          <button
+                            type="button"
+                            className="btn-quiet"
+                            disabled={!canSkip}
+                            onClick={() => handleSetFreeText(false)}
+                          >
+                            חזרה לשאלות
+                          </button>
+                        )}
+                        <button type="button" className={GHOST_BTN} disabled={!canFinish} onClick={() => void finish()}>
+                          סיום הראיון
+                        </button>
+                      </div>
+                    </>
                   )}
-                  <div className="mt-4 flex flex-wrap items-center gap-3">
-                    <button type="button" className="btn-quiet" disabled={!canSkip} onClick={handleSkip}>
-                      דלג
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-quiet"
-                      disabled={!canSkip}
-                      onClick={() => handleSetFreeText(true)}
-                    >
-                      כתיבה חופשית
-                    </button>
-                    <button type="button" className={GHOST_BTN} disabled={!canFinish} onClick={() => void finish()}>
-                      סיום הראיון
-                    </button>
-                  </div>
                 </div>
               </div>
-            )
-          )}
-        </div>
-
-        {error && (
-          <p className="form-error mt-4" role="alert">
-            {error}
-          </p>
-        )}
-
-        {showTextInput && (
-          <div className="rv d4 mt-4 flex items-end gap-3">
-            {/* .field שב-globals מעצב input בלבד - התיבה כאן היא textarea (שורות + Enter לשליחה),
-                אז אותו מראה מיושם ב-utilities בלי לגעת ב-CSS המשותף */}
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={inputDisabled}
-              rows={2}
-              placeholder="כתבו כאן"
-              aria-label="הודעה לראיון"
-              className="min-h-[3.2rem] flex-1 resize-none rounded-[14px] border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-4 py-3 text-[15px] outline-none transition placeholder:text-[color:var(--dim)] focus:border-[rgba(var(--acc-rgb),.55)] focus:bg-[rgba(var(--acc-rgb),.06)] focus:shadow-[0_0_0_4px_rgba(var(--acc-rgb),.12)] disabled:cursor-not-allowed disabled:opacity-60"
-            />
-            <button type="button" className="btn sm shrink-0" onClick={() => void send()} disabled={!canSend}>
-              שליחה
-              <CapArrow />
-            </button>
+            ) : (
+              visible && (
+                <div className="shell">
+                  <div className="core card-pad">
+                    <p className="text-[10.5px] font-bold tracking-[.14em] text-[color:var(--dim)]">{counterLine}</p>
+                    <p id={promptId} className="mt-1.5 text-[16.5px] font-bold leading-snug tracking-[-.01em]">{visible.text}</p>
+                    {/* מה שנענה קודם, כלשונו. בלעדיו עריכה מתחילה מדף ריק והמשתמש לא יודע
+                        מה הוא בא לשנות */}
+                    {revisiting && previousAnswer != null && (
+                      <p className="mt-1.5 text-[12.5px] leading-relaxed" style={{ color: "var(--mut)" }}>
+                        התשובה הקודמת שלכם: <b style={{ color: "var(--txt)" }}>{previousAnswer}</b>
+                      </p>
+                    )}
+                    {visible.options != null && customInputOpen && (
+                      <p className="mt-1 text-[12.5px] text-[color:var(--mut)]">אפשר לכתוב את התשובה למטה</p>
+                    )}
+                    {showChips && visible.options && (
+                      <>
+                        {/* תיבת התשובות המשותפת (ui/answer-options.tsx) - אותה תיבה משרתת גם את
+                            ההדגמה בדף הנחיתה. key על מפתח השאלה: תיבה חדשה לכל שאלה, אחרת סימון
+                            ה"נבחר" של התשובה הקודמת נגרר לשאלה הבאה */}
+                        <div className="mt-4">
+                          <AnswerOptions
+                            key={visible.key}
+                            options={visible.options}
+                            // בעריכה מסמנים גם בבחירה בודדת: זו התשובה השמורה, לא בחירה רגעית
+                            selected={visible.multiSelect || revisiting ? selectedOptions : []}
+                            multiSelect={visible.multiSelect}
+                            disabled={!canAnswer}
+                            onPick={(label) => (visible.multiSelect ? toggleOption(label) : selectOption(label))}
+                            onOther={openCustomInput}
+                            labelledBy={promptId}
+                          />
+                        </div>
+                        {visible.multiSelect && (
+                          <div className="mt-4">
+                            <button
+                              type="button"
+                              className="btn sm"
+                              disabled={!canConfirmOptions}
+                              onClick={() => void confirmOptions()}
+                            >
+                              שליחה
+                              <CapArrow />
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    <QuestionActions
+                      revisiting={revisiting}
+                      canSkip={canSkip}
+                      canFinish={canFinish}
+                      onSkip={handleSkip}
+                      onFreeText={() => handleSetFreeText(true)}
+                      onCancelRevisit={handleCancelRevisit}
+                      onFinish={() => void finish()}
+                      className={showChips ? "mt-4 border-t border-dashed border-[color:var(--hair)] pt-4" : "mt-4"}
+                    />
+                  </div>
+                </div>
+              )
+            )}
           </div>
-        )}
+
+          <section aria-live="polite" className="iv-scroll" ref={scrollRef}>
+            {messages.map((m) => (
+              <Bubble key={m.id} message={m} />
+            ))}
+            {(busy || starting) && <TypingDots />}
+          </section>
+
+          {error && (
+            <p className="form-error" role="alert">
+              {error}
+            </p>
+          )}
+
+          {showTextInput && (
+            <div className="flex items-end gap-3">
+              {/* .field שב-globals מעצב input בלבד - התיבה כאן היא textarea (שורות + Enter לשליחה),
+                  אז אותו מראה מיושם ב-utilities בלי לגעת ב-CSS המשותף */}
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={inputDisabled}
+                rows={2}
+                placeholder="כתבו כאן"
+                aria-label="הודעה לראיון"
+                className="min-h-[3.2rem] flex-1 resize-none rounded-[14px] border border-[color:var(--hair-soft)] bg-[color:var(--surface-1)] px-4 py-3 text-[15px] outline-none transition placeholder:text-[color:var(--dim)] focus:border-[rgba(var(--acc-rgb),.55)] focus:bg-[rgba(var(--acc-rgb),.06)] focus:shadow-[0_0_0_4px_rgba(var(--acc-rgb),.12)] disabled:cursor-not-allowed disabled:opacity-60"
+              />
+              <button type="button" className="btn sm shrink-0" onClick={() => void send()} disabled={!canSend}>
+                שליחה
+                <CapArrow />
+              </button>
+            </div>
+          )}
         </div>
       </main>
     </AppShell>

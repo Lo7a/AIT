@@ -12,6 +12,10 @@ export interface QuestionOption { label: string }
 
 export interface GuidedQuestion {
   key: string;
+  // תווית קצרה לרשימה הממוספרת במסך הראיון. text() הוא השאלה המלאה כפי שהיא נשאלת, והוא
+  // ארוך מדי לעמודה של 232 פיקסלים; התווית היא הנושא בשתיים-שלוש מילים. חובה בכל שאלה
+  // (נאכף בבדיקה) - שאלה בלי תווית הייתה מופיעה כשורה ריקה ברשימה
+  label: string;
   section: ModelSection;
   text: (f: ScanFindings, m: BusinessModel) => string;
   // אפשרויות בחירה מרובה (אפיון מחדש-ראיון, החלטה 1): כתובות בעברית טבעית של בעל עסק, מודעות
@@ -51,7 +55,7 @@ export const CLOSING_QUESTION_KEY = "closing_pains";
 
 const REGULAR_BANK: GuidedQuestion[] = [
   {
-    key: "lead_flow_intake", field: "intakeChannels", section: "lead_flow",
+    key: "lead_flow_intake", label: "איך מגיעות פניות", field: "intakeChannels", section: "lead_flow",
     text: (f) => f.websiteSignals?.hasContactForm
       ? "ראינו שיש טופס יצירת קשר באתר. מי מקבל את הפניות האלה, ותוך כמה זמן אתם חוזרים ללקוח בדרך כלל?"
       : "איך מגיעות אליכם פניות חדשות (טלפון, וואטסאפ, פייסבוק), ומי מטפל בהן?",
@@ -64,7 +68,7 @@ const REGULAR_BANK: GuidedQuestion[] = [
     multiSelect: true,
   },
   {
-    key: "lead_flow_lost", field: "leadDrop", section: "lead_flow",
+    key: "lead_flow_lost", label: "פניות שהולכות לאיבוד", field: "leadDrop", section: "lead_flow",
     text: () => "קורה שפנייה הולכת לאיבוד או נענית באיחור? איפה זה קורה הכי הרבה?",
     // האפשרות הראשונה נכתבה במכוון כך שתתאים ל-LEAD_DROP_RE (score/dimensions.ts) - ראו
     // interview-questions.test.ts, בדיקת ההצלבה בין ניסוח האפשרות לרג'קס
@@ -79,7 +83,7 @@ const REGULAR_BANK: GuidedQuestion[] = [
     // כמות שאלות (תוספת שאושרה על ידי המייסד): נתונים מספריים של בעל העסק, נשמרים verbatim
     // ומיועדים למינוף עתידי בחישובי "מה אתה מפסיד" (המספר של הבעלים כפול בנצ'מרק מחקרי - לא
     // כאן, לא בשלב הזה). טווחים כנים, לא מספרים נקודתיים - בדיוק כמו טווחי המחירים בקטלוג עצמו.
-    key: "lead_flow_volume", field: "weeklyLeads", section: "lead_flow",
+    key: "lead_flow_volume", label: "כמות פניות בשבוע", field: "weeklyLeads", section: "lead_flow",
     text: () => "כמה פניות בערך מגיעות לעסק בשבוע?",
     options: [
       { label: "עד 10" },
@@ -93,7 +97,7 @@ const REGULAR_BANK: GuidedQuestion[] = [
     // שואלת "תוך כמה זמן חוזרים ללקוח" בטקסט שלה כשיש טופס יצירת קשר, אבל האפשרויות שלה
     // ממוקדות בערוצים (multiSelect) - לא ניתן לערבב שני צירים בבחירה מרובה אחת. שאלה ייעודית
     // עם טווחים כנים במקום ניסוחים מעורפלים ("מהר"/"לא כל כך מהר")
-    key: "lead_flow_response_time", field: "responseTime", section: "lead_flow",
+    key: "lead_flow_response_time", label: "זמן תגובה ללקוח", field: "responseTime", section: "lead_flow",
     text: () => "תוך כמה זמן בערך אתם חוזרים ללקוח שפנה?",
     options: [
       { label: "תוך דקות" },
@@ -110,7 +114,7 @@ const REGULAR_BANK: GuidedQuestion[] = [
     // חייבות להישאר זהות אות-באות ל-DEAL_VALUE_LABELS ב-loss-calc.ts (בדיקת ההצלבה נועלת).
     // מוצבת אחרי שתי שאלות הכמות בכוונה: שאלת כסף היא האינטימית מבין השלוש, ובאה רק אחרי
     // ששתי השאלות הקלות כבר נענו
-    key: "lead_flow_deal_value", field: "avgDealValue", section: "lead_flow",
+    key: "lead_flow_deal_value", label: "שווי לקוח ממוצע", field: "avgDealValue", section: "lead_flow",
     text: () => "כמה שווה בממוצע לקוח או עסקה אצלכם?",
     options: [
       { label: "עד 300 שקל" },
@@ -120,7 +124,7 @@ const REGULAR_BANK: GuidedQuestion[] = [
     ],
   },
   {
-    key: "service_repeat", field: "repeatQuestions", section: "service",
+    key: "service_repeat", label: "שאלות חוזרות", field: "repeatQuestions", section: "service",
     text: () => "אילו שאלות חוזרות אתם עונים עליהן שוב ושוב כל שבוע?",
     options: [
       { label: "מחיר ותנאים" },
@@ -131,7 +135,7 @@ const REGULAR_BANK: GuidedQuestion[] = [
     multiSelect: true,
   },
   {
-    key: "service_load", field: "peakLoad", section: "service",
+    key: "service_load", label: "השעה העמוסה", field: "peakLoad", section: "service",
     text: () => "מה החלק הכי עמוס ביום העבודה שלכם מבחינת שירות ללקוחות?",
     options: [
       { label: "בבוקר, כשכולם מתקשרים ביחד" },
@@ -141,7 +145,7 @@ const REGULAR_BANK: GuidedQuestion[] = [
     ],
   },
   {
-    key: "billing_flow", field: "paymentMethods", section: "billing",
+    key: "billing_flow", label: "איך גובים תשלום", field: "paymentMethods", section: "billing",
     text: () => "איך אתם גובים תשלום היום? ויש חובות פתוחים שאתם רודפים אחריהם ידנית?",
     options: [
       { label: "מזומן" },
@@ -152,7 +156,7 @@ const REGULAR_BANK: GuidedQuestion[] = [
     multiSelect: true,
   },
   {
-    key: "billing_tool", field: "invoiceTool", section: "billing",
+    key: "billing_tool", label: "כלי החשבוניות", field: "invoiceTool", section: "billing",
     text: () => "באיזה כלי או תוכנה אתם מפיקים חשבוניות?",
     options: [
       { label: "חשבונית ירוקה" },
@@ -162,7 +166,7 @@ const REGULAR_BANK: GuidedQuestion[] = [
     ],
   },
   {
-    key: "manual_tasks_top", field: "topManualTasks", section: "manual_tasks",
+    key: "manual_tasks_top", label: "עבודה ידנית חוזרת", field: "topManualTasks", section: "manual_tasks",
     text: () => "אילו משימות ידניות חוזרות אוכלות לכם הכי הרבה זמן בשבוע, וכמה שעות בערך?",
     options: [
       { label: "הזנת נתונים או העתקה בין מערכות" },
@@ -173,7 +177,7 @@ const REGULAR_BANK: GuidedQuestion[] = [
     multiSelect: true,
   },
   {
-    key: "profile_basics", field: "teamSize", section: "profile",
+    key: "profile_basics", label: "גודל וותק הצוות", field: "teamSize", section: "profile",
     text: () => "כמה אנשים אתם בצוות, כמה שנים העסק פעיל, ומי הלקוח הטיפוסי שלכם?",
     options: [
       { label: "רק אני" },
@@ -183,7 +187,7 @@ const REGULAR_BANK: GuidedQuestion[] = [
     ],
   },
   {
-    key: "channels_main", field: "mainChannels", section: "channels",
+    key: "channels_main", label: "מאיפה מגיעים לקוחות", field: "mainChannels", section: "channels",
     text: (f) => (f.business.reviewCount ?? 0) > 0
       ? "רואים שיש לכם נוכחות בגוגל. מאיפה עוד מגיעים אליכם לקוחות, וכמה מכל מקום בערך?"
       : "מאיפה מגיעים אליכם רוב הלקוחות היום?",
@@ -196,7 +200,7 @@ const REGULAR_BANK: GuidedQuestion[] = [
     multiSelect: true,
   },
   {
-    key: "scheduling_how", field: "bookingMethod", section: "scheduling",
+    key: "scheduling_how", label: "תורים ופגישות", field: "bookingMethod", section: "scheduling",
     text: (f) => f.websiteSignals?.hasOnlineBooking
       ? "יש לכם קביעת תורים אונליין באתר. כמה מהתורים באמת נקבעים דרכה, וכמה עדיין בטלפון?"
       : "אם אתם עובדים עם תורים או פגישות, איך הם נקבעים וכמה זמן ביום הולך על תיאומים?",
@@ -208,7 +212,7 @@ const REGULAR_BANK: GuidedQuestion[] = [
     ],
   },
   {
-    key: "retention_contact", field: "proactiveContact", section: "retention",
+    key: "retention_contact", label: "קשר עם לקוחות קיימים", field: "proactiveContact", section: "retention",
     text: () => "יש לכם קשר יזום עם לקוחות קיימים (תזכורות, מבצעים, עדכונים), או שהקשר נגמר אחרי השירות?",
     options: [
       { label: "כן, שולחים תזכורות ועדכונים באופן קבוע" },
@@ -218,7 +222,7 @@ const REGULAR_BANK: GuidedQuestion[] = [
     ],
   },
   {
-    key: "tools_used", field: "chosenTools", section: "tools",
+    key: "tools_used", label: "מערכות וכלים", field: "chosenTools", section: "tools",
     text: (f, m) => {
       const detected = (m.data.tools?.detected as string[] | undefined) ?? [];
       if (detected.length > 1) return "זיהינו באתר כמה כלים דיגיטליים. אילו עוד מערכות או אפליקציות משמשות אתכם ביומיום לניהול העסק?";
@@ -239,7 +243,7 @@ const REGULAR_BANK: GuidedQuestion[] = [
 // (בלי options - ה-UI נופל אוטומטית לתיבת הטקסט הרגילה כשאין אפשרויות). ממוענת לסקציית pains
 // כי החילוץ (extract.ts) כבר יודע לחלץ כאבים מטקסט חופשי אל אותה סקציה בדיוק.
 const CLOSING_QUESTION: GuidedQuestion = {
-  key: CLOSING_QUESTION_KEY,
+  key: CLOSING_QUESTION_KEY, label: "מה הכי מציק",
   section: "pains",
   text: () => "לפני שמסיימים - מה הכי מציק לך בעסק היום? ואם יש עוד משהו שחשוב שנדע, זה המקום",
 };
@@ -368,6 +372,47 @@ export function staticUpdateFor(q: GuidedQuestion, answer: string): ExtractedUpd
   if (matched == null) return null;
   // הערך נבנה מהתוויות שלנו עצמן (לא מהקלט הגולמי) - נקי מבנית, באותו סדר שבו נשלחו
   return { section: q.section, fields: { [q.field]: matched.join(", ") } };
+}
+
+// תוכנית הראיון המלאה (משימה עיצוב הראיון 26.8): מה כבר נענה, בסדר שבו נענה, ואחריו כל
+// מה שעוד צפוי - בסדר שבו הוא באמת יישאל. הרשימה הממוספרת במסך נגזרת מכאן ולא מסדר הבנק:
+// הבנק הוא מקור הסדר לניקוז שאלות החובה, אבל הסדר בפועל הוא תוצאה של pickNextQuestion
+// (שאלת פתיחה, שלוש שאלות כסף, סבב רוחב, סיכום) - ורשימה שהייתה מציגה את סדר הבנק הייתה
+// ממספרת שקר.
+//
+// ההמשך מדומה בקריאות חוזרות ל-pickNextQuestion עצמה ולא בהעתק של הכללים שלה - זו הסיבה
+// היחידה שהתוכנית לא יכולה להתפצל מהבחירה בפועל. הבחירה דטרמיניסטית ב-askedKeys בלבד
+// (ראו ההערה מעל pickNextQuestion), ולכן הסימולציה מדויקת כל עוד המשתמש עונה ולא מדלג.
+export function interviewPlan(
+  model: BusinessModel,
+  findings: ScanFindings,
+  askedKeys: string[],
+): { question: GuidedQuestion; answered: boolean }[] {
+  const byKey = new Map(QUESTION_BANK.map((q) => [q.key, q]));
+  const out: { question: GuidedQuestion; answered: boolean }[] = [];
+  const seen = new Set<string>();
+  // מה שנענה, בסדר שנענה. מפתח שאינו בבנק (שריד מגרסה ישנה) פשוט לא מוצג
+  for (const key of askedKeys) {
+    const q = byKey.get(key);
+    if (q && !seen.has(key)) { out.push({ question: q, answered: true }); seen.add(key); }
+  }
+  // ההמשך. התקרה היא גודל הבנק - pickNextQuestion מובטחת להחזיר מפתח חדש בכל צעד, והבדיקה
+  // מול seen היא רשת ביטחון שמונעת לולאה אינסופית אם ההבטחה הזו תישבר אי פעם
+  const simulated = [...askedKeys];
+  for (let i = 0; i < QUESTION_BANK.length; i++) {
+    const next = pickNextQuestion(model, findings, simulated);
+    if (next == null || seen.has(next.key)) break;
+    out.push({ question: next, answered: false });
+    seen.add(next.key);
+    simulated.push(next.key);
+  }
+  return out;
+}
+
+/** אילו מהאפשרויות נבחרו בתשובה שמורה - כדי שחזרה לשאלה שנענתה תציג את הבחירה הקודמת
+    מסומנת. עוטף את matchLabels, אותה התאמה בדיוק שהנתיב הסטטי משתמש בה, ולא בדיקה מקבילה */
+export function answerLabels(options: string[], answer: string, multiSelect: boolean): string[] {
+  return matchLabels(answer.trim(), options, multiSelect) ?? [];
 }
 
 // פירוק בהתאמת-רישא מול התוויות עצמן ולא ב-split נאיבי על פסיק: יש בבנק תוויות שמכילות

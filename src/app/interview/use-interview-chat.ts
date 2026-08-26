@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { InterviewSnapshot, TurnResult } from "../../server/run-interview";
 import { NOT_ACTIVE_MESSAGE } from "../../pipeline/interview/contract";
 import {
-  chatReducer, initialChatState, visibleNext, sectionProgress,
+  chatReducer, initialChatState, visibleNext, sectionProgress, answerFor,
 } from "./chat-logic";
 
 const GENERIC_ERROR = "משהו השתבש, נסו שוב בעוד רגע";
@@ -78,7 +78,14 @@ export function useInterviewChat(diagnosisId: string, initial: InterviewSnapshot
     // לא אמור לרוץ שוב אם initial משתנה רפרנס בלי שה-mount עצמו השתנה
   }, [diagnosisId, initial.status]);
 
-  const visible = visibleNext(state.next, state.skippedKeys);
+  // שאלה שהמשתמש חזר אליה גוברת על השאלה הבאה בכל מקום שקורא ל-visible - תצוגה, צ'יפים
+  // ושליחה כאחד. כך עריכה עוברת באותו מסלול בדיוק כמו תשובה רגילה, בלי ענף שני
+  const revisited = state.revisitKey != null
+    ? state.plan.find((p) => p.key === state.revisitKey) ?? null
+    : null;
+  const visible = revisited ?? visibleNext(state.next, state.skippedKeys);
+  // התשובה השמורה לשאלה שנערכת, כדי שהתצוגה תוכל להראות אותה. null כשלא עורכים
+  const previousAnswer = answerFor(state.messages, state.revisitKey);
   // הערה (משימה 19): צ'יפי הסקציות ירדו מהמסך יחד עם אחוז השלמות, והכרטיס מציג עכשיו את
   // פנקס החוסרים. sectionProgress עצמו נשאר מיוצא ונבדק ב-chat-logic - הוא פונקציה טהורה
   // שעשויה לשמש מסך ניהול - אבל אין לו יותר צרכן בנתיב הריצה, ולכן הוא לא מחושב כאן לחינם
@@ -93,7 +100,8 @@ export function useInterviewChat(diagnosisId: string, initial: InterviewSnapshot
   const canAnswer = !state.busy && !state.starting && !state.finishing && !state.closed;
   const canSend = canAnswer && state.input.trim().length > 0;
   const canFinish = !state.finishing && !state.starting;
-  const canSkip = !state.busy && !state.starting && visible != null;
+  // דילוג חל רק על השאלה הנוכחית. בזמן עריכה של שאלה שנענתה אין מה לדלג (ראו ה-reducer)
+  const canSkip = !state.busy && !state.starting && visible != null && state.revisitKey == null;
   // בחירה מרובה: כפתור "שליחה" של אישור הצ'יפים פעיל רק כשנבחרה לפחות תווית אחת
   const canConfirmOptions = canAnswer && state.selectedOptions.length > 0;
 
@@ -106,7 +114,7 @@ export function useInterviewChat(diagnosisId: string, initial: InterviewSnapshot
     if (state.busy || content.trim().length === 0 || sendingRef.current) return;
     sendingRef.current = true;
     try {
-      dispatch({ type: "send", content });
+      dispatch({ type: "send", content, questionKey });
       let res: Response;
       try {
         res = await fetch(`/api/interview/${diagnosisId}/message`, {
@@ -177,6 +185,14 @@ export function useInterviewChat(diagnosisId: string, initial: InterviewSnapshot
     dispatch({ type: "skip" });
   }
 
+  function revisit(key: string) {
+    dispatch({ type: "revisit", key });
+  }
+
+  function cancelRevisit() {
+    dispatch({ type: "cancelRevisit" });
+  }
+
   async function finish() {
     if (finishingRef.current) return;
     finishingRef.current = true;
@@ -212,6 +228,7 @@ export function useInterviewChat(diagnosisId: string, initial: InterviewSnapshot
   return {
     ...state,
     visible,
+    previousAnswer,
     canSend,
     canFinish,
     canSkip,
@@ -219,6 +236,8 @@ export function useInterviewChat(diagnosisId: string, initial: InterviewSnapshot
     canConfirmOptions,
     send,
     skip,
+    revisit,
+    cancelRevisit,
     finish,
     selectOption,
     confirmOptions,
