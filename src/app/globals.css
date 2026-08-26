@@ -447,7 +447,7 @@ html:not([data-mode="light"]) .only-light{display:none}
    (760 מול 1100), וזה הספיק כדי שהתוכן יקפוץ בכל מעבר בין מסך למסך.
    התקרה ירדה מ-1860: טבלה או שורת טקסט ברוחב 1860 פיקסלים אינה רוחב עמוד אלא היעדר
    רוחב עמוד. דף הנחיתה נשאר על --content-max שלו - הוא לא מסך עבודה */
-.app-w,.board,.repC,.repC-head{
+.app-w,.board,.repC,.page-w{
   width:var(--app-w);max-width:var(--app-max);margin-inline:auto;
 }
 
@@ -1104,7 +1104,7 @@ html{scroll-behavior:smooth}
    נכנס לחוזה של כולם. התקדים ל-:has כבר בקובץ (ראו .dim-row למטה) */
 .main-col:has(> .repC.iv){height:100dvh;overflow:hidden}
 /* הכותרת מתכווצת כאן: כל פיקסל שהיא לוקחת הוא פיקסל שנגרע מהשיחה, וזה מסך עבודה */
-.main-col:has(> .repC.iv) .repC-head{padding-top:14px}
+.main-col:has(> .repC.iv) .page-w{padding-top:14px}
 .main-col:has(> .repC.iv) .page-head{margin-bottom:10px}
 .main-col:has(> .repC.iv) .page-head p{margin-top:5px;font-size:13px}
 .repC.iv{
@@ -1859,7 +1859,9 @@ button.ans-row:not(:disabled):active{background:rgba(var(--acc-rgb),.16)}
 }
 /* עוטף כותרת העמוד בדוח: אותו רוחב ומרכוז של .repC, כדי שהכותרת תתיישר עם הכרטיסים
    ולא תיראה כאילו היא שייכת לסרגל שמעליה */
-.repC-head{padding:20px var(--app-pad) 0}
+/* עוטף כותרת עמוד ברוחב העמוד המשותף. נקרא פעם repC-head, אבל מסך הבית משתמש בו והוא
+   לא רשת repC - שם שמתאר מסך אחד על רכיב שמשרת ארבעה הוא בדיוק מה שמבלבל את הקורא הבא */
+.page-w{padding:20px var(--app-pad) 0}
 /* אריח מונים שהוא קישור. הכרטיס עצמו לחיץ, ולכן הוא גם מרים מעט ומאיר את המסגרת -
    בלי החיווי הזה אין שום דבר שמרמז שאפשר ללחוץ */
 .tile-link{

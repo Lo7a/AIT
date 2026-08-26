@@ -117,14 +117,25 @@ export function DefaultHome({
         </div>
       </header>
 
+      {/* כותרת העמוד, כמו בדוח, בראיון ובתוכנית העבודה (בקשת אלעד 26.8) */}
+      <div className="page-w">
+        <header className="page-head rv">
+          <h1>מרכז העסק</h1>
+          <p>מכאן מתחילים אבחון חדש, ומכאן חוזרים לאבחונים קיימים.</p>
+        </header>
+      </div>
+
       <main className="board">
         <section className="shell rv d1 c12" style={{ position: "relative" }}>
           {/* הדמות יושבת על שפת הכרטיס ומנופפת - פוזה בגוף מלא, אין קו חיתוך להסתיר */}
           <img src="/brand/sitting-waving.webp" alt="" aria-hidden="true" className="hub-buddy" />
           <div className="core card-pad" style={LOSS_WASH_STYLE}>
-            <h1 className="max-w-[26ch] text-2xl font-extrabold leading-snug tracking-tight sm:text-3xl">
-              כמה שווה <span className="hl-accent">הנוכחות הדיגיטלית</span> של העסק שלך?
-            </h1>
+            {/* h2 ולא h1: הכותרת של העמוד היא "מרכז העסק" למעלה, וזו הכותרת של הכרטיס.
+                המחלקות זהות, אז המראה לא משתנה - רק המבנה נעשה נכון */}
+            <h2 className="max-w-[26ch] text-2xl font-extrabold leading-snug tracking-tight sm:text-3xl">
+              כמה שווה <span className="hl-accent">הנוכחות הדיגיטלית</span>{" "}
+              <span className="whitespace-nowrap">של העסק שלך?</span>
+            </h2>
             <p className="mt-3 max-w-[56ch] text-sm sm:text-[15px]" style={{ color: "var(--mut)" }}>
               מכניסים שם עסק או כתובת אתר. תוך דקה מקבלים תמונה אמיתית: מה עובד, מה חסר ומה כדאי לתקן קודם.
             </p>
@@ -599,7 +610,7 @@ export function DefaultReport({
       {/* כותרת העמוד, גדולה ובראש התוכן - כמו בשאר המסכים (הנחיית מייסד 20.8).
           יושבת מעל הרשת ולא בתוכה, כדי שתתפרס על שתי העמודות; אותו רוחב ומרכוז של
           .repC עצמו, כדי שהיא תתיישר עם הכרטיסים שמתחתיה */}
-      <div className="repC-head">
+      <div className="page-w">
         <header className="page-head rv">
           <h1>הדוח המלא</h1>
           <p>מה נמצא על הנוכחות הדיגיטלית של {business.name}, מה זה אומר, ומה כדאי לעשות עם זה.</p>
