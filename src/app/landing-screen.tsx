@@ -22,16 +22,16 @@ import { BrandFace, BrandName } from "./ui/brand";
 
 const STEPS: { title: string; body: string }[] = [
   {
-    title: "דוח אמת על הנוכחות הדיגיטלית",
-    body: "סורקים את האתר, את הפרופיל בגוגל ואת הביקורות, ואומרים בכנות מה עובד, מה חסר ומה זה עולה לך. מה שלא נבדק - מסומן שלא נבדק.",
+    title: "דוח אמת על הדיגיטל שלך",
+    body: "בודקים את הגוגל, האתר והביקורות שלך, ואומרים לך ישר: מה עובד, מה חסר, ומה זה עולה לך. ומה שלא הצלחנו לבדוק - נגיד שלא בדקנו.",
   },
   {
-    title: "ראיון קצר שמדייק את התמונה",
-    body: "כמה שאלות על איך העסק עובד באמת, בקצב שלך ובמילים שלך. הדוח מתעדכן אחרי כל תשובה.",
+    title: "כמה שאלות עליך",
+    body: "שאלות קצרות על איך העסק שלך עובד ביום-יום. עונים בקצב שלך, והדוח מתעדכן תוך כדי.",
   },
   {
-    title: "תוכנית עבודה לפי הצרכים של העסק",
-    body: "מה עושים קודם ומה אחר כך, עם טווחי מחיר אמיתיים מהשוק הישראלי - לא הערכות באוויר.",
+    title: "תוכנית עבודה: מה לתקן ובאיזה סדר",
+    body: "מה דחוף ומה יכול לחכות, וכמה זה באמת עולה בשוק הישראלי. בלי מספרים מהאוויר.",
   },
 ];
 
@@ -43,7 +43,7 @@ const SCAN_CHECKS = [
   "סורקים את עמודי האתר",
   "מודדים מהירות טעינה במובייל",
   "בודקים ערוצי פנייה ומענה",
-  "מחשבים ציונים ומודל עסק",
+  "מחשבים את הציון הכולל",
   "כותבים את הדוח",
 ];
 
@@ -442,7 +442,7 @@ function ReportPreview({ enabled = true }: { enabled?: boolean }) {
                 {s.id === "wins" && i === active && (
                   <p className="samp-line src-line">
                     ובתוכנית: קביעת תורים אונליין, <b>₪100-500 לחודש</b>
-                    <span> (טווח מהקטלוג הנחקר, לא מספר לדוגמה)</span>
+                    <span> - מחיר אמיתי מהקטלוג שלנו</span>
                   </p>
                 )}
               </div>
@@ -452,8 +452,7 @@ function ReportPreview({ enabled = true }: { enabled?: boolean }) {
       </div>
 
       <p className="demo-note">
-        דוח לדוגמה. העסק והציונים בדויים; ניסוחי הממצאים, הצעדים וטווח המחיר לקוחים
-        מהמוצר עצמו.
+        דוח לדוגמה - העסק והציונים מומצאים, כל השאר בדיוק כמו בדוח אמיתי.
       </p>
     </div>
   );
@@ -509,7 +508,7 @@ function InterviewPreview({ enabled = true }: { enabled?: boolean }) {
         <div>
           <b className="block text-sm font-bold">היועץ הדיגיטלי של בדק עסק</b>
           <span className="text-xs" style={{ color: "var(--dim)" }}>
-            הראיון הוא בחירה שלך, לא שלב חובה
+            אפשר לדלג על הראיון. אבל שווה.
           </span>
         </div>
       </div>
@@ -540,7 +539,7 @@ function InterviewPreview({ enabled = true }: { enabled?: boolean }) {
         </div>
       </div>
 
-      <p className="demo-note">הדגמה - השאלות מגיעות מהראיון האמיתי של המערכת</p>
+      <p className="demo-note">הדגמה - אלה שאלות אמיתיות מהראיון</p>
     </div>
   );
 }
@@ -561,15 +560,15 @@ function PlanPreview(_props: { enabled?: boolean }) {
           <div className="min-w-0 flex-1">
             <b>{title}</b>
             <div className="meta">
-              <span>למה זה עכשיו</span>
-              <span>טווח מחיר ממקור גלוי</span>
-              <span>מה זה משנה לעסק</span>
+              <span>למה עכשיו</span>
+              <span>טווח מחיר</span>
+              <span>מה זה נותן</span>
             </div>
           </div>
         </div>
       ))}
       <p className="demo-note">
-        הדגמה - הצעדים והסדר שלהם נקבעים לפי הממצאים של העסק שלך, מתוך קטלוג נחקר עם מקורות
+        הדגמה - הסדר האמיתי נקבע לפי מה שנמצא אצלך
       </p>
     </>
   );
@@ -645,8 +644,8 @@ function ProofSection() {
       </Reveal>
       <Reveal delay={50}>
         <p className="proof-say">
-          בנינו את בדק עסק כי בעל עסק מקבל הצעות לפני שמישהו בדק מה באמת חסר לו.
-          אז קודם בודקים - <em>ובשקיפות מלאה:</em>
+          בנינו את בדק עסק כי ראינו יותר מדי בעלי עסקים שמשלמים על פתרונות שאף אחד
+          לא בדק אם הם בכלל צריכים. אז אצלנו קודם בודקים, <em>ולא מסתירים כלום:</em>
         </p>
       </Reveal>
       <Reveal delay={110}>
@@ -673,7 +672,7 @@ function ProofSection() {
 
           <div className="shell">
             <div className="core card-pad">
-              <p className="data-t">הציון בנוי ממשקלים גלויים</p>
+              <p className="data-t">הציון לא נשלף מהאוויר</p>
               {/* הצבעים הם דרגות של שני צבעי המותג, לא חמישה צבעים חדשים */}
               <div className="wstack" style={{ marginTop: 16 }} aria-hidden="true">
                 {WEIGHTS.map((w) => (
@@ -688,7 +687,7 @@ function ProofSection() {
                   </span>
                 ))}
               </div>
-              <p className="src">משקלי הממדים במנוע הניקוד של בדק עסק.</p>
+              <p className="src">ככה מתחלק הציון: חמישה תחומים, משקל קבוע לכל אחד.</p>
             </div>
           </div>
 
@@ -696,7 +695,7 @@ function ProofSection() {
             <div className="core card-pad">
               <p className="data-t">כמעט כל חיפוש בישראל עובר בגוגל</p>
               <SearchShare />
-              <p className="src">Statcounter, יולי 2026. לכן הפרופיל בגוגל הוא הדבר הראשון שהסריקה בודקת.</p>
+              <p className="src">Statcounter, יולי 2026. בגלל זה אנחנו מתחילים מהפרופיל שלך בגוגל.</p>
             </div>
           </div>
 
@@ -941,7 +940,7 @@ export function LandingScreen() {
                   {/* שורת האמון - הטענות מגובות במוצר: האבחון הראשוני לא עולה כסף,
                       אין התחייבות, והסריקה אורכת בערך דקה */}
                   <div className="trust" style={{ marginTop: 10 }}>
-                    <span><CheckIcon />אבחון ראשוני חינם</span>
+                    <span><CheckIcon />הבדיקה חינם</span>
                     <span><CheckIcon />בלי התחייבות</span>
                     <span>
                       <svg
@@ -957,7 +956,7 @@ export function LandingScreen() {
               </div>
               {/* אותה מחלקה כמו הערת ההדגמה שמתחת לחלון - שתי השורות נגמרות באותו גובה */}
               <p className="demo-note rv d4">
-                האבחון דורש חשבון - נכניס אותך ברגע, בלי סיסמה, והחיפוש שהקלדת מחכה לך בפנים.
+                צריך רק מייל, בלי סיסמה. מה שהקלדת מחכה לך בפנים.
               </p>
             </form>
           </div>
@@ -971,7 +970,7 @@ export function LandingScreen() {
               </Tilt>
             </Parallax>
             <p className="demo-note rv d5">
-              הדגמה - זה מה שרץ אחרי שמזינים שם עסק, ולוקח פחות מדקה
+              הדגמה - ככה זה נראה אחרי שמקלידים שם עסק. פחות מדקה.
             </p>
           </div>
         </section>
@@ -1036,7 +1035,7 @@ export function LandingScreen() {
             </button>
           </div>
         </div>
-        <p className="foot-line">בדק עסק - שני שותפים, נבנה בישראל לעסקים בישראל, מאז אוגוסט 2026</p>
+        <p className="foot-line">בדק עסק. שני שותפים מישראל, מאז אוגוסט 2026.</p>
       </footer>
     </>
   );
