@@ -3,6 +3,7 @@ import type { DimensionDef, RuleDef } from "./types";
 import { noGbp, crawlUsable, reviewsAnalyzed } from "../evidence";
 import { SOCIAL_PLATFORM_LABEL_HE, socialPresenceOf } from "../social-hosts";
 import type { BusinessModel, ModelSection } from "../model/business-model";
+import { probeVerdict, probeFactLine } from "../mystery/evidence";
 
 // עזר "ידוע" מקומי לממד הזה בלבד - לא משותף (רק accessibility צריך אותו)
 const phoneFound = (f: ScanFindings) => !!f.business.phone || !!f.websiteSignals?.hasPhoneLink;
@@ -159,12 +160,18 @@ export function processRules(model: BusinessModel | null): RuleDef[] {
   return [
     {
       key: "lead_handling", points: 40,
-      known: () => sectionCredit(model, "lead_flow") >= 1,
-      earned: () => {
+      // הלקוח הסמוי (משימה 10, 30.8) גובר על הדיווח העצמי: פנייה שנמדדה היא עובדה, מה שסופר
+      // בראיון הוא סיפור. בלי בדיקה - הכלל על טקסט הראיון נשאר בדיוק כמו שהיה
+      known: (f) => probeVerdict(f) !== "none" || sectionCredit(model, "lead_flow") >= 1,
+      earned: (f) => {
+        const verdict = probeVerdict(f);
+        if (verdict !== "none") return verdict === "answered_fast";
         const text = reportedText(model, "lead_flow");
         return text.length > 0 && !LEAD_DROP_RE.test(text);
       },
-      gapText: () => {
+      gapText: (f) => {
+        const fact = probeFactLine(f);
+        if (fact != null) return fact;
         const text = reportedText(model, "lead_flow");
         return LEAD_DROP_RE.test(text)
           ? `פניות נופלות: ${quoteMatch(text, LEAD_DROP_RE)}`
@@ -172,7 +179,9 @@ export function processRules(model: BusinessModel | null): RuleDef[] {
       },
       // whoHandles/responseTime משמשים כאן לניסוח בלבד (לא לקביעת earned/known) - כשהם לא
       // קיימים בשם הזה בדיוק (LLM בחר שם אחר) חוזרים לניסוח כללי במקום להרכיב משפט שבור
-      okText: () => {
+      okText: (f) => {
+        const fact = probeFactLine(f);
+        if (fact != null) return fact;
         const who = modelStr(model, "lead_flow", "whoHandles");
         const responseTime = modelStr(model, "lead_flow", "responseTime");
         if (who.length === 0 && responseTime.length === 0) return GENERIC_LEAD_OK;

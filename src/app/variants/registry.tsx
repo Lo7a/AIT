@@ -45,6 +45,8 @@ export interface VariantScreens {
     isAdmin?: boolean;
     // האימייל של המשתמש המחובר - לתפריט המשתמש בסרגל ולתחתית הסיידבר
     userEmail?: string | null;
+    // הלקוח הסמוי (משימה 10) - מצב הסבב לכרטיס בדוח, נקרא ב-RSC. null/חסר = הכרטיס לא מוצג
+    mystery?: import("../ui/mystery-card").MysteryCardView | null;
   }>;
   Interview: ComponentType<{
     diagnosisId: string;

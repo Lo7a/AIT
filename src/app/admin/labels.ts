@@ -20,6 +20,8 @@ export const EVENT_LABEL: Record<string, string> = {
   catalog_changed: "ספריית השירותים עודכנה",
   agent_message_sent: "הודעה בערוץ הסוכנים",
   task_changed: "משימה עודכנה בלוח",
+  mystery_requested: "לקוח סמוי הוזמן",
+  mystery_reported: "לקוח סמוי נכתב לדוח",
 };
 
 // תוויות עברית למגבלות הניתנות לעריכה (rate-limit.ts) - הסדר כאן הוא סדר התצוגה
@@ -28,6 +30,7 @@ export const SETTING_LABEL: Record<string, string> = {
   "rate.search": "חיפושים לשעה למשתמש",
   "rate.interviewMessage": "תשובות ראיון לשעה למשתמש",
   "rate.roadmapBuild": "בניות Roadmap לשעה למשתמש",
+  "rate.mystery": "סבבי לקוח סמוי לשעה למשתמש",
   "rate.brief": "שליחות Brief לשעה למשתמש",
   "global.scansPerDay": "סריקות ליום, כל המערכת יחד (הבלם הגלובלי)",
 };

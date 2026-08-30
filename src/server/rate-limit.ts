@@ -27,6 +27,8 @@ export const RATE_RULES = {
   interviewMessage: { type: "interview_answer", limit: 90, windowSeconds: 3600, settingKey: "rate.interviewMessage" },
   roadmapBuild: { type: "roadmap_built", limit: 20, windowSeconds: 3600, settingKey: "rate.roadmapBuild" },
   brief: { type: "brief_sent", limit: 10, windowSeconds: 3600, settingKey: "rate.brief" },
+  // סבבי לקוח סמוי לשעה - כל סבב שולח פניות אמיתיות לעסק, אז נמוך במיוחד
+  mystery: { type: "mystery_requested", limit: 5, windowSeconds: 3600, settingKey: "rate.mystery" },
 } as const satisfies Record<string, RateRule>;
 
 // הבלם הגלובלי (שאלת מייסד 16.8: "שלא יעקצו לי שימושי API"): תקרה כלל-מערכתית ליום על

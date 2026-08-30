@@ -5,7 +5,8 @@ import { buildBrief, type BriefBusiness } from "../pipeline/roadmap/brief";
 import type { RoadmapItemView } from "./roadmap-repo";
 import { toModelView } from "./diagnosis-read";
 import { InterviewError } from "../pipeline/interview/contract";
-import { defaultFetch, readErrorBody, type FetchLike } from "../pipeline/http";
+import { defaultFetch, type FetchLike } from "../pipeline/http";
+import { consoleMailTransport, makeResendTransport } from "./mail";
 
 // אורקסטרטור ה-Brief (אבן דרך 4, משימה 7): מקביל ל-run-roadmap.ts אבל בהיקף מצומצם בהרבה -
 // אין LLM ואין ניקוד, רק טעינה + תבנית טהורה (brief.ts) + שמירה אטומית + ניסיון שליחה מוגן.
@@ -28,23 +29,20 @@ const BRIEF_FROM_DEFAULT = "onboarding@resend.dev";
 // ב-DB, אז שום ליד לא הולך לאיבוד גם בלי מפתח
 export const consoleBriefTransport: BriefTransport = {
   async send(to, subject, body) {
-    console.log(`[BedekEsek Brief] בקשת הטמעה חדשה\nאל: ${to}\nנושא: ${subject}\n\n${body}`);
+    await consoleMailTransport.send({ to, subject: `בקשת הטמעה חדשה: ${subject}`, body });
   },
 };
 
 // תובלת Resend אמיתית דרך REST ישיר (בלי SDK - קריאת fetch יחידה, אפס תלויות חדשות).
 // fetchImpl מוזרק כדי שהבדיקות יישארו אופליין, אותה תבנית כמו pagespeed.ts/places.ts.
 // כשל HTTP נזרק כשגיאה - sendBrief כבר עוטף את השליחה ב-try/catch ולא מפיל את הבקשה
+// המימוש עצמו עבר ל-mail.ts (30.8) כשהלקוח הסמוי נזקק לאותה שליחה - כאן נשארת העטיפה
+// בחתימה הישנה, כדי שה-Brief וכל הבדיקות שלו לא יזוזו
 export function makeResendBriefTransport(apiKey: string, from: string, fetchImpl: FetchLike = defaultFetch): BriefTransport {
+  const transport = makeResendTransport(apiKey, from, fetchImpl);
   return {
     async send(to, subject, body) {
-      const recipients = to.split(",").map((s) => s.trim()).filter((s) => s.length > 0);
-      const res = await fetchImpl("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ from, to: recipients, subject, text: body }),
-      });
-      if (!res.ok) throw new Error(`Resend החזיר ${res.status}: ${await readErrorBody(res)}`);
+      await transport.send({ to, subject, body });
     },
   };
 }

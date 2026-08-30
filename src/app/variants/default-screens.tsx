@@ -22,6 +22,7 @@ import { UserMenu } from "../ui/user-menu";
 import { MiniRing, FillBar } from "../ui/motion";
 import { BusinessFacts, factsOf } from "../ui/business-facts";
 import { missingCount, type LedgerEntry } from "../../pipeline/model/ledger";
+import { MysteryCard, type MysteryCardView } from "../ui/mystery-card";
 
 // שלושת המסכים בשפת העיצוב הנבחרת (הכרעת מייסד 18.8): כהה פרמיום, סגול וברקת, Rubik.
 // כל הקלאסים מ-globals.css (shell/core/board וכו'); מה שאין לו קלאס גלובלי מקבל סגנון
@@ -516,11 +517,13 @@ function HealthFactsBlock({ health, className }: { health: HealthSignals | undef
 
 export function DefaultReport({
   report, lossHighlights = [], personalLoss = null, quickWins = [], insights = [], isAdmin = false,
-  userEmail = null, ledger = [],
+  userEmail = null, ledger = [], mystery = null,
 }: {
   report: ReportView;
   /** פנקס החוסרים (משימה 19). נבנה בעמוד כי הוא דורש את תשובות הכמות מההודעות */
   ledger?: LedgerEntry[];
+  /** הלקוח הסמוי (משימה 10): מצב הסבב לכרטיס. null = הכרטיס לא מוצג (קריאה נכשלה) */
+  mystery?: MysteryCardView | null;
   lossHighlights?: LossHighlight[];
   personalLoss?: PersonalLossLine | null;
   quickWins?: QuickWin[];
@@ -559,6 +562,7 @@ export function DefaultReport({
   if (insights.length > 0) anchors.push({ id: "insights", label: "מה הבנתי על העסק שלך" });
   if (hasHighlights) anchors.push({ id: "highlights", label: "עיקרי הדוח" });
   if (dimensions.length > 0) anchors.push({ id: "score-detail", label: "פירוט הציון" });
+  if (mystery != null) anchors.push({ id: "mystery", label: "הלקוח הסמוי" });
   if (hasHealth) anchors.push({ id: "health", label: "הדומיין, הדואר והאבטחה" });
   if (topGaps.length > 0) anchors.push({ id: "gaps", label: "הפערים המובילים" });
   if (topStrengths.length > 0) anchors.push({ id: "strengths", label: "מה עובד טוב" });
@@ -683,6 +687,9 @@ export function DefaultReport({
               </div>
             </section>
           )}
+
+          {/* הלקוח הסמוי (משימה 10): צמוד לפירוט הציון, כי הוא הראיה שמאחורי "טיפול בפניות" */}
+          {mystery != null && <MysteryCard diagnosisId={report.id} view={mystery} className="rv d4" />}
 
           {/* אחרי פירוט הציון: אלה הראיות שמאחורי חלק מהחוקים, ולפני הפערים כי הן
               מסבירות למה חלק מהם בכלל נפתחו */}

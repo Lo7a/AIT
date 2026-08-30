@@ -32,6 +32,10 @@ export const USAGE_EVENT_TYPES = [
   // מייסד יצר או ערך משימה בלוח המשימות מהמסך (21.8): metadata = {num, action}; ההיסטוריה
   // המלאה של השינוי עצמו יושבת ב-task_events, האירוע כאן קושר את החשבון
   "task_changed",
+  // הלקוח הסמוי (משימה 10, 30.8): בעל העסק לחץ "בדוק איך עונים אצלי" (ההסכמה); וסבב שנסגר
+  // ונכתב לדוח. metadata = {runId, channels} / {runId, verdict}
+  "mystery_requested",
+  "mystery_reported",
 ] as const;
 
 export type UsageEventType = (typeof USAGE_EVENT_TYPES)[number];

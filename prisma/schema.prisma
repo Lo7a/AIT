@@ -122,9 +122,46 @@ model Diagnosis {
   interviewMessages InterviewMessage[]
   businessModel     BusinessModelRow?
   roadmaps          Roadmap[]
+  mysteryProbes     MysteryProbe[]
 
   @@index([businessId, status])
   @@map("diagnoses")
+}
+
+// הלקוח הסמוי (משימה 10, הכרעת מייסד 30.8): פנייה אחת בערוץ אחד. runId מקבץ סבב - כל
+// הערוצים של לחיצה אחת; consent = מי לחץ ומתי (ההסכמה נשמרת, לא מוסקת). payload שומר את
+// גוף התשובה המלא מהספק (כלל שימור מלא של כל תגובת שירות חיצוני). probeAddress ייחודי כי
+// הוא המפתח שבו תשובה נכנסת מוצאת את הפנייה שלה. אדיטיבי: טבלה חדשה, בלי שינוי לקיימות
+model MysteryProbe {
+  id            String    @id @default(uuid()) @db.Uuid
+  diagnosisId   String    @map("diagnosis_id") @db.Uuid
+  diagnosis     Diagnosis @relation(fields: [diagnosisId], references: [id])
+  runId         String    @map("run_id") @db.Uuid
+  channel       String
+  // planned -> sent -> answered | unanswered ; planned -> failed | skipped
+  status        String    @default("planned")
+  target        String?
+  probeAddress  String?   @unique @map("probe_address")
+  senderName    String?   @map("sender_name")
+  messageBody   String?   @map("message_body")
+  scheduledFor  DateTime  @map("scheduled_for")
+  sentAt        DateTime? @map("sent_at")
+  answeredAt    DateTime? @map("answered_at")
+  closedAt      DateTime? @map("closed_at")
+  replyExcerpt  String?   @map("reply_excerpt")
+  failReason    String?   @map("fail_reason")
+  reportedAt    DateTime? @map("reported_at")
+  disclosedAt   DateTime? @map("disclosed_at")
+  consentUserId String    @map("consent_user_id") @db.Uuid
+  consentAt     DateTime  @map("consent_at")
+  payload       Json?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@index([diagnosisId, createdAt(sort: Desc)])
+  @@index([status, scheduledFor])
+  @@index([runId])
+  @@map("mystery_probes")
 }
 
 model Scan {

@@ -69,7 +69,8 @@ function isTrashedPath(url: string): boolean {
   }
 }
 
-interface FetchedPage {
+// מיוצא (30.8) כי הלקוח הסמוי (server/run-mystery.ts) מאתר את יעד הפנייה באותה שרשרת הגנות
+export interface FetchedPage {
   html: string;
   finalUrl: string;
 }
@@ -80,7 +81,7 @@ interface FetchedPage {
 // למארח פנימי בלי שום בדיקה, ואז הסורק היה מנתח את התשובה הפנימית וממשיך לקישורים שבה
 // (באג מאומת). נבדק אמפירית ב-Node 22/undici: במצב manual מתקבלת תשובת 3xx אמיתית עם
 // כותרת Location קריאה (ולא opaqueredirect ריק), כך שאפשר לעקוב בעצמנו ולבדוק כל קפיצה
-async function fetchPage(
+export async function fetchPage(
   url: string,
   fetchImpl: FetchLike,
   lookupImpl: LookupLike,
@@ -217,6 +218,8 @@ export async function crawlWebsite(
       for (const key of BOOL_KEYS) merged[key] = merged[key] || signals[key];
       merged.platform = merged.platform ?? signals.platform;
       merged.clientFramework = merged.clientFramework ?? signals.clientFramework;
+      // הכתובת הראשונה שנמצאה באתר נשארת - עמוד הבית לפני עמודים פנימיים
+      merged.contactEmail = merged.contactEmail ?? signals.contactEmail;
       crawledUrls.push(finalUrl);
     } catch {
       // עמוד פנימי שנפל לא מפיל את הסריקה

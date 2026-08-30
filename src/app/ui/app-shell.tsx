@@ -24,7 +24,7 @@ const RAIL_MAX_AGE = 31536000;
 export type ShellNavKey =
   | "home" | "report" | "interview" | "roadmap"
   | "admin" | "admin_catalog" | "admin_businesses" | "admin_users" | "admin_diagnoses" | "admin_usage" | "admin_activity"
-  | "admin_agents" | "admin_tasks";
+  | "admin_agents" | "admin_tasks" | "admin_mystery";
 
 export type ShellSection = "business" | "admin";
 
@@ -96,6 +96,12 @@ const NAV_ICONS: Record<ShellNavKey, ReactNode> = {
       <path d="M4 5.5h11v8H8l-4 3.5z" /><path d="M20 10.5v8l-3-2.5h-5" />
     </svg>
   ),
+  // הלקוח הסמוי: זכוכית מגדלת - אותו רעיון כמו הדמות הבודקת של המותג
+  admin_mystery: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="10.5" cy="10.5" r="6" /><path d="M15 15l5 5" /><path d="M8 10.5h5" />
+    </svg>
+  ),
   admin_tasks: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M4 6.5h2.2M4 12h2.2M4 17.5h2.2" /><path d="M9.5 6.5H20M9.5 12H20M9.5 17.5H20" />
@@ -117,6 +123,7 @@ export const NAV_LABEL: Record<ShellNavKey, string> = {
   admin_activity: "יומן",
   admin_agents: "ערוץ הסוכנים",
   admin_tasks: "לוח המשימות",
+  admin_mystery: "לקוח סמוי",
 };
 
 // מסכי הניהול. הסדר הוא סדר העבודה: מה קורה עכשיו, מי המשתמשים, מה נסרק, כמה זה עולה,
@@ -127,6 +134,7 @@ export const ADMIN_ITEMS: { key: ShellNavKey; href: string }[] = [
   { key: "admin_businesses", href: "/admin/businesses" },
   { key: "admin_users", href: "/admin/users" },
   { key: "admin_diagnoses", href: "/admin/diagnoses" },
+  { key: "admin_mystery", href: "/admin/mystery" },
   { key: "admin_usage", href: "/admin/usage" },
   { key: "admin_activity", href: "/admin/activity" },
   { key: "admin_tasks", href: "/admin/tasks" },

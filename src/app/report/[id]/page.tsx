@@ -16,6 +16,8 @@ import { emitUsageEvent } from "../../../server/usage-events";
 import { THEME_COOKIE, parseTheme } from "../../theme";
 import { getVariant } from "../../variants/registry";
 import { buildLedger } from "../../../pipeline/model/ledger";
+import { mysteryViewFor, mysteryDepsFromEnv } from "../../../server/run-mystery";
+import { toMysteryCardView } from "../../ui/mystery-card";
 
 export const dynamic = "force-dynamic";
 
@@ -76,6 +78,13 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
   // שמורים, בזיכרון בלבד, בלי LLM ובלי שמירה. אות שלא נבדק לא נכנס לשום מסקנה
   const understood = insights(report.scan.scores);
 
+  // הלקוח הסמוי (משימה 10): מצב הסבב לכרטיס. הטלפון מגיע מהממצאים (גוגל) - בלי שאילתה נוספת.
+  // כשל בקריאה לא מפיל את הדוח - הכרטיס פשוט לא מוצג
+  const mysteryView = await mysteryViewFor(
+    prisma, id, report.scan.findings, report.scan.findings.business.phone ?? null, mysteryDepsFromEnv(),
+  ).catch(() => null);
+  const mystery = mysteryView ? toMysteryCardView(mysteryView) : null;
+
   // ההרשאה נקבעת על השחקן האמיתי ולא על מי שמתחזים אליו
   const viewerIsAdmin = viewAsAdmin(acting);
   const viewerEmail = acting?.actor.email ?? null;
@@ -90,6 +99,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
       quickWins={freeSteps}
       insights={understood}
       ledger={ledger}
+      mystery={mystery}
     />
   );
 }

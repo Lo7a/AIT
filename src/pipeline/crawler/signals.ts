@@ -75,7 +75,10 @@ const A11Y_STATEMENT_HREF_RE = /accessibility[-_]?statement|negishut|הצהרת[
 // ספק, ומספיק אזכור אחד כדי לזכות אתר בחוק נגישות שלא מגיע לו
 const A11Y_WIDGET_RE = /userway|equalweb|accessibe|acsbapp|nagich|enable\.co\.il|accessible-poetry|accessiway|negishim|dbusiness\.co(?![a-z])/;
 // טפסים שאינם יצירת קשר: חיפוש, ניוזלטר, התחברות, עגלה, תגובות בלוג
-const NON_CONTACT_FORM_RE = /(?:^|[^a-z])(search|newsletter|subscribe|mc4wp|login|register|cart|coupon|comment)/;
+// מיוצא כי הלקוח הסמוי (mystery/form.ts) מזהה את אותו טופס בדיוק לפני שהוא ממלא אותו
+export const NON_CONTACT_FORM_RE = /(?:^|[^a-z])(search|newsletter|subscribe|mc4wp|login|register|cart|coupon|comment)/;
+// כתובת מייל תקינה מקישור mailto - בלי רווחים, עם דומיין וסיומת
+const EMAIL_ADDRESS_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 // קישורים לקבצים - לא עמודים, לא נכנסים לתור הסריקה
 const ASSET_EXT_RE = /\.(jpe?g|png|gif|webp|svg|avif|pdf|docx?|xlsx?|pptx?|zip|rar|mp4|mp3|csv)$/i;
 
@@ -242,11 +245,27 @@ export function extractSignals(html: string, baseUrl: string): PageSignals {
     });
   }
 
+  // כתובת המייל הראשונה מקישור mailto - היעד של הלקוח הסמוי (משימה 10). רק כתובת תקינה
+  // נשמרת: mailto ריק, או עם נושא בלבד, נשאר hasEmailLink בלי contactEmail
+  let contactEmail: string | undefined;
+  $('a[href^="mailto:" i]').each((_i, el) => {
+    if (contactEmail != null) return;
+    const raw = ($(el).attr("href") ?? "").slice("mailto:".length).split("?")[0].trim();
+    let decoded = raw;
+    try {
+      decoded = decodeURIComponent(raw);
+    } catch {
+      // קידוד שבור - בודקים את הגולמי
+    }
+    if (EMAIL_ADDRESS_RE.test(decoded)) contactEmail = decoded.toLowerCase();
+  });
+
   return {
     hasContactForm,
     hasWhatsappLink: WHATSAPP_RE.test(lowerHtml),
     hasPhoneLink: $('a[href^="tel:" i]').length > 0,
     hasEmailLink: $('a[href^="mailto:" i]').length > 0,
+    ...(contactEmail != null ? { contactEmail } : {}),
     hasOnlineBooking: BOOKING_RE.test(lowerHtml) || hasCustomBooking,
     hasOrderingSystem: ORDERING_RE.test(lowerHtml),
     hasDeliveryPlatform: DELIVERY_RE.test(lowerHtml),

@@ -32,6 +32,9 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
   const roadmaps: any[] = [];
   const roadmapItems: any[] = [];
   const briefs: any[] = [];
+  // הלקוח הסמוי (משימה 10): שורות mystery_probes. probeSeq = סדר יצירה יציב כמו msgSeq
+  const probes: any[] = [];
+  let probeSeq = 0;
   const users: any[] = [];
   const usageEvents: any[] = [];
   const externalCalls: any[] = [];
@@ -108,10 +111,30 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
         if (!d) throw new Error("diagnosis not found");
         return { status: d.status };
       },
-      // תמיכה מינימלית ל-interview-repo.ts: שליפת אבחון בודד לפי id (select נבלע, מחזיר שורה מלאה)
-      findUnique: async ({ where }: any) => {
+      // תמיכה מינימלית ל-interview-repo.ts: שליפת אבחון בודד לפי id (select נבלע, מחזיר שורה מלאה).
+      // include (run-mystery.ts): business עם owner, scans (האחרונות לפי take), businessModel האחרון
+      findUnique: async ({ where, include }: any) => {
         const d = diagnoses.find((x) => x.id === where.id);
-        return d ? { ...d } : null;
+        if (!d) return null;
+        const row: any = { ...d };
+        if (include?.business) {
+          const biz = businesses.find((b) => b.id === d.businessId);
+          row.business = biz
+            ? { ...biz, owner: users.find((u) => u.id === biz.ownerUserId) ?? null }
+            : null;
+        }
+        if (include?.scans) {
+          const take = include.scans?.take;
+          const rows = scans
+            .filter((s) => s.diagnosisId === d.id)
+            .sort((a, b) => (b.createdAt?.getTime?.() ?? 0) - (a.createdAt?.getTime?.() ?? 0));
+          row.scans = (take != null ? rows.slice(0, take) : rows).map((s) => ({ ...s }));
+        }
+        if (include?.businessModel) {
+          const last = [...models].reverse().find((m) => m.where.diagnosisId === d.id);
+          row.businessModel = last ? { id: genId("bm"), diagnosisId: d.id, ...last.payload } : null;
+        }
+        return row;
       },
       // תמיכה מינימלית ל-diagnosis-lookup.ts: האבחון האחרון של עסק, ממוין לפי createdAt
       findFirst: async ({ where, orderBy }: any) => {
@@ -331,6 +354,49 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
         return { ...it };
       },
     },
+    // הלקוח הסמוי (run-mystery.ts): where גנרי - שוויון, in/notIn, lte/gte על תאריכים
+    mysteryProbe: {
+      create: async ({ data }: any) => {
+        const row = {
+          id: genId("probe"), status: "planned", target: null, probeAddress: null, senderName: null,
+          messageBody: null, sentAt: null, answeredAt: null, closedAt: null, replyExcerpt: null,
+          failReason: null, reportedAt: null, disclosedAt: null, payload: null,
+          createdAt: new Date(Date.now() + probeSeq++), updatedAt: new Date(), ...data,
+        };
+        probes.push(row);
+        return { ...row };
+      },
+      findMany: async ({ where, orderBy, take, include }: any = {}) => {
+        let rows = probes.filter((p) => matchWhere(p, where));
+        const key = orderBy ? Object.keys(orderBy)[0] : null;
+        if (key) {
+          const dir = orderBy[key] === "desc" ? -1 : 1;
+          rows = [...rows].sort((a, b) => dir * ((a[key]?.getTime?.() ?? 0) - (b[key]?.getTime?.() ?? 0)));
+        }
+        if (take != null) rows = rows.slice(0, take);
+        return rows.map((p) => {
+          const out: any = { ...p };
+          if (include?.diagnosis) {
+            const d = diagnoses.find((x) => x.id === p.diagnosisId);
+            const biz = d ? businesses.find((b) => b.id === d.businessId) : null;
+            out.diagnosis = { ...(d ?? {}), business: biz ? { name: biz.name, phone: biz.phone, website: biz.website } : null };
+          }
+          return out;
+        });
+      },
+      findFirst: async (args: any = {}) => (await db.mysteryProbe.findMany(args))[0] ?? null,
+      update: async ({ where, data }: any) => {
+        const p = probes.find((x) => x.id === where.id);
+        if (!p) throw new Error("probe not found");
+        Object.assign(p, data);
+        return { ...p };
+      },
+      updateMany: async ({ where, data }: any) => {
+        const rows = probes.filter((p) => matchWhere(p, where));
+        for (const p of rows) Object.assign(p, data);
+        return { count: rows.length };
+      },
+    },
     brief: {
       create: async ({ data }: any) => {
         // מדמה כשל DB מדומה בזמן יצירת Brief (FakeDbOptions.failBriefCreate) - מנגנון ההזרקה
@@ -491,6 +557,22 @@ export function makeFakeDb(opts: FakeDbOptions = {}) {
 
   return {
     db: db as any, businesses, diagnoses, scans, models, messages, transitions, externalCalls, appSettings,
-    catalogs, benchmarks, roadmaps, roadmapItems, briefs, users, usageEvents,
+    catalogs, benchmarks, roadmaps, roadmapItems, briefs, users, usageEvents, probes,
   };
+}
+
+// התאמת where פשוטה של Prisma: ערך = שוויון (null תואם null), אובייקט = in/notIn/lte/gte.
+// מספיק בדיוק למה שרצים דרך הפייק; אופרטור שלא נתמך מתעלמים ממנו (התאמה)
+function matchWhere(row: any, where: any): boolean {
+  return Object.entries(where ?? {}).every(([k, v]: [string, any]) => {
+    const actual = row[k];
+    if (v !== null && typeof v === "object" && !(v instanceof Date)) {
+      if ("in" in v && !v.in.includes(actual)) return false;
+      if ("notIn" in v && v.notIn.includes(actual)) return false;
+      if ("lte" in v && !(actual != null && actual.getTime() <= v.lte.getTime())) return false;
+      if ("gte" in v && !(actual != null && actual.getTime() >= v.gte.getTime())) return false;
+      return true;
+    }
+    return actual === v || (actual == null && v == null);
+  });
 }

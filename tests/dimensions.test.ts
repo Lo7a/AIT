@@ -599,6 +599,48 @@ describe("process dimension (אבן דרך 4, משימה 1)", () => {
     });
   });
 
+  // הלקוח הסמוי (משימה 10): ראיה שנמדדה גוברת על הדיווח העצמי, לשני הכיוונים
+  describe("lead_handling עם ראיית הלקוח הסמוי", () => {
+    const sent = "2026-09-01T08:30:00Z";
+    const withProbe = (answeredAt: string | undefined, closedAt: string): ScanFindings => ({
+      ...RICH,
+      mystery: { results: [{ channel: "email", sentAt: sent, ...(answeredAt ? { answeredAt } : {}), closedAt }] },
+    });
+
+    it("בלי ראיון בכלל: תשובה מהירה = ידוע ומזכה, והטקסט הוא העובדה שנמדדה", () => {
+      const f = withProbe("2026-09-01T09:12:00Z", "2026-09-01T09:12:00Z");
+      const rule = processRules(null).find((r) => r.key === "lead_handling")!;
+      expect(rule.known(f)).toBe(true);
+      expect(rule.earned(f)).toBe(true);
+      expect(rule.okText(f)).toBe("הלקוח הסמוי פנה במייל ביום שלישי בשעה 11:30 וקיבל תשובה אחרי 42 דקות");
+    });
+
+    it("הראיון אומר שהכול מסודר, הבדיקה מצאה שלא ענו - העובדה מנצחת", () => {
+      const model = makeModel(
+        { lead_flow: { whoHandles: "המזכירה עונה מיד", responseTime: "תוך דקות" } },
+        { lead_flow: 1 },
+      );
+      const f = withProbe(undefined, "2026-09-04T08:30:00Z");
+      const rule = processRules(model).find((r) => r.key === "lead_handling")!;
+      expect(rule.earned(f)).toBe(false);
+      expect(rule.gapText(f)).toBe("הלקוח הסמוי פנה במייל ביום שלישי בשעה 11:30 ולא קיבל תשובה במשך 3 ימים");
+    });
+
+    it("תשובה איטית (מעבר לחלון) - פער, עם המשך שנמדד ולא סף", () => {
+      const f = withProbe("2026-09-01T11:50:00Z", "2026-09-01T11:50:00Z");
+      const rule = processRules(null).find((r) => r.key === "lead_handling")!;
+      expect(rule.earned(f)).toBe(false);
+      expect(rule.gapText(f)).toContain("אחרי 3 שעות ו-20 דקות");
+      expect(rule.gapText(f)).not.toContain("שעה אחת");
+    });
+
+    it("בלי ראיה - ההתנהגות הישנה בדיוק (קרדיט חלקי = לא ידוע)", () => {
+      const model = makeModel({ lead_flow: { hasContactForm: true } }, { lead_flow: 0.5 });
+      const rule = processRules(model).find((r) => r.key === "lead_handling")!;
+      expect(rule.known(RICH)).toBe(false);
+    });
+  });
+
   describe("manual_tasks", () => {
     it("earned: קרדיט מלא ואין שום טקסט מדווח", () => {
       const model = makeModel({ manual_tasks: {} }, { manual_tasks: 1 });

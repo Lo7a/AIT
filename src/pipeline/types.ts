@@ -42,6 +42,8 @@ export interface WebsiteSignals {
   hasWhatsappLink: boolean;
   hasPhoneLink: boolean;
   hasEmailLink: boolean;
+  // כתובת המייל הראשונה שנמצאה בקישור mailto - היעד של הלקוח הסמוי במייל (משימה 10)
+  contactEmail?: string;
   hasOnlineBooking: boolean;
   hasChatWidget: boolean;
   hasFacebookPixel: boolean;
@@ -144,6 +146,22 @@ export interface HealthSignals {
   safeBrowsing?: SafeBrowsingCheck;
 }
 
+// ערוצי הפנייה של הלקוח הסמוי (משימה 10): מייל וטופס נשלחים אוטומטית; וואטסאפ וטלפון נשלחים
+// ביד מהטלפון של החברה ומתועדים במסך הניהול (הכרעת מייסד 30.8 - בלי תלות ב-API של מטא)
+export type MysteryChannel = "email" | "form" | "whatsapp" | "phone";
+
+export interface MysteryProbeResult {
+  channel: MysteryChannel;
+  sentAt: string;       // ISO - מתי הפנייה יצאה בפועל
+  answeredAt?: string;  // ISO - חסר = לא נענתה עד closedAt
+  closedAt: string;     // ISO - תשובה, או תום ההמתנה
+}
+
+// בדיקה אחת היא נקודה אחת עם תאריך, לא שיעור - "80% מהפניות נופלות" מבדיקה אחת הוא מספר מומצא
+export interface MysteryEvidence {
+  results: MysteryProbeResult[];
+}
+
 export interface Theme {
   theme: string; // מסקנה קצרה בעברית - בלי ציטוטים ובלי שמות
   count: number;
@@ -221,6 +239,9 @@ export interface ScanFindings {
   reviewInsights?: ReviewInsights;
   // בדיקות תקינות דומיין/דואר/סימון/אבטחה - כל תת-שדה חסר פירושו "לא נבדק"
   health?: HealthSignals;
+  // הלקוח הסמוי (משימה 10, 30.8): נכתב לכאן כשסבב בדיקה נסגר, כי זו ראיה כמו כל אות אחר -
+  // וכך חוקי הניקוד קוראים אותה בלי חתימה חדשה. חסר = לא נבדק
+  mystery?: MysteryEvidence;
   socialOnly?: SocialOnly;
   partial: PartialFlag[]; // איחוד הדגלים האפשריים - ראו PartialFlag
   partialDetails?: Partial<Record<PartialFlag, string>>; // דגל - סיבת הכישלון (לעולם בלי טקסט ביקורות)
